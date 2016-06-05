@@ -94,18 +94,7 @@ class SendPixelsToScan(icetray.I3Module):
             if pixel not in self.pixels_in_process:
                 pixels_to_submit.append(pixel)
         
-        if len(pixels_to_submit)==0:
-            # there are submitted pixels left that haven't yet arrived
-            
-            print "** all pixels are processing. waiting one second..."
-            time.sleep(1)
-            
-            # send a special frame type to I3Distribute in order to flush its
-            # output queue
-            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
-            
-            # nothing else to do here
-            return
+        something_was_submitted = False
             
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
@@ -114,6 +103,18 @@ class SendPixelsToScan(icetray.I3Module):
                 break
             self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
             self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
+            something_was_submitted = True
+        
+        if not something_was_submitted:
+            # there are submitted pixels left that haven't yet arrived
+            
+            # print "** all pixels are processing. waiting one second..."
+            time.sleep(1)
+            
+            # send a special frame type to I3Distribute in order to flush its
+            # output queue
+            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
+        
         
     def CreatePFrame(self, nside, pixel):
         print "Scanning nside={0}, pixel={1}".format(nside,pixel)
