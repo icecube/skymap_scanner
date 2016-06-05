@@ -1,6 +1,7 @@
 import numpy
 import healpy
 import os
+import random
 
 import time
 
@@ -21,6 +22,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
+        self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
         self.AddOutBox("OutBox")
         
     def Configure(self):
@@ -28,6 +30,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.input_pos_name = self.GetParameter("InputPosName")
         self.input_time_name = self.GetParameter("InputTimeName")
         self.output_particle_name = self.GetParameter("OutputParticleName")
+        self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
         
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -106,6 +109,9 @@ class SendPixelsToScan(icetray.I3Module):
             
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
+            if len(self.pixels_in_process) > self.max_pixels_in_process:
+                # too many pixels in process. let some of them finish before sending more requests
+                break
             self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
             self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
         
@@ -120,13 +126,18 @@ class SendPixelsToScan(icetray.I3Module):
             time = self.fallback_time
             energy = self.fallback_energy
         else:
-            coarser_nside = nside/2
-            coarser_pixel = healpy.ang2pix(coarser_nside, zenith, azimuth)
-            
-            if coarser_nside not in self.state_dict["nsides"]:
-                raise RuntimeError("internal error. expected nside={0} to exist in 'nsides' array".format(coarser_nside))
-            if coarser_pixel not in self.state_dict["nsides"][coarser_nside]:
-                raise RuntimeError("internal error. expected nside={0}/pixel={1} to exist in 'nsides' array".format(coarser_nside, coarser_pixel))
+            coarser_nside = nside
+            while True:
+                coarser_nside = coarser_nside/2
+                coarser_pixel = healpy.ang2pix(coarser_nside, zenith, azimuth)
+                
+                if coarser_nside < 8:
+                    raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
+
+                if coarser_nside in self.state_dict["nsides"]:
+                    if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
+                        # coarser pixel found
+                        break
             
             if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
                 # coarser reconstruction failed
@@ -295,6 +306,12 @@ class CollectRecoResults(icetray.I3Module):
 
 
 def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10):
+    npos_per_pixel = 7
+    pixel_overhead_percent = 30 # send 30% more pixels than we have actual capacity for
+    parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
+    if parallel_pixels <= 0: parallel_pixels = 1
+    print "number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel)
+
     base_GCD_path, base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
     print "base_GCD_path: {0}".format(base_GCD_path)
     print "base_GCD_filename: {0}".format(base_GCD_filename)
@@ -314,17 +331,20 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         state_dict=state_dict,
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
-        OutputParticleName="MillipedeSeedParticle"
+        OutputParticleName="MillipedeSeedParticle",
+        MaxPixelsInProcess=int(float(numclients)*1.3) # send about 30% more pixels than clients
     )
 
     # #### do the scan
     # def FakeScan(frame):
     #     fp = millipede.MillipedeFitParams()
-    #     fp.logl = 100.
+    #     fp.logl = random.uniform(100.,200.)
     #     frame["MillipedeStarting2ndPass_millipedellh"] = fp
     #     
     #     p = dataclasses.I3Particle(frame["MillipedeSeedParticle"])
     #     frame["MillipedeStarting2ndPass"] = p
+    #     
+    #     time.sleep(0.002)
     # tray.AddModule(FakeScan)
 
     #### do the scan
