@@ -64,10 +64,10 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
         random.shuffle(scan_pixels)
         return [(8, pix) for pix in scan_pixels]
 
-    # all 768 pixels with nside 8 exist
+    # some or all 768 pixels with nside 8 exist
     current_nside = 8
 
-    all_pixels_to_refine = []
+    all_pixels_to_refine = scan_pixels
 
     # first iteration will upgrade from nside=8 to nside=16, next one from 16 to 32, ...
     while True:
