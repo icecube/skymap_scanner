@@ -10,13 +10,16 @@ from icecube import icetray, dataio
 
 from utils import parse_event_id
 
-# from choose_new_pixels_to_scan import choose_new_pixels_to_scan
+# from choose_new_pixels_to_scan import find_pixels_to_refine
 
 def create_plot(event_id_string, state_dict):
-    x_inches = 6
     y_inches = 3.85
-    dpi = 900
-    xsize = x_inches*900
+    x_inches = 6.
+    dpi = 900.
+    xsize = x_inches*900.
+
+    lonra=[-10.,10.]
+    latra=[-10.,10.]
 
     if "nsides" not in state_dict:
         raise RuntimeError("\"nsides\" not in dictionary..")
@@ -31,15 +34,11 @@ def create_plot(event_id_string, state_dict):
     nsides = state_dict["nsides"].keys()
     print "available nsides: {0}".format(nsides)
 
-    # p = choose_new_pixels_to_scan(state_dict)
-    # print "to refine:", p
-    # for pix in p:
-    #     state_dict["nsides"][8][pix]["llh"] = numpy.inf
-    # return
-
     maps = []
     min_value = numpy.nan
     max_value = numpy.nan
+    minAzimuth=0.
+    minZenith=0.
 
     # now plot maps above each other
     for nside in sorted(nsides):
@@ -49,6 +48,7 @@ def create_plot(event_id_string, state_dict):
             value = pixel_data['llh']
             if numpy.isfinite(value):
                 if numpy.isnan(min_value) or value < min_value:
+                    minZenith, minAzimuth = healpy.pix2ang(nside, pixel)
                     min_value = value
                 if numpy.isnan(max_value) or value > max_value:
                     max_value = value
@@ -59,19 +59,28 @@ def create_plot(event_id_string, state_dict):
 
         maps.append(this_map)
 
+    max_value_zoomed = min_value+7.
+
     print "preparing plot: {0}...".format(plot_filename)
 
     # prepare the figure canvas
-    fig = matplotlib.pyplot.figure(figsize=[x_inches,y_inches])
-    # ax = healpy.projaxes.HpxMollweideAxes(fig,(0.02,0.05,0.96,0.9))
-    ax = healpy.projaxes.HpxMollweideAxes(fig,(0.,0.,1.,1.))
+    fig = matplotlib.pyplot.figure(figsize=[x_inches+y_inches,y_inches])
+    # rect = (left, bottom, width, height)
+    ax = healpy.projaxes.HpxMollweideAxes(fig,(0.,0., x_inches/(x_inches+y_inches) ,1.))
     fig.add_axes(ax)
+    bx = healpy.projaxes.HpxCartesianAxes(
+        fig,
+        (x_inches/(x_inches+y_inches), 0., y_inches/(x_inches+y_inches) ,1.),
+        rot=(minAzimuth*180./numpy.pi,90.-minZenith*180/numpy.pi,0.)
+    )
+    fig.add_axes(bx)
 
     # display a map with all pixels masked below all others
     this_map = healpy.ma(numpy.ones(healpy.nside2npix(2))*0.5)
     cmap = matplotlib.cm.gray
     cmap.set_under(alpha=0.) # make underflows transparent
     ax.projmap(this_map, vmin=0.,vmax=1.,xsize=xsize,cmap=cmap)
+    bx.projmap(this_map, vmin=0.,vmax=1.,xsize=xsize,cmap=cmap, lonra=lonra, latra=latra)
 
     # the color map to use
     cmap = matplotlib.cm.cubehelix_r
@@ -86,6 +95,7 @@ def create_plot(event_id_string, state_dict):
     for this_map in maps:
         # create main image
         img = ax.projmap(this_map, xsize=xsize, vmin=min_value,vmax=max_value, cmap=cmap)
+        img = bx.projmap(this_map, xsize=xsize, vmin=min_value,vmax=max_value_zoomed, cmap=cmap, lonra=lonra, latra=latra)
 
     # create colorbars
     im = ax.get_images()[1]
@@ -97,11 +107,22 @@ def create_plot(event_id_string, state_dict):
                     pad=0.05,fraction=0.1,boundaries=b,values=v,
                     format='%g')
 
+    # create colorbars
+    im = bx.get_images()[1]
+    b = im.norm.inverse(numpy.linspace(0,1,im.cmap.N+1))
+    v = numpy.linspace(im.norm.vmin,im.norm.vmax,im.cmap.N)
+    cb=fig.colorbar(im,ax=bx,
+                    orientation='horizontal',
+                    shrink=0.5,aspect=25,ticks=healpy.projaxes.BoundaryLocator(),
+                    pad=0.05,fraction=0.1,boundaries=b,values=v,
+                    format='%g')
+
     # set the title
     ax.set_title(plot_title)
 
     # graticules
     ax.graticule()
+    bx.graticule()
 
     print "saving: {0}...".format(plot_filename)
 

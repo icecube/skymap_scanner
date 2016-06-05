@@ -30,24 +30,35 @@ def healpix_pixel_upgrade(from_nside, to_nside, pix):
         if current_nside > to_nside:
             raise RuntimeError("invalid to_nside")
 
-# def healpix_pixel_downgrade(nside, pix):
-#     pix_nested = healpy.ring2nest(nside, pix)
-#     pix_downgraded = (pix_nested >> 2)
-#     return healpy.nest2ring(nside/2, pix_downgraded)
-
-def find_pixels_around_pixel(nside, pix, num=10):
-    pixel_area = healpy.nside2pixarea(nside)
+# TODO: maybe use healpy to find neighboring pixels and scan all 8 neighbors+the current pixel
+def find_pixels_around_pixel(request_nside, pix_nside, pix, num=10):
+    pixel_area = healpy.nside2pixarea(request_nside)
     area_for_requested_pixels = pixel_area*float(num)
     radius_around = numpy.sqrt(area_for_requested_pixels/numpy.pi)
     
-    x0,y0,z0 = healpy.pix2vec(nside, pix)
-    x1,y1,z1 = healpy.pix2vec(nside, numpy.asarray(range(healpy.nside2npix(nside))))
+    x0,y0,z0 = healpy.pix2vec(pix_nside, pix)
+    
+    x1,y1,z1 = healpy.pix2vec(request_nside, numpy.asarray(range(healpy.nside2npix(request_nside))))
     cos_space_angle = numpy.clip(x0*x1 + y0*y1 + z0*z1, -1., 1.)
     space_angle = numpy.arccos(cos_space_angle)
     pixels = numpy.where(space_angle < radius_around)[0]
     pixel_space_angles = space_angle[pixels]
     # pixels, sorted by distance from the requested pixel
     return pixels[numpy.argsort(pixel_space_angles)].tolist()
+
+def find_global_min_pixel(state_dict):
+    global_min_pix_index = (None, None)
+    min_llh = None
+
+    for nside in state_dict["nsides"].keys():
+        pixels_dict = state_dict["nsides"][nside]
+        for p in pixels_dict.keys():
+            this_llh = pixels_dict[p]['llh']
+            if min_llh is None or ((not numpy.isnan(this_llh)) and (this_llh < min_llh)):
+                global_min_pix_index=(nside,p)
+                min_llh=this_llh
+
+    return global_min_pix_index
 
 def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_extension_number=24, llh_diff_to_trigger_refinement=4000):
     if nside not in state_dict["nsides"]:
@@ -81,17 +92,10 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_
     max_pixels = total_pixels_for_this_nside
     # print "nside", nside, "total_pixels_for_this_nside", max_pixels, "num_pixels", num_pixels
     if float(num_pixels)/float(max_pixels) > 0.3: # start only once 30% have been scanned
-        global_min_pix_index = None
-        min_llh = None
-        for p in pixels_dict.keys():
-            this_llh = pixels_dict[p]['llh']
-            if global_min_pix_index is None or ((not numpy.isnan(this_llh)) and (this_llh < min_llh)):
-                global_min_pix_index=p
-                min_llh=this_llh
+        global_min_pix_nside, global_min_pix_index = find_global_min_pixel(state_dict)
         
         if global_min_pix_index is not None:
-            all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_index, num=pixel_extension_number)
-            
+            all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_nside, global_min_pix_index, num=pixel_extension_number)
             pixels_to_refine.update([x for x in all_refine_pixels if x in pixels_dict])
     
     return [x for x in pixels_to_refine]
@@ -128,13 +132,15 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
     while True:
         pixel_extension_number = 12
         if current_nside < 64:
-            # 8 -> 64
+            # 8 -> 64, 64 subdivisions per existing pixel
             next_nside = 64
-            pixel_extension_number = 24
+            pixel_extension_number = 12 # scan 12*64=768 pixels
         elif current_nside < 1024:
+            # 64 -> 1024, 256 sibdivisons per existing pixel
             next_nside = 1024
-            pixel_extension_number = 12
+            pixel_extension_number = 12 # scan 12*256=3072 pixels
         else:
+            # should not get here, max_nside is 1024
             next_nside = current_nside*8
             pixel_extension_number = 12
         

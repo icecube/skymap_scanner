@@ -308,7 +308,7 @@ class CollectRecoResults(icetray.I3Module):
 
 def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10):
     npos_per_pixel = 7
-    pixel_overhead_percent = 30 # send 30% more pixels than we have actual capacity for
+    pixel_overhead_percent = 50 # send 50% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
     print "number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel)
