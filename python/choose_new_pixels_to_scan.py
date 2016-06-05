@@ -79,7 +79,7 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, llh_di
         if global_min_pix_index is not None:
             all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_index, num=100)
             
-            pixels_to_refine = [x for x in all_refine_pixels if x in pixels_dict]
+            pixels_to_refine.update([x for x in all_refine_pixels if x in pixels_dict])
     
     return [x for x in pixels_to_refine]
 
