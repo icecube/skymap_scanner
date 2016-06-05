@@ -45,10 +45,14 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
     # first check if any pixels with nside=8 are missing (we need all of them)
     if "nsides" not in state_dict:
         print "nsides is missing - scan all pixels at nside=8"
-        return [(8, pix) for pix in range(healpy.nside2npix(8))]
+        scan_pixels = range(healpy.nside2npix(8))
+        random.shuffle(scan_pixels)
+        return [(8, pix) for pix in scan_pixels]
     if 8 not in state_dict["nsides"]:
         print "nsides=8 is missing - scan all pixels at nside=8"
-        return [(8, pix) for pix in range(healpy.nside2npix(8))]
+        scan_pixels = range(healpy.nside2npix(8))
+        random.shuffle(scan_pixels)
+        return [(8, pix) for pix in scan_pixels]
 
     scan_pixels = []
     existing_pixels = state_dict["nsides"][8].keys()
