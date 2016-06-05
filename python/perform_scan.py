@@ -332,7 +332,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
-        MaxPixelsInProcess=int(float(numclients)*1.3) # send about 30% more pixels than clients
+        MaxPixelsInProcess=parallel_pixels
     )
 
     # #### do the scan
