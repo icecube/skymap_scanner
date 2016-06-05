@@ -14,6 +14,28 @@ def healpix_pixel_downgrade(nside, pix):
     pix_downgraded = (pix_nested >> 2)
     return healpy.nest2ring(nside/2, pix_downgraded)
 
+def find_pixels_around_pixel(nside, pix, num=100):
+    pixel_area = healpy.nside2pixarea(nside)
+    pixels_around_minimum=float(num)
+    radius_around_sq = pixel_area*pixels_around_minimum/numpy.pi
+    
+    ret_pixels = []
+    
+    x0,y0,z0 = healpy.pix2vec(nside, pix)
+    for i in range(healpy.nside2npix(nside)):
+        x1,y1,z1 = healpy.pix2vec(nside, i)
+        cos_space_angle = x0*x1 + y0*y1 + z0*z1
+        if cos_space_angle >  1.: cos_space_angle= 1.
+        if cos_space_angle < -1.: cos_space_angle=-1.
+        space_angle = numpy.arccos(cos_space_angle)    
+        
+        if space_angle <= radius_around_sq:
+            ret_pixels.append(i)
+        
+    # print "expected pixels=", num, " returned pixels=", len(ret_pixels)
+    return ret_pixels
+        
+
 def find_pixels_to_refine(state_dict, nside, llh_diff_to_trigger_refinement=4000):
     if nside not in state_dict["nsides"]:
         return []
@@ -22,6 +44,7 @@ def find_pixels_to_refine(state_dict, nside, llh_diff_to_trigger_refinement=4000
 
     pixels_to_refine = set()
 
+    # refine pixels that have neighbors with a high likelihood ratio
     for pixel in pixels_dict.keys():
         pixel_llh = pixels_dict[pixel]["llh"]
         if numpy.isnan(pixel_llh): continue # do not refine nan pixels
@@ -30,7 +53,7 @@ def find_pixels_to_refine(state_dict, nside, llh_diff_to_trigger_refinement=4000
         for neighbor in neighbors:
             if neighbor==-1: continue
             if neighbor not in pixels_dict: continue
-            neighbor_llh =pixels_dict[neighbor]["llh"]
+            neighbor_llh = pixels_dict[neighbor]["llh"]
 
             llh_diff = 2.*numpy.abs(pixel_llh-neighbor_llh) # Wilk's theorem
             if llh_diff > llh_diff_to_trigger_refinement:
@@ -39,6 +62,24 @@ def find_pixels_to_refine(state_dict, nside, llh_diff_to_trigger_refinement=4000
                 pixels_to_refine.add(pixel)
                 pixels_to_refine.add(neighbor)
 
+    # refine the global minimum
+
+    num_pixels = len(pixels_dict)
+    max_pixels = healpy.nside2npix(nside)
+    if float(num_pixels)/float(max_pixels) > 0.3: # start only once 30% have been scanned
+        global_min_pix_index = None
+        min_llh = None
+        for p in pixels_dict.keys():
+            this_llh = pixels_dict[p]['llh']
+            if global_min_pix_index is None or ((not numpy.isnan(this_llh)) and (this_llh < min_llh)):
+                global_min_pix_index=p
+                min_llh=this_llh
+        
+        if global_min_pix_index is not None:
+            all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_index, num=100)
+            
+            pixels_to_refine = [x for x in all_refine_pixels if x in pixels_dict]
+    
     return [x for x in pixels_to_refine]
 
 def choose_new_pixels_to_scan(state_dict, max_nside=1024):
@@ -62,7 +103,7 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
 
     if len(scan_pixels) > 0:
         random.shuffle(scan_pixels)
-        return [(8, pix) for pix in scan_pixels]
+        scan_pixels = [(8, pix) for pix in scan_pixels]
 
     # some or all 768 pixels with nside 8 exist
     current_nside = 8
