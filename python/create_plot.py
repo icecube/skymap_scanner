@@ -10,7 +10,7 @@ from icecube import icetray, dataio
 
 from utils import parse_event_id
 
-# from choose_new_pixels_to_scan import find_pixels_to_refine
+# from choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 def create_plot(event_id_string, state_dict):
     x_inches = 6
@@ -31,10 +31,11 @@ def create_plot(event_id_string, state_dict):
     nsides = state_dict["nsides"].keys()
     print "available nsides: {0}".format(nsides)
 
-    # p = find_pixels_to_refine(state_dict, nside=8, llh_diff_to_trigger_refinement=4000)
-    # print "to refine:", len(p)
+    # p = choose_new_pixels_to_scan(state_dict)
+    # print "to refine:", p
     # for pix in p:
     #     state_dict["nsides"][8][pix]["llh"] = numpy.inf
+    # return
 
     maps = []
     min_value = numpy.nan

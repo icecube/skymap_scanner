@@ -36,7 +36,7 @@ def find_pixels_around_pixel(nside, pix, num=100):
     return ret_pixels
         
 
-def find_pixels_to_refine(state_dict, nside, llh_diff_to_trigger_refinement=4000):
+def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, llh_diff_to_trigger_refinement=4000):
     if nside not in state_dict["nsides"]:
         return []
 
@@ -65,7 +65,8 @@ def find_pixels_to_refine(state_dict, nside, llh_diff_to_trigger_refinement=4000
     # refine the global minimum
 
     num_pixels = len(pixels_dict)
-    max_pixels = healpy.nside2npix(nside)
+    max_pixels = total_pixels_for_this_nside
+    print "nside", nside, "total_pixels_for_this_nside", max_pixels, "num_pixels", num_pixels
     if float(num_pixels)/float(max_pixels) > 0.3: # start only once 30% have been scanned
         global_min_pix_index = None
         min_llh = None
@@ -115,7 +116,14 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
         if current_nside*2 > max_nside:
             break # no more pixels to scan
 
-        pixels_to_refine = find_pixels_to_refine(state_dict, nside=current_nside)
+        total_pixels_scanning_and_existing = set()
+        if current_nside in state_dict["nsides"]:
+            total_pixels_scanning_and_existing.update(state_dict["nsides"][current_nside].keys())
+        for __n, __p in all_pixels_to_refine:
+            if __n == current_nside: total_pixels_scanning_and_existing.add(__p)
+        total_pixels_scanning_and_existing = len(total_pixels_scanning_and_existing)
+
+        pixels_to_refine = find_pixels_to_refine(state_dict, nside=current_nside, total_pixels_for_this_nside=total_pixels_scanning_and_existing)
         if len(pixels_to_refine) > 0:
             random.shuffle(pixels_to_refine)
             # have the list of pixels to refine - find their subdivisions
