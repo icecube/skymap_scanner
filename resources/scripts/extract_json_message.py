@@ -1,0 +1,1 @@
+../../python/extract_json_message.py
