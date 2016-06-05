@@ -23,7 +23,7 @@ def scan_pixel_distributed(tray, name,
             raise RuntimeError("{0} not in frame".frame(pulsesName+"TimeWindows"))
         if pulsesName+"TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".frame(pulsesName+"TimeRange"))
-    tray.AddModule(makeSurePulsesExist, name+"_makeSurePulsesExist")
+    tray.AddModule(makeSurePulsesExist, name+"_makeSurePulsesExist", pulsesName=pulsesName)
     
     tray.Add(distribute.I3DistributeToCondorClients, name+"_I3DistributeToCondorClients",
         Script = """
