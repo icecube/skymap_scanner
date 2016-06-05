@@ -80,6 +80,11 @@ class SendPixelsToScan(icetray.I3Module):
             print "** there are no pixels left to refine. stopping."
             self.RequestSuspension()
             return
+
+        for nside in self.state_dict["nsides"]:
+            for pixel in self.state_dict["nsides"][nside]:
+                if (nside,pixel) in pixels_to_refine:
+                    raise RuntimeError("pixel to refine is already done processing")
         
         pixels_to_submit = []
         for pixel in pixels_to_refine:

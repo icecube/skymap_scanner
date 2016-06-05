@@ -132,7 +132,15 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
             for p in pixels_to_refine:
                 u = healpix_pixel_upgrade(current_nside, p) # upgrade to the next nside
                 upgraded_pixels_to_refine.extend(u)
-            all_pixels_to_refine.extend([(current_nside*2, pix) for pix in upgraded_pixels_to_refine])
+            
+            # only scan non-existent pixels
+            if current_nside*2 in state_dict["nsides"]:
+                existing_pixels = set(state_dict["nsides"][current_nside*2].keys())
+                upgraded_pixels_to_refine_nonexisting = [pix for pix in upgraded_pixels_to_refine if pix not in existing_pixels]
+            else:
+                upgraded_pixels_to_refine_nonexisting = upgraded_pixels_to_refine
+            
+            all_pixels_to_refine.extend([(current_nside*2, pix) for pix in upgraded_pixels_to_refine_nonexisting])
 
         current_nside = current_nside*2 # test the next nside
 
