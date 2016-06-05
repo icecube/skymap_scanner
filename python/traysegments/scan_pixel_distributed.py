@@ -12,9 +12,18 @@ def scan_pixel_distributed(tray, name,
     port=5555,
     ExcludedDOMs=[],
     NumClients=10,
-    pulsesName="SplitUncleanedInIcePulses",
+    pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned",
     base_GCD_path=os.path.join(os.environ["I3_DATA"],'GCD'),
     base_GCD_filename='GeoCalibDetectorStatus_2015.57161_V0.i3.gz'):
+    
+    def makeSurePulsesExist(frame, pulsesName):
+        if pulsesName not in frame:
+            raise RuntimeError("{0} not in frame".frame(pulsesName))
+        if pulsesName+"TimeWindows" not in frame:
+            raise RuntimeError("{0} not in frame".frame(pulsesName+"TimeWindows"))
+        if pulsesName+"TimeRange" not in frame:
+            raise RuntimeError("{0} not in frame".frame(pulsesName+"TimeRange"))
+    tray.AddModule(makeSurePulsesExist, name+"_makeSurePulsesExist")
     
     tray.Add(distribute.I3DistributeToCondorClients, name+"_I3DistributeToCondorClients",
         Script = """
@@ -96,7 +105,7 @@ def scan_pixel_distributed(tray, name,
                 ExcludedDOMs=ExcludedDOMs,
                 PartialExclusion=True,
                 ReadoutWindow=pulsesName+'TimeRange',
-                Pulses="TimeCleaned"+pulsesName,
+                Pulses=pulsesName,
                 BinSigma=3)
 
             tray.AddService('I3GSLRandomServiceFactory','I3RandomService')

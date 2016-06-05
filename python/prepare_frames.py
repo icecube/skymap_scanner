@@ -85,6 +85,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
                 print "** WARNING: {0} was already in frame. overwritten".format(new_name)
                 del frame[new_name]
             frame[new_name] = mask
+            frame[new_name+"TimeRange"] = copy.deepcopy(frame[old_name+"TimeRange"])
         tray.AddModule(copyPulseName, "copyPulseName",
             old_name=pulsesName,
             new_name=nominalPulsesName)
@@ -187,6 +188,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
                     charge += p.charge
         frame[nominalPulsesName+"LatePulseCleaned"] = mask
         frame[nominalPulsesName+"LatePulseCleanedTimeWindows"] = times
+        frame[nominalPulsesName+"LatePulseCleanedTimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
     tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
                     Pulses=nominalPulsesName,
