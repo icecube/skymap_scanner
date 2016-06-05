@@ -91,6 +91,12 @@ class SendPixelsToScan(icetray.I3Module):
             
             print "** all pixels are processing. waiting one second..."
             time.sleep(1)
+            
+            # send a special frame type to I3Distribute in order to flush its
+            # output queue
+            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
+            
+            # nothing else to do here
             return
             
         # submit the pixels we need to submit
