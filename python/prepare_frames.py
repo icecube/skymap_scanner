@@ -181,7 +181,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
                 if p.time >= (median+Residual):
                     if not times.has_key(omkey):
                         ts = dataclasses.I3TimeWindowSeries()
-                        ts.append(dataclasses.I3TimeWindow(-numpy.inf, median+Residual))
+                        ts.append(dataclasses.I3TimeWindow(median+Residual, numpy.inf)) # this defines the **excluded** time window
                         times[omkey] = ts
                     mask.set(omkey, p, False)
                     counter += 1
