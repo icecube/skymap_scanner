@@ -3,7 +3,21 @@ import shutil
 import json
 import hashlib
 
-from icecube import icetray, dataio
+from icecube import icetray, dataio, dataclasses
+
+def get_event_mjd(state_dict):
+    if "GCDQp_packet" not in state_dict:
+        raise RuntimeError("GCDQp_packet not found in state_dict")
+    frame_packet = state_dict["GCDQp_packet"]
+    
+    p_frame = frame_packet[-1]
+    if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
+        raise RuntimeError("no p-frame found at the end of the GCDQp packet")
+    if "I3EventHeader" not in p_frame:
+        raise RuntimeError("No I3EventHeader in p-frame")
+    time = p_frame["I3EventHeader"].start_time
+
+    return time.mod_julian_day_double
 
 def create_event_id(run_id, event_id):
     return "run{0:08d}.evt{1:012d}.HESE".format(run_id, event_id)

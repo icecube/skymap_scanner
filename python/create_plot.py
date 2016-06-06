@@ -53,8 +53,6 @@ def create_plot(event_id_string, state_dict):
                 if numpy.isnan(max_value) or value > max_value:
                     max_value = value
             this_map[pixel] = value
-        # this_map = healpy.ma(this_map)
-        # this_map.mask = numpy.isnan(this_map)
         print "done with map for nside {0}...".format(nside)
 
         maps.append(this_map)
@@ -94,8 +92,8 @@ def create_plot(event_id_string, state_dict):
     img = None
     for this_map in maps:
         # create main image
-        img = ax.projmap(this_map, xsize=xsize, vmin=min_value,vmax=max_value, cmap=cmap)
-        img = bx.projmap(this_map, xsize=xsize, vmin=min_value,vmax=max_value_zoomed, cmap=cmap, lonra=lonra, latra=latra)
+        img = ax.projmap(this_map, xsize=xsize, vmin=min_value, vmax=max_value, cmap=cmap)
+        img = bx.projmap(this_map, xsize=xsize, vmin=min_value, vmax=max_value_zoomed, cmap=cmap, lonra=lonra, latra=latra)
 
     # create colorbars
     im = ax.get_images()[1]
