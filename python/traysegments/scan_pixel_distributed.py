@@ -71,7 +71,7 @@ def scan_pixel_distributed(tray, name,
             for GCD_base_dir in base_GCD_paths:
                 try:
                     read_url = os.path.join(GCD_base_dir, base_GCD_filename)
-                    print "reading baseline GCD from {0}".format( read_url )
+                    print "reading baseline GCD from {{0}}".format( read_url )
                     GCD_diff_base_handle = filestager.GetReadablePath( read_url )
                 except:
                     print " -> failed"
@@ -81,7 +81,7 @@ def scan_pixel_distributed(tray, name,
                     break
             
             if GCD_diff_base_handle is None:
-                raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(base_GCD_filename))
+                raise RuntimeError("Could not read the input GCD file '{{0}}' from any pre-configured location".format(base_GCD_filename))
                 
 
             # connect to a server
