@@ -74,7 +74,9 @@ class SendPixelsToScan(icetray.I3Module):
         
         for nside in self.state_dict["nsides"]:
             pixels = self.state_dict["nsides"][nside]
-            message += " - {0} pixels of nside={1}".format( len(pixels), nside )
+            message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
+
+        self.logger(message)
 
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
@@ -86,6 +88,7 @@ class SendPixelsToScan(icetray.I3Module):
             for frame in self.GCDQpFrames:
                 self.PushFrame(frame)
             self.GCDQpFrames = None
+            self.logger("Commencing the full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
             return
 
         # check if we need to send a report to the logger
@@ -336,7 +339,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     pixel_overhead_percent = 50 # send 50% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
-    logger("number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel))
+    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more) on {3} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, numclients))
 
     base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
