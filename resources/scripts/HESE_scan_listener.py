@@ -56,7 +56,8 @@ def incoming_event(topic, event):
             state_dict=state_dict,
             cache_dir=event_cache_dir,
             port=distribute_port,
-            numclients=distribute_numclients
+            numclients=distribute_numclients,
+            logger=post_to_slack # logging callback
         )
 
         post_to_slack("Scanning of `{0}` is done. Let me create a plot for you real quick.".format(event_id))

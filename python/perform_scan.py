@@ -17,6 +17,9 @@ from traysegments import scan_pixel_distributed
 
 import config
 
+def simple_print_logger(text):
+    print text
+
 class SendPixelsToScan(icetray.I3Module):
     def __init__(self, ctx):
         super(SendPixelsToScan, self).__init__(ctx)
@@ -25,6 +28,8 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
         self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
+        self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
+        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 10)
         self.AddOutBox("OutBox")
         
     def Configure(self):
@@ -33,6 +38,8 @@ class SendPixelsToScan(icetray.I3Module):
         self.input_time_name = self.GetParameter("InputTimeName")
         self.output_particle_name = self.GetParameter("OutputParticleName")
         self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
+        self.logger = self.GetParameter("logger")
+        self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
         
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -59,6 +66,15 @@ class SendPixelsToScan(icetray.I3Module):
 
         self.pixels_in_process = set()
 
+        self.last_time_reported = time.time()
+
+    def send_status_report(self):
+        num_pixels_in_process = len(self.pixels_in_process)
+        message = "I am busy with scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
+        
+        for nside in self.state_dict["nsides"]:
+            pixels = self.state_dict["nsides"][nside]
+            message += " - {0} pixels of nside={1}".format( len(pixels), nside )
 
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
@@ -71,6 +87,13 @@ class SendPixelsToScan(icetray.I3Module):
                 self.PushFrame(frame)
             self.GCDQpFrames = None
             return
+
+        # check if we need to send a report to the logger
+        current_time = time.time()
+        elapsed_seconds = current_time - self.last_time_reported
+        if elapsed_seconds > self.logging_interval_in_seconds:
+            self.last_time_reported = current_time
+            self.send_status_report()
 
         # see if we think we are processing pixels but they have finished since
         for nside in self.state_dict["nsides"]:
@@ -308,16 +331,16 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10):
+def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger):
     npos_per_pixel = 7
     pixel_overhead_percent = 50 # send 50% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
-    print "number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel)
+    logger("number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel))
 
     base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
-    print "base_GCD_path: {0}".format(config.GCD_base_dirs)
-    print "base_GCD_filename: {0}".format(base_GCD_filename)
+    # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
+    # print "base_GCD_filename: {0}".format(base_GCD_filename)
     
     ExcludedDOMs = [
         'CalibrationErrata',
@@ -335,7 +358,8 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
-        MaxPixelsInProcess=parallel_pixels
+        MaxPixelsInProcess=parallel_pixels,
+        logger=logger
     )
 
     # #### do the scan
@@ -393,7 +417,7 @@ if __name__ == "__main__":
     (options,args) = parser.parse_args()
 
     if len(args) != 1:
-        raise RuntimeError("You need to specify exatcly one event ID")
+        raise RuntimeError("You need to specify exactly one event ID")
     eventID = args[0]
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)
