@@ -5,14 +5,15 @@ from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
 from utils import load_GCD_frame_packet_from_file, hash_frame_packet
+import config
 
-def load_cache_state(event_id, cache_dir="./cache/"):
+def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
         raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
 
     # load GCDQp state first
-    state_dict = load_GCDQp_state(event_id, cache_dir=cache_dir)[1]
+    state_dict = load_GCDQp_state(event_id, filestager=filestager, cache_dir=cache_dir)[1]
 
     # update with scans
     state_dict = load_scan_state(event_id, state_dict, cache_dir=cache_dir)[1]
@@ -51,7 +52,7 @@ def load_scan_state(event_id, state_dict, cache_dir="./cache/"):
     return (event_id, state_dict)
 
 
-def load_GCDQp_state(event_id, cache_dir="./cache/", use_original_GCD_baseline_file_if_available=True):
+def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     GCDQp_filename = os.path.join(this_event_cache_dir, "GCDQp.i3")
     potential_GCD_diff_base_filename = os.path.join(this_event_cache_dir, "base_GCD_for_diff.i3")
@@ -59,14 +60,8 @@ def load_GCDQp_state(event_id, cache_dir="./cache/", use_original_GCD_baseline_f
     potential_original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, "original_base_GCD_for_diff_filename.txt")
     if os.path.isfile(potential_original_GCD_diff_base_filename):
         f = open(potential_original_GCD_diff_base_filename, 'r')
-        filename = f.read()
+        potential_original_GCD_diff_base_filename = f.read()
         del f
-        if not os.path.isfile(filename):
-            print "** WARNING: original GCD_baseline file name {0} does not exist.".format(filename)
-            potential_original_GCD_diff_base_filename = None
-        else:
-            print "** INFO: can read original GCD diff directly from {0} instead of the local copy.".format(filename)
-            potential_original_GCD_diff_base_filename = filename
     else:
         potential_original_GCD_diff_base_filename = None
 
@@ -82,8 +77,30 @@ def load_GCDQp_state(event_id, cache_dir="./cache/", use_original_GCD_baseline_f
             load_GCD_frame_packet_from_file(potential_GCD_diff_base_filename)
             print " - has a frame diff packet at {0}".format(potential_GCD_diff_base_filename)
             GCD_diff_base_filename = potential_GCD_diff_base_filename
+            
+            raise RuntimeError("Cache state seems to require a GCD diff baseline file (it contains a cached version), but the cache does not have \"original_base_GCD_for_diff_filename.txt\". This is a bug or corrupted data.")
         else:
-            orig_packet = load_GCD_frame_packet_from_file(potential_original_GCD_diff_base_filename)
+            if filestager is None:
+                orig_packet = load_GCD_frame_packet_from_file(potential_original_GCD_diff_base_filename)
+            else:
+                # try to load the base file from the various possible input directories
+                GCD_diff_base_handle = None
+                for GCD_base_dir in config.GCD_base_dirs:
+                    try:
+                        read_url = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
+                        print "reading GCD from {0}".format( read_url )
+                        GCD_diff_base_handle = filestager.GetReadablePath( read_url )
+                    except:
+                        print " -> failed"
+                        GCD_diff_base_handle=None
+                    if GCD_diff_base_handle is not None:
+                        print " -> success"
+                        break
+                
+                if GCD_diff_base_handle is None:
+                    raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(GCD_diff_base_filename))
+
+                orig_packet = load_GCD_frame_packet_from_file( str(GCD_diff_base_handle) )
             this_packet = load_GCD_frame_packet_from_file(potential_GCD_diff_base_filename)
             
             orig_packet_hash = hash_frame_packet(orig_packet)
@@ -94,12 +111,8 @@ def load_GCDQp_state(event_id, cache_dir="./cache/", use_original_GCD_baseline_f
             del orig_packet
             del this_packet
             
-            if use_original_GCD_baseline_file_if_available:
-                print " - has a frame diff packet at {0} (using original copy)".format(potential_original_GCD_diff_base_filename)
-                GCD_diff_base_filename = potential_original_GCD_diff_base_filename
-            else:
-                print " - has a frame diff packet at {0} (using cached copy)".format(potential_GCD_diff_base_filename)
-                GCD_diff_base_filename = potential_GCD_diff_base_filename
+            print " - has a frame diff packet at {0} (using original copy)".format(potential_original_GCD_diff_base_filename)
+            GCD_diff_base_filename = potential_original_GCD_diff_base_filename
     else:
         print " - does not seem to contain frame diff packet"
         GCD_diff_base_filename = None
@@ -123,6 +136,10 @@ if __name__ == "__main__":
         raise RuntimeError("You need to specify exatcly one event ID")
     eventID = args[0]
 
-    packets = load_cache_state(eventID, cache_dir=options.CACHEDIR)
+    # get the file stager instance
+    stagers = dataio.get_stagers()
+
+    # do the work
+    packets = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
 
     print "got:", packets

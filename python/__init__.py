@@ -28,6 +28,7 @@ from icecube.load_pybindings import load_pybindings
 from icecube import icetray, dataclasses # be nice and pull in our dependencies
 load_pybindings(__name__,__path__)
 
+import config
 from extract_json_messages import extract_json_message, extract_json_messages
 from load_scan_state import load_scan_state, load_cache_state, load_GCDQp_state
 from import_old_style_scan import import_old_style_scan

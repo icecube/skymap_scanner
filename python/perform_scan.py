@@ -15,6 +15,8 @@ from choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from utils import save_GCD_frame_packet_to_file
 from traysegments import scan_pixel_distributed
 
+import config
+
 class SendPixelsToScan(icetray.I3Module):
     def __init__(self, ctx):
         super(SendPixelsToScan, self).__init__(ctx)
@@ -313,8 +315,8 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     if parallel_pixels <= 0: parallel_pixels = 1
     print "number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel)
 
-    base_GCD_path, base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
-    print "base_GCD_path: {0}".format(base_GCD_path)
+    base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
+    print "base_GCD_path: {0}".format(config.base_GCD_path)
     print "base_GCD_filename: {0}".format(base_GCD_filename)
     
     ExcludedDOMs = [
@@ -353,7 +355,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         port=port,
         ExcludedDOMs=ExcludedDOMs,
         NumClients=numclients,
-        base_GCD_path=base_GCD_path,
+        base_GCD_paths=config.GCD_base_dirs,
         base_GCD_filename=base_GCD_filename,
     )
         

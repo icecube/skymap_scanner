@@ -13,7 +13,7 @@ def scan_pixel_distributed(tray, name,
     ExcludedDOMs=[],
     NumClients=10,
     pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned",
-    base_GCD_path=os.path.join(os.environ["I3_DATA"],'GCD'),
+    base_GCD_paths=[os.path.join(os.environ["I3_DATA"],'GCD')],
     base_GCD_filename='GeoCalibDetectorStatus_2015.57161_V0.i3.gz'):
     
     def makeSurePulsesExist(frame, pulsesName):
@@ -61,6 +61,29 @@ def scan_pixel_distributed(tray, name,
 
             ExcludedDOMs = {4}
 
+            # find an available GCD base path
+            stagers = dataio.get_stagers()
+            base_GCD_paths = {6}
+            base_GCD_filename = "{7}"
+
+            # try to load the base file from the various possible input directories
+            GCD_diff_base_handle = None
+            for GCD_base_dir in base_GCD_paths:
+                try:
+                    read_url = os.path.join(GCD_base_dir, base_GCD_filename)
+                    print "reading baseline GCD from {0}".format( read_url )
+                    GCD_diff_base_handle = filestager.GetReadablePath( read_url )
+                except:
+                    print " -> failed"
+                    GCD_diff_base_handle=None
+                if GCD_diff_base_handle is not None:
+                    print " -> success"
+                    break
+            
+            if GCD_diff_base_handle is None:
+                raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(base_GCD_filename))
+                
+
             # connect to a server
             c = distribute.I3DistributeClient(
                 WorkerScriptHash=distribute.sha1_of_main_script(),      # this is to ensure only the correct script is sending replies to the server
@@ -70,6 +93,7 @@ def scan_pixel_distributed(tray, name,
 
             ########## the tray
             tray = I3Tray()
+            # tray.context["I3FileStager"] = stagers
 
             tray.Add("I3DistributeSource", Client=c)
 
@@ -89,8 +113,8 @@ def scan_pixel_distributed(tray, name,
                          base_filename=base_GCD_filename)
 
             tray.Add(UncompressGCD, "GCD_uncompress",
-                     base_GCD_path="{6}",
-                     base_GCD_filename="{7}")
+                     base_GCD_path="",
+                     base_GCD_filename=str(GCD_diff_base_handle))
 
             def notify0(frame):
                 print "starting a new fit!", datetime.datetime.now()
