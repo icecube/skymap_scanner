@@ -344,7 +344,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     pixel_overhead_percent = 50 # send 50% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
-    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more) on {3} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, numclients))
+    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
 
     base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
