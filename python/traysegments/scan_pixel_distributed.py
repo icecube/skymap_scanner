@@ -72,7 +72,7 @@ def scan_pixel_distributed(tray, name,
                 try:
                     read_url = os.path.join(GCD_base_dir, base_GCD_filename)
                     print "reading baseline GCD from {{0}}".format( read_url )
-                    GCD_diff_base_handle = filestager.GetReadablePath( read_url )
+                    GCD_diff_base_handle = stagers.GetReadablePath( read_url )
                 except:
                     print " -> failed"
                     GCD_diff_base_handle=None
