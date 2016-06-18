@@ -203,7 +203,7 @@ def scan_pixel_distributed(tray, name,
             port,
             ExcludedDOMs.__str__(),
             pulsesName,
-            base_GCD_path,
+            str(base_GCD_paths),
             base_GCD_filename
             ),
         NumClients=NumClients,
