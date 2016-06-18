@@ -212,4 +212,4 @@ def scan_pixel_distributed(tray, name,
         ZombieWorkerTimeout=240.*I3Units.second, # wait for 1 minute after we stopped hearing from a client before considering it dead
         QueueSize=1000000,
         WorkOnStreams=[icetray.I3Frame.Physics],
-        ReportUsagePeriod=5.*I3Units.second)
+        ReportUsagePeriod=60.*I3Units.second)
