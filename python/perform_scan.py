@@ -29,7 +29,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
         self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
         self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
-        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 10)
+        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 60)
         self.AddOutBox("OutBox")
         
     def Configure(self):
@@ -72,9 +72,14 @@ class SendPixelsToScan(icetray.I3Module):
         num_pixels_in_process = len(self.pixels_in_process)
         message = "I am busy with scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
         
-        for nside in self.state_dict["nsides"]:
-            pixels = self.state_dict["nsides"][nside]
-            message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
+        if len(self.state_dict["nsides"])==0:
+            message += " - no pixels are done yet\n"
+        else:
+            for nside in self.state_dict["nsides"]:
+                pixels = self.state_dict["nsides"][nside]
+                message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
+
+        message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
 
         self.logger(message)
 
