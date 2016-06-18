@@ -1,3 +1,4 @@
+import io
 import os
 import numpy
 import matplotlib
@@ -5,18 +6,94 @@ matplotlib.use('agg')
 import matplotlib.pyplot
 import healpy
 
+from icecube import icetray, dataclasses, astro
 
-from icecube import icetray, dataio
+from utils import parse_event_id, get_event_mjd
 
-from utils import parse_event_id
+import slack_tools
 
-# from choose_new_pixels_to_scan import find_pixels_to_refine
+from matplotlib.axes import Axes
+from matplotlib import text
+from matplotlib.ticker import Formatter, FixedFormatter, FixedLocator
+from matplotlib.transforms import Transform, Affine2D
+from matplotlib.projections import projection_registry
+from matplotlib.projections.geo import MollweideAxes
+##
+# Mollweide axes with phi axis flipped and in hours from 24 to 0 instead of
+#         in degrees from -180 to 180.
+class AstroMollweideAxes(MollweideAxes):
+
+    name = 'astro mollweide'
+
+    def cla(self):
+        super(AstroMollweideAxes, self).cla()
+        self.set_xlim(0, 2*numpy.pi)
+
+    def set_xlim(self, *args, **kwargs):
+        Axes.set_xlim(self, 0., 2*numpy.pi)
+        Axes.set_ylim(self, -numpy.pi / 2.0, numpy.pi / 2.0)
+
+    def _get_core_transform(self, resolution):
+        return Affine2D().translate(-numpy.pi, 0.) + super(AstroMollweideAxes, self)._get_core_transform(resolution)
+
+    class RaFormatter(Formatter):
+        # Copied from matplotlib.geo.GeoAxes.ThetaFormatter and modified
+        def __init__(self, round_to=1.0):
+            self._round_to = round_to
+
+        def __call__(self, x, pos=None):
+            hours = (x / numpy.pi) * 12.
+            hours = round(15 * hours / self._round_to) * self._round_to / 15
+            return r"%0.0f$^\mathrm{h}$" % hours
+
+    def set_longitude_grid(self, degrees):
+        # Copied from matplotlib.geo.GeoAxes.set_longitude_grid and modified
+        number = (360.0 / degrees) + 1
+        self.xaxis.set_major_locator(
+            FixedLocator(
+                numpy.linspace(0, 2*numpy.pi, number, True)[1:-1]))
+        self._longitude_degrees = degrees
+        self.xaxis.set_major_formatter(self.RaFormatter(degrees))
+
+    def _set_lim_and_transforms(self):
+        # Copied from matplotlib.geo.GeoAxes._set_lim_and_transforms and modified
+        super(AstroMollweideAxes, self)._set_lim_and_transforms()
+
+        # This is the transform for latitude ticks.
+        yaxis_stretch = Affine2D().scale(numpy.pi * 2.0, 1.0)
+        yaxis_space = Affine2D().scale(-1.0, 1.1)
+        self._yaxis_transform = \
+            yaxis_stretch + \
+            self.transData
+        yaxis_text_base = \
+            yaxis_stretch + \
+            self.transProjection + \
+            (yaxis_space + \
+             self.transAffine + \
+             self.transAxes)
+        self._yaxis_text1_transform = \
+            yaxis_text_base + \
+            Affine2D().translate(-8.0, 0.0)
+        self._yaxis_text2_transform = \
+            yaxis_text_base + \
+            Affine2D().translate(8.0, 0.0)
+
+    def _get_affine_transform(self):
+        transform = self._get_core_transform(1)
+        xscale, _ = transform.transform_point((0, 0))
+        _, yscale = transform.transform_point((0, numpy.pi / 2.0))
+        return Affine2D() \
+            .scale(0.5 / xscale, 0.5 / yscale) \
+            .translate(0.5, 0.5)
+
+projection_registry.register(AstroMollweideAxes)
 
 def create_plot(event_id_string, state_dict):
     y_inches = 3.85
     x_inches = 6.
-    dpi = 900.
-    xsize = x_inches*900.
+    dpi = 150.
+    xsize = x_inches*dpi
+    ysize = xsize/2.
 
     lonra=[-10.,10.]
     latra=[-10.,10.]
@@ -26,9 +103,11 @@ def create_plot(event_id_string, state_dict):
 
     run_id, event_id, event_type = parse_event_id(event_id_string)
 
-    plot_title = "Run: {0} Event {1}: Type: {2}".format(run_id, event_id, event_type)
+    mjd = get_event_mjd(state_dict)
 
-    plot_filename = "{0}.pdf".format(event_id_string)
+    plot_title = "Run: {0} Event {1}: Type: {2} MJD: {3}".format(run_id, event_id, event_type, mjd)
+
+    plot_filename = "{0}.png".format(event_id_string)
     print "saving plot to {0}".format(plot_filename)
 
     nsides = state_dict["nsides"].keys()
@@ -40,10 +119,26 @@ def create_plot(event_id_string, state_dict):
     minAzimuth=0.
     minZenith=0.
 
+    # theta = numpy.linspace(numpy.pi, 0., ysize)
+    dec = numpy.linspace(-numpy.pi/2., numpy.pi/2., ysize)
+    
+    # phi   = numpy.linspace(0., 2.*numpy.pi, xsize)
+    ra = numpy.linspace(0., 2.*numpy.pi, xsize)
+
+    # project the map to a rectangular matrix xsize x ysize
+    RA, DEC = numpy.meshgrid(ra, dec)
+    print "converting coordinates..."
+    THETA, PHI = astro.equa_to_dir(RA, DEC, mjd)
+    print "done."
+    
+    grid_map = None
+    
     # now plot maps above each other
     for nside in sorted(nsides):
         print "constructing map for nside {0}...".format(nside)
+        grid_pix = healpy.ang2pix(nside, THETA, PHI)
         this_map = numpy.ones(healpy.nside2npix(nside))*numpy.inf
+        
         for pixel, pixel_data in state_dict["nsides"][nside].iteritems():
             value = pixel_data['llh']
             if numpy.isfinite(value):
@@ -53,32 +148,28 @@ def create_plot(event_id_string, state_dict):
                 if numpy.isnan(max_value) or value > max_value:
                     max_value = value
             this_map[pixel] = value
-        print "done with map for nside {0}...".format(nside)
+        
+        if grid_map is None:
+            grid_map = this_map[grid_pix]
+        else:
+            grid_map = numpy.where( numpy.isfinite(this_map[grid_pix]), this_map[grid_pix], grid_map)
 
-        maps.append(this_map)
+        del this_map
+
+        print "done with map for nside {0}...".format(nside)
+    
+    # clean up
+    del grid_pix
+    del THETA
+    del PHI
+
+    grid_map = numpy.ma.masked_invalid(grid_map)
+
+    minRA, minDec = astro.dir_to_equa(minZenith, minAzimuth, mjd)
 
     max_value_zoomed = min_value+7.
 
     print "preparing plot: {0}...".format(plot_filename)
-
-    # prepare the figure canvas
-    fig = matplotlib.pyplot.figure(figsize=[x_inches+y_inches,y_inches])
-    # rect = (left, bottom, width, height)
-    ax = healpy.projaxes.HpxMollweideAxes(fig,(0.,0., x_inches/(x_inches+y_inches) ,1.))
-    fig.add_axes(ax)
-    bx = healpy.projaxes.HpxCartesianAxes(
-        fig,
-        (x_inches/(x_inches+y_inches), 0., y_inches/(x_inches+y_inches) ,1.),
-        rot=(minAzimuth*180./numpy.pi,90.-minZenith*180/numpy.pi,0.)
-    )
-    fig.add_axes(bx)
-
-    # display a map with all pixels masked below all others
-    this_map = healpy.ma(numpy.ones(healpy.nside2npix(2))*0.5)
-    cmap = matplotlib.cm.gray
-    cmap.set_under(alpha=0.) # make underflows transparent
-    ax.projmap(this_map, vmin=0.,vmax=1.,xsize=xsize,cmap=cmap)
-    bx.projmap(this_map, vmin=0.,vmax=1.,xsize=xsize,cmap=cmap, lonra=lonra, latra=latra)
 
     # the color map to use
     cmap = matplotlib.cm.cubehelix_r
@@ -86,47 +177,67 @@ def create_plot(event_id_string, state_dict):
     cmap.set_over(alpha=0.)  # make underflows transparent
     cmap.set_bad(alpha=1., color=(1.,0.,0.)) # make NaNs bright red
 
-    print "plotting: {0}...".format(plot_filename)
+    # prepare the figure canvas
+    fig = matplotlib.pyplot.figure(figsize=[x_inches,y_inches])
+    ax = fig.add_subplot(111,projection='astro mollweide')
+    
+    # rasterized makes the map bitmap while the labels remain vectorial
+    # flip longitude to the astro convention
+    image = ax.pcolormesh(ra, dec, grid_map, vmin=min_value, vmax=max_value, rasterized=True, cmap=cmap)
+    # ax.set_xlim(numpy.pi, -numpy.pi)
 
-    # plot the images
-    img = None
-    for this_map in maps:
-        # create main image
-        img = ax.projmap(this_map, xsize=xsize, vmin=min_value, vmax=max_value, cmap=cmap)
-        img = bx.projmap(this_map, xsize=xsize, vmin=min_value, vmax=max_value_zoomed, cmap=cmap, lonra=lonra, latra=latra)
+    contour_levels = (numpy.array([1.39, 4.61, 11.83, 28.74])+min_value)[1:]
+    contour_labels = [r'50%', r'90%', r'3$\sigma$', r'5$\sigma$'][1:]
+    contour_colors=['0.5', 'k', 'r', 'g'][1:]
+    CS = ax.contour(ra, dec, grid_map, levels=contour_levels, colors=contour_colors)
+    ax.clabel(CS, inline=False, fontsize=4, fmt=dict(zip(contour_levels, contour_labels)))
 
-    # create colorbars
-    im = ax.get_images()[1]
-    b = im.norm.inverse(numpy.linspace(0,1,im.cmap.N+1))
-    v = numpy.linspace(im.norm.vmin,im.norm.vmax,im.cmap.N)
-    cb=fig.colorbar(im,ax=ax,
-                    orientation='horizontal',
-                    shrink=0.5,aspect=25,ticks=healpy.projaxes.BoundaryLocator(),
-                    pad=0.05,fraction=0.1,boundaries=b,values=v,
-                    format='%g')
+    # print "minZenith=", numpy.degrees(minZenith), "minAzimuth=", numpy.degrees(minAzimuth)
+    # print "minDec   =", numpy.degrees(minDec),    "minRA     =", numpy.degrees(minRA)
+    # ax.scatter(minRA, minDec, color='r', marker='o')
 
-    # create colorbars
-    im = bx.get_images()[1]
-    b = im.norm.inverse(numpy.linspace(0,1,im.cmap.N+1))
-    v = numpy.linspace(im.norm.vmin,im.norm.vmax,im.cmap.N)
-    cb=fig.colorbar(im,ax=bx,
-                    orientation='horizontal',
-                    shrink=0.5,aspect=25,ticks=healpy.projaxes.BoundaryLocator(),
-                    pad=0.05,fraction=0.1,boundaries=b,values=v,
-                    format='%g')
+    # graticule
+    ax.set_longitude_grid(30)
+    ax.set_latitude_grid(30)
+    
+    # colorbar
+    cb = fig.colorbar(image, orientation='horizontal', shrink=.6, pad=0.05, ticks=[min_value, max_value])
+    cb.ax.xaxis.set_label_text("-ln(L)")
+    cb.ax.xaxis.labelpad = -8
+    # workaround for issue with viewers, see colorbar docstring
+    cb.solids.set_edgecolor("face")
 
+    ax.tick_params(axis='x', labelsize=10)
+    ax.tick_params(axis='y', labelsize=10)
+
+    # show the grid
+    ax.grid(True, color='w', alpha=0.5)
+
+    from matplotlib import patheffects
+    # Otherwise, add the path effects.
+    effects = [patheffects.withStroke(linewidth=1.1, foreground='w')]
+    for artist in ax.findobj(text.Text):
+        artist.set_path_effects(effects)
+            
+    # remove white space around figure
+    spacing = 0.01
+    fig.subplots_adjust(bottom=spacing, top=1.-spacing, left=spacing+0.04, right=1.-spacing)
+    
     # set the title
-    ax.set_title(plot_title)
-
-    # graticules
-    ax.graticule()
-    bx.graticule()
+    fig.suptitle(plot_title)
 
     print "saving: {0}...".format(plot_filename)
 
-    fig.savefig(plot_filename, dpi=dpi, transparent=True)
+    # fig.savefig(plot_filename, dpi=dpi, transparent=True)
+
+    # use io.BytesIO to save this into a memory buffer
+    imgdata = io.BytesIO()
+    fig.savefig(imgdata, format='png', dpi=dpi, transparent=True)
+    imgdata.seek(0)
 
     print "done."
+
+    return imgdata
 
 
 if __name__ == "__main__":
@@ -147,4 +258,7 @@ if __name__ == "__main__":
     eventID = args[0]
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)
-    create_plot(eventID, state_dict)
+    plot_png_buffer = create_plot(eventID, state_dict)
+    
+    # we have a buffer containing a valid png file now, post it to Slack
+    slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")

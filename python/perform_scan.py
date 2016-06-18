@@ -316,7 +316,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     print "number of pixels to send out in parallel {0} -> {1} jobs".format(parallel_pixels, parallel_pixels*npos_per_pixel)
 
     base_GCD_filename = os.path.split(state_dict['baseline_GCD_file'])
-    print "base_GCD_path: {0}".format(config.base_GCD_path)
+    print "base_GCD_path: {0}".format(config.GCD_base_dirs)
     print "base_GCD_filename: {0}".format(base_GCD_filename)
     
     ExcludedDOMs = [
@@ -371,6 +371,8 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     tray.Execute()
     tray.Finish()
     del tray
+    
+    return state_dict
 
 
 if __name__ == "__main__":
