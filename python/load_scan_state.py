@@ -81,7 +81,17 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
             raise RuntimeError("Cache state seems to require a GCD diff baseline file (it contains a cached version), but the cache does not have \"original_base_GCD_for_diff_filename.txt\". This is a bug or corrupted data.")
         else:
             if filestager is None:
-                orig_packet = load_GCD_frame_packet_from_file(potential_original_GCD_diff_base_filename)
+                orig_packet = None
+                for GCD_base_dir in config.GCD_base_dirs:
+                    try:
+                        read_path = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
+                        print "reading GCD from {0}".format( read_url )
+                        orig_packet = load_GCD_frame_packet_from_file(read_path)
+                    except:
+                        print " -> failed"
+                        orig_packet = None
+                    if orig_packet is None:
+                        raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(potential_original_GCD_diff_base_filename))
             else:
                 # try to load the base file from the various possible input directories
                 GCD_diff_base_handle = None
@@ -98,7 +108,7 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
                         break
                 
                 if GCD_diff_base_handle is None:
-                    raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(GCD_diff_base_filename))
+                    raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(potential_original_GCD_diff_base_filename))
 
                 orig_packet = load_GCD_frame_packet_from_file( str(GCD_diff_base_handle) )
             this_packet = load_GCD_frame_packet_from_file(potential_GCD_diff_base_filename)

@@ -257,7 +257,10 @@ if __name__ == "__main__":
         raise RuntimeError("You need to specify exatcly one event ID")
     eventID = args[0]
 
-    eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)
+    # get the file stager instance
+    stagers = dataio.get_stagers()
+
+    eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
     plot_png_buffer = create_plot(eventID, state_dict)
     
     # we have a buffer containing a valid png file now, post it to Slack
