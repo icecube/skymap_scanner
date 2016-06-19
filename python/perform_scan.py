@@ -181,7 +181,7 @@ class SendPixelsToScan(icetray.I3Module):
             coarser_nside = nside
             while True:
                 coarser_nside = coarser_nside/2
-                coarser_pixel = healpy.ang2pix(coarser_nside, zenith, azimuth)
+                coarser_pixel = healpy.ang2pix(coarser_nside, dec+numpy.pi/2., ra)
                 
                 if coarser_nside < 8:
                     raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
