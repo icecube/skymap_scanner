@@ -6,7 +6,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot
 import healpy
 
-from icecube import icetray, dataclasses, astro
+from icecube import icetray, dataclasses, dataio, astro
 
 from utils import parse_event_id, get_event_mjd
 
