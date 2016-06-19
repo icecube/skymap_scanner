@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import logging
 
@@ -20,9 +21,9 @@ def post_to_slack(text):
 # a nice event can be replayed using this:
 # python $I3_SRC/realtime_tools/resources/scripts/replayI3LiveMoni.py --varname=heseEvent16Data --pass=skua
 realtime_tools.config.URL_ZMQ = 'tcp://localhost:5556'
-event_cache_dir = "./cache"
+event_cache_dir = os.path.join(os.environ["HOME"], "CK_experimental/skymaps/cache")
 distribute_port = "11337"
-distribute_numclients = 10
+distribute_numclients = 1000
 
 def skymap_plotting_callback(event_id, state_dict):
     post_to_slack("I am creating a plot of the current status of the scan of `{0}` for you. This should only take a minute...".format(event_id))
