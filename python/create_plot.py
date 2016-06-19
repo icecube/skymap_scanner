@@ -6,7 +6,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot
 import healpy
 
-from icecube import icetray, dataclasses, dataio, astro
+from icecube import icetray, dataclasses, dataio
 
 from utils import parse_event_id, get_event_mjd
 
@@ -116,8 +116,8 @@ def create_plot(event_id_string, state_dict):
     maps = []
     min_value = numpy.nan
     max_value = numpy.nan
-    minAzimuth=0.
-    minZenith=0.
+    minRA=0.
+    minDec=0.
 
     # theta = numpy.linspace(numpy.pi, 0., ysize)
     dec = numpy.linspace(-numpy.pi/2., numpy.pi/2., ysize)
@@ -127,23 +127,22 @@ def create_plot(event_id_string, state_dict):
 
     # project the map to a rectangular matrix xsize x ysize
     RA, DEC = numpy.meshgrid(ra, dec)
-    print "converting coordinates..."
-    THETA, PHI = astro.equa_to_dir(RA, DEC, mjd)
-    print "done."
     
     grid_map = None
     
     # now plot maps above each other
     for nside in sorted(nsides):
         print "constructing map for nside {0}...".format(nside)
-        grid_pix = healpy.ang2pix(nside, THETA, PHI)
+        # grid_pix = healpy.ang2pix(nside, THETA, PHI)
+        grid_pix = healpy.ang2pix(nside, DEC + numpy.pi/2., RA)
         this_map = numpy.ones(healpy.nside2npix(nside))*numpy.inf
         
         for pixel, pixel_data in state_dict["nsides"][nside].iteritems():
             value = pixel_data['llh']
             if numpy.isfinite(value):
                 if numpy.isnan(min_value) or value < min_value:
-                    minZenith, minAzimuth = healpy.pix2ang(nside, pixel)
+                    minDec, minRA = healpy.pix2ang(nside, pixel)
+                    minDec = minDec - numpy.pi/2.
                     min_value = value
                 if numpy.isnan(max_value) or value > max_value:
                     max_value = value
@@ -160,12 +159,8 @@ def create_plot(event_id_string, state_dict):
     
     # clean up
     del grid_pix
-    del THETA
-    del PHI
 
     grid_map = numpy.ma.masked_invalid(grid_map)
-
-    minRA, minDec = astro.dir_to_equa(minZenith, minAzimuth, mjd)
 
     max_value_zoomed = min_value+7.
 
@@ -191,10 +186,6 @@ def create_plot(event_id_string, state_dict):
     contour_colors=['0.5', 'k', 'r', 'g'][1:]
     CS = ax.contour(ra, dec, grid_map, levels=contour_levels, colors=contour_colors)
     ax.clabel(CS, inline=False, fontsize=4, fmt=dict(zip(contour_levels, contour_labels)))
-
-    # print "minZenith=", numpy.degrees(minZenith), "minAzimuth=", numpy.degrees(minAzimuth)
-    # print "minDec   =", numpy.degrees(minDec),    "minRA     =", numpy.degrees(minRA)
-    # ax.scatter(minRA, minDec, color='r', marker='o')
 
     # graticule
     ax.set_longitude_grid(30)

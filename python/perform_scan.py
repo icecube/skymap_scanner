@@ -7,12 +7,13 @@ import time
 
 from icecube import icetray, dataclasses
 from icecube import gulliver, millipede
+from icecube import astro
 from I3Tray import *
 
 from utils import parse_event_id
 
 from choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from utils import save_GCD_frame_packet_to_file
+from utils import save_GCD_frame_packet_to_file, get_event_mjd
 from traysegments import scan_pixel_distributed
 
 import config
@@ -68,6 +69,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.fallback_energy = numpy.nan
         
         self.event_header = p_frame["I3EventHeader"]
+        self.event_mjd = get_event_mjd(self.state_dict)
 
         self.pixels_in_process = set()
 
@@ -76,7 +78,7 @@ class SendPixelsToScan(icetray.I3Module):
 
     def send_status_report(self):
         num_pixels_in_process = len(self.pixels_in_process)
-        message = "I am busy with scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
+        message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
         
         if len(self.state_dict["nsides"])==0:
             message += " - no pixels are done yet\n"
@@ -166,7 +168,9 @@ class SendPixelsToScan(icetray.I3Module):
     def CreatePFrame(self, nside, pixel):
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
 
-        zenith, azimuth = healpy.pix2ang(nside, pixel)
+        dec, ra = healpy.pix2ang(nside, pixel)
+        dec = dec - numpy.pi/2.
+        zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
         if nside == 8:
