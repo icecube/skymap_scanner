@@ -29,9 +29,9 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
         self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
         self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
-        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 60)
+        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 5*60)
         self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
-        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 2*60)
+        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 30*60)
         self.AddOutBox("OutBox")
         
     def Configure(self):
