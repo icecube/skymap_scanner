@@ -164,7 +164,7 @@ class SendPixelsToScan(icetray.I3Module):
         
         
     def CreatePFrame(self, nside, pixel):
-        print "Scanning nside={0}, pixel={1}".format(nside,pixel)
+        # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
 
         zenith, azimuth = healpy.pix2ang(nside, pixel)
         direction = dataclasses.I3Direction(zenith,azimuth)
@@ -279,7 +279,7 @@ class FindBestRecoResultForPixel(icetray.I3Module):
                     bestFrame=frame
                     bestFrameLLH=thisLLH
 
-            print "all scans arrived for pixel", index, "best LLH is", bestFrameLLH
+            # print "all scans arrived for pixel", index, "best LLH is", bestFrameLLH
 
             if bestFrame is None:
                 # just push the first frame if all of them are nan
@@ -347,7 +347,7 @@ class CollectRecoResults(icetray.I3Module):
             os.mkdir(nside_dir)
         pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
 
-        print " - saving pixel file {0}...".format(pixel_file_name)
+        # print " - saving pixel file {0}...".format(pixel_file_name)
         save_GCD_frame_packet_to_file([frame], pixel_file_name)
             
         self.PushFrame(frame)

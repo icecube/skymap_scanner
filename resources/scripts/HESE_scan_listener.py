@@ -31,7 +31,7 @@ def skymap_plotting_callback(event_id, state_dict):
     plot_png_buffer = create_plot(event_id, state_dict)
     
     # we have a buffer containing a valid png file now, post it to Slack
-    slack_tools.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id), "Skymap of `{0}`".format(event_id))
+    slack_tools.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id), "Skymap of {0}".format(event_id))
 
 def incoming_event(topic, event):
     """
@@ -73,10 +73,7 @@ def incoming_event(topic, event):
         post_to_slack("Scanning of `{0}` is done. Let me create a plot for you real quick.".format(event_id))
 
         # create a plot when done and upload it to slack
-        plot_png_buffer = create_plot(event_id, state_dict)
-        
-        # we have a buffer containing a valid png file now, post it to Slack
-        slack_tools.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id), "Skymap of `{0}`".format(event_id))
+        skymap_plotting_callback(event_id, state_dict)
         
         post_to_slack("Okay, that's it. I will be listening for new incoming events now.")
     except:
