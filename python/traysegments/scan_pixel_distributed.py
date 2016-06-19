@@ -73,6 +73,8 @@ def scan_pixel_distributed(tray, name,
                     read_url = os.path.join(GCD_base_dir, base_GCD_filename)
                     print "reading baseline GCD from {{0}}".format( read_url )
                     GCD_diff_base_handle = stagers.GetReadablePath( read_url )
+                    if not os.path.isfile( str(GCD_diff_base_handle) ):
+                        raise RuntimeError("file does not exist (or is not a file)")
                 except:
                     print " -> failed"
                     GCD_diff_base_handle=None
