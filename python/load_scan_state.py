@@ -100,6 +100,8 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
                         read_url = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
                         print "reading GCD from {0}".format( read_url )
                         GCD_diff_base_handle = filestager.GetReadablePath( read_url )
+                        if not os.path.isfile( str(GCD_diff_base_handle) ):
+                            raise RuntimeError("file does not exist (or is not a file)")
                     except:
                         print " -> failed"
                         GCD_diff_base_handle=None

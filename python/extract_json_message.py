@@ -97,6 +97,8 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
                 read_url = os.path.join(GCD_base_dir, GCD_diff_base_filename)
                 print "reading GCD from {0}".format( read_url )
                 GCD_diff_base_handle = filestager.GetReadablePath( read_url )
+                if not os.path.isfile( str(GCD_diff_base_handle) ):
+                    raise RuntimeError("file does not exist (or is not a file)")
             except:
                 print " -> failed"
                 GCD_diff_base_handle=None

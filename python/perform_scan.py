@@ -30,6 +30,8 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
         self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
         self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 60)
+        self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
+        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 2*60)
         self.AddOutBox("OutBox")
         
     def Configure(self):
@@ -40,6 +42,9 @@ class SendPixelsToScan(icetray.I3Module):
         self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
         self.logger = self.GetParameter("logger")
         self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
+        self.skymap_plotting_callback = self.GetParameter("skymap_plotting_callback")
+        self.skymap_plotting_callback_interval_in_seconds = self.GetParameter("skymap_plotting_callback_interval_in_seconds")
+
         
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -67,6 +72,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.pixels_in_process = set()
 
         self.last_time_reported = time.time()
+        self.last_time_reported_skymap = time.time()
 
     def send_status_report(self):
         num_pixels_in_process = len(self.pixels_in_process)
@@ -102,6 +108,14 @@ class SendPixelsToScan(icetray.I3Module):
         if elapsed_seconds > self.logging_interval_in_seconds:
             self.last_time_reported = current_time
             self.send_status_report()
+
+        # check if we need to send a report to the skymap logger
+        current_time = time.time()
+        elapsed_seconds = current_time - self.last_time_reported_skymap
+        if elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds:
+            self.last_time_reported_skymap = current_time
+            if self.skymap_plotting_callback is not None:
+                self.skymap_plotting_callback(self.state_dict)
 
         # see if we think we are processing pixels but they have finished since
         for nside in self.state_dict["nsides"]:
@@ -339,7 +353,7 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger):
+def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None):
     npos_per_pixel = 7
     pixel_overhead_percent = 50 # send 50% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
@@ -367,7 +381,8 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
         MaxPixelsInProcess=parallel_pixels,
-        logger=logger
+        logger=logger,
+        skymap_plotting_callback=skymap_plotting_callback
     )
 
     # #### do the scan

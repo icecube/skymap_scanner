@@ -24,6 +24,15 @@ event_cache_dir = "./cache"
 distribute_port = "11337"
 distribute_numclients = 10
 
+def skymap_plotting_callback(event_id, state_dict):
+    post_to_slack("I am creating a plot of the current status of the scan of `{0}` for you. This should only take a minute...".format(event_id))
+
+    # create a plot when done and upload it to slack
+    plot_png_buffer = create_plot(event_id, state_dict)
+    
+    # we have a buffer containing a valid png file now, post it to Slack
+    slack_tools.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id), "Skymap of `{0}`".format(event_id))
+
 def incoming_event(topic, event):
     """
     Handle incoming events and perform a full scan.
@@ -57,7 +66,8 @@ def incoming_event(topic, event):
             cache_dir=event_cache_dir,
             port=distribute_port,
             numclients=distribute_numclients,
-            logger=post_to_slack # logging callback
+            logger=post_to_slack, # logging callback
+            skymap_plotting_callback = lambda d: skymap_plotting_callback(event_id, d)
         )
 
         post_to_slack("Scanning of `{0}` is done. Let me create a plot for you real quick.".format(event_id))
