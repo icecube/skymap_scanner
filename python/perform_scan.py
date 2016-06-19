@@ -101,7 +101,7 @@ class SendPixelsToScan(icetray.I3Module):
             for frame in self.GCDQpFrames:
                 self.PushFrame(frame)
             self.GCDQpFrames = None
-            self.logger("Commencing the full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
+            self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
             return
 
         # check if we need to send a report to the logger
