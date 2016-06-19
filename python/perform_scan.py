@@ -171,6 +171,8 @@ class SendPixelsToScan(icetray.I3Module):
         dec, ra = healpy.pix2ang(nside, pixel)
         dec = dec - numpy.pi/2.
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
+        zenith = float(zenith)
+        azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
         if nside == 8:
