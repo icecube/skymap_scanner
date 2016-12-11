@@ -20,7 +20,8 @@ def post_to_slack(text):
 # enable this if you want to use realtime_tools/resources/scripts/publisher.py to send test messages
 # a nice event can be replayed using this:
 # python $I3_SRC/realtime_tools/resources/scripts/replayI3LiveMoni.py --varname=heseEvent16Data --pass=skua
-realtime_tools.config.URL_ZMQ = 'tcp://localhost:5556'
+# realtime_tools.config.URL_ZMQ = 'tcp://localhost:5556'
+
 event_cache_dir = os.path.join(os.environ["HOME"], "CK_experimental/skymaps/cache")
 distribute_port = "11337"
 distribute_numclients = 1000
