@@ -46,7 +46,7 @@ def incoming_event(topic, event):
         stagers = dataio.get_stagers()
         
         # extract the JSON message
-        event_id, state_dict = extract_json_message(event, filestager=stagers, cache_dir=event_cache_dir, override_GCD_filename="/opt/followup/PoleBaseGCDs/2016_06_03_Run127997.i3")
+        event_id, state_dict = extract_json_message(event, filestager=stagers, cache_dir=event_cache_dir)
 
         if 'baseline_GCD_file' in state_dict:
             post_to_slack('The event ID seems to be `{0}` and it uses a baseline GCD file named `{1}`.'.format(event_id, state_dict['baseline_GCD_file']))
