@@ -1,6 +1,7 @@
 import os
 import numpy
 
+from I3Tray import I3Units
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
@@ -20,8 +21,59 @@ def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
 
     return (event_id, state_dict)
 
+from icecube import VHESelfVeto
+
+def get_reco_losses_inside(p_frame, g_frame):
+    if "MillipedeStarting2ndPass" not in p_frame: return numpy.nan, numpy.nan
+    recoParticle = p_frame["MillipedeStarting2ndPass"]
+
+    if "MillipedeStarting2ndPassParams" not in p_frame: return numpy.nan, numpy.nan
+    
+    def getRecoLosses(vecParticles):
+        losses = []
+        for p in vecParticles:
+            if not p.is_cascade: continue
+            if p.energy==0.: continue
+            losses.append([p.time, p.energy])
+        return losses
+    recoLosses = getRecoLosses(p_frame["MillipedeStarting2ndPassParams"])
+
+    intersectionPoints = VHESelfVeto.IntersectionsWithInstrumentedVolume(g_frame["I3Geometry"], recoParticle)
+    intersectionTimes = []
+    for intersectionPoint in intersectionPoints:
+        vecX = intersectionPoint.x - recoParticle.pos.x
+        vecY = intersectionPoint.y - recoParticle.pos.y
+        vecZ = intersectionPoint.z - recoParticle.pos.z
+        
+        prod = vecX*recoParticle.dir.x + vecY*recoParticle.dir.y + vecZ*recoParticle.dir.z
+        dist = numpy.sqrt(vecX**2 + vecY**2 + vecZ**2)
+        if prod < 0.: dist *= -1.
+        intersectionTimes.append(dist/dataclasses.I3Constants.c + recoParticle.time)
+
+    entryTime = None
+    exitTime = None
+    intersectionTimes = sorted(intersectionTimes)
+    if len(intersectionTimes)==0:
+        return 0., 0.
+        
+    entryTime = intersectionTimes[0]-60.*I3Units.m/dataclasses.I3Constants.c
+    intersectionTimes = intersectionTimes[1:]
+    exitTime = intersectionTimes[-1]+60.*I3Units.m/dataclasses.I3Constants.c
+    intersectionTimes = intersectionTimes[:-1]
+
+    totalRecoLosses = 0.
+    totalRecoLossesInside = 0.
+    for entry in recoLosses:
+        totalRecoLosses += entry[1]
+        if entryTime is not None and entry[0] < entryTime: continue
+        if exitTime  is not None and entry[0] > exitTime:  continue
+        totalRecoLossesInside += entry[1]
+
+    return totalRecoLossesInside, totalRecoLosses
 
 def load_scan_state(event_id, state_dict, cache_dir="./cache/"):
+    baseline_GCD_frames = load_GCD_frame_packet_from_file(state_dict['baseline_GCD_file'])
+    
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
         raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
@@ -43,7 +95,10 @@ def load_scan_state(event_id, state_dict, cache_dir="./cache/"):
                 llh = loaded_frames[0]["MillipedeStarting2ndPass_millipedellh"].logl
             else:
                 llh = numpy.nan
-            state_dict["nsides"][nside][pixel] = dict(frame=loaded_frames[0], llh=llh)
+
+            recoLossesInside, recoLossesTotal = get_reco_losses_inside(loaded_frames[0], baseline_GCD_frames[0])
+
+            state_dict["nsides"][nside][pixel] = dict(frame=loaded_frames[0], llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
 
         # get rid of empty dicts
         if len(state_dict["nsides"][nside]) == 0:
@@ -123,8 +178,8 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
             del orig_packet
             del this_packet
             
-            print " - has a frame diff packet at {0} (using original copy)".format(potential_original_GCD_diff_base_filename)
-            GCD_diff_base_filename = potential_original_GCD_diff_base_filename
+            print " - has a frame diff packet at {0} (using original copy)".format(os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename))
+            GCD_diff_base_filename = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
     else:
         print " - does not seem to contain frame diff packet"
         GCD_diff_base_filename = None
