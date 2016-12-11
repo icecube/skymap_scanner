@@ -138,7 +138,7 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
         elif current_nside < 1024:
             # 64 -> 1024, 256 sibdivisons per existing pixel
             next_nside = 1024
-            pixel_extension_number = 12 # scan 12*256=3072 pixels
+            pixel_extension_number = 24 # scan 12*256=3072 pixels
         else:
             # should not get here, max_nside is 1024
             next_nside = current_nside*8
