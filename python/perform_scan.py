@@ -335,9 +335,10 @@ class CollectRecoResults(icetray.I3Module):
         if "MillipedeStarting2ndPass" not in frame:
             raise RuntimeError("\"MillipedeStarting2ndPass\" not found in reconstructed frame")
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            raise RuntimeError("\"MillipedeStarting2ndPass_millipedellh\" not found in reconstructed frame")
-            
-        llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
+            llh = numpy.nan
+            # raise RuntimeError("\"MillipedeStarting2ndPass_millipedellh\" not found in reconstructed frame")
+        else:    
+            llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
         if nside not in self.state_dict["nsides"]:
             self.state_dict["nsides"][nside] = {}
