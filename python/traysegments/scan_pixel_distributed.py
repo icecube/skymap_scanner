@@ -68,22 +68,23 @@ def scan_pixel_distributed(tray, name,
 
             # try to load the base file from the various possible input directories
             GCD_diff_base_handle = None
-            for GCD_base_dir in base_GCD_paths:
-                try:
-                    read_url = os.path.join(GCD_base_dir, base_GCD_filename)
-                    print "reading baseline GCD from {{0}}".format( read_url )
-                    GCD_diff_base_handle = stagers.GetReadablePath( read_url )
-                    if not os.path.isfile( str(GCD_diff_base_handle) ):
-                        raise RuntimeError("file does not exist (or is not a file)")
-                except:
-                    print " -> failed"
-                    GCD_diff_base_handle=None
-                if GCD_diff_base_handle is not None:
-                    print " -> success"
-                    break
+            if base_GCD_filename is not None and base_GCD_filename != "None":
+                for GCD_base_dir in base_GCD_paths:
+                    try:
+                        read_url = os.path.join(GCD_base_dir, base_GCD_filename)
+                        print "reading baseline GCD from {{0}}".format( read_url )
+                        GCD_diff_base_handle = stagers.GetReadablePath( read_url )
+                        if not os.path.isfile( str(GCD_diff_base_handle) ):
+                            raise RuntimeError("file does not exist (or is not a file)")
+                    except:
+                        print " -> failed"
+                        GCD_diff_base_handle=None
+                    if GCD_diff_base_handle is not None:
+                        print " -> success"
+                        break
             
-            if GCD_diff_base_handle is None:
-                raise RuntimeError("Could not read the input GCD file '{{0}}' from any pre-configured location".format(base_GCD_filename))
+                if GCD_diff_base_handle is None:
+                    raise RuntimeError("Could not read the input GCD file '{{0}}' from any pre-configured location".format(base_GCD_filename))
                 
 
             # connect to a server
@@ -114,9 +115,10 @@ def scan_pixel_distributed(tray, name,
                          base_path=base_GCD_path,
                          base_filename=base_GCD_filename)
 
-            tray.Add(UncompressGCD, "GCD_uncompress",
-                     base_GCD_path="",
-                     base_GCD_filename=str(GCD_diff_base_handle))
+            if GCD_diff_base_handle is not None:
+                tray.Add(UncompressGCD, "GCD_uncompress",
+                         base_GCD_path="",
+                         base_GCD_filename=str(GCD_diff_base_handle))
 
             def notify0(frame):
                 print "starting a new fit!", datetime.datetime.now()

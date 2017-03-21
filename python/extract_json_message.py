@@ -138,6 +138,17 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
     else:
         print "packet does not need a GCD diff"
 
+    # special case for old EHE alerts with empty GCD frames
+    if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
+        print "********** old EHE packet with empty GCD frames. need to replace all geometry. ********"
+        if override_GCD_filename is None:
+            raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD EHE event. Please set override_GCD_filename.")
+        ehe_override_gcd = load_GCD_frame_packet_from_file(override_GCD_filename)
+        frame_packet[0] = ehe_override_gcd[0]
+        frame_packet[1] = ehe_override_gcd[1]
+        frame_packet[2] = ehe_override_gcd[2]
+        del ehe_override_gcd
+
     if GCD_diff_base_filename is not None:
         frame_packet, ExcludedDOMs = prepare_frames(frame_packet, str(GCD_diff_base_handle))
     else:
