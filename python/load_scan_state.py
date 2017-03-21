@@ -72,7 +72,13 @@ def get_reco_losses_inside(p_frame, g_frame):
     return totalRecoLossesInside, totalRecoLosses
 
 def load_scan_state(event_id, state_dict, cache_dir="./cache/"):
-    baseline_GCD_frames = load_GCD_frame_packet_from_file(state_dict['baseline_GCD_file'])
+    if state_dict['baseline_GCD_file'] is not None:
+        baseline_GCD_frames = load_GCD_frame_packet_from_file(state_dict['baseline_GCD_file'])
+    else:
+        # assume we have full non-diff GCD frames in the packet
+        baseline_GCD_frames = [state_dict['GCDQp_packet'][0]]
+        if "I3Geometry" not in baseline_GCD_frames[0]:
+            raise RuntimeError("No baseline GCD file available but main packet G frame does not contain I3Geometry")
     
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
