@@ -60,7 +60,7 @@ def find_global_min_pixel(state_dict):
 
     return global_min_pix_index
 
-def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_extension_number=24, llh_diff_to_trigger_refinement=4000):
+def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_extension_number=24, llh_diff_to_trigger_refinement=200000):
     if nside not in state_dict["nsides"]:
         return []
 
