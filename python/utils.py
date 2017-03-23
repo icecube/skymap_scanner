@@ -5,6 +5,8 @@ import hashlib
 
 from icecube import icetray, dataio, dataclasses
 
+import config
+
 def get_event_mjd(state_dict):
     if "GCDQp_packet" not in state_dict:
         raise RuntimeError("GCDQp_packet not found in state_dict")
@@ -38,8 +40,15 @@ def parse_event_id(event_id_string):
     return (run, event, evt_type)
 
 def load_GCD_frame_packet_from_file(filename):
+    read_url = filename
+    for GCD_base_dir in config.GCD_base_dirs:
+        potential_read_url = os.path.join(GCD_base_dir, filename)
+        if os.path.isfile( potential_read_url ):
+            read_url = potential_read_url
+            break
+        
     frame_packet = []
-    i3f = dataio.I3File(filename,'r')
+    i3f = dataio.I3File(read_url,'r')
     while True:
         frame = i3f.pop_frame()
         if frame is None:
