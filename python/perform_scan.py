@@ -360,7 +360,7 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None):
+def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, RemoteSubmitPrefix=""):
     npos_per_pixel = 7
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
@@ -411,6 +411,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         NumClients=numclients,
         base_GCD_paths=config.GCD_base_dirs,
         base_GCD_filename=base_GCD_filename,
+        RemoteSubmitPrefix=RemoteSubmitPrefix,
     )
         
     #### collect the results
@@ -442,6 +443,8 @@ if __name__ == "__main__":
         default=5555, dest="PORT", help="The tcp port to use")
     parser.add_option("-n", "--numclients", action="store", type="int",
         default=10, dest="NUMCLIENTS", help="The number of clients to start")
+    parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
+        default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -450,5 +453,8 @@ if __name__ == "__main__":
         raise RuntimeError("You need to specify exactly one event ID")
     eventID = args[0]
 
+    RemoteSubmitPrefix = options.REMOTESUBMITPREFIX
+    if RemoteSubmitPrefix is None: RemoteSubmitPrefix=""
+
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)
-    perform_scan(event_id_string=eventID, state_dict=state_dict, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS)
+    perform_scan(event_id_string=eventID, state_dict=state_dict, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS, RemoteSubmitPrefix=RemoteSubmitPrefix)

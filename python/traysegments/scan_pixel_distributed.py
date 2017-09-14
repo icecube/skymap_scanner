@@ -14,7 +14,8 @@ def scan_pixel_distributed(tray, name,
     NumClients=10,
     pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned",
     base_GCD_paths=[os.path.join(os.environ["I3_DATA"],'GCD')],
-    base_GCD_filename='GeoCalibDetectorStatus_2015.57161_V0.i3.gz'):
+    base_GCD_filename='GeoCalibDetectorStatus_2015.57161_V0.i3.gz',
+    RemoteSubmitPrefix=''): # 'ssh submitter'
     
     def makeSurePulsesExist(frame, pulsesName):
         if pulsesName not in frame:
@@ -155,6 +156,7 @@ def scan_pixel_distributed(tray, name,
                 TimeShiftType='TNone',
                 PositionShiftType='None')
             tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
+                OutputName='MillipedeStarting1stPass',
                 SeedService='vetoseed',
                 Parametrization='coarseSteps',
                 LogLikelihood='millipedellh',
@@ -182,6 +184,7 @@ def scan_pixel_distributed(tray, name,
                 TimeShiftType='TNone',
                 PositionShiftType='None')
             tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
+                OutputName='MillipedeStarting2ndPass',
                 SeedService='firstFitSeed',
                 Parametrization='fineSteps',
                 LogLikelihood='millipedellh',
@@ -211,7 +214,7 @@ def scan_pixel_distributed(tray, name,
             base_GCD_filename
             ),
         NumClients=NumClients,
-        # RemoteSubmitPrefix='ssh submitter', # use this on cobalts to submit from "submitter" (needs ssh keys)
+        RemoteSubmitPrefix=RemoteSubmitPrefix, # use this on cobalts to submit from "submitter" (needs ssh keys)
         ServerBindURL = "tcp://*:{0}".format(port), # listen on this port for connections from clients
         ZombieWorkerTimeout=240.*I3Units.second, # wait for 1 minute after we stopped hearing from a client before considering it dead
         QueueSize=1000000,

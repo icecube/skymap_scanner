@@ -7,7 +7,7 @@ from icecube import gulliver, millipede
 from utils import save_GCD_frame_packet_to_file, create_event_id
 from extract_json_message import __extract_frame_packet
 
-def import_old_style_scan(filename, cache_dir="./cache/", GCD_base_dir=".", override_GCD_filename=None):
+def import_old_style_scan(filename, filestager, cache_dir="./cache/", GCD_base_dir=".", override_GCD_filename=None):
     old_style_i3f = dataio.I3File(filename, 'r')
 
     # read GCDQp
@@ -27,18 +27,17 @@ def import_old_style_scan(filename, cache_dir="./cache/", GCD_base_dir=".", over
     if GCDQp_packet[-1].Stop != icetray.I3Frame.DAQ:
         raise RuntimeError("No Q-frame in input file")
     GCDQp_packet.append(old_style_i3f.pop_frame())
-    if GCDQp_packet[-1].Stop != icetray.I3Frame.Stream('p'):
+    if GCDQp_packet[-1].Stop != icetray.I3Frame.Stream('p') and GCDQp_packet[-1].Stop != icetray.I3Frame.Physics:
         raise RuntimeError("No p-frame in input file")
 
     print "importing GCDQp..."
-    this_event_cache_dir, event_id_string, scan_dict = __extract_frame_packet(GCDQp_packet, cache_dir=cache_dir, GCD_base_dir=GCD_base_dir, override_GCD_filename=override_GCD_filename)
+    this_event_cache_dir, event_id_string, scan_dict = __extract_frame_packet(GCDQp_packet, filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename, pulsesName="SplitInIcePulses")
 
     if "nsides" not in scan_dict: scan_dict["nsides"] = dict()
 
     print "importing P-frame scans..."
-    while True:
+    while old_style_i3f.more():
         frame = old_style_i3f.pop_frame()
-        if frame is None: break
 
         if "SCAN_HealpixPixel" not in frame:
             raise RuntimeError("\"SCAN_HealpixPixel\" not in frame")
@@ -91,6 +90,9 @@ if __name__ == "__main__":
         raise RuntimeError("You need to specify exatcly one event file to import")
     filename = args[0]
 
-    packets = import_old_style_scan(filename, cache_dir=options.CACHEDIR, GCD_base_dir=options.GCDBASEDIR, override_GCD_filename=options.OVERRIDEGCDFILENAME)
+    # get the file stager instance
+    stagers = dataio.get_stagers()
+
+    packets = import_old_style_scan(filename, filestager=stagers, cache_dir=options.CACHEDIR, GCD_base_dir=options.GCDBASEDIR, override_GCD_filename=options.OVERRIDEGCDFILENAME)
 
     print "got:", packets

@@ -50,9 +50,9 @@ def load_GCD_frame_packet_from_file(filename):
     frame_packet = []
     i3f = dataio.I3File(read_url,'r')
     while True:
-        frame = i3f.pop_frame()
-        if frame is None:
+        if not i3f.more():
             return frame_packet
+        frame = i3f.pop_frame()
         frame_packet.append(frame)
 
 def save_GCD_frame_packet_to_file(frame_packet, filename):

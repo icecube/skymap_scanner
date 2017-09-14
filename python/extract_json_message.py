@@ -50,7 +50,7 @@ def extract_json_message(json_data, filestager, cache_dir="./cache/", override_G
     # try to load existing pixels if there are any
     return load_scan_state(event_id, state_dict, cache_dir=cache_dir)
 
-def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None):
+def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
@@ -150,9 +150,9 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         del ehe_override_gcd
 
     if GCD_diff_base_filename is not None:
-        frame_packet, ExcludedDOMs = prepare_frames(frame_packet, str(GCD_diff_base_handle))
+        frame_packet, ExcludedDOMs = prepare_frames(frame_packet, str(GCD_diff_base_handle), pulsesName=pulsesName)
     else:
-        frame_packet, ExcludedDOMs = prepare_frames(frame_packet, None)
+        frame_packet, ExcludedDOMs = prepare_frames(frame_packet, None, pulsesName=pulsesName)
 
     print "ExcludedDOMs is", ExcludedDOMs
 
