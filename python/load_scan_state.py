@@ -17,7 +17,7 @@ def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
     state_dict = load_GCDQp_state(event_id, filestager=filestager, cache_dir=cache_dir)[1]
 
     # update with scans
-    state_dict = load_scan_state(event_id, state_dict, cache_dir=cache_dir)[1]
+    state_dict = load_scan_state(event_id, state_dict, filestager=filestager, cache_dir=cache_dir)[1]
 
     return (event_id, state_dict)
 
@@ -71,9 +71,9 @@ def get_reco_losses_inside(p_frame, g_frame):
 
     return totalRecoLossesInside, totalRecoLosses
 
-def load_scan_state(event_id, state_dict, cache_dir="./cache/"):
+def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/"):
     if state_dict['baseline_GCD_file'] is not None:
-        baseline_GCD_frames = load_GCD_frame_packet_from_file(state_dict['baseline_GCD_file'])
+        baseline_GCD_frames = load_GCD_frame_packet_from_file(state_dict['baseline_GCD_file'], filestager=filestager)
     else:
         # assume we have full non-diff GCD frames in the packet
         baseline_GCD_frames = [state_dict['GCDQp_packet'][0]]

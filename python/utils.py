@@ -39,21 +39,28 @@ def parse_event_id(event_id_string):
     evt_type = parts[2]
     return (run, event, evt_type)
 
-def load_GCD_frame_packet_from_file(filename):
+def load_GCD_frame_packet_from_file(filename, filestager=None):
     read_url = filename
     for GCD_base_dir in config.GCD_base_dirs:
         potential_read_url = os.path.join(GCD_base_dir, filename)
         if os.path.isfile( potential_read_url ):
             read_url = potential_read_url
             break
-        
+
+    if filestager is not None:
+        read_url_handle = filestager.GetReadablePath( read_url )
+    else:
+        read_url_handle = read_url        
+
     frame_packet = []
-    i3f = dataio.I3File(read_url,'r')
+    i3f = dataio.I3File(str(read_url_handle),'r')
     while True:
         if not i3f.more():
             return frame_packet
         frame = i3f.pop_frame()
         frame_packet.append(frame)
+
+    del read_url_handle
 
 def save_GCD_frame_packet_to_file(frame_packet, filename):
     i3f = dataio.I3File(filename,'w')
