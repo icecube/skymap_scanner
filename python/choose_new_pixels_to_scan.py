@@ -46,6 +46,14 @@ def find_pixels_around_pixel(request_nside, pix_nside, pix, num=10):
     # pixels, sorted by distance from the requested pixel
     return pixels[numpy.argsort(pixel_space_angles)].tolist()
 
+def pixel_dist(from_nside, from_pix, to_nside, to_pix):
+    x0,y0,z0 = healpy.pix2vec(from_nside, from_pix)
+    x1,y1,z1 = healpy.pix2vec(to_nside, to_pix)
+    cos_space_angle = numpy.clip(x0*x1 + y0*y1 + z0*z1, -1., 1.)
+    space_angle = numpy.arccos(cos_space_angle)
+    return space_angle
+
+
 def find_global_min_pixel(state_dict):
     global_min_pix_index = (None, None)
     min_llh = None
