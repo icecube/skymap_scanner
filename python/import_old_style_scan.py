@@ -7,7 +7,7 @@ from icecube import gulliver, millipede
 from utils import save_GCD_frame_packet_to_file, create_event_id
 from extract_json_message import __extract_frame_packet
 
-def import_old_style_scan(filename, filestager, cache_dir="./cache/", GCD_base_dir=".", override_GCD_filename=None):
+def import_old_style_scan(filename, filestager, cache_dir="./cache/", override_GCD_filename=None):
     old_style_i3f = dataio.I3File(filename, 'r')
 
     # read GCDQp
@@ -78,8 +78,6 @@ if __name__ == "__main__":
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-d", "--GCD-base-dir", action="store", type="string",
-        default=os.path.join(os.environ["I3_DATA"],"GCD"), dest="GCDBASEDIR", help="The directory containing GCD base files used at SPS to generate GCD diffs")
     parser.add_option("-g", "--override-GCD-filename", action="store", type="string",
         default=None, dest="OVERRIDEGCDFILENAME", help="Use this GCD baseline file instead of the one referenced by the message")
 
@@ -93,6 +91,6 @@ if __name__ == "__main__":
     # get the file stager instance
     stagers = dataio.get_stagers()
 
-    packets = import_old_style_scan(filename, filestager=stagers, cache_dir=options.CACHEDIR, GCD_base_dir=options.GCDBASEDIR, override_GCD_filename=options.OVERRIDEGCDFILENAME)
+    packets = import_old_style_scan(filename, filestager=stagers, cache_dir=options.CACHEDIR, override_GCD_filename=options.OVERRIDEGCDFILENAME)
 
     print "got:", packets

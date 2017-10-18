@@ -5,7 +5,7 @@ from I3Tray import I3Units
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
-from utils import load_GCD_frame_packet_from_file, hash_frame_packet
+from utils import load_GCD_frame_packet_from_file, hash_frame_packet, extract_MC_truth
 import config
 
 def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
@@ -190,7 +190,11 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         print " - does not seem to contain frame diff packet"
         GCD_diff_base_filename = None
 
-    return (event_id, dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename))
+    
+    state_dict = dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename)
+    state_dict = extract_MC_truth(state_dict)
+        
+    return (event_id, state_dict)
 
 
 if __name__ == "__main__":

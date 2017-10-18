@@ -186,24 +186,32 @@ class SendPixelsToScan(icetray.I3Module):
                 coarser_pixel = healpy.ang2pix(coarser_nside, dec+numpy.pi/2., ra)
                 
                 if coarser_nside < 8:
-                    raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
+                    # no coarser pixel is available (probably we are just scanning finely around MC truth)
+                    break
+                    #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
                 if coarser_nside in self.state_dict["nsides"]:
                     if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
                         # coarser pixel found
                         break
             
-            if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
-                # coarser reconstruction failed
+            if coarser_nside < 8:
+                # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
                 time = self.fallback_time
                 energy = self.fallback_energy
             else:
-                coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
-                coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
-                position = coarser_particle.pos
-                time = coarser_particle.time
-                energy = coarser_particle.energy
+                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
+                    # coarser reconstruction failed
+                    position = self.fallback_position
+                    time = self.fallback_time
+                    energy = self.fallback_energy
+                else:
+                    coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
+                    coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
+                    position = coarser_particle.pos
+                    time = coarser_particle.time
+                    energy = coarser_particle.energy
 
         variationDistance = 20.*I3Units.m
         posVariations = [dataclasses.I3Position(0.,0.,0.),
@@ -435,7 +443,7 @@ if __name__ == "__main__":
     from load_scan_state import load_cache_state
 
     parser = OptionParser()
-    usage = """%prog [options]"""
+    usage = """%prog [options] event_id"""
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")

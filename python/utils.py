@@ -3,7 +3,7 @@ import shutil
 import json
 import hashlib
 
-from icecube import icetray, dataio, dataclasses
+from icecube import icetray, dataio, dataclasses, astro
 
 import config
 
@@ -86,3 +86,47 @@ def rewrite_frame_stop(input_frame, new_stream):
     del input_frame
 
     return new_frame
+
+def extract_MC_truth(state_dict):
+    if "GCDQp_packet" not in state_dict:
+        raise RuntimeError("GCDQp_packet not found in state_dict")
+    frame_packet = state_dict["GCDQp_packet"]
+
+    p_frame = frame_packet[-1]
+    if p_frame.Stop != icetray.I3Frame.Stream('p') and p_frame.Stop != icetray.I3Frame.Physics:
+        raise RuntimeError("last frame of GCDQp is neither Physics not 'p'")
+
+    q_frame = frame_packet[-2]
+    if q_frame.Stop != icetray.I3Frame.DAQ:
+        raise RuntimeError("second to last frame of GCDQp is not type Q")
+
+    if "I3MCTree_preMuonProp" not in q_frame:
+        return state_dict
+    mc_tree = q_frame["I3MCTree_preMuonProp"]
+
+    # find the muon
+    muon = None
+    for particle in mc_tree:
+        if particle.type not in [dataclasses.I3Particle.ParticleType.MuPlus, dataclasses.I3Particle.ParticleType.MuMinus]: continue
+        if muon is not None:
+            print("More than one muon in MCTree")
+            if particle.energy < muon.energy: continue
+        muon = particle
+
+    if muon is None:
+        # must be NC
+        return state_dict
+
+    # get event time
+    mjd = get_event_mjd(state_dict)
+
+    # convert to RA and dec
+    ra, dec = astro.dir_to_equa( muon.dir.zenith, muon.dir.azimuth, mjd )
+    ra = float(ra)
+    dec = float(dec)
+    dec = dec
+
+    state_dict['MCradec'] = (ra, dec)
+
+    return state_dict
+

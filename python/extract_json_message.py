@@ -4,10 +4,11 @@ import json
 import hashlib
 
 from icecube import icetray, dataclasses, dataio
+from icecube import astro
 from icecube import full_event_followup, frame_object_diff
 
 import config
-from utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop
+from utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop, extract_MC_truth
 from load_scan_state import load_scan_state
 from prepare_frames import prepare_frames
 
@@ -57,8 +58,8 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
     # sanity check the packet
-    if len(frame_packet) != 5:
-        raise RuntimeError("frame packet length is not 5")
+    #if len(frame_packet) != 5:
+    #    raise RuntimeError("frame packet length is not 5")
     if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("frame packet does not end with Physics frame")
 
@@ -175,8 +176,11 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         save_GCD_frame_packet_to_file(frame_packet, GCDQp_filename)
         print "wrote GCDQp dependency frames to {0}".format(GCDQp_filename)
 
-    return (this_event_cache_dir, event_id_string, dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename))
+    state_dict = dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename)
 
+    state_dict = extract_MC_truth(state_dict)
+
+    return (this_event_cache_dir, event_id_string, state_dict)
 
 def extract_json_messages(filenames, filestager, cache_dir="./cache", override_GCD_filename=None):
     all_messages = []

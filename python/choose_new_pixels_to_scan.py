@@ -108,7 +108,50 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_
     
     return [x for x in pixels_to_refine]
 
+def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*numpy.pi/180.):
+    ra, dec = state_dict["MCradec"]
+
+    # MC true pixel
+    true_pix = healpy.ang2pix(nside, dec+numpy.pi/2., ra)
+
+    # true pixel dir
+    x0,y0,z0 = healpy.pix2vec(nside, true_pix)
+
+    # all possible pixels
+    x1,y1,z1 = healpy.pix2vec(nside, numpy.asarray(range(healpy.nside2npix(nside))))
+
+    cos_space_angle = numpy.clip(x0*x1 + y0*y1 + z0*z1, -1., 1.)
+    space_angle = numpy.arccos(cos_space_angle)
+    pixels = numpy.where(space_angle < angular_dist)[0]
+    pixel_space_angles = space_angle[pixels]
+
+    # pixels, sorted by distance from the requested pixel
+    sorted_pixels = pixels[numpy.argsort(pixel_space_angles)].tolist()
+
+    if "nsides" not in state_dict:
+        existing_pixels = []
+    else:
+        if nside not in state_dict["nsides"]:
+            existing_pixels = []
+        else:
+            existing_pixels = state_dict["nsides"][nside].keys()
+
+    scan_pixels = []
+
+    for p in sorted_pixels:
+        if p not in existing_pixels:
+            scan_pixels.append( (nside, p) )
+
+    #scan_pixels = [(nside, pix) for pix in sorted_pixels]
+
+    return scan_pixels
+
 def choose_new_pixels_to_scan(state_dict, max_nside=1024):
+    # special case if we have MC truth
+    if "MCradec" in state_dict:
+        # scan only at max_nside around the true minimum
+        return choose_new_pixels_to_scan_around_MCtruth(state_dict, nside=max_nside, angular_dist=2.*numpy.pi/180.)
+
     # first check if any pixels with nside=8 are missing (we need all of them)
     if "nsides" not in state_dict:
         # print "nsides is missing - scan all pixels at nside=8"
