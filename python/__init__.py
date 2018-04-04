@@ -28,17 +28,17 @@ from icecube.load_pybindings import load_pybindings
 from icecube import icetray, dataclasses # be nice and pull in our dependencies
 # load_pybindings(__name__,__path__)
 
-import config
-import slack_tools
+from . import config
+from . import slack_tools
 
-from extract_json_message import extract_json_message, extract_json_messages
-from load_scan_state import load_scan_state, load_cache_state, load_GCDQp_state
-from import_old_style_scan import import_old_style_scan
-from perform_scan import perform_scan
-from create_plot import create_plot
-from utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop, parse_event_id
+from .extract_json_message import extract_json_message, extract_json_messages
+from .load_scan_state import load_scan_state, load_cache_state, load_GCDQp_state
+from .import_old_style_scan import import_old_style_scan
+from .perform_scan import perform_scan
+from .create_plot import create_plot
+from .utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop, parse_event_id
 
-import traysegments
+from .scan_pixel_distributed import scan_pixel_distributed_server, scan_pixel_distributed_client
 
 # clean up the namespace
 del icetray

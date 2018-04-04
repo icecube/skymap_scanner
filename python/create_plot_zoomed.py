@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import absolute_import
+
 import io
 import os
 import numpy
@@ -10,7 +13,7 @@ from icecube import icetray, dataclasses, dataio
 
 from icecube.skymap_scanner.utils import parse_event_id, get_event_mjd
 
-# import slack_tools
+# from . import slack_tools
 
 from matplotlib.axes import Axes
 from matplotlib import text
@@ -31,12 +34,12 @@ class RaFormatter(Formatter):
         minutes = hours - int(hours)
         hours = int(hours)
         minutes = minutes * 60.
-        
+
         seconds = minutes - int(minutes)
         minutes = int(minutes)
         seconds = seconds*60.
         seconds = int(seconds)
-        
+
         return r"%0.0f$^\mathrm{h}$%0.0f$^\prime$%0.0f$^{\prime\prime}$" % (hours, minutes, seconds)
 
 class DecFormatter(Formatter):
@@ -68,10 +71,10 @@ def create_plot(event_id_string, state_dict):
     plot_title = "Run: {0} Event {1}: Type: {2} MJD: {3}".format(run_id, event_id, event_type, mjd)
 
     plot_filename = "{0}.png".format(event_id_string)
-    print "saving plot to {0}".format(plot_filename)
+    print("saving plot to {0}".format(plot_filename))
 
     nsides = state_dict["nsides"].keys()
-    print "available nsides: {0}".format(nsides)
+    print("available nsides: {0}".format(nsides))
 
     maps = []
     min_value = numpy.nan
@@ -81,22 +84,22 @@ def create_plot(event_id_string, state_dict):
 
     # theta = numpy.linspace(numpy.pi, 0., ysize)
     dec = numpy.linspace(-numpy.pi/2., numpy.pi/2., ysize)
-    
+
     # phi   = numpy.linspace(0., 2.*numpy.pi, xsize)
     ra = numpy.linspace(0., 2.*numpy.pi, xsize)
 
     # project the map to a rectangular matrix xsize x ysize
     RA, DEC = numpy.meshgrid(ra, dec)
-    
+
     grid_map = None
-    
+
     # now plot maps above each other
     for nside in sorted(nsides):
-        print "constructing map for nside {0}...".format(nside)
+        print("constructing map for nside {0}...".format(nside))
         # grid_pix = healpy.ang2pix(nside, THETA, PHI)
         grid_pix = healpy.ang2pix(nside, DEC + numpy.pi/2., RA)
         this_map = numpy.ones(healpy.nside2npix(nside))*numpy.inf
-        
+
         for pixel, pixel_data in state_dict["nsides"][nside].iteritems():
             value = pixel_data['llh']
             if numpy.isfinite(value):
@@ -108,7 +111,7 @@ def create_plot(event_id_string, state_dict):
                     max_value = value
             # if nside in [8,64]: value=numpy.nan
             this_map[pixel] = value
-        
+
         if grid_map is None:
             grid_map = this_map[grid_pix]
         else:
@@ -116,19 +119,19 @@ def create_plot(event_id_string, state_dict):
 
         del this_map
 
-        print "done with map for nside {0}...".format(nside)
-    
+        print("done with map for nside {0}...".format(nside))
+
     # clean up
     del grid_pix
 
-    print "min  RA:", minRA *180./numpy.pi, "deg,", minRA*12./numpy.pi, "hours"
-    print "min dec:", minDec*180./numpy.pi, "deg"
+    print("min  RA:", minRA *180./numpy.pi, "deg,", minRA*12./numpy.pi, "hours")
+    print("min dec:", minDec*180./numpy.pi, "deg")
 
     # renormalize
     grid_map = grid_map - min_value
     max_value = max_value - min_value
     min_value = 0.
-    
+
     # show 2*delta_LLH (the TS used by Will)
     grid_map = grid_map * 2.
 
@@ -138,7 +141,7 @@ def create_plot(event_id_string, state_dict):
 
     # max_value_zoomed = max_value
 
-    print "preparing plot: {0}...".format(plot_filename)
+    print("preparing plot: {0}...".format(plot_filename))
 
     # the color map to use
     cmap = matplotlib.cm.cubehelix_r
@@ -149,7 +152,7 @@ def create_plot(event_id_string, state_dict):
     # prepare the figure canvas
     fig = matplotlib.pyplot.figure(figsize=[x_inches,y_inches])
     ax = fig.add_subplot(111) #,projection='cartesian')
-    
+
     if True:
         # rasterized makes the map bitmap while the labels remain vectorial
         # flip longitude to the astro convention
@@ -161,7 +164,7 @@ def create_plot(event_id_string, state_dict):
     contour_labels = [r'50% (IC160427A syst.)', r'90% (IC160427A syst.)']
     # contour_labels = [r'50%', r'90%']
     contour_colors=['k', 'r']
-    
+
     # Use Green's theorem to compute the area
     # enclosed by the given contour.
     def area(vs):
@@ -187,7 +190,7 @@ def create_plot(event_id_string, state_dict):
         # Compute area enclosed by vertices.
         a = area(vs) # will be in square-radians
         a = a*(180.*180.)/(numpy.pi*numpy.pi) # convert to square-degrees
-        
+
         CS.collections[i].set_label(contour_labels[i] + ' - area: {0:.2f}sqdeg'.format(a))
 
     # show GCN position
@@ -212,27 +215,27 @@ def create_plot(event_id_string, state_dict):
     # 90%:
     # min  RA: 46.58 -1.00 +1.10 deg
     # min dec: 14.98 -0.80 +1.05 deg
-    # 
+    #
     # 50%:
     # min  RA: 46.58 -0.50 +0.55 deg
     # min dec: 14.98 -0.40 +0.45 deg
 
 
     # # 90%
-    #ax.errorbar([minRA], [minDec], 
-    ax.errorbar([77.43*numpy.pi/180.], [5.72*numpy.pi/180.], 
+    #ax.errorbar([minRA], [minDec],
+    ax.errorbar([77.43*numpy.pi/180.], [5.72*numpy.pi/180.],
      xerr=[[0.8*numpy.pi/180.],[1.3*numpy.pi/180.]], # RA
      yerr=[[0.4*numpy.pi/180.],[0.7*numpy.pi/180.]], # Dec
      color='g', fmt='--o')
-    
+
     ## 50 %
-    #ax.errorbar([minRA], [minDec], 
+    #ax.errorbar([minRA], [minDec],
     # xerr=[[0.5*numpy.pi/180.],[0.55*numpy.pi/180.]], # RA
     # yerr=[[0.4*numpy.pi/180.],[0.45*numpy.pi/180.]], # Dec
     # color='k', fmt='--o')
 
     ## # 90%
-    #ax.errorbar([77.68*numpy.pi/180.], [5.87*numpy.pi/180.], 
+    #ax.errorbar([77.68*numpy.pi/180.], [5.87*numpy.pi/180.],
     # xerr=[[1.05*numpy.pi/180.],[1.05*numpy.pi/180.]], # RA
     # yerr=[[0.55*numpy.pi/180.],[0.55*numpy.pi/180.]], # Dec
     # color='b', fmt='--o')
@@ -247,25 +250,25 @@ def create_plot(event_id_string, state_dict):
 
     # ax.set_xlim( [ minRA  - 30.*numpy.pi/180. ,minRA  + 30.*numpy.pi/180.  ] )
     # ax.set_ylim( [ minDec - 15.*numpy.pi/180. ,minDec + 15.*numpy.pi/180.  ] )
-   
-    
+
+
     #ax.set_xlim( [ minRA  - 10.*numpy.pi/180. ,minRA  + 10.*numpy.pi/180.  ] )
     #ax.set_ylim( [ minDec - 5.*numpy.pi/180. ,minDec + 5.*numpy.pi/180.  ] )
     ax.set_xlim( [ minRA  - 4.*numpy.pi/180. ,minRA  + 4.*numpy.pi/180.  ] )
     ax.set_ylim( [ minDec - 2.*numpy.pi/180. ,minDec + 2.*numpy.pi/180.  ] )
 
-    
+
     # ax.xaxis.set_major_formatter(RaFormatter())
     ax.xaxis.set_major_formatter(DecFormatter())
     ax.yaxis.set_major_formatter(DecFormatter())
-    
+
     #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=2.0*(numpy.pi/180.)))
     #ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=2.0*(numpy.pi/180.)))
     ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=0.8*(numpy.pi/180.)))
     ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=0.8*(numpy.pi/180.)))
 
     # ax.xaxis.set_ticks(numpy.arange(0., 2.*numpy.pi, 1000))
-    
+
     if True:
         # colorbar
         cb = fig.colorbar(image, orientation='horizontal', shrink=.6, pad=0.13) #, ticks=[min_value, max_value_zoomed])
@@ -275,7 +278,7 @@ def create_plot(event_id_string, state_dict):
         cb.solids.set_edgecolor("face")
 
     ax.set_aspect('equal')
-    
+
     ax.tick_params(axis='x', labelsize=10)
     ax.tick_params(axis='y', labelsize=10)
 
@@ -291,16 +294,16 @@ def create_plot(event_id_string, state_dict):
     effects = [patheffects.withStroke(linewidth=1.1, foreground='w')]
     for artist in ax.findobj(text.Text):
         artist.set_path_effects(effects)
-            
+
     # remove white space around figure
     spacing = 0.01
     fig.subplots_adjust(bottom=spacing, top=0.92-spacing, left=spacing+0.1, right=1.-spacing)
     # fig.subplots_adjust(bottom=spacing, top=1.-spacing, left=spacing+0.1, right=1.-spacing)
-    
+
     # set the title
     fig.suptitle(plot_title)
 
-    print "saving: {0}...".format(plot_filename)
+    print("saving: {0}...".format(plot_filename))
 
     fig.savefig(event_id_string + ".plot_zoomed.pdf", dpi=dpi, transparent=True)
 
@@ -309,7 +312,7 @@ def create_plot(event_id_string, state_dict):
     # fig.savefig(imgdata, format='png', dpi=dpi, transparent=True)
     # imgdata.seek(0)
 
-    print "done."
+    print("done.")
 
     # return imgdata
 
@@ -336,6 +339,6 @@ if __name__ == "__main__":
 
     eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
     plot_png_buffer = create_plot(eventID, state_dict)
-    
+
     # # we have a buffer containing a valid png file now, post it to Slack
     # slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")

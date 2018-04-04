@@ -1,11 +1,14 @@
+from __future__ import print_function
+from __future__ import absolute_import
+
 import os
 import numpy
 
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
-from utils import save_GCD_frame_packet_to_file, create_event_id
-from extract_json_message import __extract_frame_packet
+from .utils import save_GCD_frame_packet_to_file, create_event_id
+from .extract_json_message import __extract_frame_packet
 
 def import_old_style_scan(filename, filestager, cache_dir="./cache/", override_GCD_filename=None):
     old_style_i3f = dataio.I3File(filename, 'r')
@@ -30,12 +33,12 @@ def import_old_style_scan(filename, filestager, cache_dir="./cache/", override_G
     if GCDQp_packet[-1].Stop != icetray.I3Frame.Stream('p') and GCDQp_packet[-1].Stop != icetray.I3Frame.Physics:
         raise RuntimeError("No p-frame in input file")
 
-    print "importing GCDQp..."
+    print("importing GCDQp...")
     this_event_cache_dir, event_id_string, scan_dict = __extract_frame_packet(GCDQp_packet, filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename, pulsesName="SplitInIcePulses")
 
     if "nsides" not in scan_dict: scan_dict["nsides"] = dict()
 
-    print "importing P-frame scans..."
+    print("importing P-frame scans...")
     while old_style_i3f.more():
         frame = old_style_i3f.pop_frame()
 
@@ -62,10 +65,10 @@ def import_old_style_scan(filename, filestager, cache_dir="./cache/", override_G
             os.mkdir(nside_dir)
         pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
 
-        print " - importing pixel file {0}...".format(pixel_file_name)
+        print(" - importing pixel file {0}...".format(pixel_file_name))
         save_GCD_frame_packet_to_file([frame], pixel_file_name)
 
-    print "import done."
+    print("import done.")
 
     return (event_id_string, scan_dict)
 
@@ -93,4 +96,4 @@ if __name__ == "__main__":
 
     packets = import_old_style_scan(filename, filestager=stagers, cache_dir=options.CACHEDIR, override_GCD_filename=options.OVERRIDEGCDFILENAME)
 
-    print "got:", packets
+    print("got:", packets)

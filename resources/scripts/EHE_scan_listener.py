@@ -66,6 +66,7 @@ def incoming_event(topic, event):
             event_id_string=event_id,
             state_dict=state_dict,
             cache_dir=event_cache_dir,
+            base_GCD_path=base_GCD_path,
             port=distribute_port,
             numclients=distribute_numclients,
             logger=post_to_slack, # logging callback

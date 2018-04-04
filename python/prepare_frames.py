@@ -2,6 +2,9 @@
 prepare the GCDQp packet by adding frame objects that might be missing
 """
 
+from __future__ import print_function
+from __future__ import absolute_import
+
 import copy
 import math
 import os
@@ -18,7 +21,7 @@ class FrameArraySource(icetray.I3Module):
             "The frames to push to modules downstream",
             [])
         self.AddOutBox("OutBox")
-        
+
     def Configure(self):
         self.frames = copy.copy(self.GetParameter("Frames"))
 
@@ -33,7 +36,7 @@ class FrameArraySource(icetray.I3Module):
             return
 
         self.PushFrame(self.frames.pop(0)) # push the frontmost item
-        
+
 
 class FrameArraySink(icetray.I3Module):
     def __init__(self, ctx):
@@ -42,47 +45,44 @@ class FrameArraySink(icetray.I3Module):
             "Array to which to add frames",
             [])
         self.AddOutBox("OutBox")
-        
+
     def Configure(self):
         self.frame_store = self.GetParameter("FrameStore")
 
     def Process(self):
         frame = self.PopFrame()
         if not frame: return
-        
+
         # ignore potential TrayInfo frames
         if frame.Stop == icetray.I3Frame.TrayInfo:
             self.PushFrame(frame)
             return
-        
+
         self.frame_store.append(frame)
-        
+
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_array, base_GCD_path, pulsesName="SplitUncleanedInIcePulses"):
     from icecube import dataclasses, recclasses, simclasses
     from icecube import DomTools, VHESelfVeto
     from icecube import photonics_service, gulliver, millipede
-    
+
     nominalPulsesName = "SplitUncleanedInIcePulses"
-    
+
     output_frames = []
-    
+
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=frame_array)
 
-    if GCD_diff_base_filename is not None:
-        base_GCD_path, base_GCD_filename = os.path.split(GCD_diff_base_filename)
-        tray.Add(uncompress, "GCD_uncompress",
-                 keep_compressed=True,
-                 base_path=base_GCD_path,
-                 base_filename=base_GCD_filename)
+    tray.Add(uncompress, "GCD_uncompress",
+             keep_compressed=True,
+             base_path=base_GCD_path)
 
     if pulsesName != nominalPulsesName:
         def copyPulseName(frame, old_name, new_name):
             mask = dataclasses.I3RecoPulseSeriesMapMask(frame, old_name)
             if new_name in frame:
-                print "** WARNING: {0} was already in frame. overwritten".format(new_name)
+                print("** WARNING: {0} was already in frame. overwritten".format(new_name))
                 del frame[new_name]
             frame[new_name] = mask
             frame[new_name+"TimeRange"] = copy.deepcopy(frame[old_name+"TimeRange"])
@@ -113,31 +113,6 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
 
     tray.AddModule(cleanupFrame, "cleanupFrame",
         Streams=[icetray.I3Frame.DAQ, icetray.I3Frame.Physics])
-
-    exclusionList = \
-    tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-        Pulses = nominalPulsesName,
-        ExcludeDeepCore='DeepCoreDOMs',
-        ExcludeSaturatedDOMs='SaturatedDOMs',
-        ExcludeBrightDOMs='BrightDOMs',
-        BadDomsList='BadDomsList',
-        CalibrationErrata='CalibrationErrata',
-
-        SaturationWindows='SaturationWindows'
-        )
-
-
-    # I like having frame objects in there even if they are empty for some frames
-    def createEmptyDOMLists(frame, ListNames=[]):
-        for name in ListNames:
-            if name in frame: continue
-            frame[name] = dataclasses.I3VectorOMKey()
-    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
-        ListNames = ["BrightDOMs"],
-        Streams=[icetray.I3Frame.Physics])
-
-    # exclude bright DOMs
-    ExcludedDOMs = exclusionList
 
     ##################
 
@@ -193,23 +168,21 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
     tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
                     Pulses=nominalPulsesName,
                     )
-    ExcludedDOMs = ExcludedDOMs + [nominalPulsesName+'LatePulseCleanedTimeWindows']
 
-    if GCD_diff_base_filename is not None:
-        def delFrameObjectsWithDiffsAvailable(frame):
-            all_keys = frame.keys()
-            for key in frame.keys():
-                if not key.endswith('Diff'): continue
-                non_diff_key = key[:-4]
-                if non_diff_key in all_keys:
-                    del frame[non_diff_key]
-                    # print "deleted", non_diff_key, "from frame because a Diff exists"
-        tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
-    
+    def delFrameObjectsWithDiffsAvailable(frame):
+        all_keys = frame.keys()
+        for key in frame.keys():
+            if not key.endswith('Diff'): continue
+            non_diff_key = key[:-4]
+            if non_diff_key in all_keys:
+                del frame[non_diff_key]
+                # print("deleted", non_diff_key, "from frame because a Diff exists")
+    tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
+
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
     tray.AddModule("TrashCan")
     tray.Execute()
     tray.Finish()
     del tray
-    
-    return (output_frames, ExcludedDOMs)
+
+    return output_frames

@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+from __future__ import print_function
+
 import os
 import numpy
 import healpy
@@ -14,15 +17,15 @@ def healpix_pixel_upgrade(from_nside, to_nside, pix):
         raise RuntimeError("to_nside needs to be greater than from_nside")
     if to_nside==from_nside:
         return [pix]
-        
+
     current_nside = from_nside
     pixels = [pix]
-    
+
     while True:
         new_pixels = []
         for p in pixels:
             new_pixels.extend( __healpix_pixel_upgrade(current_nside, p) )
-        
+
         pixels = new_pixels
         current_nside = current_nside*2
         if current_nside==to_nside:
@@ -35,9 +38,9 @@ def find_pixels_around_pixel(request_nside, pix_nside, pix, num=10):
     pixel_area = healpy.nside2pixarea(request_nside)
     area_for_requested_pixels = pixel_area*float(num)
     radius_around = numpy.sqrt(area_for_requested_pixels/numpy.pi)
-    
+
     x0,y0,z0 = healpy.pix2vec(pix_nside, pix)
-    
+
     x1,y1,z1 = healpy.pix2vec(request_nside, numpy.asarray(range(healpy.nside2npix(request_nside))))
     cos_space_angle = numpy.clip(x0*x1 + y0*y1 + z0*z1, -1., 1.)
     space_angle = numpy.arccos(cos_space_angle)
@@ -98,14 +101,14 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_
 
     num_pixels = len(pixels_dict)
     max_pixels = total_pixels_for_this_nside
-    # print "nside", nside, "total_pixels_for_this_nside", max_pixels, "num_pixels", num_pixels
+    # print("nside", nside, "total_pixels_for_this_nside", max_pixels, "num_pixels", num_pixels)
     if float(num_pixels)/float(max_pixels) > 0.3: # start only once 30% have been scanned
         global_min_pix_nside, global_min_pix_index = find_global_min_pixel(state_dict)
-        
+
         if global_min_pix_index is not None:
             all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_nside, global_min_pix_index, num=pixel_extension_number)
             pixels_to_refine.update([x for x in all_refine_pixels if x in pixels_dict])
-    
+
     return [x for x in pixels_to_refine]
 
 def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*numpy.pi/180.):
@@ -154,13 +157,13 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
 
     # first check if any pixels with nside=8 are missing (we need all of them)
     if "nsides" not in state_dict:
-        # print "nsides is missing - scan all pixels at nside=8"
-        scan_pixels = range(healpy.nside2npix(8))
+        # print("nsides is missing - scan all pixels at nside=8")
+        scan_pixels = list(range(healpy.nside2npix(8)))
         random.shuffle(scan_pixels)
         return [(8, pix) for pix in scan_pixels]
     if 8 not in state_dict["nsides"]:
-        # print "nsides=8 is missing - scan all pixels at nside=8"
-        scan_pixels = range(healpy.nside2npix(8))
+        # print("nsides=8 is missing - scan all pixels at nside=8")
+        scan_pixels = list(range(healpy.nside2npix(8)))
         random.shuffle(scan_pixels)
         return [(8, pix) for pix in scan_pixels]
 
@@ -194,7 +197,7 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
             # should not get here, max_nside is 1024
             next_nside = current_nside*8
             pixel_extension_number = 12
-        
+
         if next_nside > max_nside:
             break # no more pixels to scan
 
@@ -214,14 +217,14 @@ def choose_new_pixels_to_scan(state_dict, max_nside=1024):
             for p in pixels_to_refine:
                 u = healpix_pixel_upgrade(current_nside, next_nside, p) # upgrade to the next nside
                 upgraded_pixels_to_refine.extend(u)
-            
+
             # only scan non-existent pixels
             if next_nside in state_dict["nsides"]:
                 existing_pixels = set(state_dict["nsides"][next_nside].keys())
                 upgraded_pixels_to_refine_nonexisting = [pix for pix in upgraded_pixels_to_refine if pix not in existing_pixels]
             else:
                 upgraded_pixels_to_refine_nonexisting = upgraded_pixels_to_refine
-            
+
             all_pixels_to_refine.extend([(next_nside, pix) for pix in upgraded_pixels_to_refine_nonexisting])
 
         current_nside = next_nside # test the next nside
@@ -249,5 +252,5 @@ if __name__ == "__main__":
     state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)[1]
     pixels = choose_new_pixels_to_scan(state_dict)
 
-    print "got", pixels
-    print "number of pixels to scan is", len(pixels)
+    print("got", pixels)
+    print("number of pixels to scan is", len(pixels))

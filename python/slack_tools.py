@@ -1,4 +1,7 @@
-import config
+from __future__ import print_function
+from __future__ import absolute_import
+
+from . import config
 import json
 import requests
 
@@ -16,11 +19,11 @@ class Response(object):
 
 def upload_file(file_handle, filename, title):
     api = 'files.upload'
-    
+
     response = requests.post(
-        API_BASE_URL.format(api=api), 
-        timeout=60, 
-        params={'token': config.slack_api_key}, 
+        API_BASE_URL.format(api=api),
+        timeout=60,
+        params={'token': config.slack_api_key},
         data={
             # 'content': content,
             # 'filetype': filetype,
@@ -31,7 +34,7 @@ def upload_file(file_handle, filename, title):
         },
         files={'file': file_handle}
         )
-    
+
     response.raise_for_status()
 
     response = Response(response.text)
@@ -42,11 +45,11 @@ def upload_file(file_handle, filename, title):
 
 def post_message(text):
     api = 'chat.postMessage'
-    
+
     response = requests.post(
-        API_BASE_URL.format(api=api), 
-        timeout=10, 
-        params={'token': config.slack_api_key}, 
+        API_BASE_URL.format(api=api),
+        timeout=10,
+        params={'token': config.slack_api_key},
         data={
             'text': text,
             'channel': config.slack_channel,
@@ -55,7 +58,7 @@ def post_message(text):
             'icon_emoji': ':mag:',
         }
         )
-    
+
     response.raise_for_status()
 
     response = Response(response.text)
@@ -80,4 +83,3 @@ if __name__ == "__main__":
     message = args[0]
 
     post_message(message)
-    

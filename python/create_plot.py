@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import absolute_import
+
 import io
 import os
 import numpy
@@ -8,9 +11,9 @@ import healpy
 
 from icecube import icetray, dataclasses, dataio
 
-from utils import parse_event_id, get_event_mjd
+from .utils import parse_event_id, get_event_mjd
 
-import slack_tools
+from . import slack_tools
 
 from matplotlib.axes import Axes
 from matplotlib import text
@@ -108,10 +111,10 @@ def create_plot(event_id_string, state_dict):
     plot_title = "Run: {0} Event {1}: Type: {2} MJD: {3}".format(run_id, event_id, event_type, mjd)
 
     plot_filename = "{0}.png".format(event_id_string)
-    print "saving plot to {0}".format(plot_filename)
+    print("saving plot to {0}".format(plot_filename))
 
     nsides = state_dict["nsides"].keys()
-    print "available nsides: {0}".format(nsides)
+    print("available nsides: {0}".format(nsides))
 
     maps = []
     min_value = numpy.nan
@@ -121,22 +124,22 @@ def create_plot(event_id_string, state_dict):
 
     # theta = numpy.linspace(numpy.pi, 0., ysize)
     dec = numpy.linspace(-numpy.pi/2., numpy.pi/2., ysize)
-    
+
     # phi   = numpy.linspace(0., 2.*numpy.pi, xsize)
     ra = numpy.linspace(0., 2.*numpy.pi, xsize)
 
     # project the map to a rectangular matrix xsize x ysize
     RA, DEC = numpy.meshgrid(ra, dec)
-    
+
     grid_map = None
-    
+
     # now plot maps above each other
     for nside in sorted(nsides):
-        print "constructing map for nside {0}...".format(nside)
+        print("constructing map for nside {0}...".format(nside))
         # grid_pix = healpy.ang2pix(nside, THETA, PHI)
         grid_pix = healpy.ang2pix(nside, DEC + numpy.pi/2., RA)
         this_map = numpy.ones(healpy.nside2npix(nside))*numpy.inf
-        
+
         for pixel, pixel_data in state_dict["nsides"][nside].iteritems():
             value = pixel_data['llh']
             if numpy.isfinite(value):
@@ -147,7 +150,7 @@ def create_plot(event_id_string, state_dict):
                 if numpy.isnan(max_value) or value > max_value:
                     max_value = value
             this_map[pixel] = value
-        
+
         if grid_map is None:
             grid_map = this_map[grid_pix]
         else:
@@ -155,8 +158,8 @@ def create_plot(event_id_string, state_dict):
 
         del this_map
 
-        print "done with map for nside {0}...".format(nside)
-    
+        print("done with map for nside {0}...".format(nside))
+
     # clean up
     del grid_pix
 
@@ -164,7 +167,7 @@ def create_plot(event_id_string, state_dict):
 
     max_value_zoomed = min_value+7.
 
-    print "preparing plot: {0}...".format(plot_filename)
+    print("preparing plot: {0}...".format(plot_filename))
 
     # the color map to use
     cmap = matplotlib.cm.cubehelix_r
@@ -175,7 +178,7 @@ def create_plot(event_id_string, state_dict):
     # prepare the figure canvas
     fig = matplotlib.pyplot.figure(figsize=[x_inches,y_inches])
     ax = fig.add_subplot(111,projection='astro mollweide')
-    
+
     # rasterized makes the map bitmap while the labels remain vectorial
     # flip longitude to the astro convention
     image = ax.pcolormesh(ra, dec, grid_map, vmin=min_value, vmax=max_value, rasterized=True, cmap=cmap)
@@ -190,7 +193,7 @@ def create_plot(event_id_string, state_dict):
     # graticule
     ax.set_longitude_grid(30)
     ax.set_latitude_grid(30)
-    
+
     # colorbar
     cb = fig.colorbar(image, orientation='horizontal', shrink=.6, pad=0.05, ticks=[min_value, max_value])
     cb.ax.xaxis.set_label_text("-ln(L)")
@@ -209,15 +212,15 @@ def create_plot(event_id_string, state_dict):
     effects = [patheffects.withStroke(linewidth=1.1, foreground='w')]
     for artist in ax.findobj(text.Text):
         artist.set_path_effects(effects)
-            
+
     # remove white space around figure
     spacing = 0.01
     fig.subplots_adjust(bottom=spacing, top=1.-spacing, left=spacing+0.04, right=1.-spacing)
-    
+
     # set the title
     fig.suptitle(plot_title)
 
-    print "saving: {0}...".format(plot_filename)
+    print("saving: {0}...".format(plot_filename))
 
     # fig.savefig(plot_filename, dpi=dpi, transparent=True)
 
@@ -226,7 +229,7 @@ def create_plot(event_id_string, state_dict):
     fig.savefig(imgdata, format='png', dpi=dpi, transparent=True)
     imgdata.seek(0)
 
-    print "done."
+    print("done.")
 
     return imgdata
 
@@ -253,6 +256,6 @@ if __name__ == "__main__":
 
     eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
     plot_png_buffer = create_plot(eventID, state_dict)
-    
+
     # we have a buffer containing a valid png file now, post it to Slack
     slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")

@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import absolute_import
+
 import os
 import shutil
 import json
@@ -5,13 +8,13 @@ import hashlib
 
 from icecube import icetray, dataio, dataclasses, astro
 
-import config
+from . import config
 
 def get_event_mjd(state_dict):
     if "GCDQp_packet" not in state_dict:
         raise RuntimeError("GCDQp_packet not found in state_dict")
     frame_packet = state_dict["GCDQp_packet"]
-    
+
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("no p-frame found at the end of the GCDQp packet")
@@ -50,7 +53,7 @@ def load_GCD_frame_packet_from_file(filename, filestager=None):
     if filestager is not None:
         read_url_handle = filestager.GetReadablePath( read_url )
     else:
-        read_url_handle = read_url        
+        read_url_handle = read_url
 
     frame_packet = []
     i3f = dataio.I3File(str(read_url_handle),'r')
@@ -129,4 +132,3 @@ def extract_MC_truth(state_dict):
     state_dict['MCradec'] = (ra, dec)
 
     return state_dict
-
