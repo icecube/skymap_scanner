@@ -345,7 +345,9 @@ def get_reco_losses_inside(p_frame):
     exitTime = None
     intersectionTimes = sorted(intersectionTimes)
     if len(intersectionTimes)==0:
-        return 0., 0.
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(0.)
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(0.)
+        return
 
     entryTime = intersectionTimes[0]-60.*I3Units.m/dataclasses.I3Constants.c
     intersectionTimes = intersectionTimes[1:]
