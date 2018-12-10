@@ -315,10 +315,16 @@ class FindBestRecoResultForPixel(icetray.I3Module):
 
 
 def get_reco_losses_inside(p_frame):
-    if "MillipedeStarting2ndPass" not in p_frame: return numpy.nan, numpy.nan
+    if "MillipedeStarting2ndPass" not in p_frame:
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(numpy.nan)
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(numpy.nan)
+        return
     recoParticle = p_frame["MillipedeStarting2ndPass"]
 
-    if "MillipedeStarting2ndPassParams" not in p_frame: return numpy.nan, numpy.nan
+    if "MillipedeStarting2ndPassParams" not in p_frame:
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(numpy.nan)
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(numpy.nan)
+        return
 
     def getRecoLosses(vecParticles):
         losses = []
@@ -346,7 +352,7 @@ def get_reco_losses_inside(p_frame):
     intersectionTimes = sorted(intersectionTimes)
     if len(intersectionTimes)==0:
         p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(0.)
-        
+
         totalRecoLosses = 0.
         for entry in recoLosses:
             totalRecoLosses += entry[1]
