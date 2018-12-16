@@ -193,14 +193,29 @@ def create_plot(event_id_string, state_dict):
 
         CS.collections[i].set_label(contour_labels[i] + ' - area: {0:.2f}sqdeg'.format(a))
 
+    # Add in additional plot point
+    #pilot_ra = 158.99795262
+    #plot_dec = 39.52818432
+    #plot_ra = 26.533
+    #plot_dec = 12.994
+    #plot_radius = 0.06 * 1.177 / numpy.cos(plot_dec*numpy.pi/180.)
+    #plot_radius = 2.55 / numpy.cos(plot_dec*numpy.pi/180.)
+    plot_ra = 323.383
+    plot_dec = 49.410
+    plot_radius = 2.9 / numpy.cos(plot_dec*numpy.pi/180.)
+    print("Plot radius", plot_radius, "degrees")
+    ax.scatter(minRA, minDec, s=20, marker='s', color='black', label=r'scan best-fit', zorder=2)
+
+    circle1 = matplotlib.pyplot.Circle((plot_ra *numpy.pi/180., plot_dec*numpy.pi/180.), plot_radius * numpy.pi/180., color='green', label=r'50% Parabaloid')
+    ax.add_artist(circle1)
     # show GCN position
     #ax.scatter(98.3268*numpy.pi/180., -14.4861*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Tue 21 Mar 17 07:32:58 UT')
     #ax.scatter(221.6750*numpy.pi/180., -26.0359*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Sat 06 May 17 13:01:20 UT')
-    ax.scatter(77.2853*numpy.pi/180., 5.7517*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Fri 22 Sep 17 20:55:13 UT')
+    # ax.scatter(77.2853*numpy.pi/180., 5.7517*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Fri 22 Sep 17 20:55:13 UT')
 
     #ax.scatter(98.165*numpy.pi/180., -15.204*numpy.pi/180., s=20, marker='s', color='green', label='splineMPE fit')
 
-    ax.scatter(77.3581850*numpy.pi/180., 5.6931481*numpy.pi/180., s=20, marker='x', color='r', label='TXS 0506+056')
+    # ax.scatter(77.3581850*numpy.pi/180., 5.6931481*numpy.pi/180., s=20, marker='x', color='r', label='TXS 0506+056')
 
 
     # # show GCN position
@@ -208,7 +223,9 @@ def create_plot(event_id_string, state_dict):
 
     # for Pan-Starrs
     #show best-fit position
-    ax.scatter(minRA, minDec, s=20, marker='s', color='black', label=r'scan best-fit')
+    #ax.scatter(minRA, minDec, s=20, marker='s', color='black', label=r'scan best-fit')
+    ax.scatter(plot_ra*numpy.pi/180., plot_dec*numpy.pi/180., s=20, marker='o', color='green', label=r'Reported 90% Containment')
+    
     # # show supernova position
     # ax.scatter(240.328*numpy.pi/180., 9.865*numpy.pi/180., s=100, marker='*', color='burlywood', label='SN PS16cgx')
 
@@ -250,22 +267,30 @@ def create_plot(event_id_string, state_dict):
 
     # ax.set_xlim( [ minRA  - 30.*numpy.pi/180. ,minRA  + 30.*numpy.pi/180.  ] )
     # ax.set_ylim( [ minDec - 15.*numpy.pi/180. ,minDec + 15.*numpy.pi/180.  ] )
-
+    
+    print("Contour Area (90%):", a, "degrees")
+    x_width = 1.6 * numpy.sqrt(a)
+    y_width = 0.5 * x_width
 
     #ax.set_xlim( [ minRA  - 10.*numpy.pi/180. ,minRA  + 10.*numpy.pi/180.  ] )
     #ax.set_ylim( [ minDec - 5.*numpy.pi/180. ,minDec + 5.*numpy.pi/180.  ] )
-    ax.set_xlim( [ minRA  - 4.*numpy.pi/180. ,minRA  + 4.*numpy.pi/180.  ] )
-    ax.set_ylim( [ minDec - 2.*numpy.pi/180. ,minDec + 2.*numpy.pi/180.  ] )
+    ax.set_xlim( [ minRA  - x_width*numpy.pi/180. ,minRA  + x_width*numpy.pi/180.  ] )
+    ax.set_ylim( [ minDec -y_width*numpy.pi/180. ,minDec + y_width*numpy.pi/180.  ] )
 
 
     # ax.xaxis.set_major_formatter(RaFormatter())
     ax.xaxis.set_major_formatter(DecFormatter())
     ax.yaxis.set_major_formatter(DecFormatter())
 
+    factor = 0.25
+    while x_width/factor > 6:
+         factor *= 2.
+    tick_label_grid = factor * (numpy.pi/180.)
+
     #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=2.0*(numpy.pi/180.)))
     #ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=2.0*(numpy.pi/180.)))
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=0.8*(numpy.pi/180.)))
-    ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=0.8*(numpy.pi/180.)))
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=tick_label_grid))
+    ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=tick_label_grid))
 
     # ax.xaxis.set_ticks(numpy.arange(0., 2.*numpy.pi, 1000))
 
@@ -326,6 +351,10 @@ if __name__ == "__main__":
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
+    #parser.add_option("--ra", action="store", type="float",
+    #    default=np.nan, help="Right Ascension in degrees")
+    #parser.add_option("--dec", action="store", type="float",
+    #    default=np.nan, help="Declination in degrees")
 
     # get parsed args
     (options,args) = parser.parse_args()
