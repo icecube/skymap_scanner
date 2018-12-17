@@ -193,21 +193,26 @@ def create_plot(event_id_string, state_dict):
 
         CS.collections[i].set_label(contour_labels[i] + ' - area: {0:.2f}sqdeg'.format(a))
 
-    # Add in additional plot point
-    #pilot_ra = 158.99795262
-    #plot_dec = 39.52818432
-    #plot_ra = 26.533
-    #plot_dec = 12.994
-    #plot_radius = 0.06 * 1.177 / numpy.cos(plot_dec*numpy.pi/180.)
-    #plot_radius = 2.55 / numpy.cos(plot_dec*numpy.pi/180.)
-    plot_ra = 323.383
-    plot_dec = 49.410
-    plot_radius = 2.9 / numpy.cos(plot_dec*numpy.pi/180.)
-    print("Plot radius", plot_radius, "degrees")
     ax.scatter(minRA, minDec, s=20, marker='s', color='black', label=r'scan best-fit', zorder=2)
 
-    circle1 = matplotlib.pyplot.Circle((plot_ra *numpy.pi/180., plot_dec*numpy.pi/180.), plot_radius * numpy.pi/180., color='green', label=r'50% Parabaloid')
-    ax.add_artist(circle1)
+    # Set up plotting previously=reported error circles
+    plot_ra = 323.383
+    plot_dec = 49.410
+
+    def error_circle_radius(dec, radius):
+        """Approximate scaling for plotting error circles at high declinations"""
+        dec *= numpy.pi/180.
+        radius *= numpy.pi/180.
+        return numpy.arccos(numpy.cos(radius)/(numpy.cos(dec)**2) - numpy.tan(dec)**2) * 180./numpy.pi
+    
+    plot_radius_50 = error_circle_radius(plot_dec, 1.13)
+    plot_radius_90 = error_circle_radius(plot_dec, 2.9)
+    for i, plot_radius in enumerate([plot_radius_90, plot_radius_50]):
+        print("Reported", [90, 50][i], "% error region (scaled)", plot_radius, "degrees")
+        circle1 = matplotlib.pyplot.Circle((plot_ra *numpy.pi/180., plot_dec*numpy.pi/180.), plot_radius * numpy.pi/180.,
+                                           color="g", alpha=[0.5, 0.75][i])
+        ax.add_artist(circle1)
+    ax.scatter(plot_ra*numpy.pi/180., plot_dec*numpy.pi/180., s=20, marker='o', color='green', label=r'Reported 50%/90%')
     # show GCN position
     #ax.scatter(98.3268*numpy.pi/180., -14.4861*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Tue 21 Mar 17 07:32:58 UT')
     #ax.scatter(221.6750*numpy.pi/180., -26.0359*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Sat 06 May 17 13:01:20 UT')
@@ -224,7 +229,6 @@ def create_plot(event_id_string, state_dict):
     # for Pan-Starrs
     #show best-fit position
     #ax.scatter(minRA, minDec, s=20, marker='s', color='black', label=r'scan best-fit')
-    ax.scatter(plot_ra*numpy.pi/180., plot_dec*numpy.pi/180., s=20, marker='o', color='green', label=r'Reported 90% Containment')
     
     # # show supernova position
     # ax.scatter(240.328*numpy.pi/180., 9.865*numpy.pi/180., s=100, marker='*', color='burlywood', label='SN PS16cgx')
@@ -268,7 +272,7 @@ def create_plot(event_id_string, state_dict):
     # ax.set_xlim( [ minRA  - 30.*numpy.pi/180. ,minRA  + 30.*numpy.pi/180.  ] )
     # ax.set_ylim( [ minDec - 15.*numpy.pi/180. ,minDec + 15.*numpy.pi/180.  ] )
     
-    print("Contour Area (90%):", a, "degrees")
+    print("Contour Area (90%):", a, "degrees (cartesian)", a*numpy.cos(minDec)**2, "degrees (scaled)")
     x_width = 1.6 * numpy.sqrt(a)
     y_width = 0.5 * x_width
 
