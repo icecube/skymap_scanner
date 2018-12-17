@@ -51,7 +51,7 @@ class DecFormatter(Formatter):
         return r"$%0.1f^\circ$" % (degrees)
         # return r"%0.0f$^\circ$" % (degrees)
 
-def create_plot(event_id_string, state_dict):
+def create_plot(event_id_string, state_dict, extra_ra=numpy.nan, extra_dec=numpy.nan, extra_radius=numpy.nan):
     y_inches = 3.85
     x_inches = 6.
     dpi = 1200.
@@ -195,24 +195,27 @@ def create_plot(event_id_string, state_dict):
 
     ax.scatter(minRA, minDec, s=20, marker='s', color='black', label=r'scan best-fit', zorder=2)
 
+    if numpy.sum(numpy.isnan([extra_ra, extra_dec, extra_radius])) == 0:
     # Set up plotting previously=reported error circles
-    plot_ra = 323.383
-    plot_dec = 49.410
+    #plot_ra = 132.023
+    #plot_dec = 32.860
+    #raw_50_parabaloid = 0.38 
 
-    def error_circle_radius(dec, radius):
-        """Approximate scaling for plotting error circles at high declinations"""
-        dec *= numpy.pi/180.
-        radius *= numpy.pi/180.
-        return numpy.arccos(numpy.cos(radius)/(numpy.cos(dec)**2) - numpy.tan(dec)**2) * 180./numpy.pi
+        def error_circle_radius(dec, radius):
+            """Approximate scaling for plotting error circles at high declinations"""
+            dec *= numpy.pi/180.
+            radius *= numpy.pi/180.
+            return numpy.arccos(numpy.cos(radius)/(numpy.cos(dec)**2) - numpy.tan(dec)**2) * 180./numpy.pi
     
-    plot_radius_50 = error_circle_radius(plot_dec, 1.13)
-    plot_radius_90 = error_circle_radius(plot_dec, 2.9)
-    for i, plot_radius in enumerate([plot_radius_90, plot_radius_50]):
-        print("Reported", [90, 50][i], "% error region (scaled)", plot_radius, "degrees")
-        circle1 = matplotlib.pyplot.Circle((plot_ra *numpy.pi/180., plot_dec*numpy.pi/180.), plot_radius * numpy.pi/180.,
-                                           color="g", alpha=[0.5, 0.75][i])
-        ax.add_artist(circle1)
-    ax.scatter(plot_ra*numpy.pi/180., plot_dec*numpy.pi/180., s=20, marker='o', color='green', label=r'Reported 50%/90%')
+        plot_radius_50 = error_circle_radius(extra_dec, extra_radius)
+        plot_radius_90 = error_circle_radius(extra_dec, 2.55 * extra_radius)
+        for i, plot_radius in enumerate([plot_radius_90, plot_radius_50]):
+            print("Reported", [90, 50][i], "% error region (scaled)", plot_radius, "degrees")
+            circle1 = matplotlib.pyplot.Circle((extra_ra *numpy.pi/180., extra_dec*numpy.pi/180.), plot_radius * numpy.pi/180.,
+                                               color="g", alpha=[0.5, 1.0][i])
+            ax.add_artist(circle1)
+      
+        ax.scatter(extra_ra*numpy.pi/180., extra_dec*numpy.pi/180., s=20, marker='o', color='green', label=r'Reported 50%/90%')
     # show GCN position
     #ax.scatter(98.3268*numpy.pi/180., -14.4861*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Tue 21 Mar 17 07:32:58 UT')
     #ax.scatter(221.6750*numpy.pi/180., -26.0359*numpy.pi/180., s=20, marker='s', color='burlywood', label='GCN Sat 06 May 17 13:01:20 UT')
@@ -355,10 +358,12 @@ if __name__ == "__main__":
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    #parser.add_option("--ra", action="store", type="float",
-    #    default=np.nan, help="Right Ascension in degrees")
-    #parser.add_option("--dec", action="store", type="float",
-    #    default=np.nan, help="Declination in degrees")
+    parser.add_option("--ra", action="store", type="float", dest="RA",
+        default=numpy.nan, help="Right Ascension in degrees")
+    parser.add_option("--dec", action="store", type="float", dest="DEC",
+        default=numpy.nan, help="Declination in degrees")
+    parser.add_option("--radius", action="store", type="float",dest="RADIUS",
+        default=numpy.nan, help="50% error radius in degrees") 
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -371,7 +376,6 @@ if __name__ == "__main__":
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
-    plot_png_buffer = create_plot(eventID, state_dict)
-
+    plot_png_buffer = create_plot(eventID, state_dict, options.RA, options.DEC, options.RADIUS)
     # # we have a buffer containing a valid png file now, post it to Slack
     # slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")
