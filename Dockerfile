@@ -44,10 +44,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 #### install icetray
 ##################################################################
 
-# # switch back to root user
-# USER root
-# WORKDIR /root
-
 # set up test data directory
 RUN mkdir /opt/i3-data
 ENV I3_DATA /opt/i3-data
@@ -56,70 +52,53 @@ ENV I3_DATA /opt/i3-data
 RUN mkdir /opt/i3-data/i3-test-data
 ENV I3_TESTDATA /opt/i3-data/i3-test-data
 
-# # make sure to use the icecube user
-# USER icecube
-# WORKDIR /home/icecube
-
-# check out icetray/combo/trunk
-RUN mkdir /root/combo && mkdir /root/combo/build && \
-    svn co http://code.icecube.wisc.edu/svn/meta-projects/combo/trunk \
-           /root/combo/src --ignore-externals \
-           --username=icecube --password=skua --no-auth-cache && \
-    svn propget svn:externals /root/combo/src | grep \
-      -e "^astro" \
-      -e "^DomTools" \
-      -e "^photospline" \
-      -e "^lilliput" \
-      -e "^photonics-service" \
-      -e "^interfaces" \
-      -e "^tableio" \
-      -e "^serialization" \
-      -e "^cmake" \
-      -e "^icetray" \
-      -e "^dataio" \
-      -e "^dataclasses" \
-      -e "^phys-services" \
-      -e "^frame_object_diff" \
-      -e "^VHESelfVeto" \
-      -e "^full_event_followup" \
-      -e "^gulliver" \
-      -e "^millipede" \
-      -e "^recclasses" \
-      -e "^simclasses" \
-      -e "^gulliver_modules" \
-      -e "^photonics_service" \
-      -e "^distribute" \
-      | svn propset svn:externals /root/combo/src --file - && \
-    svn update /root/combo/src \
-        --username=icecube --password=skua --no-auth-cache && \
-    svn co http://code.icecube.wisc.edu/svn/sandbox/ckopper/distribute \
-           /root/combo/src/distribute \
-           --username=icecube --password=skua --no-auth-cache
-
-# # switch back to root user
-# USER root
-# WORKDIR /root
-
 # install photon tables
 RUN mkdir /opt/i3-data/photon-tables && \
     mkdir /opt/i3-data/photon-tables/splines && \
     wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/ems_mie_z20_a10.abs.fits       http://prod-exe.icecube.wisc.edu/spline-tables/ems_mie_z20_a10.abs.fits && \
     wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/ems_mie_z20_a10.prob.fits      http://prod-exe.icecube.wisc.edu/spline-tables/ems_mie_z20_a10.prob.fits
 
-# # make sure to use the icecube user
-# USER icecube
-# WORKDIR /home/icecube
-
 # install baseline GCDs
 RUN mkdir /opt/i3-data/baseline_gcds && \
     wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd http://icecube:skua@convey.icecube.wisc.edu/data/user/followup/baseline_gcds/ && \
     chmod -R u+rwX,go+rX,go-w /opt/i3-data/baseline_gcds
 
-# COPY --chown=icecube . /home/icecube/combo/src/skymap_scanner
-# COPY --chown=root . /home/icecube/combo/src/skymap_scanner
-COPY --chown=root CMakeLists.txt /root/combo/src/skymap_scanner/CMakeLists.txt
-COPY --chown=root python /root/combo/src/skymap_scanner/python
-RUN mkdir -p root/combo/src/skymap_scanner/resources/scripts
+# check out icetray/combo/candidates/V00-00-00-RC0
+# (there was no release at the time this was written)
+# This performs a sparse checkout of the meta-project where
+# only the subset of icetray projects we actually need
+# is visible.
+RUN mkdir /root/combo && mkdir /root/combo/build && \
+    svn co http://code.icecube.wisc.edu/svn/meta-projects/combo/candidates/V00-00-00-RC0 \
+           /root/combo/src --depth files \
+           --username=icecube --password=skua --no-auth-cache && \
+    cd /root/combo/src && \
+    svn update --username=icecube --password=skua --no-auth-cache --set-depth infinity \
+           astro \
+           DomTools \
+           photospline \
+           lilliput \
+           photonics-service \
+           interfaces \
+           tableio \
+           serialization \
+           cmake \
+           icetray \
+           dataio \
+           dataclasses \
+           phys-services \
+           frame_object_diff \
+           VHESelfVeto \
+           full_event_followup \
+           gulliver \
+           millipede \
+           recclasses \
+           simclasses \
+           gulliver-modules \
+           photonics_service && \
+    svn co http://code.icecube.wisc.edu/svn/sandbox/ckopper/distribute \
+           /root/combo/src/distribute \
+           --username=icecube --password=skua --no-auth-cache
 
 # build icetray
 WORKDIR /root/combo/build
@@ -130,6 +109,18 @@ RUN cmake /root/combo/src \
       -DCMAKE_INSTALL_PREFIX=/usr/local/icetray \
     && make -j`nproc`
 
+# add the skymap_scanner code
+COPY --chown=root CMakeLists.txt /root/combo/src/skymap_scanner/CMakeLists.txt
+COPY --chown=root python /root/combo/src/skymap_scanner/python
+
+# Re-build icetray (with skymap_scanner this time).
+# Doing this in two steps will cache the previous build and
+# hopefully reduce build time once the previous stage is cached.
+WORKDIR /root/combo/build
+RUN make rebuild_cache && make -j`nproc`
+
+# add skymap_scanner scripts
+RUN mkdir -p /root/combo/src/skymap_scanner/resources/scripts
 COPY --chown=root resources/scripts /root/combo/src/skymap_scanner/resources/scripts
 
 # install icetray
