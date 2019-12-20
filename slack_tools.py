@@ -1,7 +1,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-from . import config
+import config
 import json
 import requests
 
@@ -25,11 +25,8 @@ def upload_file(file_handle, filename, title):
         timeout=60,
         params={'token': config.slack_api_key},
         data={
-            # 'content': content,
-            # 'filetype': filetype,
             'filename': filename,
             'title': title,
-            # 'initial_comment': initial_comment,
             'channels': config.slack_channel
         },
         files={'file': file_handle}

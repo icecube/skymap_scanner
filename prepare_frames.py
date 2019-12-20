@@ -10,6 +10,9 @@ import math
 import os
 import numpy
 
+import config
+from utils import rewrite_frame_stop
+
 from icecube import icetray, dataclasses
 from icecube.frame_object_diff.segments import uncompress
 from I3Tray import I3Tray, I3Units
@@ -62,21 +65,28 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, base_GCD_path, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_packet, pulsesName="SplitUncleanedInIcePulses"):
     from icecube import dataclasses, recclasses, simclasses
     from icecube import DomTools, VHESelfVeto
     from icecube import photonics_service, gulliver, millipede
 
     nominalPulsesName = "SplitUncleanedInIcePulses"
 
+    # sanity check the packet
+    if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):
+        raise RuntimeError("frame packet does not end with Physics frame")
+
+    # move the last packet frame from Physics to the Physics stream temporarily
+    frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('P'))
+
     output_frames = []
 
     tray = I3Tray()
-    tray.AddModule(FrameArraySource, Frames=frame_array)
+    tray.AddModule(FrameArraySource, Frames=frame_packet)
 
     tray.Add(uncompress, "GCD_uncompress",
              keep_compressed=True,
-             base_path=base_GCD_path)
+             base_path=config.base_GCD_path)
 
     if pulsesName != nominalPulsesName:
         def copyPulseName(frame, old_name, new_name):
@@ -184,5 +194,8 @@ def prepare_frames(frame_array, base_GCD_path, pulsesName="SplitUncleanedInIcePu
     tray.Execute()
     tray.Finish()
     del tray
+
+    # move the last packet frame from Physics to the 'p' stream
+    output_frames[-1] = rewrite_frame_stop(output_frames[-1], icetray.I3Frame.Stream('p'))
 
     return output_frames

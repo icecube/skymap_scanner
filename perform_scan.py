@@ -16,82 +16,40 @@ from icecube import frame_object_diff
 from icecube.frame_object_diff.segments import uncompress
 from I3Tray import *
 
-from .utils import parse_event_id
+import config
 
-from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from .utils import save_GCD_frame_packet_to_file, get_event_mjd
-from .scan_pixel_distributed import scan_pixel_distributed_server
-
-from . import config
-
-def simple_print_logger(text):
-    print(text)
+from utils import get_event_mjd
+#from scan_pixel_distributed import scan_pixel_distributed_server
 
 class SendPixelsToScan(icetray.I3Module):
     def __init__(self, ctx):
         super(SendPixelsToScan, self).__init__(ctx)
-        self.AddParameter("state_dict", "The state_dict", None)
+        self.AddParameter("FramePacket", "The GCDQp frame packet to send", None)
+        self.AddParameter("NSide", "The healpix resolution in terms of \"nside\".", 8)
         self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
-        self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
-        self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
-        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 5*60)
-        self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
-        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 30*60)
         self.AddOutBox("OutBox")
 
     def Configure(self):
-        self.state_dict = self.GetParameter("state_dict")
+        self.GCDQpFrames = self.GetParameter("FramePacket")
+        self.nside = self.GetParameter("NSide")
         self.input_pos_name = self.GetParameter("InputPosName")
         self.input_time_name = self.GetParameter("InputTimeName")
         self.output_particle_name = self.GetParameter("OutputParticleName")
-        self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
-        self.logger = self.GetParameter("logger")
-        self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
-        self.skymap_plotting_callback = self.GetParameter("skymap_plotting_callback")
-        self.skymap_plotting_callback_interval_in_seconds = self.GetParameter("skymap_plotting_callback_interval_in_seconds")
-
-
-        if "GCDQp_packet" not in self.state_dict:
-            raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
-
-        self.GCDQpFrames = self.state_dict["GCDQp_packet"]
-
-        if "nsides" not in self.state_dict:
-            self.state_dict["nsides"] = {}
-        self.nsides = self.state_dict["nsides"]
 
         p_frame = self.GCDQpFrames[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
 
-        self.fallback_position = p_frame[self.input_pos_name]
-        self.fallback_time = p_frame[self.input_time_name].value
-        self.fallback_energy = numpy.nan
+        self.seed_position = p_frame[self.input_pos_name]
+        self.seed_time = p_frame[self.input_time_name].value
+        self.seed_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(self.state_dict)
+        self.event_mjd = get_event_mjd(self.GCDQpFrames)
 
-        self.pixels_in_process = set()
-
-        self.last_time_reported = time.time()
-        self.last_time_reported_skymap = time.time()
-
-    def send_status_report(self):
-        num_pixels_in_process = len(self.pixels_in_process)
-        message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
-
-        if len(self.state_dict["nsides"])==0:
-            message += " - no pixels are done yet\n"
-        else:
-            for nside in self.state_dict["nsides"]:
-                pixels = self.state_dict["nsides"][nside]
-                message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
-
-        message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
-
-        self.logger(message)
+        self.pixels_to_push = range(healpy.nside2npix(self.nside))
 
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
@@ -103,73 +61,21 @@ class SendPixelsToScan(icetray.I3Module):
             for frame in self.GCDQpFrames:
                 self.PushFrame(frame)
             self.GCDQpFrames = None
-            self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
+            print("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
             return
 
-        # check if we need to send a report to the logger
-        current_time = time.time()
-        elapsed_seconds = current_time - self.last_time_reported
-        if elapsed_seconds > self.logging_interval_in_seconds:
-            self.last_time_reported = current_time
-            self.send_status_report()
-
-        # check if we need to send a report to the skymap logger
-        current_time = time.time()
-        elapsed_seconds = current_time - self.last_time_reported_skymap
-        if elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds:
-            self.last_time_reported_skymap = current_time
-            if self.skymap_plotting_callback is not None:
-                self.skymap_plotting_callback(self.state_dict)
-
-        # see if we think we are processing pixels but they have finished since
-        for nside in self.state_dict["nsides"]:
-            for pixel in self.state_dict["nsides"][nside]:
-                if (nside,pixel) in self.pixels_in_process:
-                    self.pixels_in_process.remove( (nside,pixel) )
-
-        # find pixels to refine
-        pixels_to_refine = choose_new_pixels_to_scan(self.state_dict)
-
-        if len(pixels_to_refine) == 0:
-            print("** there are no pixels left to refine. stopping.")
+        # submit one more pixel
+        if len(self.pixels_to_push) > 0:
+            # get the first item from the list and remove it from the list
+            next_pixel = self.pixels_to_push.pop(0)
+            
+            # create and push a P-frame to be processed
+            self.CreatePFrame(nside=self.nside, pixel=next_pixel)
+        else:
+            # we are done.
             self.RequestSuspension()
-            return
-
-        for nside in self.state_dict["nsides"]:
-            for pixel in self.state_dict["nsides"][nside]:
-                if (nside,pixel) in pixels_to_refine:
-                    raise RuntimeError("pixel to refine is already done processing")
-
-        pixels_to_submit = []
-        for pixel in pixels_to_refine:
-            if pixel not in self.pixels_in_process:
-                pixels_to_submit.append(pixel)
-
-        something_was_submitted = False
-
-        # submit the pixels we need to submit
-        for nside_pix in pixels_to_submit:
-            if len(self.pixels_in_process) > self.max_pixels_in_process:
-                # too many pixels in process. let some of them finish before sending more requests
-                break
-            self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
-            self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
-            something_was_submitted = True
-
-        if not something_was_submitted:
-            # there are submitted pixels left that haven't yet arrived
-
-            # print("** all pixels are processing. waiting one second...")
-            time.sleep(1)
-
-            # send a special frame type to I3Distribute in order to flush its
-            # output queue
-            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
-
 
     def CreatePFrame(self, nside, pixel):
-        # print("Scanning nside={0}, pixel={1}".format(nside,pixel))
-
         dec, ra = healpy.pix2ang(nside, pixel)
         dec = dec - numpy.pi/2.
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
@@ -177,43 +83,9 @@ class SendPixelsToScan(icetray.I3Module):
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        if nside == 8:
-            position = self.fallback_position
-            time = self.fallback_time
-            energy = self.fallback_energy
-        else:
-            coarser_nside = nside
-            while True:
-                coarser_nside = coarser_nside/2
-                coarser_pixel = healpy.ang2pix(coarser_nside, dec+numpy.pi/2., ra)
-
-                if coarser_nside < 8:
-                    # no coarser pixel is available (probably we are just scanning finely around MC truth)
-                    break
-                    #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
-
-                if coarser_nside in self.state_dict["nsides"]:
-                    if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
-                        # coarser pixel found
-                        break
-
-            if coarser_nside < 8:
-                # no coarser pixel is available (probably we are just scanning finely around MC truth)
-                position = self.fallback_position
-                time = self.fallback_time
-                energy = self.fallback_energy
-            else:
-                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
-                    # coarser reconstruction failed
-                    position = self.fallback_position
-                    time = self.fallback_time
-                    energy = self.fallback_energy
-                else:
-                    coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
-                    coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
-                    position = coarser_particle.pos
-                    time = coarser_particle.time
-                    energy = coarser_particle.energy
+        position = self.seed_position
+        time = self.seed_time
+        energy = self.seed_energy
 
         variationDistance = 20.*I3Units.m
         posVariations = [dataclasses.I3Position(0.,0.,0.),
@@ -229,7 +101,7 @@ class SendPixelsToScan(icetray.I3Module):
             posVariation = posVariations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
-            thisPosition = dataclasses.I3Position(position.x + posVariation.x,position.y + posVariation.y,position.z + posVariation.z)
+            thisPosition = dataclasses.I3Position(position.x + posVariation.x, position.y + posVariation.y, position.z + posVariation.z)
 
             # generate the particle from scratch
             particle = dataclasses.I3Particle()
@@ -493,35 +365,3 @@ def perform_scan(event_id_string, state_dict, cache_dir, base_GCD_path, port=555
     del tray
 
     return state_dict
-
-
-if __name__ == "__main__":
-    from optparse import OptionParser
-    from load_scan_state import load_cache_state
-
-    parser = OptionParser()
-    usage = """%prog [options] event_id"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-p", "--port", action="store", type="int",
-        default=5555, dest="PORT", help="The tcp port to use")
-    parser.add_option("-n", "--numclients", action="store", type="int",
-        default=10, dest="NUMCLIENTS", help="The number of clients to start")
-    parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
-        default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
-    parser.add_option("-g", "--base-gcd-path", action="store", type="string",
-        default="/opt/i3-data/baseline_gcds", dest="BASEGCDPATH", help="The path where baseline GCD files are stored")
-
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    if len(args) != 1:
-        raise RuntimeError("You need to specify exactly one event ID")
-    eventID = args[0]
-
-    RemoteSubmitPrefix = options.REMOTESUBMITPREFIX
-    if RemoteSubmitPrefix is None: RemoteSubmitPrefix=""
-
-    eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)
-    perform_scan(event_id_string=eventID, state_dict=state_dict, base_GCD_path=options.BASEGCDPATH, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS, RemoteSubmitPrefix=RemoteSubmitPrefix)

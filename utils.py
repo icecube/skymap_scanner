@@ -8,24 +8,27 @@ import hashlib
 
 from icecube import icetray, dataio, dataclasses, astro
 
-from . import config
+import config
 
-def get_event_mjd(state_dict):
-    if "GCDQp_packet" not in state_dict:
-        raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
-
+def get_event_header(frame_packet):
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("no p-frame found at the end of the GCDQp packet")
     if "I3EventHeader" not in p_frame:
         raise RuntimeError("No I3EventHeader in p-frame")
-    time = p_frame["I3EventHeader"].start_time
 
+    return p_frame["I3EventHeader"]
+
+def get_event_time(frame_packet):
+    return get_event_header(frame_packet).start_time
+
+def get_event_mjd(frame_packet):
+    time = get_event_time(frame_packet)
     return time.mod_julian_day_double
 
-def create_event_id(run_id, event_id):
-    return "run{0:08d}.evt{1:012d}.HESE".format(run_id, event_id)
+def get_event_id(frame_packet):
+    header = get_event_header(frame_packet)
+    return "run{0:08d}.evt{1:012d}.HESE".format(header.run_id, header.event_id)
 
 def parse_event_id(event_id_string):
     parts = event_id_string.split('.')
@@ -90,11 +93,7 @@ def rewrite_frame_stop(input_frame, new_stream):
 
     return new_frame
 
-def extract_MC_truth(state_dict):
-    if "GCDQp_packet" not in state_dict:
-        raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
-
+def get_MC_truth(frame_packet):
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Stream('p') and p_frame.Stop != icetray.I3Frame.Physics:
         raise RuntimeError("last frame of GCDQp is neither Physics not 'p'")
@@ -104,7 +103,7 @@ def extract_MC_truth(state_dict):
         raise RuntimeError("second to last frame of GCDQp is not type Q")
 
     if "I3MCTree_preMuonProp" not in q_frame:
-        return state_dict
+        return None, None
     mc_tree = q_frame["I3MCTree_preMuonProp"]
 
     # find the muon
@@ -118,10 +117,10 @@ def extract_MC_truth(state_dict):
 
     if muon is None:
         # must be NC
-        return state_dict
+        return None, None
 
     # get event time
-    mjd = get_event_mjd(state_dict)
+    mjd = get_event_mjd(frame_packet)
 
     # convert to RA and dec
     ra, dec = astro.dir_to_equa( muon.dir.zenith, muon.dir.azimuth, mjd )
@@ -129,6 +128,4 @@ def extract_MC_truth(state_dict):
     dec = float(dec)
     dec = dec
 
-    state_dict['MCradec'] = (ra, dec)
-
-    return state_dict
+    return ra, dec
