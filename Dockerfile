@@ -1,16 +1,12 @@
-# icetray:combo-stable-prod is the same as "slim", but also includes photon tables
+# icetray:combo-stable-prod is the same as "slim",
+# but also includes photon tables
 # and baseline GCDs, both of which we need.
 FROM icecube/icetray:combo-stable-prod
 
-# # add the pulsar client (restore this once 2.5.0 is released)
-# RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python-pip \
-#     && apt-get clean
-# RUN pip install pulsar-client==2.5.0
-
+# add the pulsar client
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python-pip \
-    && apt-get clean
-COPY pulsar_client-2.5.0-cp27-cp27mu-manylinux1_x86_64.whl /root
-RUN pip install /root/pulsar_client-2.5.0-cp27-cp27mu-manylinux1_x86_64.whl
+   && apt-get clean
+RUN pip install pulsar-client==2.5.0
 
 # copy in all .py files from the repository
 COPY *.py /local/

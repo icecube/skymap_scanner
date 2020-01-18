@@ -18,6 +18,7 @@ and get its broker or proxy URL.
 For testing, you can start your own local instance with:
 ```
 docker run -it -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.4.2 bin/pulsar standalone
+docker run -it -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.5.0 bin/pulsar standalone
 ```
 
 You will need to connect to the pulsar broker using your machine IP,
