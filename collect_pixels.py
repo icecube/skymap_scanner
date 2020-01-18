@@ -184,11 +184,6 @@ def collect_pixels(broker, topic_in, topic_out):
         ReceiverService=receiver_service,
         )
 
-    # def notify(frame):
-    #     print("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
-    #     #time.sleep(3)
-    # tray.AddModule(notify, "notify")
-
     tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
 
     tray.Add(uncompress, "GCD_uncompress",
@@ -196,14 +191,13 @@ def collect_pixels(broker, topic_in, topic_out):
              base_path=config.base_GCD_path)
     tray.AddModule(get_reco_losses_inside, "get_reco_losses_inside")
     
-    ##### TODO: this is where you would do something with the LLH result for this particular pixel
-    ##### e.g. send it to another queue, or just write it out using an I3Writer.
-    
-    # tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
-    #     BrokerURL=broker,
-    #     Topic=topic_out,
-    #     MetadataTopic=None, # no specific metadata topic, will be dynamic according to incoming frame tags
-    #     )
+    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+        BrokerURL=broker,
+        Topic=topic_out,
+        MetadataTopic=None, # no specific metadata topic, will be dynamic according to incoming frame tags
+        ReceiverForceSingleConsumer=True,
+        SubscriptionName='skymap-saver-sub',
+        )
     
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
         ReceiverService=receiver_service

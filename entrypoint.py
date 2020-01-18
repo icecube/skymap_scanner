@@ -20,8 +20,9 @@ from utils import get_MC_truth, get_event_id, get_event_time
 from send_scan import send_scan
 from scan_pixel import scan_pixel
 from collect_pixels import collect_pixels
+from save_pixels import save_pixels
 
-def producer(eventURL, broker, topic, metadata_topic):
+def producer(eventURL, broker, topic, metadata_topic, nside):
     """
     Handle incoming events and perform a full scan.
     """
@@ -68,7 +69,8 @@ def producer(eventURL, broker, topic, metadata_topic):
             frame_packet=GCDQp_packet,
             broker=broker, 
             topic=full_topic,
-            metadata_topic=full_metadata_topic)
+            metadata_topic=full_metadata_topic,
+            nside=nside)
 
         print("All scans for `{0}` are submitted.".format(event_id))
     except:
@@ -88,6 +90,15 @@ def collector(broker, topic_in, topic_out):
         broker=broker, 
         topic_in=topic_in,
         topic_out=topic_out,
+        )
+
+def saver(broker, topic_in, filename_out, expected_n_frames, delete_from_queue):
+    save_pixels(
+        broker=broker, 
+        topic_in=topic_in,
+        filename_out=filename_out,
+        expected_n_frames=expected_n_frames,
+        delete_from_queue=delete_from_queue
         )
 
 if __name__ == "__main__":
@@ -112,9 +123,20 @@ if __name__ == "__main__":
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
 
+    parser.add_option("-o", "--output", action="store", type="string",
+        default="final_output.i3",
+        dest="OUTPUT", help="Name of the output .i3 file written by the \"saver\".")
+
+    parser.add_option("-i", "--nside", action="store", type="int",
+        default=1,
+        dest="NSIDE", help="Healpix NSide, determining the number of pixels to scan.")
+
     parser.add_option("-n", "--name", action="store", type="string",
         default=None,
         dest="NAME", help="The unique event name. Will be appended to all topic names so that multiple scans can happen in parallel. Make sure you use different names for different events.")
+
+    parser.add_option("--delete-output-from-queue", action="store_true", default=False,
+        dest="DELETE_OUTPUT_FROM_QUEUE", help="When saving the output to a file, delete pixels from the queue once they have been written. They cannot be written a second time in that case.")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -131,15 +153,21 @@ if __name__ == "__main__":
     topic_out  = options.TOPICOUT  + '-' + options.NAME
     topic_col  = options.TOPICCOL  + '-' + options.NAME
     
+    nside = options.NSIDE
+    npixels = 12 * (nside**2)
+    print("Scanning NSide={}, corresponding to NPixel={}".format(nside, npixels))
+    
     if mode == "producer":
         if len(args) != 2:
             raise RuntimeError("You need to specify a input file URL in `producer` mode")
 
         eventURL = args[1]
-        producer(eventURL, broker=options.BROKER, topic=topic_in, metadata_topic=topic_meta)
+        producer(eventURL, broker=options.BROKER, topic=topic_in, metadata_topic=topic_meta, nside=nside)
     elif mode == "worker":
         worker(broker=options.BROKER, topic_in=topic_in, topic_out=topic_out)
     elif mode == "collector":
         collector(broker=options.BROKER, topic_in=topic_out, topic_out=topic_col)
+    elif mode == "saver":
+        saver(broker=options.BROKER, topic_in=topic_col, filename_out=options.OUTPUT, expected_n_frames=npixels, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE)
     else:
         raise RuntimeError("Unknown mode \"{}\"".args[0])

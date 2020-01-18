@@ -310,6 +310,8 @@ class ReceiverService():
     def __str__(self):
         return "<ReceiverService instance>"
     
+    def __repr__(self):
+        return "<ReceiverService instance>"
 
 class ReceivePFrameWithMetadata(icetray.I3Module):
     def __init__(self, ctx):
