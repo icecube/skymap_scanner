@@ -435,6 +435,12 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
 
         msgid = msg.message_id()
         print("Message received. [msgid={}, topic={}]".format(msgid, msg.topic_name()))
+        serialized_msgid = msgid.serialize()
+
+        # make sure we do not work on a message we are already working on
+        if serialized_msgid in self.receiver_service.message_in_flight_dict:
+            print("Message is already being processed. Ignoring. [msgid={}, topic={}]".format(msgid, msg.topic_name()))
+            # self.receiver_service.consumer().acknowledge(msg)
 
         # load metadata list for this frame
         msg_properties = msg.properties()
@@ -495,7 +501,6 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         self.PushFrame(frame)
         
         # save a copy of the message in flight
-        serialized_msgid = msgid.serialize()
         self.receiver_service.message_in_flight_dict[serialized_msgid] = msg
         
         # also push a special delimiter frame with the msgid so we can acknowledge it at the

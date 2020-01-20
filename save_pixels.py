@@ -76,7 +76,10 @@ class WaitForNumberOfPFrames(icetray.I3Module):
         index = (nside,pixel)
 
         if index in self.pixelNumToFramesMap:
-            raise RuntimeError("Pixel {} has been seen twice!".format(index))
+            print("**** Pixel {} has already been seen. Ignoring this copy!".format(index))
+            #self.PushFrame(p_frame) # p-frame -> do NOT push, eat this pixel
+            self.PushFrame(delimiter_frame) # delimiter frame -> acknowledge this superfluous frame
+            return
 
         self.pixelNumToFramesMap[index] = (p_frame, delimiter_frame)
 

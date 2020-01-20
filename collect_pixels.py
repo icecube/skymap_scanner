@@ -67,10 +67,12 @@ class FindBestRecoResultForPixel(icetray.I3Module):
         posVarIndex = p_frame["SCAN_PositionVariationIndex"].value
 
         if index not in self.pixelNumToFramesMap:
-            self.pixelNumToFramesMap[index] = []
-        self.pixelNumToFramesMap[index].append( (p_frame, delimiter_frame) )
+            self.pixelNumToFramesMap[index] = [None]*self.NPosVar
+        self.pixelNumToFramesMap[index][posVarIndex] = (p_frame, delimiter_frame)
 
-        if len(self.pixelNumToFramesMap[index]) >= self.NPosVar:
+        numPixelsArrived = sum(1 for entry in self.pixelNumToFramesMap[index] if (entry is not None))
+
+        if numPixelsArrived == self.NPosVar:
             # print("all scans arrived for pixel", index)
             bestItemIndex = None
             bestFrameLLH = None
