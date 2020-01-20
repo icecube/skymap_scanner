@@ -14,9 +14,8 @@ Mine is in `~/.ssh/id_rsa`  /  `~/.ssh/id_rsa.pub`
 
 
 Update terraform.tfvars with the correct AMI, region and availability zone (AZ).
-We use `us-east-2` / `us-east-2c`.
-Find the ami-id corresponding to `RHEL-7.4_HVM_GA-20170808-x86_64-2-Hourly2-GP2`
-and use it (consider using Centos instead).
+We use `us-east-2` / `us-east-2c` in this example.
+Find the ami-id corresponding to the latest Amazon Linux 2, Centos, RHEL, ...
 
 ```
 terraform init
@@ -25,9 +24,9 @@ terraform apply
 
 This should return the IPs/URLs. For me, these are:
 ```
-  dns_name_internal = internal-pulsar-elb-internal-997200071.us-east-2.elb.amazonaws.com
-  pulsar_service_url_internal = pulsar://internal-pulsar-elb-internal-997200071.us-east-2.elb.amazonaws.com:6650
-  pulsar_web_url_internal = http://internal-pulsar-elb-internal-997200071.us-east-2.elb.amazonaws.com:8080
+dns_name_internal = internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com
+pulsar_service_url_internal = pulsar://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:6650
+pulsar_web_url_internal = http://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:8080
 ```
 
 Now run the playbook:
@@ -46,7 +45,7 @@ both ends.
 Now connect to create a basic tenant and namespace with configuration:
 ```
 ssh ec2-user@18.191.134.83
-alias pulsar-admin='sudo /opt/pulsar/bin/pulsar-admin --admin-url http://internal-pulsar-elb-internal-997200071.us-east-2.elb.amazonaws.com:8080'
+alias pulsar-admin='sudo /opt/pulsar/bin/pulsar-admin --admin-url http://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:8080'
 pulsar-admin tenants create icecube
 pulsar-admin namespaces create icecube/skymap
 pulsar-admin namespaces create icecube/skymap_metadata
@@ -57,9 +56,15 @@ If you want to use pulsar-admin from a different host, you could use docker to g
 to pulsar-admin instead.
 This can be used from remote hosts to administer the pulsar cluster:
 ```
-alias pulsar-admin='sudo docker run --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url http://internal-pulsar-elb-internal-997200071.us-east-2.elb.amazonaws.com:8080'
+alias pulsar-admin='sudo docker run --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url http://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:8080'
 pulsar-admin tenants create icecube
 pulsar-admin namespaces create icecube/skymap
 pulsar-admin namespaces create icecube/skymap_metadata
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
+```
+
+Once you are ready, use something like this to submit all of your jobs:
+
+```
+./submit_scan_to_ec2.py --num 1000 --nside 16 -p internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com ../resources/scripts/event_HESE_2017-11-28.json
 ```

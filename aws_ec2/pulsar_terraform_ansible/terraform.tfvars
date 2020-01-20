@@ -20,11 +20,12 @@
 public_key_path     = "~/.ssh/id_rsa.pub"
 region              = "us-east-2"
 availability_zone   = "us-east-2c"
-aws_ami             = "ami-cfdafaaa"
+#aws_ami             = "ami-cfdafaaa"
+aws_ami             = "ami-02ccb28830b645a41"
 num_zookeeper_nodes = 3
 num_bookie_nodes    = 3
 num_broker_nodes    = 3
-num_proxy_nodes     = 2
+num_proxy_nodes     = 1
 base_cidr_block     = "10.0.0.0/16"
 
 instance_types      = {

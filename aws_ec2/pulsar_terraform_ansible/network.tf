@@ -109,6 +109,9 @@ resource "aws_elb" "default_internal" {
     lb_protocol       = "tcp"
   }
 
+  connection_draining = true
+  connection_draining_timeout = 300
+  
   cross_zone_load_balancing = false
   internal = true
 

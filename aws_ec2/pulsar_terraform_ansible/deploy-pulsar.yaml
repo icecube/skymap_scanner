@@ -17,6 +17,36 @@
 # under the License.
 #
 
+- name: Update host system and reboot if necessary
+  hosts: zookeeper, bookie, broker, proxy, client
+  connection: ssh
+  tasks:
+    - name: Install RPM packages
+      yum:
+        state: latest
+        name:
+          - xfsprogs
+      become: true
+    - name: upgrade all packages
+      yum:
+        state: latest    
+        name: '*'
+      become: true
+      notify:
+        - reboot host and wait
+  handlers:
+    - name: reboot host
+      command: /usr/bin/systemd-run --on-active=5 /bin/systemctl reboot
+      async: 0
+      poll: 0
+      listen: "reboot host and wait"
+      become: true
+    - name: wait for host to become available again
+      wait_for_connection:
+        delay: 40
+        timeout: 600
+      listen: "reboot host and wait"
+
 - name: Disk setup
   hosts: bookie
   connection: ssh

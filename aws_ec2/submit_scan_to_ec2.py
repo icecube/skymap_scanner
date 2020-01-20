@@ -29,7 +29,7 @@ class Specs(dict):
             't3.small':  '0.008',
             't2.small':  '0.008',
         }
-        self['hours'] = 1
+        self['hours'] = 2
         self['keypair'] = 'claudiok'
         self['region'] = 'us-east-2'
         self['public_zones'] = {
