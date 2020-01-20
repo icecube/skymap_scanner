@@ -144,7 +144,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
             if entry['stop'] == stop_id:
                 # already in list, replace
                 entry['frame'] = frame
-                # invalidate the message id
+                # invalidate the message id (or re-use an existing one if we know it)
                 entry['messageid'] = known_messageid 
                 entry['metadata_topic'] = known_metadata_topic
                 return
@@ -153,6 +153,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.metadata_frames_list.append( {
             'stop': stop_id,
             'frame': frame,
+            # invalidate the message id (or re-use an existing one if we know it)
             'messageid': known_messageid,
             'metadata_topic': known_metadata_topic,
             })
@@ -329,7 +330,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         self.pushed_metadata_msgids = []
         self.max_entries_per_frame_stop = 3
         
-        # the Pulsar metadata reader will be instanciated lazily later
+        # the Pulsar metadata reader will be instantiated lazily later
         self.metadata_reader = None
         self.metadata_topic = None
 
