@@ -23,7 +23,7 @@ class Specs(dict):
     """Default ec2 instance specs"""
     def __init__(self):
         super(Specs, self).__init__()
-        self['ami'] = 'ami-0b29e04a10a504d13'
+        self['ami'] = 'ami-0572033bcda989c94'
         self['instance_types'] = {
             't3a.small': '0.008',
             't3.small':  '0.008',
@@ -221,7 +221,7 @@ class Instance:
 
         print(self.name, 'started', self.dnsname, self.ipv6_address, self.ipv4_address)
 
-    async def monitor(self, timeout=10000000000000000):
+    async def monitor(self, timeout=10000000000000000, frequency_seconds=60):
         """Monitor instance and die after `timeout` seconds."""
         end_time = time.time()+timeout
         while self.instance_id and time.time() < end_time:
@@ -235,7 +235,7 @@ class Instance:
                 print(self.name, 'instance seems to be not running. (state={}) about to quit monitor()'.format(state))
                 self.instance_id = None
             else:
-                await asyncio.sleep(60)
+                await asyncio.sleep(frequency_seconds)
         
         if self.termination_not_an_error:
             print(self.name, 'instance terminated')
@@ -260,11 +260,12 @@ class Instance:
 
 class SpotFleet:
     """Wrapper for ec2 spot fleet"""
-    def __init__(self, ec2, user_data, spec, num=1):
+    def __init__(self, ec2, user_data, spec, num=1, name='fleet'):
         self.ec2 = ec2
         self.user_data = user_data
         self.spec = spec
         self.num = num
+        self.name = name
 
         self.fleet_id = None
 
@@ -295,6 +296,15 @@ class SpotFleet:
                     'InstanceType': inst,
                     'SpotPrice': self.spec['instance_types'][inst],
                     'SubnetId': self.spec['private_zones'][zone],
+                    'TagSpecifications':  [
+                        {
+                            'ResourceType': 'instance',
+                            'Tags' : [{
+                                'Key': 'Name',
+                                'Value': self.name
+                            }]
+                        }
+                    ],
                 })
 
         request = self.ec2.request_spot_fleet(
@@ -409,7 +419,7 @@ def create_presigned_put_url(s3, bucket, key, timeout_hours=24):
         'put_object', 
         Params={'Bucket':bucket,'Key':key}, 
         ExpiresIn=3600*timeout_hours, 
-        HttpMethod='PUT')
+        HttpMethod='PUT'
         )
 
 
@@ -421,13 +431,19 @@ async def main():
                         help='number of servers in the worker pool')
     parser.add_argument('-b','--bucket', default='icecube-skymap-staging',
                         type=str, help='S3 bucket name for temporary file upload')
-    parser.add_argument('-o','--out-bucket', default='icecube-skymap-output',
+    parser.add_argument('-o','--outbucket', default='icecube-skymap-output',
                         type=str, help='S3 bucket name for final output')
     parser.add_argument('-i','--nside', default=1, type=int,
                         help='Healpix nside (number of pixels is 12*nside^2)')
+    parser.add_argument('-p','--pulsar', default=None,
+                        type=str, help='Use an external pulsar server')
+    parser.add_argument('--local-pulsar', action='store_true',
+                        help='Bring up a local pulsar server (useful for testing, not recommended for production)')
     args = vars(parser.parse_args())
 
-
+    if (args['pulsar'] is None) and (not args['local_pulsar']):
+        parser.error('You need to specify at least one of --pulsar=<server> or --local-pulsar')
+    
     session = boto3.session.Session()
 
     spec = Specs()
@@ -444,7 +460,6 @@ async def main():
 
     pulsar_spec = spec.copy()
     pulsar_spec['instance_type'] = 'm5a.large'
-    
     pulsar_user_data = """\
     #!/bin/bash
 
@@ -455,6 +470,8 @@ async def main():
     iptables  -A INPUT -p tcp --dport 8080 ! -s 127.0.0.1 -j REJECT
     ip6tables -A INPUT -p tcp --dport 6650 ! -s ::1       -j REJECT
     iptables  -A INPUT -p tcp --dport 6650 ! -s 127.0.0.1 -j REJECT
+    iptables  -I FORWARD 1 -p tcp --dport 8080 -j REJECT
+    iptables  -I FORWARD 1 -p tcp --dport 6650 -j REJECT
 
     printf "\\n%s\\n"  "Starting Pulsar in docker.."
     docker run --rm -d -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.5.0 bin/pulsar standalone
@@ -488,11 +505,16 @@ async def main():
     docker exec pulsar_local bin/pulsar-admin namespaces create icecube/skymap_metadata
     docker exec pulsar_local bin/pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 
+    printf "\\n%s\\n"  "Sleeping for a bit before unleashing workers.."
+    sleep 5
+
     printf "\\n%s\\n"  "Unblocking traffic to Pulsar ports.."
     ip6tables -D INPUT -p tcp --dport 8080 ! -s ::1       -j REJECT
     iptables  -D INPUT -p tcp --dport 8080 ! -s 127.0.0.1 -j REJECT
     ip6tables -D INPUT -p tcp --dport 6650 ! -s ::1       -j REJECT
     iptables  -D INPUT -p tcp --dport 6650 ! -s 127.0.0.1 -j REJECT
+    iptables  -D FORWARD -p tcp --dport 8080 -j REJECT
+    iptables  -D FORWARD -p tcp --dport 6650 -j REJECT
 
     printf "\\n%s\\n"  "Waiting for Pulsar to finish.."
     docker wait pulsar_local
@@ -506,17 +528,16 @@ async def main():
     producer_spec['instance_type'] = 't2.small'
     producer_spec['price'] = '0.02'
     producer_spec['hours'] = 1
-    
     producer_user_data = """\
     #!/bin/bash
 
     printf "%s" "waiting for Server ..."
-    while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
-    do
-        printf "%c" "."
-    done
-    printf "\\n%s"  "Server is pingable ..."
-    while ! nc -z {queue_server} 6650; do   
+    #while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
+    #do
+    #    printf "%c" "."
+    #done
+    #printf "\\n%s"  "Server is pingable ..."
+    while ! nc -z {queue_server} 6650; do
       sleep 1
       printf "%c" "."
     done
@@ -532,17 +553,16 @@ async def main():
     """
     
     collector_spec = spec.copy()
-    collector_spec['instance_type'] = 't2.small'
-    
+    collector_spec['instance_type'] = 'r5.large' #'t2.small'
     collector_user_data = """\
     #!/bin/bash
 
     printf "%s" "waiting for Server ..."
-    while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
-    do
-        printf "%c" "."
-    done
-    printf "\\n%s"  "Server is pingable ..."
+    #while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
+    #do
+    #    printf "%c" "."
+    #done
+    #printf "\\n%s"  "Server is pingable ..."
     while ! nc -z {queue_server} 6650; do   
       sleep 1
       printf "%c" "."
@@ -555,18 +575,18 @@ async def main():
     docker run --rm icecube/skymap_scanner:latest collector --broker pulsar://{queue_server}:6650  -n event_{uuid}
     
     printf "\\n%s\\n"  "Docker is complete, shutting down"
-    shutdown -hP now
+    # shutdown -hP now
     """
     
     worker_user_data = """\
     #!/bin/bash
 
     printf "%s" "waiting for Server ..."
-    while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
-    do
-        printf "%c" "."
-    done
-    printf "\\n%s"  "Server is pingable ..."
+    #while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
+    #do
+    #    printf "%c" "."
+    #done
+    #printf "\\n%s"  "Server is pingable ..."
     while ! nc -z {queue_server} 6650; do   
       sleep 1
       printf "%c" "."
@@ -583,17 +603,16 @@ async def main():
     """
     
     saver_spec = spec.copy()
-    saver_spec['instance_type'] = 't2.small'
-    
+    saver_spec['instance_type'] = 'r5.large' #'t2.small'
     saver_user_data = """\
     #!/bin/bash
 
     printf "%s" "waiting for Server ..."
-    while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
-    do
-        printf "%c" "."
-    done
-    printf "\\n%s"  "Server is pingable ..."
+    #while ! timeout 0.2 ping -c 1 -n {queue_server} &> /dev/null
+    #do
+    #    printf "%c" "."
+    #done
+    #printf "\\n%s"  "Server is pingable ..."
     while ! nc -z {queue_server} 6650; do   
       sleep 1
       printf "%c" "."
@@ -602,13 +621,37 @@ async def main():
     sleep 1
 
     printf "\\n%s\\n"  "Running docker"
+    
     docker run --rm icecube/skymap_scanner:latest saver --broker pulsar://{queue_server}:6650 --nside {nside} -n event_{uuid} -o '{out_url}'
+    
     printf "\\n%s\\n"  "Docker is complete, shutting down"
+    # shutdown -hP now
+    """
+
+    cleanup_spec = spec.copy()
+    cleanup_spec['instance_type'] = 't2.small'
+    cleanup_user_data = """\
+    #!/bin/bash
+
+    printf "%s" "waiting for Server ..."
+    while ! nc -z {queue_server} 8080; do   
+      sleep 1
+      printf "%c" "."
+    done
+    printf "\\n%s\\n"  "Server is online"
+    sleep 1
+
+    PULSARADMIN='sudo docker run --rm -i apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url http://{queue_server}:8080'
+    
+    $PULSARADMIN topics list icecube/skymap          | grep {uuid} | xargs --no-run-if-empty -n1 $PULSARADMIN topics delete -f 
+    $PULSARADMIN topics list icecube/skymap_metadata | grep {uuid} | xargs --no-run-if-empty -n1 $PULSARADMIN topics delete -f 
+    
     shutdown -hP now
     """
 
     
     futures = []
+    to_await = []
     async with contextlib.AsyncExitStack() as stack:
         print('-- uploading input file to S3')
         input_file = TempS3File(s3, args['bucket'], filename=args['in_file'])
@@ -617,22 +660,45 @@ async def main():
         event_id = input_file.uuid[:12]
         print('-- Event ID: {}'.format(event_id))
 
-        output_file_name = 'scanned_event_{}.i3'.format(event_id)
-        presigned_output_url = create_presigned_put_url(s3, bucket=args['out-bucket'], key=output_file_name, timeout_hours=24)
-        print('-- output presigned url is {}'.format(presigned_output_url))
+        output_file_name = 'scanned_event_{}_nside{}.i3'.format(event_id, args['nside'])
+        presigned_output_url = create_presigned_put_url(s3, bucket=args['outbucket'], key=output_file_name, timeout_hours=24)
+        # print('-- output presigned url is {}'.format(presigned_output_url))
 
-        print('-- bringing up Instance (pulsar)')
-        pulsar_server = Instance(
-            ec2,
-            pulsar_user_data,
-            pulsar_spec,
-            spot=False,
-            name='pulsar-' + event_id
-        )
-        print('-- awaiting enter_async_context (pulsar)')
-        await stack.enter_async_context(pulsar_server)
-        print('-- adding monitoring to futures (pulsar)')
-        futures.append(pulsar_server.monitor())
+        if args['pulsar'] is None:
+            # use a local pulsar server
+            print('-- bringing up Instance (pulsar)')
+            pulsar_server = Instance(
+                ec2,
+                pulsar_user_data,
+                pulsar_spec,
+                spot=False,
+                name='pulsar-' + event_id
+            )
+            await stack.enter_async_context(pulsar_server)
+            print('-- adding monitoring to futures (pulsar)')
+            futures.append(pulsar_server.monitor())
+
+            pulsar_server_address = pulsar_server.ipv4_address
+        else:
+            pulsar_server_address = args['pulsar']
+
+            print('-- bringing up Instance (cleanup)')
+            cleanup_server = Instance(
+                ec2,
+                cleanup_user_data.format(
+                    queue_server=pulsar_server_address,
+                    uuid=event_id
+                ),
+                cleanup_spec,
+                spot=False,
+                termination_not_an_error=True, # not an error if this terminates
+                name='cleanup-' + event_id
+            )
+            await stack.enter_async_context(cleanup_server)
+            print('-- waiting for cleanup to finish (cleanup)')
+            await cleanup_server.monitor(frequency_seconds=20)
+            print('-- cleanup done')
+            del cleanup_server
 
 
 
@@ -640,7 +706,7 @@ async def main():
         producer = Instance(
             ec2,
             producer_user_data.format(
-                queue_server=pulsar_server.ipv4_address,
+                queue_server=pulsar_server_address,
                 event_url=input_file.obj_url,
                 nside=args['nside'],
                 uuid=event_id
@@ -650,8 +716,7 @@ async def main():
             termination_not_an_error=True, # not an error if this terminates
             name='producer-' + event_id
         )
-        print('-- awaiting enter_async_context (producer)')
-        await stack.enter_async_context(producer)
+        to_await.append(stack.enter_async_context(producer))
         print('-- adding monitoring to futures (producer)')
         futures.append(producer.monitor())
 
@@ -661,15 +726,14 @@ async def main():
         collector = Instance(
             ec2,
             collector_user_data.format(
-                queue_server=pulsar_server.ipv4_address,
+                queue_server=pulsar_server_address,
                 uuid=event_id
             ),
             collector_spec,
             spot=False, # could be long-running, do not use a spot instance
             name='collector-' + event_id
         )
-        print('-- awaiting enter_async_context (collector)')
-        await stack.enter_async_context(collector)
+        to_await.append(stack.enter_async_context(collector))
         print('-- adding monitoring to futures (collector)')
         futures.append(collector.monitor())
 
@@ -678,17 +742,17 @@ async def main():
         saver = Instance(
             ec2,
             saver_user_data.format(
-                queue_server=pulsar_server.ipv4_address,
+                queue_server=pulsar_server_address,
                 nside=args['nside'],
                 uuid=event_id,
                 out_url=presigned_output_url
             ),
             saver_spec,
             spot=False, # could be long-running, do not use a spot instance
+            # termination_not_an_error=True, # not an error if this terminates, in fact - we are done when this terminates
             name='saver-' + event_id
         )
-        print('-- awaiting enter_async_context (saver)')
-        await stack.enter_async_context(saver)
+        to_await.append(stack.enter_async_context(saver))
         print('-- adding monitoring to futures (saver)')
         futures.append(saver.monitor())
 
@@ -698,15 +762,18 @@ async def main():
         fleet = SpotFleet(
             ec2,
             worker_user_data.format(
-                queue_server=pulsar_server.ipv4_address,
+                queue_server=pulsar_server_address,
                 uuid=event_id
             ),
             spec, 
-            num=args['num']
+            num=args['num'],
+            name='worker-fleet-' + event_id
         )
-        print('-- awaiting enter_async_context (fleet)')
-        await stack.enter_async_context(fleet)
-
+        to_await.append(stack.enter_async_context(fleet))
+        
+        print('-- awaiting startup')
+        await asyncio.wait(to_await, return_when=asyncio.FIRST_EXCEPTION)
+        print('-- startup completed')
         
         
         if len(futures) > 0:
