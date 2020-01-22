@@ -29,6 +29,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
+        self.AddParameter("InjectEventName", "Event name in each P-frame - for later sorting", None)
         self.AddOutBox("OutBox")
 
     def Configure(self):
@@ -37,6 +38,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.input_pos_name = self.GetParameter("InputPosName")
         self.input_time_name = self.GetParameter("InputTimeName")
         self.output_particle_name = self.GetParameter("OutputParticleName")
+        self.inject_event_name = self.GetParameter("InjectEventName")
 
         p_frame = self.GCDQpFrames[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
@@ -51,6 +53,8 @@ class SendPixelsToScan(icetray.I3Module):
 
         self.pixels_to_push = range(healpy.nside2npix(self.nside))
         print("Going to submit {} pixels".format(len(self.pixels_to_push)))
+        
+        self.pixel_index = 0
 
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
@@ -71,12 +75,13 @@ class SendPixelsToScan(icetray.I3Module):
             next_pixel = self.pixels_to_push.pop(0)
             
             # create and push a P-frame to be processed
-            self.CreatePFrame(nside=self.nside, pixel=next_pixel)
+            self.CreatePFrame(nside=self.nside, pixel=next_pixel, pixel_index=self.pixel_index)
+            self.pixel_index+=1
         else:
             # we are done.
             self.RequestSuspension()
 
-    def CreatePFrame(self, nside, pixel):
+    def CreatePFrame(self, nside, pixel, pixel_index):
         dec, ra = healpy.pix2ang(nside, pixel)
         dec = dec - numpy.pi/2.
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
@@ -123,10 +128,15 @@ class SendPixelsToScan(icetray.I3Module):
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
+            # an overall sequence index, 0-based, in case we need to re-start
+            p_frame["SCAN_EventOverallIndex"] = icetray.I3Int( int(i) + pixel_index*len(posVariations))
+            if self.inject_event_name is not None:
+                p_frame["SCAN_EventName"] = dataclasses.I3String(self.inject_event_name)
+
             self.PushFrame(p_frame)
 
 
-def send_scan(frame_packet, broker, topic, metadata_topic, nside=1):
+def send_scan(frame_packet, broker, topic, metadata_topic_base, event_name, nside=1):
     tray = I3Tray()
     
     # create P frames for a GCDQp packet
@@ -136,6 +146,7 @@ def send_scan(frame_packet, broker, topic, metadata_topic, nside=1):
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
+        InjectEventName=event_name
     )
 
     # sanity check
@@ -156,10 +167,10 @@ def send_scan(frame_packet, broker, topic, metadata_topic, nside=1):
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         BrokerURL=broker,
         Topic=topic,
-        MetadataTopic=metadata_topic,
-        ProducerName="skymap_to_scan_producer-1",
-
-        SubscriptionName="skymap-worker-sub",
+        MetadataTopicBase=metadata_topic_base,
+        ProducerName="skymap_to_scan_producer-" + event_name,
+        I3IntForSequenceID="SCAN_EventOverallIndex",
+        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
         )
     
     tray.Execute()

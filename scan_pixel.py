@@ -5,6 +5,8 @@ import os
 import platform
 import datetime
 import re
+import random
+import time
 
 import config
 
@@ -18,7 +20,8 @@ from icecube.frame_object_diff.segments import uncompress
 from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, ReceiverService, SendPFrameWithMetadata
 
 def scan_pixel(broker, topic_in, topic_out,
-    pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned"):
+    pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned",
+    fake_scan=False):
 
     ########## load data
 
@@ -51,6 +54,13 @@ def scan_pixel(broker, topic_in, topic_out,
 
     def notifyStart(frame):
         print("got data - uncompressing GCD", datetime.datetime.now())
+        print("Name {}, Pixel {}, NSide {}, PosVarIndex {}, OverallIndex {}".format(
+            frame["SCAN_EventName"].value,
+            frame["SCAN_HealpixPixel"].value,
+            frame["SCAN_HealpixNSide"].value,
+            frame["SCAN_PositionVariationIndex"].value,
+            frame["SCAN_EventOverallIndex"].value,
+        ))
     tray.AddModule(notifyStart, "notifyStart")
 
     tray.Add(uncompress, "GCD_patch",
@@ -84,77 +94,87 @@ def scan_pixel(broker, topic_in, topic_out,
     # add the late pulse exclusion windows
     ExcludedDOMs = ExcludedDOMs + [pulsesName+'LatePulseCleanedTimeWindows']
     
-    def notify0(frame):
-        print("starting a new fit!", datetime.datetime.now())
-    tray.AddModule(notify0, "notify0")
-    
-    tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-        MuonPhotonicsService=muon_service,
-        CascadePhotonicsService=cascade_service,
-        ShowerRegularization=0,
-        PhotonsPerBin=15,
-        DOMEfficiency=SPEScale,
-        ExcludedDOMs=ExcludedDOMs,
-        PartialExclusion=True,
-        ReadoutWindow=pulsesName+'TimeRange',
-        Pulses=pulsesName,
-        BinSigma=3)
-    
-    tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
-    tray.AddService('I3GSLSimplexFactory', 'simplex',
-        MaxIterations=20000)
-    
-    tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
-        MuonSpacing=0.*I3Units.m,
-        ShowerSpacing=5.*I3Units.m,
-        StepX = 10.*I3Units.m,
-        StepY = 10.*I3Units.m,
-        StepZ = 10.*I3Units.m,
-        StepT = 0.,
-        StepZenith = 0.,
-        StepAzimuth = 0.,
-        )
-    tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-        FirstGuesses=['MillipedeSeedParticle'],
-        TimeShiftType='TNone',
-        PositionShiftType='None')
+    if fake_scan:
+        def add_fake_scan(frame):
+            fp = millipede.MillipedeFitParams()
+            fp.logl = random.uniform(4000.,6000.)
+            frame["MillipedeStarting2ndPass_millipedellh"] = fp
+            p = dataclasses.I3Particle()
+            frame["MillipedeStarting2ndPass"] = p
+            time.sleep(0.1)
+        tray.AddModule(add_fake_scan, "add_fake_scan")
+    else:
+        def notify0(frame):
+            print("starting a new fit!", datetime.datetime.now())
+        tray.AddModule(notify0, "notify0")
+        
+        tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
+            ShowerRegularization=0,
+            PhotonsPerBin=15,
+            DOMEfficiency=SPEScale,
+            ExcludedDOMs=ExcludedDOMs,
+            PartialExclusion=True,
+            ReadoutWindow=pulsesName+'TimeRange',
+            Pulses=pulsesName,
+            BinSigma=3)
+        
+        tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
+        tray.AddService('I3GSLSimplexFactory', 'simplex',
+            MaxIterations=20000)
+        
+        tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
+            MuonSpacing=0.*I3Units.m,
+            ShowerSpacing=5.*I3Units.m,
+            StepX = 10.*I3Units.m,
+            StepY = 10.*I3Units.m,
+            StepZ = 10.*I3Units.m,
+            StepT = 0.,
+            StepZenith = 0.,
+            StepAzimuth = 0.,
+            )
+        tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
+            FirstGuesses=['MillipedeSeedParticle'],
+            TimeShiftType='TNone',
+            PositionShiftType='None')
 
-    tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
-        OutputName='MillipedeStarting1stPass',
-        SeedService='vetoseed',
-        Parametrization='coarseSteps',
-        LogLikelihood='millipedellh',
-        Minimizer='simplex')
-    
-    
-    def notify1(frame):
-        print("1st pass done!", datetime.datetime.now())
-        print("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
-    tray.AddModule(notify1, "notify1")
-    
-    tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
-        MuonSpacing=0.*I3Units.m,
-        ShowerSpacing=2.5*I3Units.m,
-    
-        StepX = 2.*I3Units.m,
-        StepY = 2.*I3Units.m,
-        StepZ = 2.*I3Units.m,
-        StepT = 5.*I3Units.ns, # now, also fit for time
-        StepZenith = 0.,
-        StepAzimuth = 0.,
-        )
-    tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
-        FirstGuess='MillipedeStarting1stPass',
-        TimeShiftType='TNone',
-        PositionShiftType='None')
-    tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
-        OutputName='MillipedeStarting2ndPass',
-        SeedService='firstFitSeed',
-        Parametrization='fineSteps',
-        LogLikelihood='millipedellh',
-        Minimizer='simplex')
-    
-    
+        tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
+            OutputName='MillipedeStarting1stPass',
+            SeedService='vetoseed',
+            Parametrization='coarseSteps',
+            LogLikelihood='millipedellh',
+            Minimizer='simplex')
+        
+        
+        def notify1(frame):
+            print("1st pass done!", datetime.datetime.now())
+            print("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
+        tray.AddModule(notify1, "notify1")
+        
+        tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
+            MuonSpacing=0.*I3Units.m,
+            ShowerSpacing=2.5*I3Units.m,
+        
+            StepX = 2.*I3Units.m,
+            StepY = 2.*I3Units.m,
+            StepZ = 2.*I3Units.m,
+            StepT = 5.*I3Units.ns, # now, also fit for time
+            StepZenith = 0.,
+            StepAzimuth = 0.,
+            )
+        tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
+            FirstGuess='MillipedeStarting1stPass',
+            TimeShiftType='TNone',
+            PositionShiftType='None')
+        tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
+            OutputName='MillipedeStarting2ndPass',
+            SeedService='firstFitSeed',
+            Parametrization='fineSteps',
+            LogLikelihood='millipedellh',
+            Minimizer='simplex')
+        
+        
     def notify2(frame):
         print("2nd pass done!", datetime.datetime.now())
         print("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
@@ -163,16 +183,10 @@ def scan_pixel(broker, topic_in, topic_out,
     # now send the topic!
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         BrokerURL=broker,
-        # # A dynamic topic. Topic name is a function converting the input topic name to an
-        # # output name.
-        # Topic=lambda x: re.sub(r'^{}'.format(topic_in), topic_out, x),
-        
         Topic=topic_out,
-        MetadataTopic=None, # no specific metadata topic, will be dynamic according to incoming frame tags
-        # ProducerName="skymap_scan_to_collector_producer-1",
-        
-        ReceiverForceSingleConsumer=True,
-        SubscriptionName="skymap-collector-sub",
+        MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
+        ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
+        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
         )
     
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",

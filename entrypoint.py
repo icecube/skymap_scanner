@@ -22,7 +22,7 @@ from scan_pixel import scan_pixel
 from collect_pixels import collect_pixels
 from save_pixels import save_pixels
 
-def producer(eventURL, broker, topic, metadata_topic, nside):
+def producer(eventURL, broker, topic, metadata_topic_base, event_name, nside):
     """
     Handle incoming events and perform a full scan.
     """
@@ -58,18 +58,16 @@ def producer(eventURL, broker, topic, metadata_topic, nside):
 
         print("Event `{0}` happened at `{1}`.".format(event_id, str(time)))
 
-        full_topic = topic #+'-'+event_id
-        full_metadata_topic = metadata_topic #+'-'+event_id
-
-        print("Publishing events to   {}".format(full_topic))
-        print("Publishing metadata to {}".format(full_metadata_topic))
+        print("Publishing events to   {}".format(topic))
+        print("Publishing metadata to {}<...>".format(metadata_topic_base))
 
         print("Submitting scan...")
         send_scan(
             frame_packet=GCDQp_packet,
             broker=broker, 
-            topic=full_topic,
-            metadata_topic=full_metadata_topic,
+            topic=topic,
+            metadata_topic_base=metadata_topic_base,
+            event_name=event_name,
             nside=nside)
 
         print("All scans for `{0}` are submitted.".format(event_id))
@@ -78,18 +76,19 @@ def producer(eventURL, broker, topic, metadata_topic, nside):
         print('Something went wrong while scanning the event (python caught an exception): ```{0}```'.format(exception_message))
         raise # re-raise exceptions
 
-def worker(broker, topic_in, topic_out):
+def worker(broker, topic_in, topic_out, fake_scan):
     scan_pixel(
         broker=broker, 
         topic_in=topic_in,
         topic_out=topic_out,
+        fake_scan=fake_scan,
         )
 
-def collector(broker, topic_in, topic_out):
+def collector(broker, topic_in, topic_base_out):
     collect_pixels(
         broker=broker, 
         topic_in=topic_in,
-        topic_out=topic_out,
+        topic_base_out=topic_base_out,
         )
 
 def saver(broker, topic_in, filename_out, expected_n_frames, delete_from_queue):
@@ -111,13 +110,13 @@ if __name__ == "__main__":
         default="persistent://icecube/skymap/to_be_scanned",
         dest="TOPICIN", help="The Pulsar topic name for pixels to be scanned")
     parser.add_option("-m", "--topic_meta", action="store", type="string",
-        default="persistent://icecube/skymap_metadata/metadata_frames",
+        default="persistent://icecube/skymap_metadata/metadata_frames_",
         dest="TOPICMETA", help="The Pulsar topic name for metadata frames such as G,C,D,Q,p")
     parser.add_option("-s", "--topic_out", action="store", type="string",
         default="persistent://icecube/skymap/scanned",
         dest="TOPICOUT", help="The Pulsar topic name for pixels that have been scanned")
     parser.add_option("-c", "--topic_col", action="store", type="string",
-        default="persistent://icecube/skymap/collected",
+        default="persistent://icecube/skymap/collected_",
         dest="TOPICCOL", help="The Pulsar topic name for pixels that have been collected (each pixel is scanned several times with different seeds, this has the \"best\" result only)")
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
@@ -135,8 +134,11 @@ if __name__ == "__main__":
         default=None,
         dest="NAME", help="The unique event name. Will be appended to all topic names so that multiple scans can happen in parallel. Make sure you use different names for different events.")
 
-    parser.add_option("--delete-output-from-queue", action="store_true", default=False,
+    parser.add_option("--delete-output-from-queue", action="store_true",
         dest="DELETE_OUTPUT_FROM_QUEUE", help="When saving the output to a file, delete pixels from the queue once they have been written. They cannot be written a second time in that case.")
+
+    parser.add_option("--fake-scan", action="store_true",
+        dest="FAKE_SCAN", help="Just return random numbers and wait 1 second instead of performing the actula calculation in the worker. For testing only.")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -145,13 +147,10 @@ if __name__ == "__main__":
         raise RuntimeError("You need to specify a mode <producer|worker>")
     mode = args[0].lower()
     
-    if options.NAME is None:
-        raise RuntimeError("You need to explicitly specify an event name using the `-n` option and make sure you use the same one for producer, worker and collector.")
-    
-    topic_meta = options.TOPICMETA + '-' + options.NAME
-    topic_in   = options.TOPICIN   + '-' + options.NAME
-    topic_out  = options.TOPICOUT  + '-' + options.NAME
-    topic_col  = options.TOPICCOL  + '-' + options.NAME
+    topic_base_meta = options.TOPICMETA
+    topic_in        = options.TOPICIN
+    topic_out       = options.TOPICOUT
+    topic_base_col  = options.TOPICCOL
     
     nside = options.NSIDE
     npixels = 12 * (nside**2)
@@ -161,13 +160,19 @@ if __name__ == "__main__":
         if len(args) != 2:
             raise RuntimeError("You need to specify a input file URL in `producer` mode")
 
+        if options.NAME is None:
+            raise RuntimeError("You need to explicitly specify an event name using the `-n` option and make sure you use the same one for producer, worker and collector.")
+
         eventURL = args[1]
-        producer(eventURL, broker=options.BROKER, topic=topic_in, metadata_topic=topic_meta, nside=nside)
+        producer(eventURL, broker=options.BROKER, topic=topic_in, metadata_topic_base=topic_base_meta, event_name=options.NAME, nside=nside)
     elif mode == "worker":
-        worker(broker=options.BROKER, topic_in=topic_in, topic_out=topic_out)
+        worker(broker=options.BROKER, topic_in=topic_in, topic_out=topic_out, fake_scan=options.FAKE_SCAN)
     elif mode == "collector":
-        collector(broker=options.BROKER, topic_in=topic_out, topic_out=topic_col)
+        collector(broker=options.BROKER, topic_in=topic_out, topic_base_out=topic_base_col)
     elif mode == "saver":
-        saver(broker=options.BROKER, topic_in=topic_col, filename_out=options.OUTPUT, expected_n_frames=npixels, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE)
+        if options.NAME is None:
+            raise RuntimeError("You need to explicitly specify an event name using the `-n` option and make sure you use the same one for producer, worker and collector.")
+
+        saver(broker=options.BROKER, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, expected_n_frames=npixels, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE)
     else:
         raise RuntimeError("Unknown mode \"{}\"".args[0])

@@ -15,9 +15,12 @@ docker push icecube/skymap_scanner
 
 First, start an Apache Pulsar instance (or identify an existing one)
 and get its broker or proxy URL.
-For testing, you can start your own local instance with:
+For testing, you can start your own local instance with this command:
+(You want to make sure Pulsar's `brokerDeleteInactiveTopicsEnabled` configuration
+parameter is set to false, otherwise topics without a consumer running will be
+deleted after 60 seconds.)
 ```
-docker run -it -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.5.0 bin/pulsar standalone
+docker run -it --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.5.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
 ```
 
 You will need to connect to the pulsar broker using your machine IP,
@@ -31,34 +34,40 @@ instance as described above, you can create it like this
 ```
 docker exec -ti pulsar_local bin/pulsar-admin tenants create icecube
 docker exec -ti pulsar_local bin/pulsar-admin namespaces create icecube/skymap
+docker exec -ti pulsar_local bin/pulsar-admin namespaces set-deduplication icecube/skymap --enable
 docker exec -ti pulsar_local bin/pulsar-admin namespaces create icecube/skymap_metadata
 docker exec -ti pulsar_local bin/pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
+
+docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 16
+docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 16
 ```
 
-You can run the producer to send a scan like this: 
+You can run the producer to send a scan like this. Notice that you are submitting the
+event with a specific name that you can use later in order to save all data:
 
 ```
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:xxxxx@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json --broker pulsar://<pulsar_ip>:6650 --nside 1 -n test_event_01 
+docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json --broker pulsar://10.0.1.4:6650 --nside 16 -n test_event_01
 ```
 
 Then you can then start some workers to scan the jobs in the queue:
 
 ```
-docker run --rm -ti icecube/skymap_scanner:latest worker --broker pulsar://<pulsar_ip>:6650 -n test_event_01
+docker run --rm -ti icecube/skymap_scanner:latest worker --broker pulsar://10.0.1.4:6650
 ```
 
 Finally, since there are 7 jobs per pixel (different reconstruction seeds in absolute position
-in the detector), they need to be collected for each pixel
+in the detector), they need to be collected for each pixel. You have to run one
+(or several) of these:
 
 ```
-docker run --rm -ti icecube/skymap_scanner:latest collector --broker pulsar://<pulsar_ip>:6650 -n test_event_01
+docker run --rm -ti icecube/skymap_scanner:latest collector --broker pulsar://10.0.1.4:6650
 ```
 
 Now, you can save the output queue into an .i3 file and have a look at it:
 (Note that `saver` will block until all frames have been processed.)
 
 ```
-docker run --rm -v $PWD:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar://<pulsar_ip>:6650 --nside 1 -n test_event_01 -o /mnt/test_event_01.i3
+docker run --rm -v $PWD:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar://10.0.1.4:6650 --nside 16 -n test_event_01 -o /mnt/test_event_01.i3
 docker run --rm -v $PWD:/mnt -ti icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 ```
 

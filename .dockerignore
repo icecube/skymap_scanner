@@ -1,2 +1,8 @@
 *.pyc
 __pycache__
+.git
+.terraform
+aws_ec2
+*.i3
+resources
+

@@ -2,6 +2,7 @@ import pickle
 import time
 import re
 import copy
+import hashlib
 
 import pulsar
 
@@ -29,16 +30,16 @@ class SendPFrameWithMetadata(icetray.I3Module):
     def __init__(self, ctx):
         super(SendPFrameWithMetadata, self).__init__(ctx)
         self.AddParameter("BrokerURL", "The Apache Pulsar broker URL", 'pulsar://localhost:6650')
-        self.AddParameter("Topic", "The Apache Pulsar topic to send to (can be either a string or a function converting an input topic name to an output name)", None)
-        self.AddParameter("ProducerName", "Name of the producer", None)
-        self.AddParameter("SubscriptionName", "Name of the subscription to pre-generate so that no messages are lost before actual subscribers connect", "skymap-worker-sub")
 
-        self.AddParameter("MetadataTopic", "The Apache Pulsar topic to send to", None)
-        self.AddParameter("MetadataProducerName", "Name of the producer", None)
+        self.AddParameter("Topic", "The Apache Pulsar topic to send to (can be either a string or a function converting an input topic name to an output name)", None)
+        self.AddParameter("PartitionKey", "A function or string (or None) with the partition key for this frame. All frames with the same partition key end up in the same topic partition.", None)
+
+        self.AddParameter("ProducerName", "Name of the producer (random unique name of not specified)", None)
+        self.AddParameter("I3IntForSequenceID", "Name of the I3Int frame object to use as a unique sequence ID within the topic. We will use a simple P-frame counter if nothing is specified. Make sure to use a unique ID object if you use a ProducerName and you are not sure you are the only producer.", None)
+
+        self.AddParameter("MetadataTopicBase", "The Apache Pulsar topic for metadata frame information", None)
 
         self.AddParameter("IgnoreStops", "Ignore these frame stream stops", [icetray.I3Frame.Stream('\03')])
-
-        self.AddParameter("ReceiverForceSingleConsumer", "Set this to True if the consumer is set up so that there will be only ever a single active one", False)
 
         self.AddOutBox("OutBox")
 
@@ -46,73 +47,40 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.broker_url = self.GetParameter("BrokerURL")
 
         self.topic = self.GetParameter("Topic")
+        self.partition_key = self.GetParameter("PartitionKey")
+
         self.producer_name = self.GetParameter("ProducerName")
-        self.subscription_name = self.GetParameter("SubscriptionName")
+        self.i3int_for_sequence_id = self.GetParameter("I3IntForSequenceID")
 
-        self.metadata_topic = self.GetParameter("MetadataTopic")
-        self.metadata_producer_name = self.GetParameter("MetadataProducerName")
-
+        self.metadata_topic_base = self.GetParameter("MetadataTopicBase")
+        self.metadata_producer = None
+        
         self.ignore_stops = self.GetParameter("IgnoreStops")
-
-        self.receiver_force_single_consumer = self.GetParameter("ReceiverForceSingleConsumer")
+        
+        self.producer_cache_size = 5
         
         # first, connect to the broker
         self.client = pulsar.Client(self.broker_url)
         
         if callable(self.topic):
-            # topic is a function, so let's initialize self.producer
-            # lazily later
+            # topic is a function, so let's initialize self.producer lazily later
             self.producer = None
-            self.last_input_topic = None
+            self.producer_cache = []
         elif isinstance(self.topic, str):
-            # create a producer
+            # create a producer now, there is only one topic
             self.producer = self.create_producer(self.topic)
         else:
             raise RuntimeError("Topic parameter needs to be either a callable or a string")
             
-        if self.metadata_topic is not None:
-            # Now create the producer we will use to send metadata frames.
-            self.metadata_producer = self.client.create_producer(
-                topic=self.metadata_topic,
-                producer_name=self.metadata_producer_name,
-                send_timeout_millis=0,
-                block_if_queue_full=True,
-                batching_enabled=False,
-                compression_type=pulsar.CompressionType.ZSTD
-                )
-        else:
-            self.metadata_producer = None
-
-        # # Initialize an event counter so we have a unique sequence id
-        # # for each frame we push.
-        # self.event_number = 0
+        # Initialize an event counter so we have a unique sequence id
+        # for each frame we push. (We will use this if the user did
+        # not configure anything else.)
+        self.event_number = 0
 
         self.metadata_frames_list = [] # list of dicts
 
     def create_producer(self, topic_name):
-        # Create a subscription first, then close it.
-        # This ensures the message cursor will stay at the beginning of the
-        # subscription for everything we create now (and will not hurt if
-        # the subscription already exists).
-        if self.receiver_force_single_consumer:
-            consumer_type=pulsar.ConsumerType.Failover
-            print("Making sure a Failover subscription named {} is set up".format(self.subscription_name))
-        else:
-            consumer_type=pulsar.ConsumerType.Shared
-            print("Making sure a Shared subscription named {} is set up".format(self.subscription_name))
-        
-        consumer = self.client.subscribe(
-            topic=topic_name,
-            subscription_name=self.subscription_name,
-            receiver_queue_size=0,
-            consumer_type=consumer_type,
-            )
-        consumer.close()
-        del consumer
-
-        print("Done. Now subscribing to {}".format(topic_name))
-        
-        # Now create the producer we will use to send messages.
+        # Create the producer we will use to send messages.
         producer = self.client.create_producer(
             topic=topic_name,
             producer_name=self.producer_name,
@@ -121,8 +89,22 @@ class SendPFrameWithMetadata(icetray.I3Module):
             batching_enabled=True,
             compression_type=pulsar.CompressionType.ZSTD
             )
+        # sanity check
+        if self.producer_name is None:
+            if producer.last_sequence_id() != -1:
+                raise RuntimeError("No producer name is set, so we were assigned one by Pulsar. However, we did get a starting sequence offset which is unexpected for a globally unique name. last_sequence_id=={}".format( producer.last_sequence_id()))
         return producer
         
+    def create_metadata_producer(self, topic_name):
+        # Create the producer we will use to send metadata messages.
+        producer = self.client.create_producer(
+            topic=topic_name,
+            send_timeout_millis=0,
+            block_if_queue_full=True,
+            batching_enabled=False,
+            compression_type=pulsar.CompressionType.ZSTD
+            )
+        return producer
 
     def add_or_replace_metadata_frame(self, frame):
         known_messageid = None
@@ -164,17 +146,30 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 # nothing to udpate, skip
                 continue
             
+            if self.metadata_topic_base is None:
+                raise RuntimeError("SendPFrameWithMetadata is not configured with the MetadataTopic option. All metadata frames need to have been received from a queue already if you want this to work.")
+
+            frame_copy = copy.copy(entry['frame'])
+            frame_copy.purge() # remove non-native stops
+            pickled_frame = pickle.dumps(frame_copy)
+
             if self.metadata_producer is None:
-                raise RuntimeError("SendPFrameWithMetadata is not configured with the MetadataTopic option. All metadata frames need to have been received from a queue already in order for this to work.")
-            
+                # We need to create a metadata producer. We base its name on a
+                # (heavily truncated) hash of the first (i.e. this) frame.
+                # TODO: There is probably a better way. Consider going for per-frame
+                # topics (and/or a frame hash as partition key).
+                metadata_topic = self.metadata_topic_base + hashlib.sha256(pickled_frame).hexdigest()[:4]
+                print("Sending metadata to topic {}".format(metadata_topic))
+                self.metadata_producer = self.create_metadata_producer(metadata_topic)
+                
             # send the frame and record its generated message id
             msgid = pulsar_send_return_msgid(
                 self.metadata_producer,
-                content=pickle.dumps(entry['frame']), 
+                content=pickled_frame, 
                 )
             
             entry['messageid'] = msgid.serialize()
-            entry['metadata_topic'] = self.metadata_topic
+            entry['metadata_topic'] = metadata_topic
             
             print("metadata frame sent {} -> msgid {}".format(entry['stop'], msgid))
 
@@ -197,36 +192,76 @@ class SendPFrameWithMetadata(icetray.I3Module):
         if callable(self.topic):
             # We need to dynamically generate the topic from information in the P-frame
             # if self.topic is a function (instead of a fixed string name).
-            if '__msgtopic' not in frame:
-                raise RuntimeError("For dynamic topics selection in SendPFrameWithMetadata, P-frames need to contain \"'__msgtopic'\" frame objects.")
-            input_topic = frame['__msgtopic'].value
-            if (self.last_input_topic is None) or (self.last_input_topic != input_topic):
-                print("send topic needs to change, (re-)connecting producer...")
-                self.last_input_topic = input_topic
-                new_topic = self.topic(input_topic)
+            new_topic = self.topic(frame) # call the callback function to retrieve a new topic name
+            
+            # see if it exists in the cache
+            new_producer = None
+            for entry in self.producer_cache:
+                if entry[0] == new_topic:
+                    new_producer = entry[1]
+                    break
+            # not found in cache, create a new producer
+            if new_producer is None:
+                # make sure to expunge old items
+                while len(self.producer_cache)+1 > self.producer_cache_size:
+                    removed_item = self.producer_cache.pop(0) # remove the frontmost item
+                    print("disconnecting old producer for topic {}...".format(removed_item[0]))
+                    removed_item[1].close()
+                    del removed_item
+                    print("disconnected.")
+
                 print("connecting producer to new topic {}...".format(new_topic))
-                self.producer = self.create_producer(new_topic)
+                new_producer = self.create_producer(new_topic)
                 print("connected.")
+                self.producer_cache.append( (new_topic, new_producer) )
+
+            # now set the producer to use
+            self.producer = new_producer
         
-        # pickle the frame, but make sure to delete '__msgtopic' items first (from a copy)
+        # pickle the frame
         frame_copy = copy.copy(frame)
-        if '__msgtopic' in frame_copy:
-            del frame_copy['__msgtopic']
+        frame_copy.purge() # remove non-native stops
         data = pickle.dumps(frame_copy)
         del frame_copy
-        
-        
-        
-        self.producer.send(
-            content=data, 
-            properties=properties,
-            # sequence_id=self.event_number,
-            )
 
-        # print("physics frame sent -> sequence {}".format(self.event_number))
-        print("physics frame sent")
+        # determine the sequence id
+        if self.i3int_for_sequence_id is None:
+            # use the event counter if nothing else is configured
+            sequence_id = self.event_number
+        else:
+            if self.i3int_for_sequence_id not in frame:
+                raise RuntimeError("I3Int \"{}\" to be used for sequence ID is not in frame.".format(self.i3int_for_sequence_id))
+            sequence_id = frame[self.i3int_for_sequence_id].value
+        
+        # figure out the partition key
+        if self.partition_key is None:
+            this_partition_key = None
+        elif callable(self.partition_key):
+            this_partition_key = self.partition_key(frame)
+            if not isinstance(this_partition_key, str):
+                raise RuntimeError("PartitionKey callback did not return a string")
+        elif isinstance(self.partition_key, str):
+            this_partition_key = self.partition_key
+        else:
+            raise RuntimeError("PartitionKey parameter needs to be either a callable, a string or None")
 
-        # self.event_number += 1
+        ignore = False
+        if self.producer_name is not None:
+            if sequence_id <= self.producer.last_sequence_id():
+                ignore = True
+
+        if not ignore:
+            self.producer.send(
+                content=data, 
+                properties=properties,
+                sequence_id=sequence_id,
+                partition_key=this_partition_key
+                )
+            print("physics frame sent -> sequence {}".format(sequence_id))
+        else:
+            print("physics frame NOT sent because sequence is being re-started after sequence id {} -> sequence id {}".format(self.producer.last_sequence_id(), sequence_id))
+
+        self.event_number += 1
         
 
     def Process(self):
@@ -252,11 +287,13 @@ class SendPFrameWithMetadata(icetray.I3Module):
     def Finish(self):
         if self.metadata_producer is not None:
             self.metadata_producer.close()
-        self.producer.close()
+        if self.producer is not None:
+            self.producer.close()
         self.client.close()
         if self.metadata_producer is not None:
             del self.metadata_producer
-        del self.producer
+        if self.producer is not None:
+            del self.producer
         del self.client
 
 # Instantiate this service and use the same instance for
@@ -265,7 +302,7 @@ class ReceiverService():
     def __init__(self,
         topic, # The Apache Pulsar topic name to receive frames from
         broker_url='pulsar://localhost:6650', # The Apache Pulsar broker URL
-        subscription_name='skymap-worker-sub', # Name of the subscription to pre-generate so that no messages are lost before actual subscribers connect
+        subscription_name='skymap-worker-sub', # Name of the subscription
         force_single_consumer=False,
         topic_is_regex=False,
         ):
@@ -290,9 +327,11 @@ class ReceiverService():
             subscription_name=subscription_name,
             receiver_queue_size=1,
             consumer_type=consumer_type,
+            initial_position=pulsar.InitialPosition.Earliest
             )
-
+        
         print("Set up consumer for topic \"{}\" on broker \"{}\".".format(topic, broker_url))
+
 
         self.message_in_flight_dict = {}
 
@@ -328,7 +367,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
 
         self.metadata_cache = {}
         self.pushed_metadata_msgids = []
-        self.max_entries_per_frame_stop = 3
+        self.max_entries_per_frame_stop = 10
         
         # the Pulsar metadata reader will be instantiated lazily later
         self.metadata_reader = None
@@ -349,7 +388,9 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
                     del items[i]
                     items.append(item)
                     
+                    print("Frame on Stop {} FOUND in cache. [msgid={}]".format(stream, str(msgid)))
                     return item[1]
+        print("Frame not found in cache. [msgid={}]".format(str(msgid)))
         return None
 
     def add_frame_to_cache(self, frame, msgid):
@@ -361,11 +402,14 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         
         # add to cache
         cache_for_stream.append( [msgid, frame] )
+        print("Added frame on Stop {} to cache. [msgid={}]".format(frame.Stop, str(msgid)))
         
         # delete old entries
         while len(cache_for_stream) > self.max_entries_per_frame_stop:
             # remove the first element
-            cache_for_stream.pop(0)
+            just_removed = cache_for_stream.pop(0)
+            print("Cache too full, removed a message. [Stop={}, msgid={}]".format(just_removed[1].Stop, str(just_removed[0])))
+            
         
 
     def push_metadata_frame_and_update_state(self, frame, msgid):
@@ -381,7 +425,8 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         self.pushed_metadata_msgids.append( [ frame_stream, msgid ] )
         
         print("Pushing frame stop {} [msgid={}]".format(frame.Stop, str(msgid)))
-        self.PushFrame(frame)
+        frame_copy = copy.copy(frame) # push a copy, the framework will mess with the frame we push
+        self.PushFrame(frame_copy)
         
     def retrieve_metadata_frame_from_pulsar(self, msgid):
         retries = 10
@@ -495,11 +540,9 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         # now load the actual P-frame and push it
         frame = pickle.loads(msg.data())
         
-        # add a topic name to the frame
-        frame['__msgtopic'] = dataclasses.I3String(msg.topic_name())
-        
-        print("Pushing frame stop {} [msgid={}]".format(frame.Stop, msgid))
+        print("Pushing frame stop {}[should be Physics] [msgid={}]".format(frame.Stop, msgid))
         self.PushFrame(frame)
+        del frame # make sure to not re-use this frame, the frmework will mess with it
         
         # save a copy of the message in flight
         self.receiver_service.message_in_flight_dict[serialized_msgid] = msg

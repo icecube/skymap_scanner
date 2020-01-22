@@ -61,22 +61,25 @@ class FindBestRecoResultForPixel(icetray.I3Module):
         if "SCAN_PositionVariationIndex" not in p_frame:
             raise RuntimeError("SCAN_PositionVariationIndex not in frame")
 
-        nside = p_frame["SCAN_HealpixNSide"].value
-        pixel = p_frame["SCAN_HealpixPixel"].value
-        index = (nside,pixel)
+        evname = p_frame["SCAN_EventName"].value
+        nside  = p_frame["SCAN_HealpixNSide"].value
+        pixel  = p_frame["SCAN_HealpixPixel"].value
+        index = (evname,nside,pixel)
         posVarIndex = p_frame["SCAN_PositionVariationIndex"].value
 
         if index not in self.pixelNumToFramesMap:
             self.pixelNumToFramesMap[index] = [None]*self.NPosVar
         self.pixelNumToFramesMap[index][posVarIndex] = (p_frame, delimiter_frame)
 
-        numPixelsArrived = sum(1 for entry in self.pixelNumToFramesMap[index] if (entry is not None))
+        frames_list = self.pixelNumToFramesMap[index]
+
+        numPixelsArrived = sum(1 for entry in frames_list if (entry is not None))
 
         if numPixelsArrived == self.NPosVar:
             # print("all scans arrived for pixel", index)
             bestItemIndex = None
             bestFrameLLH = None
-            for i, item in enumerate(self.pixelNumToFramesMap[index]):
+            for i, item in enumerate(frames_list):
                 frame = item[0]
                 if "MillipedeStarting2ndPass_millipedellh" in frame:
                     thisLLH = frame["MillipedeStarting2ndPass_millipedellh"].logl
@@ -94,11 +97,13 @@ class FindBestRecoResultForPixel(icetray.I3Module):
                 bestItemIndex = 0
 
             # now push all delimiter frames but only the P-frame we deemed best
-            for i, item in enumerate(self.pixelNumToFramesMap[index]):
+            for i, item in enumerate(frames_list):
                 if i == bestItemIndex:
-                    self.PushFrame(self.pixelNumToFramesMap[index][i][0])
-                self.PushFrame(self.pixelNumToFramesMap[index][i][1])
+                    self.PushFrame(frames_list[i][0])
+                self.PushFrame(frames_list[i][1])
 
+            # now remove the entry from the map (and de-allocate our local reference, too)
+            del frames_list
             del self.pixelNumToFramesMap[index]
 
     def Finish(self):
@@ -171,7 +176,7 @@ def get_reco_losses_inside(p_frame):
     p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(totalRecoLosses)
 
 
-def collect_pixels(broker, topic_in, topic_out):
+def collect_pixels(broker, topic_in, topic_base_out):
     receiver_service = ReceiverService(
         broker_url=broker,
         topic=topic_in,
@@ -195,10 +200,9 @@ def collect_pixels(broker, topic_in, topic_out):
     
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         BrokerURL=broker,
-        Topic=topic_out,
-        MetadataTopic=None, # no specific metadata topic, will be dynamic according to incoming frame tags
-        ReceiverForceSingleConsumer=True,
-        SubscriptionName='skymap-saver-sub',
+        Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
+        MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
+        ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
         )
     
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
