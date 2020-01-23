@@ -309,8 +309,6 @@ class SpotFleet:
 
         request = self.ec2.request_spot_fleet(
             SpotFleetRequestConfig={
-                #'ClientToken': client_token,
-                #'SpotPrice': self.spec['price'],
                 'TargetCapacity': self.num,
                 'ValidFrom': date_from.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'ValidUntil': date_to.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -437,12 +435,10 @@ async def main():
                         help='Healpix nside (number of pixels is 12*nside^2)')
     parser.add_argument('-p','--pulsar', default=None,
                         type=str, help='Use an external pulsar server')
-    parser.add_argument('--local-pulsar', action='store_true',
-                        help='Bring up a local pulsar server (useful for testing, not recommended for production)')
     args = vars(parser.parse_args())
 
-    if (args['pulsar'] is None) and (not args['local_pulsar']):
-        parser.error('You need to specify at least one of --pulsar=<server> or --local-pulsar')
+    if args['pulsar'] is None:
+        parser.error('You need to specify --pulsar=<server>')
     
     session = boto3.session.Session()
 
@@ -458,72 +454,6 @@ async def main():
     )
 
 
-    pulsar_spec = spec.copy()
-    pulsar_spec['instance_type'] = 'm5a.large'
-    pulsar_user_data = """\
-    #!/bin/bash
-
-    # ipv6=`ip -br -6 addr show scope global|grep UP|grep -v docker|awk '{{print $3}}'|awk -F'/' '{{print $1}}'`
-
-    printf "\\n%s\\n"  "Blocking traffic to Pulsar ports while we start up.."
-    ip6tables -A INPUT -p tcp --dport 8080 ! -s ::1       -j REJECT
-    iptables  -A INPUT -p tcp --dport 8080 ! -s 127.0.0.1 -j REJECT
-    ip6tables -A INPUT -p tcp --dport 6650 ! -s ::1       -j REJECT
-    iptables  -A INPUT -p tcp --dport 6650 ! -s 127.0.0.1 -j REJECT
-    iptables  -I FORWARD 1 -p tcp --dport 8080 -j REJECT
-    iptables  -I FORWARD 1 -p tcp --dport 6650 -j REJECT
-
-    printf "\\n%s\\n"  "Starting Pulsar in docker.."
-    docker run --rm -d -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.5.0 bin/pulsar standalone
-    
-    printf "\\n%s\\n"  "Waiting for pulsar port 6650 to become accessible.."
-    while ! nc -z localhost 6650; do   
-      sleep 1
-    done
-
-    printf "\\n%s\\n"  "Waiting for pulsar port 8080 to become accessible.."
-    while ! nc -z localhost 8080; do   
-      sleep 1
-    done
-    
-    while true; do
-      printf "\\n%s\\n"  "Waiting for pulsar to become ready.."
-      docker exec pulsar_local bin/pulsar-admin brokers healthcheck
-      RESULT=$?
-      
-      if [ $RESULT -eq 0 ]; then
-        break
-      fi
-      
-      printf "\\n%s\\n"  "Pulsar not ready yet, waiting again.."
-      sleep 3
-    done
-    
-    printf "\\n%s\\n"  "Creating pulsar namespaces.."
-    docker exec pulsar_local bin/pulsar-admin tenants create icecube
-    docker exec pulsar_local bin/pulsar-admin namespaces create icecube/skymap
-    docker exec pulsar_local bin/pulsar-admin namespaces create icecube/skymap_metadata
-    docker exec pulsar_local bin/pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
-
-    printf "\\n%s\\n"  "Sleeping for a bit before unleashing workers.."
-    sleep 5
-
-    printf "\\n%s\\n"  "Unblocking traffic to Pulsar ports.."
-    ip6tables -D INPUT -p tcp --dport 8080 ! -s ::1       -j REJECT
-    iptables  -D INPUT -p tcp --dport 8080 ! -s 127.0.0.1 -j REJECT
-    ip6tables -D INPUT -p tcp --dport 6650 ! -s ::1       -j REJECT
-    iptables  -D INPUT -p tcp --dport 6650 ! -s 127.0.0.1 -j REJECT
-    iptables  -D FORWARD -p tcp --dport 8080 -j REJECT
-    iptables  -D FORWARD -p tcp --dport 6650 -j REJECT
-
-    printf "\\n%s\\n"  "Waiting for Pulsar to finish.."
-    docker wait pulsar_local
-
-    printf "\\n%s\\n"  "Docker is complete, shutting down.."
-    shutdown -hP now
-    """
-
-
     producer_spec = spec.copy()
     producer_spec['instance_type'] = 't2.small'
     producer_spec['price'] = '0.02'
@@ -537,7 +467,7 @@ async def main():
     #    printf "%c" "."
     #done
     #printf "\\n%s"  "Server is pingable ..."
-    while ! nc -z {queue_server} 6650; do
+    while ! nc -z {queue_server} 6651; do
       sleep 1
       printf "%c" "."
     done
@@ -546,7 +476,7 @@ async def main():
 
     printf "\\n%s\\n"  "Running docker"
     
-    docker run --rm icecube/skymap_scanner:latest producer '{event_url}' --broker pulsar://{queue_server}:6650 --nside {nside} -n event_{uuid}
+    docker run --rm icecube/skymap_scanner:latest producer '{event_url}' --broker pulsar+ssl://{queue_server}:6651 --nside {nside} -n event_{uuid}
     
     printf "\\n%s\\n"  "Docker is complete, shutting down"
     shutdown -hP now
@@ -563,7 +493,7 @@ async def main():
     #    printf "%c" "."
     #done
     #printf "\\n%s"  "Server is pingable ..."
-    while ! nc -z {queue_server} 6650; do   
+    while ! nc -z {queue_server} 6651; do   
       sleep 1
       printf "%c" "."
     done
@@ -572,7 +502,7 @@ async def main():
 
     printf "\\n%s\\n"  "Running docker"
     
-    docker run --rm icecube/skymap_scanner:latest collector --broker pulsar://{queue_server}:6650  -n event_{uuid}
+    docker run --rm icecube/skymap_scanner:latest collector --broker pulsar+ssl://{queue_server}:6651  -n event_{uuid}
     
     printf "\\n%s\\n"  "Docker is complete, shutting down"
     # shutdown -hP now
@@ -587,7 +517,7 @@ async def main():
     #    printf "%c" "."
     #done
     #printf "\\n%s"  "Server is pingable ..."
-    while ! nc -z {queue_server} 6650; do   
+    while ! nc -z {queue_server} 6651; do   
       sleep 1
       printf "%c" "."
     done
@@ -596,7 +526,7 @@ async def main():
 
     printf "\\n%s\\n"  "Running docker"
     
-    docker run --rm icecube/skymap_scanner:latest worker --broker pulsar://{queue_server}:6650 -n event_{uuid}
+    docker run --rm icecube/skymap_scanner:latest worker --broker pulsar+ssl://{queue_server}:6651 -n event_{uuid}
     
     printf "\\n%s\\n"  "Docker is complete, shutting down"
     shutdown -hP now
@@ -613,7 +543,7 @@ async def main():
     #    printf "%c" "."
     #done
     #printf "\\n%s"  "Server is pingable ..."
-    while ! nc -z {queue_server} 6650; do   
+    while ! nc -z {queue_server} 6651; do   
       sleep 1
       printf "%c" "."
     done
@@ -622,7 +552,7 @@ async def main():
 
     printf "\\n%s\\n"  "Running docker"
     
-    docker run --rm icecube/skymap_scanner:latest saver --broker pulsar://{queue_server}:6650 --nside {nside} -n event_{uuid} -o '{out_url}'
+    docker run --rm icecube/skymap_scanner:latest saver --broker pulsar+ssl://{queue_server}:6651 --nside {nside} -n event_{uuid} -o '{out_url}'
     
     printf "\\n%s\\n"  "Docker is complete, shutting down"
     # shutdown -hP now
@@ -634,14 +564,14 @@ async def main():
     #!/bin/bash
 
     printf "%s" "waiting for Server ..."
-    while ! nc -z {queue_server} 8080; do   
+    while ! nc -z {queue_server} 8443; do   
       sleep 1
       printf "%c" "."
     done
     printf "\\n%s\\n"  "Server is online"
     sleep 1
 
-    PULSARADMIN='sudo docker run --rm -i apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url http://{queue_server}:8080'
+    PULSARADMIN='sudo docker run --rm -i apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url https://{queue_server}:8443'
     
     $PULSARADMIN topics list icecube/skymap          | grep {uuid} | xargs --no-run-if-empty -n1 $PULSARADMIN topics delete -f 
     $PULSARADMIN topics list icecube/skymap_metadata | grep {uuid} | xargs --no-run-if-empty -n1 $PULSARADMIN topics delete -f 
@@ -664,41 +594,24 @@ async def main():
         presigned_output_url = create_presigned_put_url(s3, bucket=args['outbucket'], key=output_file_name, timeout_hours=24)
         # print('-- output presigned url is {}'.format(presigned_output_url))
 
-        if args['pulsar'] is None:
-            # use a local pulsar server
-            print('-- bringing up Instance (pulsar)')
-            pulsar_server = Instance(
-                ec2,
-                pulsar_user_data,
-                pulsar_spec,
-                spot=False,
-                name='pulsar-' + event_id
-            )
-            await stack.enter_async_context(pulsar_server)
-            print('-- adding monitoring to futures (pulsar)')
-            futures.append(pulsar_server.monitor())
 
-            pulsar_server_address = pulsar_server.ipv4_address
-        else:
-            pulsar_server_address = args['pulsar']
-
-            print('-- bringing up Instance (cleanup)')
-            cleanup_server = Instance(
-                ec2,
-                cleanup_user_data.format(
-                    queue_server=pulsar_server_address,
-                    uuid=event_id
-                ),
-                cleanup_spec,
-                spot=False,
-                termination_not_an_error=True, # not an error if this terminates
-                name='cleanup-' + event_id
-            )
-            await stack.enter_async_context(cleanup_server)
-            print('-- waiting for cleanup to finish (cleanup)')
-            await cleanup_server.monitor(frequency_seconds=20)
-            print('-- cleanup done')
-            del cleanup_server
+        print('-- bringing up Instance (cleanup)')
+        cleanup_server = Instance(
+            ec2,
+            cleanup_user_data.format(
+                queue_server=args['pulsar'],
+                uuid=event_id
+            ),
+            cleanup_spec,
+            spot=False,
+            termination_not_an_error=True, # not an error if this terminates
+            name='cleanup-' + event_id
+        )
+        await stack.enter_async_context(cleanup_server)
+        print('-- waiting for cleanup to finish (cleanup)')
+        await cleanup_server.monitor(frequency_seconds=20)
+        print('-- cleanup done')
+        del cleanup_server
 
 
 

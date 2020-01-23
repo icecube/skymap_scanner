@@ -17,32 +17,6 @@
 # under the License.
 #
 
-resource "aws_security_group" "elb_internal" {
-  name   = "pulsar-elb-internal"
-  vpc_id = aws_vpc.pulsar_vpc.id
-
-  ingress {
-    from_port   = 6650
-    to_port     = 6650
-    protocol    = "tcp"
-    cidr_blocks = [var.base_cidr_block]
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [var.base_cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 resource "aws_security_group" "elb" {
   name   = "pulsar-elb"
   vpc_id = aws_vpc.pulsar_vpc.id
@@ -52,6 +26,7 @@ resource "aws_security_group" "elb" {
     to_port     = 6651
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   ingress {
@@ -59,6 +34,7 @@ resource "aws_security_group" "elb" {
     to_port     = 8443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   egress {
@@ -66,6 +42,7 @@ resource "aws_security_group" "elb" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 }
 

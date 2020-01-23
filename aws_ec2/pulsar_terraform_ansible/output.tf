@@ -17,34 +17,14 @@
 # under the License.
 #
 
-output "dns_name_internal" {
-  value = aws_elb.default_internal.dns_name
-}
-
-output "pulsar_service_url_internal" {
-  value = "pulsar://${aws_elb.default_internal.dns_name}:6650"
-}
-
-output "pulsar_web_url_internal" {
-  value = "http://${aws_elb.default_internal.dns_name}:8080"
-}
-
-/*
-output "dns_name" {
-  value = aws_elb.default.dns_name
+output "external_dns_name" {
+  value = var.external_dns_name
 }
 
 output "pulsar_service_url" {
-  value = "pulsar://${aws_elb.default.dns_name}:6651"
+  value = "pulsar+ssl://${var.external_dns_name}:6651"
 }
 
 output "pulsar_web_url" {
-  value = "http://${aws_elb.default.dns_name}:8443"
+  value = "http://${var.external_dns_name}:8443"
 }
-*/
-
-/*
-output "pulsar_ssh_host" {
-  value = aws_instance.proxy[0].public_ip
-}
-*/

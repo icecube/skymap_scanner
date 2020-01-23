@@ -89,6 +89,7 @@ resource "aws_route" "internet_access" {
 }
 
 /* Internal network (private) load balancer */
+/*
 resource "aws_elb" "default_internal" {
   name            = "pulsar-elb-internal"
   instances       = aws_instance.proxy.*.id
@@ -119,50 +120,36 @@ resource "aws_elb" "default_internal" {
     Name = "Pulsar-Load-Balancer-Internal"
   }
 }
-
-
-/* certificate for external load balancer */
-/*
-resource "aws_acm_certificate" "cert" {
-  domain_name       = "example.com"
-  validation_method = "DNS"
-
-  tags = {
-    Environment = "test"
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
 */
 
 /* External network (public) load balancer */
-/*
 resource "aws_elb" "default" {
   name            = "pulsar-elb"
   instances       = aws_instance.proxy.*.id
   security_groups = [aws_security_group.elb.id]
   subnets         = [aws_subnet.default.id]
 
-  listener {
-    instance_port     = 8080
-    instance_protocol = "http"
-    lb_port           = 8080
-    lb_protocol       = "http"
-  }
+  #dns_name        = var.external_dns_name
 
   listener {
     instance_port     = 6650
     instance_protocol = "tcp"
-    lb_port           = 6650
-    lb_protocol       = "tcp"
+    lb_port           = 6651
+    lb_protocol       = "ssl"
+    ssl_certificate_id = var.external_ssl_cert_arn
   }
 
+  listener {
+      instance_port      = 8080
+      instance_protocol  = "http"
+      lb_port            = 8443
+      lb_protocol        = "https"
+      ssl_certificate_id = var.external_ssl_cert_arn
+    }
+    
   cross_zone_load_balancing = false
 
   tags = {
     Name = "Pulsar-Load-Balancer"
   }
 }
-*/

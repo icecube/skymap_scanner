@@ -4,14 +4,19 @@ brew install awscli terraform ansible terraform-inventory
 awscli configure
 ```
 
-```
-git clone https://github.com/apache/pulsar --branch v2.5.0
-cd pulsar/deployment/terraform-ansible/aws
-```
-
 If you do not have one, set up an AWS ssh key using the console and copy it somewhere.
 Mine is in `~/.ssh/id_rsa`  /  `~/.ssh/id_rsa.pub`
 
+Also you need to create a public and private key for pulsar token signing:
+```
+docker run -v $PWD:/mnt --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar tokens create-key-pair --output-private-key /mnt/secrets/my-private.key --output-public-key /mnt/secrets/my-public.key
+```
+
+Now sign a token to use as the proxy token and one for the admin user:
+```
+docker run -v $PWD:/mnt --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar tokens create --private-key file:///mnt/secrets/my-private.key --subject proxy-user > secrets/proxy-user.token
+docker run -v $PWD:/mnt --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar tokens create --private-key file:///mnt/secrets/my-private.key --subject admin > secrets/admin.token
+```
 
 Update terraform.tfvars with the correct AMI, region and availability zone (AZ).
 We use `us-east-2` / `us-east-2c` in this example.
@@ -22,19 +27,16 @@ terraform init
 terraform apply
 ```
 
-This should return the IPs/URLs. For me, these are:
+This should return the URL assigned to the load balancer.
 ```
-dns_name_internal = internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com
-pulsar_service_url_internal = pulsar://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:6650
-pulsar_web_url_internal = http://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:8080
+external_dns_name = pulsar.api.icecube.aq
+pulsar_service_url = pulsar+ssl://pulsar.api.icecube.aq:6651
+pulsar_web_url = http://pulsar.api.icecube.aq:8443
 ```
 
 Now run the playbook:
 ```
-TF_STATE=./ ansible-playbook \
-  --user='ec2-user' \
-  --inventory=`which terraform-inventory` \
-  deploy-pulsar.yaml
+TF_STATE=./ ansible-playbook --user='ec2-user' --inventory=`which terraform-inventory` deploy-pulsar.yaml
 ```
 
 Now you also have to make sure to create a VPC peering connection between the
@@ -44,8 +46,8 @@ both ends.
 
 Now connect to create a basic tenant and namespace with configuration:
 ```
-ssh ec2-user@18.191.134.83
-alias pulsar-admin='sudo /opt/pulsar/bin/pulsar-admin --admin-url http://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:8080'
+ssh ec2-user@<pulsar_client_ip>
+alias pulsar-admin='sudo /opt/pulsar/bin/pulsar-admin'
 pulsar-admin tenants create icecube
 pulsar-admin namespaces create icecube/skymap
 pulsar-admin namespaces create icecube/skymap_metadata
@@ -56,7 +58,7 @@ If you want to use pulsar-admin from a different host, you could use docker to g
 to pulsar-admin instead.
 This can be used from remote hosts to administer the pulsar cluster:
 ```
-alias pulsar-admin='sudo docker run --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url http://internal-pulsar-elb-internal-1091204051.us-east-2.elb.amazonaws.com:8080'
+alias pulsar-admin='docker run --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url https://pulsar.api.icecube.aq:8443 --auth-plugin org.apache.pulsar.client.impl.auth.AuthenticationToken --auth-params token:`cat secrets/admin.token`'
 pulsar-admin tenants create icecube
 pulsar-admin namespaces create icecube/skymap
 pulsar-admin namespaces create icecube/skymap_metadata

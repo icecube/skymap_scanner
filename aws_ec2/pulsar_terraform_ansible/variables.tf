@@ -70,3 +70,14 @@ variable "base_cidr_block" {
   description = "The baseline CIDR block to be used by network assets for the Pulsar cluster"
 }
 
+variable "external_ssl_cert_arn" {
+  description = "The ARN of your ACM-managed certificate for the load-balanced pulsar endpoint"
+}
+
+variable "route53_zone_id" {
+  description = "Zone ID of the Route53 zone. We will allocate `external_dns_name` in there."
+}
+
+variable "external_dns_name" {
+  description = "External DNS name of the load-balancer."
+}

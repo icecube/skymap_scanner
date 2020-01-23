@@ -111,21 +111,38 @@
         zookeeper_servers: "{{ groups['zookeeper']|map('extract', hostvars, ['ansible_default_ipv4', 'address'])|map('regex_replace', '^(.*)$', '\\1:2181') | join(',') }}"
         service_url: "pulsar://{{ hostvars[groups['proxy'][0]].public_ip }}:6650/"
         http_url: "http://{{ hostvars[groups['proxy'][0]].public_ip }}:8080/"
-        client_connection_address: "{{ hostvars[inventory_hostname].dns_name_internal }}"
+        client_connection_address: "{{ hostvars[inventory_hostname].external_dns_name }}"
         pulsar_version: "2.5.0"
-    - name: Download Pulsar binary package
+    - name: check if pulsar has already been unpacked
+      stat:
+        path: /opt/pulsar/bin/pulsar
+      register: result
+    - name: Download the Pulsar binary package
+      get_url:
+        url: https://archive.apache.org/dist/pulsar/pulsar-{{ pulsar_version }}/apache-pulsar-{{ pulsar_version }}-bin.tar.gz
+        dest: /opt/apache-pulsar-{{ pulsar_version }}-bin.tar.gz
+        checksum: sha256:721b12c6fa7d87cbf2763d2b7c3ffc0c5395d2cb1f3760e9ae33d6f8c650a064
+      when: result.stat.exists == false
+    - name: Unpack the Pulsar binary package
       unarchive:
-        src: https://archive.apache.org/dist/pulsar/pulsar-{{ pulsar_version }}/apache-pulsar-{{ pulsar_version }}-bin.tar.gz
+        src: /opt/apache-pulsar-{{ pulsar_version }}-bin.tar.gz
         remote_src: yes
         dest: /opt/pulsar
         extra_opts: ["--strip-components=1"]
+      when: result.stat.exists == false
+
+- name: Pulsar setup (!zookeeper)
+  hosts: bookie, broker, proxy, client
+  connection: ssh
+  become: true
+  tasks:
     - set_fact:
         max_heap_memory: "12g"
         max_direct_memory: "12g"
         cluster_name: "local"
     - name: Add pulsar_env.sh configuration file
       template:
-        src: "../templates/pulsar_env.sh"
+        src: "templates/pulsar_env.sh"
         dest: "/opt/pulsar/conf/pulsar_env.sh"
 
 - name: Set up Client
@@ -135,8 +152,11 @@
   tasks:
     - name: Add client.conf configuration file
       template:
-        src: "../templates/client.conf"
+        src: "templates/client.conf"
         dest: "/opt/pulsar/conf/client.conf"
+    - copy:
+        src: "secrets/admin.token"
+        dest: "/opt/pulsar/conf/admin.token"
 
 - name: Set up ZooKeeper
   hosts: zookeeper
@@ -155,25 +175,45 @@
         - data/zookeeper
     - name: Add pulsar_env.sh configuration file
       template:
-        src: "../templates/pulsar_env.sh"
+        src: "templates/pulsar_env.sh"
         dest: "/opt/pulsar/conf/pulsar_env.sh"
+      notify:
+         - restart_zookeeper
     - name: Add zookeeper.conf file
       template:
-        src: "../templates/zoo.cfg"
+        src: "templates/zoo.cfg"
         dest: "/opt/pulsar/conf/zookeeper.conf"
+      notify:
+         - restart_zookeeper
     - name: Add myid file for ZooKeeper
       template:
-        src: "../templates/myid"
+        src: "templates/myid"
         dest: "/opt/pulsar/data/zookeeper/myid"
+      notify:
+         - restart_zookeeper
     - name: Add zookeeper.service systemd file
       template:
-        src: "../templates/zookeeper.service"
+        src: "templates/zookeeper.service"
         dest: "/etc/systemd/system/zookeeper.service"
+      notify:
+         - restart_zookeeper
+  handlers:
     - name: systemd ZooKeeper start
+      listen: restart_zookeeper
       systemd:
         state: restarted
         daemon_reload: yes
         name: "zookeeper"
+
+- name: Configure ZooKeeper
+  hosts: zookeeper
+  connection: ssh
+  become: true
+  tasks:
+    - name: check if zookeeper metadata has been initialized
+      stat:
+        path: /opt/pulsar/conf/.zookeeper_has_been_initialized
+      register: result
     - name: Initialize cluster metadata
       shell: |
         bin/pulsar initialize-cluster-metadata \
@@ -182,9 +222,10 @@
           --configuration-store localhost:2181 \
           --web-service-url {{ http_url }} \
           --broker-service-url {{ service_url }}
+        touch /opt/pulsar/conf/.zookeeper_has_been_initialized
       args:
         chdir: /opt/pulsar
-      when: groups['zookeeper'][0] == inventory_hostname
+      when: groups['zookeeper'][0] == inventory_hostname and result.stat.exists == false
 
 - name: Set up bookies
   hosts: bookie
@@ -195,13 +236,22 @@
         path: /mnt/journal/{{ item }}
         state: directory
       with_items: ["1", "2", "3", "4"]
+      notify:
+         - restart_bookie
     - template:
-        src: "../templates/bookkeeper.conf"
+        src: "templates/bookkeeper.conf"
         dest: "/opt/pulsar/conf/bookkeeper.conf"
+      notify:
+         - restart_bookie
     - template:
-        src: "../templates/bookkeeper.service"
+        src: "templates/bookkeeper.service"
         dest: "/etc/systemd/system/bookkeeper.service"
-    - systemd:
+      notify:
+         - restart_bookie
+  handlers:
+    - name: Restarting bookie service
+      listen: restart_bookie
+      systemd:
         enabled: yes
         state: restarted
         daemon_reload: yes
@@ -214,16 +264,35 @@
   tasks:
     - name: Set up broker
       template:
-        src: "../templates/broker.conf"
+        src: "templates/broker.conf"
         dest: "/opt/pulsar/conf/broker.conf"
+      notify:
+         - restart_broker
     - name: Set up function worker
       template:
-        src: "../templates/functions_worker.yml"
+        src: "templates/functions_worker.yml"
         dest: "/opt/pulsar/conf/functions_worker.yml"
+      notify:
+         - restart_broker
     - template:
-        src: "../templates/pulsar.broker.service"
+        src: "templates/pulsar.broker.service"
         dest: "/etc/systemd/system/pulsar.broker.service"
-    - systemd:
+      notify:
+         - restart_broker
+    - copy:
+        src: "secrets/my-public.key"
+        dest: "/opt/pulsar/conf/my-public.key"
+      notify:
+         - restart_broker
+    - copy:
+        src: "secrets/admin.token"
+        dest: "/opt/pulsar/conf/admin.token"
+      notify:
+         - restart_broker
+  handlers:
+    - name: systemd Broker start
+      listen: restart_broker
+      systemd:
         enabled: yes
         state: restarted
         daemon_reload: yes
@@ -236,12 +305,29 @@
   tasks:
     - name: Set up proxy
       template:
-        src: "../templates/proxy.conf"
+        src: "templates/proxy.conf"
         dest: "/opt/pulsar/conf/proxy.conf"
+      notify:
+         - restart_proxy
     - template:
-        src: "../templates/pulsar.proxy.service"
+        src: "templates/pulsar.proxy.service"
         dest: "/etc/systemd/system/pulsar.proxy.service"
-    - systemd:
+      notify:
+         - restart_proxy
+    - copy:
+        src: "secrets/my-public.key"
+        dest: "/opt/pulsar/conf/my-public.key"
+      notify:
+         - restart_proxy
+    - copy:
+        src: "secrets/proxy-user.token"
+        dest: "/opt/pulsar/conf/proxy-user.token"
+      notify:
+         - restart_proxy
+  handlers:
+    - name: systemd Proxy start
+      listen: restart_proxy
+      systemd:
         enabled: yes
         state: restarted
         daemon_reload: yes
