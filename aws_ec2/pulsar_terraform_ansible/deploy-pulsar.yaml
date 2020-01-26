@@ -167,6 +167,7 @@
         zid: "{{ groups['zookeeper'].index(inventory_hostname) }}"
         max_heap_memory: "512m"
         max_direct_memory: "1g"
+        cluster_name: "local"
     - name: Create ZooKeeper data directory
       file:
         path: "/opt/pulsar/{{ item }}"
