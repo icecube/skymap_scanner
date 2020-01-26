@@ -2,8 +2,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 import os
-import time
 import numpy
+import tqdm
 
 import config
 
@@ -12,31 +12,30 @@ from icecube import icetray, dataio, dataclasses
 from icecube import VHESelfVeto
 from icecube.frame_object_diff.segments import uncompress
 
-from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, ReceiverService, SendPFrameWithMetadata
+from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, PulsarClientService, ReceiverService, SendPFrameWithMetadata
 
 class WaitForNumberOfPFrames(icetray.I3Module):
     def __init__(self, ctx):
         super(WaitForNumberOfPFrames, self).__init__(ctx)
         self.AddOutBox("OutBox")
         self.AddParameter("NPFrames", "Number of P-frames to collect before pushing all of them", 7)
-        self.AddParameter("ReportFrequencySec", "Number of seconds between status reports", 10.)
 
     def Configure(self):
         self.NPFrames = self.GetParameter("NPFrames")
-        self.ReportFrequencySec = self.GetParameter("ReportFrequencySec")
 
         self.pixelNumToFramesMap = {}
         self.last_p_frame = None
         self.seen_all_frames = False
         
-        self.last_printout_time = None
+        self.last_pixel_num_done = 0
+        self.pbar = tqdm.tqdm(total=self.NPFrames)
 
     def report_progress(self):
-        current_time = time.time()
-        if (self.last_printout_time is None) or (current_time - self.last_printout_time > self.ReportFrequencySec):
-            self.last_printout_time = current_time
-            percentage_complete = float(len(self.pixelNumToFramesMap))/float(self.NPFrames) * 100
-            print("Collecting frames for output file.. {:5.1f}/100.0%".format( percentage_complete ))
+        pixel_num_done = len(self.pixelNumToFramesMap)
+        if pixel_num_done > self.last_pixel_num_done:
+            increment = pixel_num_done-self.last_pixel_num_done
+            self.last_pixel_num_done = pixel_num_done
+            self.pbar.update(increment)
 
     def Process(self):
         frame = self.PopFrame()
@@ -104,12 +103,20 @@ class WaitForNumberOfPFrames(icetray.I3Module):
         print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
         print(self.pixelNumToFramesMap)
         print("**** WARN ****  --  END")
+        
+        self.pbar.close()
 
 
 
-def save_pixels(broker, topic_in, filename_out, expected_n_frames, delete_from_queue=True):
+def save_pixels(broker, auth_token, topic_in, filename_out, expected_n_frames, delete_from_queue=True):
+    # connect to pulsar
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token,
+    )
+
     receiver_service = ReceiverService(
-        broker_url=broker,
+        client_service=client_service,
         topic=topic_in,
         subscription_name='skymap-saver-sub',
         force_single_consumer=True,
