@@ -17,9 +17,9 @@ from icecube import photonics_service, gulliver, gulliver_modules, millipede
 from icecube import frame_object_diff
 from icecube.frame_object_diff.segments import uncompress
 
-from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, ReceiverService, SendPFrameWithMetadata
+from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, PulsarClientService, ReceiverService, SendPFrameWithMetadata
 
-def scan_pixel(broker, topic_in, topic_out,
+def scan_pixel(broker, auth_token, topic_in, topic_out,
     pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned",
     fake_scan=False):
 
@@ -37,8 +37,14 @@ def scan_pixel(broker, topic_in, topic_out,
 
     SPEScale = 0.99
 
+    # connect to pulsar
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token,
+    )
+
     receiver_service = ReceiverService(
-        broker_url=broker,
+        client_service=client_service,
         topic=topic_in,
         subscription_name="skymap-worker-sub",
     )
@@ -182,7 +188,7 @@ def scan_pixel(broker, topic_in, topic_out,
     
     # now send the topic!
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
-        BrokerURL=broker,
+        ClientService=client_service,
         Topic=topic_out,
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
@@ -197,3 +203,4 @@ def scan_pixel(broker, topic_in, topic_out,
     del tray
     
     del receiver_service
+    del client_service

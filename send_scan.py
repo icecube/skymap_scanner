@@ -6,6 +6,7 @@ import healpy
 import os
 import random
 
+import tqdm
 import time
 
 from icecube import icetray, dataclasses
@@ -19,7 +20,7 @@ from I3Tray import *
 import config
 
 from utils import get_event_mjd
-from pulsar_icetray import SendPFrameWithMetadata
+from pulsar_icetray import PulsarClientService, SendPFrameWithMetadata
 
 class SendPixelsToScan(icetray.I3Module):
     def __init__(self, ctx):
@@ -30,6 +31,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
         self.AddParameter("InjectEventName", "Event name in each P-frame - for later sorting", None)
+        self.AddParameter("PosVariations", "An array of positional offsets to use for each pixel", [dataclasses.I3Position(0.,0.,0.)])
         self.AddOutBox("OutBox")
 
     def Configure(self):
@@ -39,7 +41,8 @@ class SendPixelsToScan(icetray.I3Module):
         self.input_time_name = self.GetParameter("InputTimeName")
         self.output_particle_name = self.GetParameter("OutputParticleName")
         self.inject_event_name = self.GetParameter("InjectEventName")
-
+        self.posVariations = self.GetParameter("PosVariations")
+        
         p_frame = self.GCDQpFrames[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
@@ -55,7 +58,9 @@ class SendPixelsToScan(icetray.I3Module):
         print("Going to submit {} pixels".format(len(self.pixels_to_push)))
         
         self.pixel_index = 0
+        
 
+        
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
         if self.PopFrame():
@@ -93,18 +98,10 @@ class SendPixelsToScan(icetray.I3Module):
         time = self.seed_time
         energy = self.seed_energy
 
-        variationDistance = 20.*I3Units.m
-        posVariations = [dataclasses.I3Position(0.,0.,0.),
-                         dataclasses.I3Position(-variationDistance,0.,0.),
-                         dataclasses.I3Position( variationDistance,0.,0.),
-                         dataclasses.I3Position(0.,-variationDistance,0.),
-                         dataclasses.I3Position(0., variationDistance,0.),
-                         dataclasses.I3Position(0.,0.,-variationDistance),
-                         dataclasses.I3Position(0.,0., variationDistance)]
 
 
-        for i in range(0,len(posVariations)):
-            posVariation = posVariations[i]
+        for i in range(0,len(self.posVariations)):
+            posVariation = self.posVariations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
             thisPosition = dataclasses.I3Position(position.x + posVariation.x, position.y + posVariation.y, position.z + posVariation.z)
@@ -129,14 +126,42 @@ class SendPixelsToScan(icetray.I3Module):
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
             # an overall sequence index, 0-based, in case we need to re-start
-            p_frame["SCAN_EventOverallIndex"] = icetray.I3Int( int(i) + pixel_index*len(posVariations))
+            p_frame["SCAN_EventOverallIndex"] = icetray.I3Int( int(i) + pixel_index*len(self.posVariations))
             if self.inject_event_name is not None:
                 p_frame["SCAN_EventName"] = dataclasses.I3String(self.inject_event_name)
 
             self.PushFrame(p_frame)
 
 
-def send_scan(frame_packet, broker, topic, metadata_topic_base, event_name, nside=1):
+def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, event_name, nside=1):
+
+    # set up the positional variations (we use 7 here)
+    variationDistance = 20.*I3Units.m
+    posVariations = [
+        dataclasses.I3Position(0.,0.,0.),
+        dataclasses.I3Position(-variationDistance,0.,0.),
+        dataclasses.I3Position( variationDistance,0.,0.),
+        dataclasses.I3Position(0.,-variationDistance,0.),
+        dataclasses.I3Position(0., variationDistance,0.),
+        dataclasses.I3Position(0.,0.,-variationDistance),
+        dataclasses.I3Position(0.,0., variationDistance)
+        ]
+
+    num_pix = healpy.nside2npix(nside)
+    num_it = num_pix*len(posVariations)
+    pbar = tqdm.tqdm(
+        total=num_it,
+        desc = event_name,
+        ascii = " .oO0",
+        leave = True
+        )
+
+    # connect to pulsar
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token
+    )
+
     tray = I3Tray()
     
     # create P frames for a GCDQp packet
@@ -146,7 +171,8 @@ def send_scan(frame_packet, broker, topic, metadata_topic_base, event_name, nsid
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
-        InjectEventName=event_name
+        InjectEventName=event_name,
+        PosVariations=posVariations
     )
 
     # sanity check
@@ -165,13 +191,22 @@ def send_scan(frame_packet, broker, topic, metadata_topic_base, event_name, nsid
 
     # now send all P-frames as pulsar messages
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
-        BrokerURL=broker,
+        ClientService=client_service,
         Topic=topic,
         MetadataTopicBase=metadata_topic_base,
-        ProducerName="skymap_to_scan_producer-" + event_name,
+        ProducerName="skymap_to_scan_producer-" + event_name + "-nside" + str(nside),
         I3IntForSequenceID="SCAN_EventOverallIndex",
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
         )
     
+    def update_pbar(frame):
+        pbar.set_postfix(pixel="{}/{}".format(frame["SCAN_HealpixPixel"].value, num_pix-1), refresh=False)
+        pbar.update(1)
+    tray.Add(update_pbar, "update_pbar")
+    
     tray.Execute()
     del tray
+
+    pbar.close()
+
+    del client_service

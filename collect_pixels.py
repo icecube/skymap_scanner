@@ -12,7 +12,7 @@ from icecube import icetray, dataio, dataclasses
 from icecube import VHESelfVeto
 from icecube.frame_object_diff.segments import uncompress
 
-from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, ReceiverService, SendPFrameWithMetadata
+from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, PulsarClientService, ReceiverService, SendPFrameWithMetadata
 
 class FindBestRecoResultForPixel(icetray.I3Module):
     def __init__(self, ctx):
@@ -176,9 +176,15 @@ def get_reco_losses_inside(p_frame):
     p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(totalRecoLosses)
 
 
-def collect_pixels(broker, topic_in, topic_base_out):
+def collect_pixels(broker, auth_token, topic_in, topic_base_out):
+    # connect to pulsar
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token,
+    )
+
     receiver_service = ReceiverService(
-        broker_url=broker,
+        client_service=client_service,
         topic=topic_in,
         subscription_name='skymap-collector-sub',
         force_single_consumer=True,
@@ -199,7 +205,7 @@ def collect_pixels(broker, topic_in, topic_base_out):
     tray.AddModule(get_reco_losses_inside, "get_reco_losses_inside")
     
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
-        BrokerURL=broker,
+        ClientService=client_service,
         Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
@@ -213,3 +219,4 @@ def collect_pixels(broker, topic_in, topic_base_out):
     del tray
     
     del receiver_service
+    del client_service

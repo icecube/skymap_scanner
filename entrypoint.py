@@ -22,7 +22,7 @@ from scan_pixel import scan_pixel
 from collect_pixels import collect_pixels
 from save_pixels import save_pixels
 
-def producer(eventURL, broker, topic, metadata_topic_base, event_name, nside):
+def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_name, nside):
     """
     Handle incoming events and perform a full scan.
     """
@@ -65,6 +65,7 @@ def producer(eventURL, broker, topic, metadata_topic_base, event_name, nside):
         send_scan(
             frame_packet=GCDQp_packet,
             broker=broker, 
+            auth_token=auth_token,
             topic=topic,
             metadata_topic_base=metadata_topic_base,
             event_name=event_name,
@@ -76,24 +77,27 @@ def producer(eventURL, broker, topic, metadata_topic_base, event_name, nside):
         print('Something went wrong while scanning the event (python caught an exception): ```{0}```'.format(exception_message))
         raise # re-raise exceptions
 
-def worker(broker, topic_in, topic_out, fake_scan):
+def worker(broker, auth_token, topic_in, topic_out, fake_scan):
     scan_pixel(
         broker=broker, 
+        auth_token=auth_token,
         topic_in=topic_in,
         topic_out=topic_out,
         fake_scan=fake_scan,
         )
 
-def collector(broker, topic_in, topic_base_out):
+def collector(broker, auth_token, topic_in, topic_base_out):
     collect_pixels(
         broker=broker, 
+        auth_token=auth_token,
         topic_in=topic_in,
         topic_base_out=topic_base_out,
         )
 
-def saver(broker, topic_in, filename_out, expected_n_frames, delete_from_queue):
+def saver(broker, auth_token, topic_in, filename_out, expected_n_frames, delete_from_queue):
     save_pixels(
         broker=broker, 
+        auth_token=auth_token,
         topic_in=topic_in,
         filename_out=filename_out,
         expected_n_frames=expected_n_frames,
@@ -121,6 +125,9 @@ if __name__ == "__main__":
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
+    parser.add_option("-a", "--auth-token", action="store", type="string",
+        default=None,
+        dest="AUTH_TOKEN", help="The Pulsar authentication token to use")
 
     parser.add_option("-o", "--output", action="store", type="string",
         default="final_output.i3",
@@ -154,7 +161,6 @@ if __name__ == "__main__":
     
     nside = options.NSIDE
     npixels = 12 * (nside**2)
-    print("Scanning NSide={}, corresponding to NPixel={}".format(nside, npixels))
     
     if mode == "producer":
         if len(args) != 2:
@@ -163,16 +169,20 @@ if __name__ == "__main__":
         if options.NAME is None:
             raise RuntimeError("You need to explicitly specify an event name using the `-n` option and make sure you use the same one for producer, worker and collector.")
 
+        print("Scanning NSide={}, corresponding to NPixel={}".format(nside, npixels))
+
         eventURL = args[1]
-        producer(eventURL, broker=options.BROKER, topic=topic_in, metadata_topic_base=topic_base_meta, event_name=options.NAME, nside=nside)
+        producer(eventURL, broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic=topic_in, metadata_topic_base=topic_base_meta, event_name=options.NAME, nside=nside)
     elif mode == "worker":
-        worker(broker=options.BROKER, topic_in=topic_in, topic_out=topic_out, fake_scan=options.FAKE_SCAN)
+        worker(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_in, topic_out=topic_out, fake_scan=options.FAKE_SCAN)
     elif mode == "collector":
-        collector(broker=options.BROKER, topic_in=topic_out, topic_base_out=topic_base_col)
+        collector(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_out, topic_base_out=topic_base_col)
     elif mode == "saver":
         if options.NAME is None:
             raise RuntimeError("You need to explicitly specify an event name using the `-n` option and make sure you use the same one for producer, worker and collector.")
 
-        saver(broker=options.BROKER, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, expected_n_frames=npixels, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE)
+        print("Scanning NSide={}, corresponding to NPixel={}".format(nside, npixels))
+
+        saver(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, expected_n_frames=npixels, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE)
     else:
         raise RuntimeError("Unknown mode \"{}\"".args[0])

@@ -17,25 +17,46 @@ from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame,
 class WaitForNumberOfPFrames(icetray.I3Module):
     def __init__(self, ctx):
         super(WaitForNumberOfPFrames, self).__init__(ctx)
+        self.AddParameter("SuspendAfterTheseNSides", "If set, wait until all of these nsides have been seen. Then exit", None)
+
         self.AddOutBox("OutBox")
-        self.AddParameter("NPFrames", "Number of P-frames to collect before pushing all of them", 7)
 
     def Configure(self):
-        self.NPFrames = self.GetParameter("NPFrames")
-
-        self.pixelNumToFramesMap = {}
+        suspend_after_these_nsides = self.GetParameter("SuspendAfterTheseNSides")
+        if suspend_after_these_nsides is not None:
+            self.nsides_to_process = set(suspend_after_these_nsides)
+        else:
+            self.nsides_to_process = None
+            
+        
         self.last_p_frame = None
         self.seen_all_frames = False
-        
-        self.last_pixel_num_done = 0
-        self.pbar = tqdm.tqdm(total=self.NPFrames)
+
+        self.data_for_nside = {}
+
 
     def report_progress(self):
-        pixel_num_done = len(self.pixelNumToFramesMap)
-        if pixel_num_done > self.last_pixel_num_done:
-            increment = pixel_num_done-self.last_pixel_num_done
-            self.last_pixel_num_done = pixel_num_done
-            self.pbar.update(increment)
+        idxs = sorted(self.data_for_nside.keys())
+        
+        for idx in idxs:
+            data = self.data_for_nside[idx]
+            
+            name = idx[0]
+            nside = idx[1]
+            
+            if 'pbar' not in data:
+                npix = 12 * (nside**2)
+                data['pbar'] = tqdm.tqdm(total=npix, desc='{} nside{}'.format(name,nside))
+            if 'last_pixel_num_done' not in data:
+                data['last_pixel_num_done'] = 0
+            if 'pixelNumToFramesMap' not in data:
+                data['pixelNumToFramesMap'] = {}
+        
+            pixel_num_done = len(data['pixelNumToFramesMap'])
+            if pixel_num_done > data['last_pixel_num_done']:
+                increment = pixel_num_done-data['last_pixel_num_done']
+                data['last_pixel_num_done'] = pixel_num_done
+                data['pbar'].update(increment)
 
     def Process(self):
         frame = self.PopFrame()
@@ -56,7 +77,7 @@ class WaitForNumberOfPFrames(icetray.I3Module):
         else: # previous frame was not a P-frame
             if frame.Stop == icetray.I3Frame.Physics:
                 if self.seen_all_frames:
-                    raise RuntimeError("already received all frames ({}). Received another one.".format(self.NPFrames))
+                    raise RuntimeError("already received all frames. Received another one.")
 
                 self.report_progress()
                 
@@ -70,41 +91,58 @@ class WaitForNumberOfPFrames(icetray.I3Module):
         
 
     def Work(self, p_frame, delimiter_frame):
+        name  = p_frame["SCAN_EventName"].value
         nside = p_frame["SCAN_HealpixNSide"].value
+        npixel = 12 * (nside**2)
         pixel = p_frame["SCAN_HealpixPixel"].value
-        index = (nside,pixel)
 
-        if index in self.pixelNumToFramesMap:
-            print("**** Pixel {} has already been seen. Ignoring this copy!".format(index))
+        if (name, nside) not in self.data_for_nside:
+            self.data_for_nside[(name, nside)] = {'pixelNumToFramesMap': {}}
+        data = self.data_for_nside[(name, nside)]
+
+        pixelNumToFramesMap = data['pixelNumToFramesMap']
+
+        if pixel in pixelNumToFramesMap:
+            print("**** Pixel {} has already been seen. Ignoring this copy!".format(pixel))
             #self.PushFrame(p_frame) # p-frame -> do NOT push, eat this pixel
             self.PushFrame(delimiter_frame) # delimiter frame -> acknowledge this superfluous frame
             return
 
-        self.pixelNumToFramesMap[index] = (p_frame, delimiter_frame)
+        pixelNumToFramesMap[pixel] = (p_frame, delimiter_frame)
 
-        if len(self.pixelNumToFramesMap) >= self.NPFrames:
-            print("All frames arrived, pushing all frames.")
+        if len(pixelNumToFramesMap) >= npixel:
+            self.report_progress()
+            print("\nAll frames arrived for nside {}, pushing all frames.".format(nside))
             
-            for key in sorted(self.pixelNumToFramesMap.keys()):
-                self.PushFrame(self.pixelNumToFramesMap[key][0]) # p-frame
-                self.PushFrame(self.pixelNumToFramesMap[key][1]) # delimiter frame
-                del self.pixelNumToFramesMap[key]
+            for key in sorted(pixelNumToFramesMap.keys()):
+                self.PushFrame(pixelNumToFramesMap[key][0]) # p-frame
+                self.PushFrame(pixelNumToFramesMap[key][1]) # delimiter frame
+                del pixelNumToFramesMap[key]
 
-            # allow no more P-frames from now on
-            self.seen_all_frames = True
-        
-            self.RequestSuspension()
+            del pixelNumToFramesMap
+            if 'pbar' in data:
+                data['pbar'].close()
+            del self.data_for_nside[(name, nside)]
             
+            if self.nsides_to_process is not None:
+                if nside in self.nsides_to_process:
+                    self.nsides_to_process.remove(nside)
+            
+                if len(self.data_for_nside) == 0:
+                    # nothing more to process. Let's check if we are still expecting something, otherwise quite
+                    
+                    if len(self.nsides_to_process) == 0:
+                        self.seen_all_frames = True
+                        self.RequestSuspension()
 
     def Finish(self):
-        if len(self.pixelNumToFramesMap) == 0:
+        if len(self.data_for_nside) == 0:
             return
 
         print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
-        print(self.pixelNumToFramesMap)
+        print(self.data_for_nside)
         print("**** WARN ****  --  END")
         
-        self.pbar.close()
 
 
 
@@ -132,7 +170,7 @@ def save_pixels(broker, auth_token, topic_in, filename_out, expected_n_frames, d
         )
 
     tray.Add(WaitForNumberOfPFrames, "WaitForNumberOfPFrames",
-        NPFrames=expected_n_frames)
+        SuspendAfterTheseNSides = None)
 
     tray.Add(uncompress, "GCD_uncompress",
              keep_compressed=False,
