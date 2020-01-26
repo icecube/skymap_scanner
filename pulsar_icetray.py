@@ -26,10 +26,46 @@ def pulsar_send_return_msgid(producer, content, **kwargs):
     return send_callback.msgid
 
 
+class PulsarClientService():
+    def __init__(self,
+        BrokerURL='pulsar://localhost:6650', # The Apache Pulsar broker URL
+        AuthToken=None, # The Apache Pulsar authentication token to use
+        logger=None
+        ):
+        
+        # connect to the broker
+        if AuthToken is not None:
+            self._client = pulsar.Client(
+                service_url=BrokerURL,
+                authentication=pulsar.AuthenticationToken(AuthToken)
+                )
+        else:
+            self._client = pulsar.Client(
+                service_url=BrokerURL
+                )
+
+        self._broker_url = BrokerURL
+
+    def get(self):
+        return self._client
+    
+    def broker_url(self):
+        return self._broker_url
+        
+    def __del__(self):
+        self._client.close()
+        del self._client
+            
+    def __str__(self):
+        return "<PulsarClientService instance>"
+    
+    def __repr__(self):
+        return "<PulsarClientService instance>"
+
 class SendPFrameWithMetadata(icetray.I3Module):
     def __init__(self, ctx):
         super(SendPFrameWithMetadata, self).__init__(ctx)
-        self.AddParameter("BrokerURL", "The Apache Pulsar broker URL", 'pulsar://localhost:6650')
+        self.AddParameter("ClientService", "A PulsarClientService instance encapsulating the Apache Pulsar connection", None)
 
         self.AddParameter("Topic", "The Apache Pulsar topic to send to (can be either a string or a function converting an input topic name to an output name)", None)
         self.AddParameter("PartitionKey", "A function or string (or None) with the partition key for this frame. All frames with the same partition key end up in the same topic partition.", None)
@@ -44,7 +80,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.AddOutBox("OutBox")
 
     def Configure(self):
-        self.broker_url = self.GetParameter("BrokerURL")
+        self.client_service = self.GetParameter("ClientService")
 
         self.topic = self.GetParameter("Topic")
         self.partition_key = self.GetParameter("PartitionKey")
@@ -59,8 +95,11 @@ class SendPFrameWithMetadata(icetray.I3Module):
         
         self.producer_cache_size = 5
         
+        if self.client_service is None:
+            raise RuntimeError("You have to provide a ClientService parameter to SendPFrameWithMetadata")
+        
         # first, connect to the broker
-        self.client = pulsar.Client(self.broker_url)
+        self.client = self.client_service.get()
         
         if callable(self.topic):
             # topic is a function, so let's initialize self.producer lazily later
@@ -159,7 +198,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 # TODO: There is probably a better way. Consider going for per-frame
                 # topics (and/or a frame hash as partition key).
                 metadata_topic = self.metadata_topic_base + hashlib.sha256(pickled_frame).hexdigest()[:4]
-                print("Sending metadata to topic {}".format(metadata_topic))
+                icetray.logging.log_debug("Sending metadata to topic {}".format(metadata_topic), unit=__name__)
                 self.metadata_producer = self.create_metadata_producer(metadata_topic)
                 
             # send the frame and record its generated message id
@@ -171,7 +210,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
             entry['messageid'] = msgid.serialize()
             entry['metadata_topic'] = metadata_topic
             
-            print("metadata frame sent {} -> msgid {}".format(entry['stop'], msgid))
+            icetray.logging.log_debug("metadata frame sent {} -> msgid {}".format(entry['stop'], msgid), unit=__name__)
 
     def send_physics(self, frame):
         # make sure all entries have a 'messageid' set and have the same 'metadata_topic'
@@ -205,14 +244,14 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 # make sure to expunge old items
                 while len(self.producer_cache)+1 > self.producer_cache_size:
                     removed_item = self.producer_cache.pop(0) # remove the frontmost item
-                    print("disconnecting old producer for topic {}...".format(removed_item[0]))
+                    icetray.logging.log_debug("disconnecting old producer for topic {}...".format(removed_item[0]), unit=__name__)
                     removed_item[1].close()
                     del removed_item
-                    print("disconnected.")
+                    icetray.logging.log_debug("disconnected.", unit=__name__)
 
-                print("connecting producer to new topic {}...".format(new_topic))
+                icetray.logging.log_debug("connecting producer to new topic {}...".format(new_topic), unit=__name__)
                 new_producer = self.create_producer(new_topic)
-                print("connected.")
+                icetray.logging.log_debug("connected.", unit=__name__)
                 self.producer_cache.append( (new_topic, new_producer) )
 
             # now set the producer to use
@@ -257,9 +296,9 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 sequence_id=sequence_id,
                 partition_key=this_partition_key
                 )
-            print("physics frame sent -> sequence {}".format(sequence_id))
+            icetray.logging.log_debug("physics frame sent -> sequence {}".format(sequence_id), unit=__name__)
         else:
-            print("physics frame NOT sent because sequence is being re-started after sequence id {} -> sequence id {}".format(self.producer.last_sequence_id(), sequence_id))
+            icetray.logging.log_debug("physics frame NOT sent because sequence is being re-started after sequence id {} -> sequence id {}".format(self.producer.last_sequence_id(), sequence_id), unit=__name__)
 
         self.event_number += 1
         
@@ -289,33 +328,30 @@ class SendPFrameWithMetadata(icetray.I3Module):
             self.metadata_producer.close()
         if self.producer is not None:
             self.producer.close()
-        self.client.close()
         if self.metadata_producer is not None:
             del self.metadata_producer
         if self.producer is not None:
             del self.producer
-        del self.client
 
 # Instantiate this service and use the same instance for
 # ReceivePFrameWithMetadata and AcknowledgeReceivedPFrame.
 class ReceiverService():
     def __init__(self,
         topic, # The Apache Pulsar topic name to receive frames from
-        broker_url='pulsar://localhost:6650', # The Apache Pulsar broker URL
+        client_service, # An PulsarClientService instance for the pulsar connection
         subscription_name='skymap-worker-sub', # Name of the subscription
         force_single_consumer=False,
         topic_is_regex=False,
         ):
         
-        # connect to the broker
-        self._client = pulsar.Client(broker_url)
+        self._client = client_service.get()
         
         if force_single_consumer:
             consumer_type = pulsar.ConsumerType.Failover
-            print("Creating consumer with a Failover subscription named {}".format(subscription_name))
+            icetray.logging.log_debug("Creating consumer with a Failover subscription named {}".format(subscription_name), unit=__name__)
         else:
             consumer_type = pulsar.ConsumerType.Shared
-            print("Creating consumer with a Shared subscription named {}".format(subscription_name))
+            icetray.logging.log_debug("Creating consumer with a Shared subscription named {}".format(subscription_name), unit=__name__)
         
         if topic_is_regex:
             use_topic = re.compile(topic)
@@ -330,7 +366,7 @@ class ReceiverService():
             initial_position=pulsar.InitialPosition.Earliest
             )
         
-        print("Set up consumer for topic \"{}\" on broker \"{}\".".format(topic, broker_url))
+        icetray.logging.log_debug("Set up consumer for topic \"{}\".".format(topic, client_service.broker_url()), unit=__name__)
 
 
         self.message_in_flight_dict = {}
@@ -343,9 +379,7 @@ class ReceiverService():
         
     def __del__(self):
         self._consumer.close()
-        self._client.close()
         del self._consumer
-        del self._client
             
     def __str__(self):
         return "<ReceiverService instance>"
@@ -388,9 +422,9 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
                     del items[i]
                     items.append(item)
                     
-                    print("Frame on Stop {} FOUND in cache. [msgid={}]".format(stream, str(msgid)))
+                    icetray.logging.log_debug("Frame on Stop {} FOUND in cache. [msgid={}]".format(stream, str(msgid)), unit=__name__)
                     return item[1]
-        print("Frame not found in cache. [msgid={}]".format(str(msgid)))
+        icetray.logging.log_debug("Frame not found in cache. [msgid={}]".format(str(msgid)), unit=__name__)
         return None
 
     def add_frame_to_cache(self, frame, msgid):
@@ -402,13 +436,13 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         
         # add to cache
         cache_for_stream.append( [msgid, frame] )
-        print("Added frame on Stop {} to cache. [msgid={}]".format(frame.Stop, str(msgid)))
+        icetray.logging.log_debug("Added frame on Stop {} to cache. [msgid={}]".format(frame.Stop, str(msgid)), unit=__name__)
         
         # delete old entries
         while len(cache_for_stream) > self.max_entries_per_frame_stop:
             # remove the first element
             just_removed = cache_for_stream.pop(0)
-            print("Cache too full, removed a message. [Stop={}, msgid={}]".format(just_removed[1].Stop, str(just_removed[0])))
+            icetray.logging.log_debug("Cache too full, removed a message. [Stop={}, msgid={}]".format(just_removed[1].Stop, str(just_removed[0])), unit=__name__)
             
         
 
@@ -424,7 +458,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         # no elements were deleted, add our frame to the end of the list
         self.pushed_metadata_msgids.append( [ frame_stream, msgid ] )
         
-        print("Pushing frame stop {} [msgid={}]".format(frame.Stop, str(msgid)))
+        icetray.logging.log_debug("Pushing frame stop {} [msgid={}]".format(frame.Stop, str(msgid)), unit=__name__)
         frame_copy = copy.copy(frame) # push a copy, the framework will mess with the frame we push
         self.PushFrame(frame_copy)
         
@@ -432,12 +466,12 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         retries = 10
         while True:
             if self.metadata_reader.has_message_available():
-                print("Reading metadata frame from pulsar..".format(msgid))
+                icetray.logging.log_debug("Reading metadata frame from pulsar..".format(msgid), unit=__name__)
                 msg = self.metadata_reader.read_next()
-                print("Metadata frame read. It is msgid={}.".format(msg.message_id()))
+                icetray.logging.log_debug("Metadata frame read. It is msgid={}.".format(msg.message_id()), unit=__name__)
                 if msg.message_id() == msgid:
                     frame = pickle.loads(msg.data())
-                    print("Loaded {} frame from pulsar".format(frame.Stop))
+                    icetray.logging.log_debug("Loaded {} frame from pulsar".format(frame.Stop), unit=__name__)
                     
                     # add two I3String items to the frame to mark where we got it from
                     frame['__msgid']    = dataclasses.I3String( msgid.serialize() )
@@ -448,10 +482,10 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
             # it wasn't just the next message,
             # so let's seek to a new position
             # and try again
-            print("about to seek to {}...".format(msgid))
+            icetray.logging.log_debug("about to seek to {}...".format(msgid), unit=__name__)
             self.metadata_reader.seek(msgid)
             time.sleep(0.2)
-            print("seek done.")
+            icetray.logging.log_debug("seek done.", unit=__name__)
 
             if retries <= 0:
                 raise RuntimeError("Seek to message id for metadata frame failed.")
@@ -464,7 +498,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         if self.PopFrame():
             raise RuntimeError("ReceivePFrameWithMetadata needs to be used as a driving module")
             
-        # print("Waiting for message...")
+        # icetray.logging.log_debug("Waiting for message...", unit=__name__)
         
         # Make `receive()` time out, but retry indefinitely to make sure
         # we pick up newly created topics.
@@ -480,28 +514,28 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
                 raise
 
         msgid = msg.message_id()
-        print("Message received. [msgid={}, topic={}]".format(msgid, msg.topic_name()))
+        icetray.logging.log_debug("Message received. [msgid={}, topic={}]".format(msgid, msg.topic_name()), unit=__name__)
         serialized_msgid = msgid.serialize()
 
         # make sure we do not work on a message we are already working on
         if serialized_msgid in self.receiver_service.message_in_flight_dict:
-            print("Message is already being processed. Ignoring. [msgid={}, topic={}]".format(msgid, msg.topic_name()))
+            icetray.logging.log_debug("Message is already being processed. Ignoring. [msgid={}, topic={}]".format(msgid, msg.topic_name()), unit=__name__)
             # self.receiver_service.consumer().acknowledge(msg)
 
         # load metadata list for this frame
         msg_properties = msg.properties()
         if 'metadata' not in msg_properties:
-            print("Invalid frame received - no metadata info - ignoring")
+            icetray.logging.log_debug("Invalid frame received - no metadata info - ignoring", unit=__name__)
             return
         if 'metadata_topic' not in msg_properties:
-            print("Invalid frame received - no metadata_topic info - ignoring")
+            icetray.logging.log_debug("Invalid frame received - no metadata_topic info - ignoring", unit=__name__)
             return
         metadata_info = pickle.loads(msg_properties['metadata'])        
         metadata_message_ids = [pulsar.MessageId.deserialize(i) for i in metadata_info]
         del metadata_info
         
         if (self.metadata_topic is None) or (self.metadata_topic != msg_properties['metadata_topic']):
-            print("Need to (re-)subscribe to metadata stream: {}".format(msg_properties['metadata_topic']))
+            icetray.logging.log_debug("Need to (re-)subscribe to metadata stream: {}".format(msg_properties['metadata_topic']), unit=__name__)
             self.metadata_topic = msg_properties['metadata_topic']
             if self.metadata_reader is not None:
                 self.metadata_reader.close()
@@ -540,7 +574,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         # now load the actual P-frame and push it
         frame = pickle.loads(msg.data())
         
-        print("Pushing frame stop {}[should be Physics] [msgid={}]".format(frame.Stop, msgid))
+        icetray.logging.log_debug("Pushing frame stop {}[should be Physics] [msgid={}]".format(frame.Stop, msgid), unit=__name__)
         self.PushFrame(frame)
         del frame # make sure to not re-use this frame, the frmework will mess with it
         
@@ -551,7 +585,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         # end of the tray
         delimiter_frame = icetray.I3Frame(icetray.I3Frame.Stream('\03'))
         delimiter_frame['__msgid'] = dataclasses.I3String( serialized_msgid )
-        print("Pushing frame stop '\\03' [\"__msgid\"={}]".format(msgid))
+        icetray.logging.log_debug("Pushing frame stop '\\03' [\"__msgid\"={}]".format(msgid), unit=__name__)
         self.PushFrame(delimiter_frame)
         
     def Finish(self):
@@ -589,9 +623,9 @@ class AcknowledgeReceivedPFrame(icetray.I3Module):
             msg = self.receiver_service.message_in_flight_dict[msgid_str]
             del self.receiver_service.message_in_flight_dict[msgid_str]
             
-            print("Delimiter frame received. Acknowledging message id {}.".format(str(msgid)))
+            icetray.logging.log_debug("Delimiter frame received. Acknowledging message id {}.".format(str(msgid)), unit=__name__)
             self.receiver_service.consumer().acknowledge(msg)
-            print("Acknowledged.")
+            icetray.logging.log_debug("Acknowledged.", unit=__name__)
             
         self.PushFrame(frame)
 
