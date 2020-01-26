@@ -27,6 +27,50 @@ resource "aws_vpc" "pulsar_vpc" {
   }
 }
 
+resource "aws_default_network_acl" "default" {
+  default_network_acl_id = aws_vpc.pulsar_vpc.default_network_acl_id
+
+  egress {
+    protocol   = -1
+    rule_no    = 100
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  egress {
+    protocol   = -1
+    rule_no    = 101
+    action     = "allow"
+    ipv6_cidr_block = "::/0"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  ingress {
+    protocol   = -1
+    rule_no    = 100
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  ingress {
+    protocol   = -1
+    rule_no    = 101
+    action     = "allow"
+    ipv6_cidr_block = "::/0"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  tags = {
+    Name = "main"
+  }
+}
+
 resource "aws_subnet" "default" {
   vpc_id                  = aws_vpc.pulsar_vpc.id
   cidr_block              = cidrsubnet(var.base_cidr_block, 8, 2)
@@ -88,39 +132,6 @@ resource "aws_route" "internet_access" {
   gateway_id             = aws_internet_gateway.default.id
 }
 
-/* Internal network (private) load balancer */
-/*
-resource "aws_elb" "default_internal" {
-  name            = "pulsar-elb-internal"
-  instances       = aws_instance.proxy.*.id
-  security_groups = [aws_security_group.elb_internal.id]
-  subnets         = [aws_subnet.default.id]
-
-  listener {
-    instance_port     = 8080
-    instance_protocol = "http"
-    lb_port           = 8080
-    lb_protocol       = "http"
-  }
-
-  listener {
-    instance_port     = 6650
-    instance_protocol = "tcp"
-    lb_port           = 6650
-    lb_protocol       = "tcp"
-  }
-
-  connection_draining = true
-  connection_draining_timeout = 300
-  
-  cross_zone_load_balancing = false
-  internal = true
-
-  tags = {
-    Name = "Pulsar-Load-Balancer-Internal"
-  }
-}
-*/
 
 /* External network (public) load balancer */
 resource "aws_elb" "default" {
@@ -128,8 +139,6 @@ resource "aws_elb" "default" {
   instances       = aws_instance.proxy.*.id
   security_groups = [aws_security_group.elb.id]
   subnets         = [aws_subnet.default.id]
-
-  #dns_name        = var.external_dns_name
 
   listener {
     instance_port     = 6650
@@ -153,3 +162,75 @@ resource "aws_elb" "default" {
     Name = "Pulsar-Load-Balancer"
   }
 }
+
+/*
+resource "aws_lb" "pulsar_lb" {
+  internal                          = false
+  load_balancer_type                = "network"
+  subnets                           = [aws_subnet.default.id]
+  #ip_address_type                   = "dualstack"
+  enable_cross_zone_load_balancing  = false
+  
+  tags = {
+    Name = "Pulsar-Load-Balancer"
+  }
+}
+
+resource "aws_lb_listener" "pulsar_lb_listener_QUEUE" {
+  load_balancer_arn   = aws_lb.pulsar_lb.arn
+  
+  port                = 6651
+  protocol            = "TLS"
+  certificate_arn     = var.external_ssl_cert_arn
+  ssl_policy          = "ELBSecurityPolicy-2016-08"
+  
+  default_action {
+    target_group_arn = aws_lb_target_group.pulsar_lb_tg_QUEUE.arn
+    type             = "forward"
+  }
+}
+
+resource "aws_lb_target_group" "pulsar_lb_tg_QUEUE" {
+  port         = 6650
+  protocol     = "TCP"
+  vpc_id       = aws_vpc.pulsar_vpc.id
+  target_type  = "instance"
+  deregistration_delay = 90
+  
+}
+
+resource "aws_lb_target_group_attachment" "pulsar_lb_tga_QUEUE" {
+  count = length(aws_instance.proxy)
+  target_group_arn  = aws_lb_target_group.pulsar_lb_tg_QUEUE.arn
+  target_id = aws_instance.proxy[count.index].id
+}
+
+resource "aws_lb_listener" "pulsar_lb_listener_ADMIN" {
+  load_balancer_arn   = aws_lb.pulsar_lb.arn
+  
+  port                = 8443
+  protocol            = "HTTPS"
+  certificate_arn     = var.external_ssl_cert_arn
+  ssl_policy          = "ELBSecurityPolicy-2016-08"
+  
+  default_action {
+    target_group_arn = aws_lb_target_group.pulsar_lb_tg_ADMIN.arn
+    type             = "forward"
+  }
+}
+
+resource "aws_lb_target_group" "pulsar_lb_tg_ADMIN" {
+  port         = 8080
+  protocol     = "HTTP"
+  vpc_id       = aws_vpc.pulsar_vpc.id
+  target_type  = "instance"
+  deregistration_delay = 90
+  
+}
+
+resource "aws_lb_target_group_attachment" "pulsar_lb_tga_ADMIN" {
+  count = length(aws_instance.proxy)
+  target_group_arn  = aws_lb_target_group.pulsar_lb_tg_ADMIN.arn
+  target_id = aws_instance.proxy[count.index].id
+}
+*/
