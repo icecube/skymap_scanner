@@ -23,13 +23,13 @@ class Specs(dict):
     """Default ec2 instance specs"""
     def __init__(self):
         super(Specs, self).__init__()
-        self['ami'] = 'ami-0ecaa5889fdd83ef8'
+        self['ami'] = 'ami-00b3abae21c2f5e4a'
         self['instance_types'] = {
             't3a.small': '0.008',
             't3.small':  '0.008',
             't2.small':  '0.008',
         }
-        self['hours'] = 2
+        self['hours'] = 6
         self['keypair'] = 'claudiok'
         self['region'] = 'us-east-2'
         self['public_zones'] = {
