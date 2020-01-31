@@ -49,11 +49,12 @@ pulsar-admin tenants create --admin-roles icecube icecube
 pulsar-admin namespaces create icecube/skymap
 pulsar-admin namespaces set-deduplication icecube/skymap --enable
 pulsar-admin namespaces create icecube/skymap_metadata
+pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 pulsar-admin namespaces grant-permission icecube/skymap          --actions produce,consume --role icecube.skymap
 pulsar-admin namespaces grant-permission icecube/skymap_metadata --actions produce,consume --role icecube.skymap
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 16
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 16
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 6
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 6
 ```
 
 If you want to use pulsar-admin from a different host, you could use docker to get access
@@ -65,15 +66,28 @@ pulsar-admin tenants create --admin-roles icecube icecube
 pulsar-admin namespaces create icecube/skymap
 pulsar-admin namespaces set-deduplication icecube/skymap --enable
 pulsar-admin namespaces create icecube/skymap_metadata
+pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 pulsar-admin namespaces grant-permission icecube/skymap          --actions produce,consume --role icecube.skymap
 pulsar-admin namespaces grant-permission icecube/skymap_metadata --actions produce,consume --role icecube.skymap
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 16
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 16
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 6
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 6
 ```
 
 Once you are ready, use something like this to submit your jobs:
 
 ```
 ./submit_scan_to_ec2.py --num 2 --nside 1 -p pulsar.api.icecube.aq ../resources/scripts/event_HESE_2017-11-28.json
+```
+
+You can clear everything and start over from scratch using something like this: 
+
+```
+pulsar-admin topics delete-partitioned-topic persistent://icecube/skymap/to_be_scanned
+pulsar-admin topics delete-partitioned-topic persistent://icecube/skymap/scanned
+pulsar-admin topics list icecube/skymap
+pulsar-admin topics delete persistent://icecube/skymap/collected_<...>
+
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 6
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 6
 ```
