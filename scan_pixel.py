@@ -20,7 +20,7 @@ from icecube.frame_object_diff.segments import uncompress
 from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame, PulsarClientService, ReceiverService, SendPFrameWithMetadata
 
 def scan_pixel(broker, auth_token, topic_in, topic_out,
-    pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned",
+    pulsesName="SplitInIcePulsesLatePulseCleaned",
     fake_scan=False):
 
     ########## load data
@@ -31,7 +31,7 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
     base = os.path.expandvars('$I3_DATA/photon-tables/splines/ems_mie_z20_a10.%s.fits')
     cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", 0)
 
-    basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
+    # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
     # muon_service = photonics_service.I3PhotoSplineService(basemu % "abs", basemu% "prob", 0)
     muon_service = None
 
@@ -47,6 +47,7 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         client_service=client_service,
         topic=topic_in,
         subscription_name="skymap-worker-sub",
+        subscribe_to_single_random_partition=True # if the input is a partitioned topic, subscribe to only *one* partition
     )
 
     ########## the tray
@@ -94,11 +95,20 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
             if name in frame: continue
             frame[name] = dataclasses.I3VectorOMKey()
     tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
-        ListNames = ["BrightDOMs"],
+        ListNames = ["BrightDOMs", "BadDomsList"],
         Streams=[icetray.I3Frame.Physics])
     
     # add the late pulse exclusion windows
-    ExcludedDOMs = ExcludedDOMs + [pulsesName+'LatePulseCleanedTimeWindows']
+    ExcludedDOMs = ExcludedDOMs + [pulsesName+'TimeWindows']
+
+    def EnsureExlusionObjectsExist(frame, ListNames=[]):
+        for name in ListNames:
+            if name in frame: continue
+            print(frame)
+            raise RuntimeError("No frame object named \"{}\" found in frame (expected for DOM exclusions.)".format(name))
+    tray.AddModule(EnsureExlusionObjectsExist, 'EnsureExlusionObjectsExist',
+        ListNames = ExcludedDOMs,
+        Streams=[icetray.I3Frame.Physics])
     
     if fake_scan:
         def add_fake_scan(frame):
@@ -192,7 +202,8 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         Topic=topic_out,
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
-        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
+        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
+        # SendToSingleRandomPartition=True ## dangerous if there are more than 1 partitions... (and more than 1 collector is active)
         )
     
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",

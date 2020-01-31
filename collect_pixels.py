@@ -188,6 +188,7 @@ def collect_pixels(broker, auth_token, topic_in, topic_base_out):
         topic=topic_in,
         subscription_name='skymap-collector-sub',
         force_single_consumer=True,
+        receiver_queue_size=1000 # we are probably the only consumer, so we can have a large receiver queue
     )
 
     ########## the tray

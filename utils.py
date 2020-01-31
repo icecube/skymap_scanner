@@ -5,11 +5,58 @@ import os
 import shutil
 import json
 import hashlib
+import numpy
+import healpy
 
 from icecube import icetray, dataio, dataclasses, astro
 
 import config
 
+def create_pixel_list(nside, area_center_nside=None, area_center_pixel=None, area_num_pixels=None):
+    if (area_center_nside is not None or area_center_pixel is not None or area_num_pixels is not None) and \
+       (area_center_nside is None or area_center_pixel is None or area_num_pixels is None):
+       raise RuntimeError("You have to either set none of the three options area_center_nside,area_center_pixel,area_num_pixels or all of them")
+
+    npixel_max = healpy.nside2npix(nside)
+
+    # just return all pixels if no specific area is requested or the area covers the entire map
+    if (area_center_nside is None) or (area_num_pixels >= npixel_max):
+        return range(npixel_max)
+
+    # otherwise, build the area iteratively
+    pixel_area_sqdeg = healpy.nside2pixarea(nside, degrees=True)
+    area_for_requested_pixels_sqdeg = pixel_area_sqdeg*float(area_num_pixels)
+    approx_radius = numpy.sqrt(area_for_requested_pixels_sqdeg)/numpy.pi
+    print("Building healpix pixel list for nside {} with an area of {} (out of {}) pixels (=={:.2f}sqdeg; radius={:.2f}deg)".format(
+        nside, area_num_pixels, npixel_max, area_for_requested_pixels_sqdeg, approx_radius
+    ))
+    
+    # get the center coordinate
+    c_x,c_y,c_z = healpy.pix2vec(area_center_nside, area_center_pixel)
+    start_pixel = healpy.vec2pix(nside, c_x,c_y,c_z)
+    c_x,c_y,c_z = healpy.pix2vec(nside, start_pixel)
+    pixel_set = set([start_pixel])
+    
+    print("start pixel:", start_pixel)
+    
+    # Create a full list of pixels ordered so that the center pixel is first and the distance to the center is growing.
+    # Then crop the list to return the number of requested pixels. This makes sure that we can extend the list later.
+    
+    pixels = numpy.array(range(npixel_max))
+    
+    p_x,p_y,p_z = healpy.pix2vec(nside, pixels)
+    pixel_space_angles = numpy.arccos(numpy.clip(c_x*p_x + c_y*p_y + c_z*p_z, -1., 1.))
+    pixel_num = numpy.array(range(len(pixel_space_angles)), dtype=numpy.float)
+    
+    # pixels, sorted by distance from the requested pixel; secondary sort key is just the healpix pixel index
+    pixel_list_sorted = pixels[numpy.lexsort( (pixel_num, pixel_space_angles) )].tolist()
+
+    return_list = pixel_list_sorted[:area_num_pixels]
+    
+    print("Pixel set created. It has {} entries (requested entries were {})".format(len(return_list), area_num_pixels))
+    
+    return return_list
+    
 def get_event_header(frame_packet):
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):

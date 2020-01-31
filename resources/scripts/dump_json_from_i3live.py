@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import print_function
 
 try:
@@ -138,6 +140,8 @@ def main():
 
     if len(records) > 1:
         print("Multiple records found")
+        # rec = [json.dumps(e) for e in records]
+        # print(rec[0])
         return
         
     rec = records[0]

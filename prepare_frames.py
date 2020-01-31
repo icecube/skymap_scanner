@@ -61,16 +61,19 @@ class FrameArraySink(icetray.I3Module):
             self.PushFrame(frame)
             return
 
-        self.frame_store.append(frame)
+        frame_copy = copy.copy(frame)
+        frame_copy.purge()
+        self.frame_store.append(frame_copy)
+        del frame_copy
 
         self.PushFrame(frame)
 
-def prepare_frames(frame_packet, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
     from icecube import dataclasses, recclasses, simclasses
     from icecube import DomTools, VHESelfVeto
     from icecube import photonics_service, gulliver, millipede
 
-    nominalPulsesName = "SplitUncleanedInIcePulses"
+    nominalPulsesName = "SplitInIcePulses"
 
     # sanity check the packet
     if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):

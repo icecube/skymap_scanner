@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import os
 import numpy
 import tqdm
+import healpy
 
 import config
 
@@ -27,12 +28,14 @@ class WaitForNumberOfPFrames(icetray.I3Module):
             self.nsides_to_process = set(suspend_after_these_nsides)
         else:
             self.nsides_to_process = None
-            
+        
         
         self.last_p_frame = None
         self.seen_all_frames = False
 
         self.data_for_nside = {}
+        
+        self.best_results = {}
 
 
     def report_progress(self):
@@ -110,6 +113,19 @@ class WaitForNumberOfPFrames(icetray.I3Module):
 
         pixelNumToFramesMap[pixel] = (p_frame, delimiter_frame)
 
+
+        if "MillipedeStarting2ndPass_millipedellh" in p_frame:
+            thisLLH = p_frame["MillipedeStarting2ndPass_millipedellh"].logl
+        else:
+            thisLLH = numpy.nan
+
+        if name not in self.best_results:
+            self.best_results[name] = {'llh': thisLLH, 'frame': p_frame, 'nside': nside, 'pixel': pixel}
+
+        if (thisLLH < self.best_results[name]['llh']) and (not numpy.isnan(thisLLH)):
+            self.best_results[name] = {'llh': thisLLH, 'frame': p_frame, 'nside': nside, 'pixel': pixel}
+        
+
         if len(pixelNumToFramesMap) >= npixel:
             self.report_progress()
             print("\nAll frames arrived for nside {}, pushing all frames.".format(nside))
@@ -129,24 +145,35 @@ class WaitForNumberOfPFrames(icetray.I3Module):
                     self.nsides_to_process.remove(nside)
             
                 if len(self.data_for_nside) == 0:
-                    # nothing more to process. Let's check if we are still expecting something, otherwise quite
+                    # nothing more to process. Let's check if we are still expecting something, otherwise quit
                     
                     if len(self.nsides_to_process) == 0:
                         self.seen_all_frames = True
                         self.RequestSuspension()
 
     def Finish(self):
-        if len(self.data_for_nside) == 0:
-            return
-
-        print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
-        print(self.data_for_nside)
-        print("**** WARN ****  --  END")
+        if len(self.data_for_nside) > 0:
+            print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
+            print(self.data_for_nside)
+            print("**** WARN ****  --  END")
         
+        print("")
+        print("Best pixels:")
+        for name in self.best_results.keys():
+            entry = self.best_results[name]
+            
+            minDec, minRA = healpy.pix2ang(entry['nside'], entry['pixel'])
+            minDec = minDec - numpy.pi/2.
+
+            print("  ** best entry for {:20} at (nside,pix)=({},{}) [llh={:.2f}]: dec={:.2f}deg RA={:.2f}deg / {:.2f}hours ".format(
+                name, entry['nside'], entry['pixel'], entry['llh'],
+                minDec*180./numpy.pi, minRA *180./numpy.pi, minRA*12./numpy.pi
+                ))
+        print("")
 
 
 
-def save_pixels(broker, auth_token, topic_in, filename_out, expected_n_frames, delete_from_queue=True):
+def save_pixels(broker, auth_token, topic_in, filename_out, nsides_to_wait_for, delete_from_queue=True):
     # connect to pulsar
     client_service = PulsarClientService(
         BrokerURL=broker,
@@ -170,7 +197,7 @@ def save_pixels(broker, auth_token, topic_in, filename_out, expected_n_frames, d
         )
 
     tray.Add(WaitForNumberOfPFrames, "WaitForNumberOfPFrames",
-        SuspendAfterTheseNSides = None)
+        SuspendAfterTheseNSides = nsides_to_wait_for)
 
     tray.Add(uncompress, "GCD_uncompress",
              keep_compressed=False,
@@ -184,8 +211,8 @@ def save_pixels(broker, auth_token, topic_in, filename_out, expected_n_frames, d
                    icetray.I3Frame.Calibration,
                    icetray.I3Frame.DetectorStatus,
                    icetray.I3Frame.DAQ,
-                   icetray.I3Frame.Physics,
-                   icetray.I3Frame.Stream('p')
+                   icetray.I3Frame.Stream('p'),
+                   icetray.I3Frame.Physics
                  ]
              )
     

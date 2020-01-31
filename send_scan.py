@@ -19,14 +19,20 @@ from I3Tray import *
 
 import config
 
-from utils import get_event_mjd
+from utils import get_event_mjd, create_pixel_list
 from pulsar_icetray import PulsarClientService, SendPFrameWithMetadata
 
 class SendPixelsToScan(icetray.I3Module):
     def __init__(self, ctx):
         super(SendPixelsToScan, self).__init__(ctx)
         self.AddParameter("FramePacket", "The GCDQp frame packet to send", None)
+        
         self.AddParameter("NSide", "The healpix resolution in terms of \"nside\".", 8)
+
+        self.AddParameter("AreaCenterNSide", "The healpix nside of the center pixel defined in \"AreaCenterPixel\".", None)
+        self.AddParameter("AreaCenterPixel", "The healpix pixel number where the area to be scanned is centered.", None)
+        self.AddParameter("AreaNumPixels",   "The number of pixels in the area to be scanned (this is in terms of \"NSide\").", None)
+
         self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
@@ -43,6 +49,14 @@ class SendPixelsToScan(icetray.I3Module):
         self.inject_event_name = self.GetParameter("InjectEventName")
         self.posVariations = self.GetParameter("PosVariations")
         
+        self.area_center_nside = self.GetParameter("AreaCenterNSide")
+        self.area_center_pixel = self.GetParameter("AreaCenterPixel")
+        self.area_num_pixels = self.GetParameter("AreaNumPixels")
+
+        if (self.area_center_nside is not None or self.area_center_pixel is not None or self.area_num_pixels is not None) and \
+           (self.area_center_nside is     None or self.area_center_pixel is     None or self.area_num_pixels is     None):
+           raise RuntimeError("You have to either set none of the three options AreaCenterNSide,AreaCenterPixel,AreaNumPixels or all of them")
+
         p_frame = self.GCDQpFrames[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
@@ -54,12 +68,17 @@ class SendPixelsToScan(icetray.I3Module):
         self.event_header = p_frame["I3EventHeader"]
         self.event_mjd = get_event_mjd(self.GCDQpFrames)
 
-        self.pixels_to_push = range(healpy.nside2npix(self.nside))
+        # self.pixels_to_push = range(healpy.nside2npix(self.nside))
+        self.pixels_to_push = create_pixel_list(
+            self.nside,
+            area_center_nside=self.area_center_nside,
+            area_center_pixel=self.area_center_pixel,
+            area_num_pixels=self.area_num_pixels
+            )
+        
         print("Going to submit {} pixels".format(len(self.pixels_to_push)))
         
         self.pixel_index = 0
-        
-
         
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
@@ -98,8 +117,6 @@ class SendPixelsToScan(icetray.I3Module):
         time = self.seed_time
         energy = self.seed_energy
 
-
-
         for i in range(0,len(self.posVariations)):
             posVariation = self.posVariations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
@@ -133,9 +150,19 @@ class SendPixelsToScan(icetray.I3Module):
             self.PushFrame(p_frame)
 
 
-def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, event_name, nside=1):
-
-    # set up the positional variations (we use 7 here)
+def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, event_name, nside=1, area_center_nside=None, area_center_pixel=None, area_num_pixels=None):
+    if (area_center_nside is not None or area_center_pixel is not None or area_num_pixels is not None) and \
+       (area_center_nside is None or area_center_pixel is None or area_num_pixels is None):
+       raise RuntimeError("You have to either set none of the three options area_center_nside,area_center_pixel,area_num_pixels or all of them")
+    
+    if area_center_nside is None:
+        producer_name = "skymap_to_scan_producer-" + event_name + "-nside" + str(nside)
+    else:
+        producer_name = "skymap_to_scan_producer-" + event_name + "-nside" + str(nside) + "-Cn" + str(area_center_nside) + "-p" + str(area_center_pixel)
+    
+    print("producer_name is {}".format(producer_name))
+    
+    # set up the positional variations (we use 7)
     variationDistance = 20.*I3Units.m
     posVariations = [
         dataclasses.I3Position(0.,0.,0.),
@@ -147,7 +174,10 @@ def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, even
         dataclasses.I3Position(0.,0., variationDistance)
         ]
 
-    num_pix = healpy.nside2npix(nside)
+    if area_num_pixels is None:
+        num_pix = healpy.nside2npix(nside)
+    else:
+        num_pix = area_num_pixels
     num_it = num_pix*len(posVariations)
     pbar = tqdm.tqdm(
         total=num_it,
@@ -172,7 +202,10 @@ def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, even
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
         InjectEventName=event_name,
-        PosVariations=posVariations
+        PosVariations=posVariations,
+        AreaCenterNSide=area_center_nside,
+        AreaCenterPixel=area_center_pixel,
+        AreaNumPixels=area_num_pixels
     )
 
     # sanity check
@@ -187,20 +220,20 @@ def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, even
             print(frame)
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
     tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist",
-        pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned")
+        pulsesName="SplitInIcePulsesLatePulseCleaned")
 
     # now send all P-frames as pulsar messages
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         ClientService=client_service,
         Topic=topic,
         MetadataTopicBase=metadata_topic_base,
-        ProducerName="skymap_to_scan_producer-" + event_name + "-nside" + str(nside),
+        ProducerName=producer_name,
         I3IntForSequenceID="SCAN_EventOverallIndex",
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
         )
     
     def update_pbar(frame):
-        pbar.set_postfix(pixel="{}/{}".format(frame["SCAN_HealpixPixel"].value, num_pix-1), refresh=False)
+        pbar.set_postfix(pixel="{}/{}".format(frame["SCAN_EventOverallIndex"].value/len(posVariations)+1, num_pix), refresh=False)
         pbar.update(1)
     tray.Add(update_pbar, "update_pbar")
     
