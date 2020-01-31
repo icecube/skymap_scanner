@@ -4,8 +4,8 @@
         "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
         "region":         "us-east-2",
         "vpc_id":         "vpc-5dccd035",
-        "subnet_id":      "subnet-02f5744b98f61dda8",
-        "availability_zone": "us-east-2a",
+        "subnet_id":      "subnet-01b1763702ded170c",
+        "availability_zone": "us-east-2c",
         "associate_public_ip_address": "true"
     },
     "builders": [
