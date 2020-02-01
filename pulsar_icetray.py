@@ -1,7 +1,3 @@
-try:
-    import cPickle as pickle
-except:
-    import pickle
 import time
 import re
 import copy
@@ -192,12 +188,12 @@ class SendPFrameWithMetadata(icetray.I3Module):
 
             frame_copy = copy.copy(entry['frame'])
             frame_copy.purge() # remove non-native stops
-            pickled_frame = pickle.dumps(frame_copy)
+            serialized_frame = frame_copy.dumps()
             del frame_copy
 
             # We need to create a metadata producer. We base the topic name on a
             # hash of the frame.
-            metadata_hash = hashlib.sha256(pickled_frame).hexdigest()
+            metadata_hash = hashlib.sha256(serialized_frame).hexdigest()
             
             if metadata_hash in self.sent_metadata_cache:
                 cached_entry = self.sent_metadata_cache[metadata_hash]
@@ -228,7 +224,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 icetray.logging.log_debug("Sending {} frame to topic {}".format(entry['stop'], metadata_topic), unit=__name__)
                 # send the frame and record its generated message id
                 metadata_producer.send(
-                    content=pickled_frame, 
+                    content=serialized_frame, 
                     sequence_id=0)
                 icetray.logging.log_debug("{} frame sent to topic {}".format(entry['stop'], metadata_topic), unit=__name__)
             
@@ -252,7 +248,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 raise RuntimeError("logic error: physics frame metadata entry has no topic set")
         
         properties = {
-            'metadata_topics': pickle.dumps( [ entry['metadata_topic'] for entry in self.metadata_frames_list ] )
+            'metadata_topics': ";".join( [ entry['metadata_topic'] for entry in self.metadata_frames_list ] )
         }
         
         if callable(self.topic):
@@ -284,10 +280,10 @@ class SendPFrameWithMetadata(icetray.I3Module):
             # now set the producer to use
             self.producer = new_producer
         
-        # pickle the frame
+        # serialize the frame
         frame_copy = copy.copy(frame)
         frame_copy.purge() # remove non-native stops
-        data = pickle.dumps(frame_copy)
+        data = frame_copy.dumps()
         del frame_copy
 
         # determine the sequence id
@@ -546,8 +542,8 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
             if msg is not None:
                 break
             
-        
-        frame = pickle.loads(msg.data())
+        frame = icetray.I3Frame()
+        frame.loads(msg.data())
         icetray.logging.log_debug("Loaded {} frame from pulsar".format(frame.Stop), unit=__name__)
         
         # add a I3String items to the frame to mark where we got it from
@@ -594,7 +590,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
         if 'metadata_topics' not in msg_properties:
             icetray.logging.log_debug("Invalid frame received - no metadata_topics info - ignoring", unit=__name__)
             return
-        metadata_info = pickle.loads(msg_properties['metadata_topics'])        
+        metadata_info = msg_properties['metadata_topics'].split(';')        
         metadata_topics = [i for i in metadata_info]
         del metadata_info
         del msg_properties
@@ -618,7 +614,8 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
             self.push_metadata_frame_and_update_state(frame, metadata_topic)
         
         # now load the actual P-frame and push it
-        frame = pickle.loads(msg.data())
+        frame = icetray.I3Frame()
+        frame.loads(msg.data())
         
         icetray.logging.log_debug("Pushing frame stop {}[should be Physics] [msgid={}]".format(frame.Stop, msgid), unit=__name__)
         self.PushFrame(frame)

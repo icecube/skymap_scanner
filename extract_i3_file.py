@@ -16,11 +16,6 @@ import os
 import shutil
 import subprocess
 
-try:
-    import cPickle as pickle
-except:
-    import pickle
-
 import config
 
 from icecube import icetray, dataclasses, dataio
@@ -186,12 +181,12 @@ def extract_i3_file(url, stop_after_first_p_frame=True):
         frame_packet = extract_i3_file_gcd_diff(uncompressed_filename, baseline_gcd=None, stop_after_first_p_frame=stop_after_first_p_frame)
         original_size = 0
         for frame in frame_packet:
-            original_size += len(pickle.dumps(frame))
+            original_size += len(frame.dumps())
         del frame_packet
         print("Done. It is {}MiB in size".format(original_size/1024/1024))
 
         print("Applying each available GCD diff to this undiffed data to see which one works best...")
-        pickled_sizes = {}
+        serialized_sizes = {}
         with tqdm(possible_baseline_gcds) as pbar:
             for baseline_gcd in pbar:
                 _, baseline_gcd_file = os.path.split(baseline_gcd)
@@ -201,15 +196,15 @@ def extract_i3_file(url, stop_after_first_p_frame=True):
 
                 this_size = 0
                 for frame in frame_packet:
-                    this_size += len(pickle.dumps(frame))
+                    this_size += len(frame.dumps())
 
-                pickled_sizes[this_size] = (baseline_gcd, frame_packet)
+                serialized_sizes[this_size] = (baseline_gcd, frame_packet)
 
 
-    sizes = sorted(pickled_sizes.keys())
-    _, best_baseline_gcd = os.path.split(pickled_sizes[sizes[0]][0])
-    best_frame_packet = pickled_sizes[sizes[0]][1]
-    del pickled_sizes
+    sizes = sorted(serialized_sizes.keys())
+    _, best_baseline_gcd = os.path.split(serialized_sizes[sizes[0]][0])
+    best_frame_packet = serialized_sizes[sizes[0]][1]
+    del serialized_sizes
     
     print("Best GCD baseline file for this data is {} and yields a size of {}MiB. The worst one is {} kiB larger.".format(
         best_baseline_gcd, sizes[0]/1024/1024, (sizes[-1]-sizes[0])/1024
