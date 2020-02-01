@@ -1,0 +1,46 @@
+--- segments.py.orig	2020-02-01 19:40:24.000000000 +0000
++++ segments.py	2020-02-01 19:39:56.000000000 +0000
+@@ -111,12 +111,18 @@
+         keep_compressed = True
+ 
+     # Get the base frames from the base file.
+-    # This is done once, at setup.
++    # This is done once, at setup (unless we are dynamically getting
++    # the base filename from the Diff frame objects)
+     if base_frames:
+         def get(stop):
+             return base_frames[stop]
+     else:
+         def get(stop,filename=None):
++            if (filename is not None) and (filename != get.last_filename):
++                # re-set the cache in case there is a new baseline file
++                get.last_filename = filename
++                get.frames = {}
++
+             if not get.frames:
+                 get.frames = get_frames(tray,filename)
+                 if 'Geometry' not in get.frames:
+@@ -128,16 +134,19 @@
+             if stop and stop in get.frames:
+                 return get.frames[stop]
+         get.frames = {}
++        get.last_filename = None
+         if base_filename:
+             get(None,os.path.join(base_path,base_filename))
+         else:
+-            def get_filename(fr):
++            def get_filename(fr, obj_name):
+                 if base_path:
+-                    f = os.path.join(base_path,os.path.basename(fr['I3GeometryDiff'].base_filename))
++                    f = os.path.join(base_path,os.path.basename(fr[obj_name].base_filename))
+                 else:
+-                    f = fr['I3GeometryDiff'].base_filename
++                    f = fr[obj_name].base_filename
+                 get(None,f)
+-            tray.AddModule(get_filename,Streams=[icetray.I3Frame.Geometry])
++            tray.AddModule(get_filename,name+'_get_filename_G',Streams=[icetray.I3Frame.Geometry],       obj_name='I3GeometryDiff')
++            tray.AddModule(get_filename,name+'_get_filename_C',Streams=[icetray.I3Frame.Calibration],    obj_name='I3CalibrationDiff')
++            tray.AddModule(get_filename,name+'_get_filename_D',Streams=[icetray.I3Frame.DetectorStatus], obj_name='I3DetectorStatusDiff')
+ 
+     tray.AddModule(modules.GeometryUncompressor,name+'_Geometry',
+                    base_frame=partial(get,'Geometry'),

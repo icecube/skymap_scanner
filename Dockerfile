@@ -10,6 +10,10 @@ RUN pip install pulsar-client==2.5.0 && \
     pip install tqdm && \
     pip install backports.tempfile
 
+# patch frame_object_diff until we get a new release
+COPY segments.py.patch /tmp/segments.py.patch
+RUN patch /usr/local/icetray/lib/icecube/frame_object_diff/segments.py /tmp/segments.py.patch && rm /tmp/segments.py.patch
+
 # copy in all .py files from the repository
 COPY *.py /local/
 WORKDIR /local
