@@ -19,6 +19,7 @@ class WaitForNumberOfPFrames(icetray.I3Module):
     def __init__(self, ctx):
         super(WaitForNumberOfPFrames, self).__init__(ctx)
         self.AddParameter("SuspendAfterTheseNSides", "If set, wait until all of these nsides have been seen. Then exit", None)
+        self.AddParameter("NPixelForNSide", "If set, a dict from nside to number of pixels to wait for", {})
 
         self.AddOutBox("OutBox")
 
@@ -28,6 +29,8 @@ class WaitForNumberOfPFrames(icetray.I3Module):
             self.nsides_to_process = set(suspend_after_these_nsides)
         else:
             self.nsides_to_process = None
+
+        self.npixels_for_nside = self.GetParameter("NPixelForNSide")
         
         
         self.last_p_frame = None
@@ -48,8 +51,11 @@ class WaitForNumberOfPFrames(icetray.I3Module):
             nside = idx[1]
             
             if 'pbar' not in data:
-                npix = 12 * (nside**2)
-                data['pbar'] = tqdm.tqdm(total=npix, desc='{} nside{}'.format(name,nside))
+                if nside in self.npixels_for_nside:
+                    npix = self.npixels_for_nside[nside]
+                else:
+                    npix = 12 * (nside**2)
+                data['pbar'] = tqdm.tqdm(smoothing=0.05, total=npix, desc='{} nside{}'.format(name,nside))
             if 'last_pixel_num_done' not in data:
                 data['last_pixel_num_done'] = 0
             if 'pixelNumToFramesMap' not in data:
@@ -96,7 +102,11 @@ class WaitForNumberOfPFrames(icetray.I3Module):
     def Work(self, p_frame, delimiter_frame):
         name  = p_frame["SCAN_EventName"].value
         nside = p_frame["SCAN_HealpixNSide"].value
-        npixel = 12 * (nside**2)
+        
+        if nside in self.npixels_for_nside:
+            npixel = self.npixels_for_nside[nside]
+        else:
+            npixel = 12 * (nside**2)
         pixel = p_frame["SCAN_HealpixPixel"].value
 
         if (name, nside) not in self.data_for_nside:
@@ -173,7 +183,10 @@ class WaitForNumberOfPFrames(icetray.I3Module):
 
 
 
-def save_pixels(broker, auth_token, topic_in, filename_out, nsides_to_wait_for, delete_from_queue=True):
+def save_pixels(broker, auth_token, topic_in, filename_out, nsides_to_wait_for, npixel_for_nside=None, delete_from_queue=True):
+    if npixel_for_nside is None:
+        npixel_for_nside = {}
+    
     # connect to pulsar
     client_service = PulsarClientService(
         BrokerURL=broker,
@@ -197,7 +210,8 @@ def save_pixels(broker, auth_token, topic_in, filename_out, nsides_to_wait_for, 
         )
 
     tray.Add(WaitForNumberOfPFrames, "WaitForNumberOfPFrames",
-        SuspendAfterTheseNSides = nsides_to_wait_for)
+        SuspendAfterTheseNSides = nsides_to_wait_for,
+        NPixelForNSide = npixel_for_nside)
 
     tray.Add(uncompress, "GCD_uncompress",
              keep_compressed=False,
