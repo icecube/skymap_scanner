@@ -20,11 +20,11 @@
 public_key_path       = "~/.ssh/id_rsa.pub"
 region                = "us-east-2"
 availability_zone     = "us-east-2c"
-aws_ami               = "ami-02ccb28830b645a41"
+aws_ami               = "ami-020bb7a0c05107805"
 num_zookeeper_nodes   = 3
-num_bookie_nodes      = 3
-num_broker_nodes      = 3
-num_proxy_nodes       = 2
+num_bookie_nodes      = 4
+num_broker_nodes      = 8
+num_proxy_nodes       = 4
 base_cidr_block       = "10.0.0.0/16"
 external_ssl_cert_arn = "arn:aws:acm:us-east-2:085443031105:certificate/48d43c86-fefe-4378-866c-d50371b96d2f"
 external_dns_name     = "pulsar.api.icecube.aq"
