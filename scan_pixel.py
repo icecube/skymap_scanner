@@ -204,6 +204,7 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
         # SendToSingleRandomPartition=True ## dangerous if there are more than 1 partitions... (and more than 1 collector is active)
+        # ... so don't use this in production
         )
     
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
