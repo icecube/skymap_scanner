@@ -1,0 +1,3 @@
+[submodule "i3deepice"]
+	path = i3deepice
+	url = https://github.com/tglauch/i3deepice
