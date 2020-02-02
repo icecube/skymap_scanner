@@ -39,15 +39,15 @@ docker exec -ti pulsar_local bin/pulsar-admin namespaces create icecube/skymap_m
 docker exec -ti pulsar_local bin/pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 docker exec -ti pulsar_local bin/pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 
-docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 16
-docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 16
+docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 6
+docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 6
 ```
 
 You can run the producer to send a scan like this. Notice that you are submitting the
 event with a specific name that you can use later in order to save all data:
 
 ```
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json --broker pulsar://192.168.123.131:6650 --nside 16 -n test_event_01
+docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json --broker pulsar://192.168.123.131:6650 --nside 1 -n test_event_01
 ```
 
 Then you can then start some workers to scan the jobs in the queue:
