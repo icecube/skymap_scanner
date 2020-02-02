@@ -23,23 +23,23 @@ class Specs(dict):
     """Default ec2 instance specs"""
     def __init__(self):
         super(Specs, self).__init__()
-        self['ami'] = 'ami-00b3abae21c2f5e4a'
+        self['ami'] = 'ami-020bb7a0c05107805'
         self['instance_types'] = {
-            't3a.small': '0.008',
-            't3.small':  '0.008',
-            't2.small':  '0.008',
+            't3a.small': {'max_price': '0.008', 'cores': 1},
+            # 't3.small':  {'max_price': '0.008', 'cores': 1},
+            # 't2.small':  {'max_price': '0.008', 'cores': 1},
         }
         self['hours'] = 6
         self['keypair'] = 'claudiok'
         self['region'] = 'us-east-2'
         self['public_zones'] = {
-        #    'us-east-2a': 'subnet-02f5744b98f61dda8',
-        #    'us-east-2b': 'subnet-0204a7cc1b68e899b',
+            'us-east-2a': 'subnet-0b284de90164ece23',
+            'us-east-2b': 'subnet-07e62479ad8964a27',
             'us-east-2c': 'subnet-01b1763702ded170c',
         }
         self['private_zones'] = {
-        #    'us-east-2a': 'subnet-02f5744b98f61dda8',
-        #    'us-east-2b': 'subnet-0204a7cc1b68e899b',
+            'us-east-2a': 'subnet-0c5b40d944c5db6d0',
+            'us-east-2b': 'subnet-02ffde5210f3ddf53',
             'us-east-2c': 'subnet-0fa2166b9bf3b0011',
         }
         self['security_group'] = 'sg-1affe374' # make sure the VPC this is running in has an Endpoint to S3
@@ -299,7 +299,8 @@ class SpotFleet:
                     ],
                     'UserData': user_data_b64,
                     'InstanceType': inst,
-                    'SpotPrice': self.spec['instance_types'][inst],
+                    'SpotPrice': self.spec['instance_types'][inst]['max_price'],
+                    'WeightedCapacity': self.spec['instance_types'][inst]['cores'],
                     'TagSpecifications':  [
                         {
                             'ResourceType': 'instance',
@@ -321,7 +322,7 @@ class SpotFleet:
                 'LaunchSpecifications': launch_specs,
                 'Type': 'maintain',
                 'AllocationStrategy': 'lowestPrice',
-                'InstancePoolsToUseCount': len(launch_specs)
+                # 'InstancePoolsToUseCount': len(launch_specs)
             }
         )
         self.fleet_id = request['SpotFleetRequestId']
@@ -476,31 +477,74 @@ async def main():
     collector_spec = spec.copy()
     collector_spec['instance_type'] = 'r5.large'
     collector_spec['instance_types'] = {
-        'r5.large':  '0.022',
-        'r5a.large': '0.022',
-        'r5n.large': '0.022',
-        'r4.large':  '0.022',
+        'r5.large':  {'max_price': '0.022', 'cores': 1},
+        'r5a.large': {'max_price': '0.022', 'cores': 1},
+        'r5n.large': {'max_price': '0.022', 'cores': 1},
+        'r4.large':  {'max_price': '0.022', 'cores': 1},
     }
 
     collector_user_data = """\
     #!/bin/bash
 
     docker run --rm icecube/skymap_scanner:latest collector --broker {queue_url} --auth-token {queue_token}
-    # shutdown -hP now
+    shutdown -hP now
     """
     
     worker_spec = spec.copy()
     worker_spec['instance_type'] = 't3a.small'
     worker_spec['instance_types'] = {
-        't3a.small': '0.008',
-        't3.small':  '0.008',
-        't2.small':  '0.008',
+        'm5.xlarge':  {'max_price': '0.011', 'cores': 4},
+        'm5a.xlarge': {'max_price': '0.011', 'cores': 4},
+        'm5n.xlarge': {'max_price': '0.011', 'cores': 4},
+        'c5.xlarge':  {'max_price': '0.011', 'cores': 4},
+        'c5n.xlarge': {'max_price': '0.011', 'cores': 4},
+        'r5.xlarge':  {'max_price': '0.011', 'cores': 4},
+        'r5a.xlarge': {'max_price': '0.011', 'cores': 4},
+        'r5n.xlarge': {'max_price': '0.011', 'cores': 4},
     }
     worker_user_data = """\
     #!/bin/bash
     
-    docker run --rm icecube/skymap_scanner:latest worker --broker {queue_url} --auth-token {queue_token}
-    shutdown -hP now
+    cat >/root/supervisord.conf <<EOF
+    [program:worker]
+    command=docker run --rm --name %(program_name)s_%(process_num)02d icecube/skymap_scanner:latest worker --broker {queue_url} --auth-token {queue_token}
+
+    numprocs=%(ENV_NUMPROCS)s
+    process_name=%(program_name)s_%(process_num)02d
+
+    stdout_logfile=/var/log/%(program_name)s_%(process_num)02d.log
+    stdout_logfile_maxbytes=41943040
+    redirect_stderr=true
+
+    autostart=true
+    autorestart=true
+    stopsignal=INT
+
+    startretries=10
+
+    stopasgroup=true
+    killasgroup=true
+
+    [unix_http_server]
+    file=/var/run/supervisor.sock
+    chmod=0700
+
+    [supervisord]
+    logfile=/var/log/supervisor/supervisord.log
+    pidfile=/var/run/supervisord.pid
+    childlogdir=/var/log/supervisor
+
+    [rpcinterface:supervisor]
+    supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+    [supervisorctl]
+    serverurl=unix:///var/run/supervisor.sock
+    EOF
+
+    NUMPROCS=`nproc` /usr/bin/supervisord --nodaemon -c /root/supervisord.conf
+    
+    #docker run --rm icecube/skymap_scanner:latest worker --broker {queue_url} --auth-token {queue_token}
+    #shutdown -hP now
     """
     
     saver_spec = spec.copy()
@@ -510,7 +554,7 @@ async def main():
 
     docker run --rm icecube/skymap_scanner:latest saver --broker {queue_url} --auth-token {queue_token} --nside {nside} -n event_{uuid} -o '{out_url}'
     
-    # shutdown -hP now
+    shutdown -hP now
     """
 
     
