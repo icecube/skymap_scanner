@@ -20,7 +20,7 @@
 public_key_path       = "~/.ssh/id_rsa.pub"
 region                = "us-east-2"
 availability_zone     = "us-east-2c"
-aws_ami               = "ami-020bb7a0c05107805"
+aws_ami               = "ami-02ccb28830b645a41" # amzn2-ami-hvm-2.0.20191217.0-x86_64-gp2 (us-east-2)
 num_zookeeper_nodes   = 3
 num_bookie_nodes      = 4
 num_broker_nodes      = 8
