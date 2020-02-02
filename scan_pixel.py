@@ -78,43 +78,14 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         print("determining DOM exclusions for this event", datetime.datetime.now())
     tray.AddModule(notifyExclusions, "notifyExclusions")
     
-    ExcludedDOMs = \
-    tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-        Pulses = pulsesName,
-        ExcludeDeepCore='DeepCoreDOMs',
-        ExcludeSaturatedDOMs='SaturatedDOMs',
-        ExcludeBrightDOMs='BrightDOMs',
-        BadDomsList='BadDomsList',
-        CalibrationErrata='CalibrationErrata',
-        SaturationWindows='SaturationWindows'
-        )
-    
-    # I like having frame objects in there even if they are empty for some frames
-    def createEmptyDOMLists(frame, ListNames=[]):
-        for name in ListNames:
-            if name in frame: continue
-            frame[name] = dataclasses.I3VectorOMKey()
-    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsD',
-        ListNames = ["BadDomsList"],
-        Streams=[icetray.I3Frame.DetectorStatus])
-    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsQ',
-        ListNames = ["SaturatedDOMs", "CalibrationErrata"],
-        Streams=[icetray.I3Frame.DAQ])
-    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsP',
-        ListNames = ["BrightDOMs"],
-        Streams=[icetray.I3Frame.Physics])
-    
-    # add the late pulse exclusion windows
-    ExcludedDOMs = ExcludedDOMs + [pulsesName+'TimeWindows']
-
-    def EnsureExlusionObjectsExist(frame, ListNames=[]):
-        for name in ListNames:
-            if name in frame: continue
-            print(frame)
-            raise RuntimeError("No frame object named \"{}\" found in frame (expected for DOM exclusions.)".format(name))
-    tray.AddModule(EnsureExlusionObjectsExist, 'EnsureExlusionObjectsExist',
-        ListNames = ExcludedDOMs,
-        Streams=[icetray.I3Frame.Physics])
+    ExcludedDOMs = [
+        'CalibrationErrata',
+        'BadDomsList',
+        'DeepCoreDOMs',
+        'SaturatedDOMs',
+        'BrightDOMs',
+        pulsesName+'TimeWindows'
+    ]
     
     if fake_scan:
         def add_fake_scan(frame):

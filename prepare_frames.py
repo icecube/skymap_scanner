@@ -72,6 +72,7 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
     from icecube import dataclasses, recclasses, simclasses
     from icecube import DomTools, VHESelfVeto
     from icecube import photonics_service, gulliver, millipede
+    from i3deepice.i3module import DeepLearningModule
 
     nominalPulsesName = "SplitInIcePulses"
 
@@ -82,7 +83,9 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
     # move the last packet frame from Physics to the Physics stream temporarily
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('P'))
 
-    output_frames = []
+    intermediate_frames = []
+
+    icetray.set_log_level_for_unit('I3Tray', icetray.I3LogLevel.LOG_WARN)
 
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=frame_packet)
@@ -182,6 +185,44 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
                     Pulses=nominalPulsesName,
                     )
 
+    ExcludedDOMs = \
+    tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
+        Pulses = pulsesName,
+        ExcludeDeepCore='DeepCoreDOMs',
+        ExcludeSaturatedDOMs='SaturatedDOMs',
+        ExcludeBrightDOMs='BrightDOMs',
+        BadDomsList='BadDomsList',
+        CalibrationErrata='CalibrationErrata',
+        SaturationWindows='SaturationWindows'
+        )
+    
+    # I like having frame objects in there even if they are empty for some frames
+    def createEmptyDOMLists(frame, ListNames=[]):
+        for name in ListNames:
+            if name in frame: continue
+            frame[name] = dataclasses.I3VectorOMKey()
+    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsD',
+        ListNames = ["BadDomsList"],
+        Streams=[icetray.I3Frame.DetectorStatus])
+    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsQ',
+        ListNames = ["SaturatedDOMs", "CalibrationErrata"],
+        Streams=[icetray.I3Frame.DAQ])
+    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsP',
+        ListNames = ["BrightDOMs"],
+        Streams=[icetray.I3Frame.Physics])
+    
+    # add the late pulse exclusion windows
+    ExcludedDOMs = ExcludedDOMs + [nominalPulsesName+'LatePulseCleaned'+'TimeWindows']
+
+    def EnsureExlusionObjectsExist(frame, ListNames=[]):
+        for name in ListNames:
+            if name in frame: continue
+            print(frame)
+            raise RuntimeError("No frame object named \"{}\" found in frame (expected for DOM exclusions.)".format(name))
+    tray.AddModule(EnsureExlusionObjectsExist, 'EnsureExlusionObjectsExist',
+        ListNames = ExcludedDOMs,
+        Streams=[icetray.I3Frame.Physics])
+    
     def delFrameObjectsWithDiffsAvailable(frame):
         all_keys = frame.keys()
         for key in frame.keys():
@@ -192,11 +233,87 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
                 # print("deleted", non_diff_key, "from frame because a Diff exists")
     tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
 
+    tray.AddModule(FrameArraySink, FrameStore=intermediate_frames)
+    tray.AddModule("TrashCan")
+    tray.Execute()
+    tray.Finish()
+    del tray
+
+
+    print("")
+    print("Starting CNN classification....")
+
+    ##### DeepIceLearning has a bug that does not allow multiple instances to be used.
+    ##### work around this by just re-starting a full tray
+    intermediate_frames2 = []
+    tray = I3Tray()
+    tray.AddModule(FrameArraySource, Frames=intermediate_frames)
+
+    tray.AddModule(DeepLearningModule, 'cnn_classification',
+                    batch_size=1,
+                    cpu_cores=1,
+                    gpu_cores=0,
+                    model='classification',
+                    pulsemap=nominalPulsesName,
+                    calib_errata='CalibrationErrata',
+                    bad_dom_list='BadDomsList',
+                    saturation_windows='SaturationWindows',
+                    bright_doms='BrightDOMs',
+                    save_as='CNN_classification')
+    
+    def print_classifier(frame):
+        print("")
+        print("CNN classification done:\n", frame["CNN_classification"])
+        print("")
+    tray.AddModule(print_classifier, "print_classifier")
+    
+    ##################
+
+    tray.AddModule(FrameArraySink, FrameStore=intermediate_frames2)
+    tray.AddModule("TrashCan")
+    tray.Execute()
+    tray.Finish()
+    del tray
+
+
+    print("")
+    print("Starting CNN energy reconstruction....")
+
+    ##### DeepIceLearning has a bug that does not allow multiple instances to be used.
+    ##### work around this by just re-starting a full tray
+    output_frames = []
+    tray = I3Tray()
+    tray.AddModule(FrameArraySource, Frames=intermediate_frames2)
+
+    tray.AddModule(DeepLearningModule, 'cnn_energy',
+                    batch_size=1,
+                    cpu_cores=1,
+                    gpu_cores=0,
+                    model='mu_energy_reco_full_range',
+                    pulsemap=nominalPulsesName,
+                    calib_errata='CalibrationErrata',
+                    bad_dom_list='BadDomsList',
+                    saturation_windows='SaturationWindows',
+                    bright_doms='BrightDOMs',
+                    save_as='CNN_mu_energy_reco_full_range')
+                    
+    def print_energy(frame):
+        print("")
+        print("CNN energy reco done: {:.2f}TeV".format( (10**frame["CNN_mu_energy_reco_full_range"]['mu_E_on_entry'])/1e3) )
+        print("")
+    tray.AddModule(print_energy, "print_energy")
+    
+    ##################
+
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
     tray.AddModule("TrashCan")
     tray.Execute()
     tray.Finish()
     del tray
+
+    icetray.set_log_level_for_unit('I3Tray', icetray.I3LogLevel.LOG_NOTICE)
+
+    ## we are done with preparing the frames.
 
     # move the last packet frame from Physics to the 'p' stream
     output_frames[-1] = rewrite_frame_stop(output_frames[-1], icetray.I3Frame.Stream('p'))

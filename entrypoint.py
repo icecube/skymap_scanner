@@ -90,7 +90,7 @@ def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_nam
             pulsesName="SplitInIcePulses"
         
         # This step will create missing frame objects if necessary.
-        print('Event extracted. I will now perform some simple things like the HESE veto calculation...')
+        print('Event extracted. I will now perform some simple tasks like the HESE veto calculation...')
         GCDQp_packet = prepare_frames(GCDQp_packet, pulsesName=pulsesName)
         print('Done.')
         
