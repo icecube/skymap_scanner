@@ -94,8 +94,14 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         for name in ListNames:
             if name in frame: continue
             frame[name] = dataclasses.I3VectorOMKey()
-    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
-        ListNames = ["BrightDOMs", "BadDomsList"],
+    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsD',
+        ListNames = ["BadDomsList"],
+        Streams=[icetray.I3Frame.DetectorStatus])
+    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsQ',
+        ListNames = ["SaturatedDOMs", "CalibrationErrata"],
+        Streams=[icetray.I3Frame.DAQ])
+    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMListsP',
+        ListNames = ["BrightDOMs"],
         Streams=[icetray.I3Frame.Physics])
     
     # add the late pulse exclusion windows
