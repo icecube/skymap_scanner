@@ -172,7 +172,7 @@ if __name__ == "__main__":
         dest="DELETE_OUTPUT_FROM_QUEUE", help="When saving the output to a file, delete pixels from the queue once they have been written. They cannot be written a second time in that case.")
 
     parser.add_option("--fake-scan", action="store_true",
-        dest="FAKE_SCAN", help="Just return random numbers and wait 1 second instead of performing the actula calculation in the worker. For testing only.")
+        dest="FAKE_SCAN", help="Just return random numbers and wait 1 second instead of performing the actual calculation in the worker. For testing only.")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     
     if mode == "producer":
         if len(args) != 2:
-            raise RuntimeError("You need to specify a input file URL in `producer` mode")
+            raise RuntimeError("You need to specify an input file URL in `producer` mode")
 
         if options.NAME is None:
             raise RuntimeError("You need to explicitly specify an event name using the `-n` option and make sure you use the same one for producer, worker and collector.")
