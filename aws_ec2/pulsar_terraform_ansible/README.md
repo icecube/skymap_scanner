@@ -46,9 +46,9 @@ Now connect to create a basic tenant and namespace with configuration:
 ssh ec2-user@<pulsar_client_ip>
 alias pulsar-admin='sudo /opt/pulsar/bin/pulsar-admin'
 pulsar-admin tenants create --admin-roles icecube icecube
-pulsar-admin namespaces create icecube/skymap --bundles 12
+pulsar-admin namespaces create icecube/skymap --bundles 64
 pulsar-admin namespaces set-deduplication icecube/skymap --enable
-pulsar-admin namespaces create icecube/skymap_metadata --bundles 12
+pulsar-admin namespaces create icecube/skymap_metadata --bundles 64
 pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 pulsar-admin namespaces grant-permission icecube/skymap          --actions produce,consume --role icecube.skymap
@@ -63,9 +63,9 @@ This can be used from remote hosts to administer the pulsar cluster:
 ```
 alias pulsar-admin='docker run --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url https://pulsar.api.icecube.aq:8443 --auth-plugin org.apache.pulsar.client.impl.auth.AuthenticationToken --auth-params token:`cat secrets/admin.token`'
 pulsar-admin tenants create --admin-roles icecube icecube
-pulsar-admin namespaces create icecube/skymap --bundles 12
+pulsar-admin namespaces create icecube/skymap --bundles 64
 pulsar-admin namespaces set-deduplication icecube/skymap --enable
-pulsar-admin namespaces create icecube/skymap_metadata --bundles 12
+pulsar-admin namespaces create icecube/skymap_metadata --bundles 64
 pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 pulsar-admin namespaces grant-permission icecube/skymap          --actions produce,consume --role icecube.skymap

@@ -33,7 +33,7 @@ from collect_pixels import collect_pixels
 from save_pixels import save_pixels
 from extract_i3_file import extract_i3_file
 
-def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_name, nside, area_center_nside=None, area_center_pixel=None, area_num_pixels=None):
+def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_name, nside, area_center_nside=None, area_center_pixel=None, area_num_pixels=None, pixel_list=None):
     """
     Handle incoming events and perform a full scan.
     """
@@ -117,7 +117,8 @@ def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_nam
             nside=nside,
             area_center_nside=area_center_nside,
             area_center_pixel=area_center_pixel,
-            area_num_pixels=area_num_pixels
+            area_num_pixels=area_num_pixels,
+            pixel_list=pixel_list
             )
 
         print("All scans for `{0}` are submitted.".format(event_id))
@@ -163,6 +164,10 @@ if __name__ == "__main__":
     parser.add_option("--area", action='callback', type='string',
         callback=lambda option, opt, value, parser: setattr(parser.values, option.dest, value.split(',')),
         dest="AREA", help="Optional: the area to scan: <center_nside,center_pix,num_pix>")
+
+    parser.add_option("--pixel-list", action='callback', type='string',
+        callback=lambda option, opt, value, parser: setattr(parser.values, option.dest, value.split(',')),
+        dest="PIXELLIST", help="Optional: a specific comma-separated list of pixels to scan")
 
     parser.add_option("-n", "--name", action="store", type="string",
         default=None,
@@ -226,8 +231,15 @@ if __name__ == "__main__":
 
         print("Scanning NSide={}, corresponding to NPixel={}".format(nside, npixels))
 
+        if options.PIXELLIST is not None:
+            print("****** SPECIFIC PIXEL LIST OVERRIDE IS BEING USED ******")
+            pixel_list = [int(i) for i in options.PIXELLIST]
+            print("scanning: {}".format(pixel_list))
+        else:
+            pixel_list = None
+
         eventURL = args[1]
-        producer(eventURL, broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic=topic_in, metadata_topic_base=topic_base_meta, event_name=options.NAME, nside=nside, area_center_nside=area_center_nside, area_center_pixel=area_center_pixel, area_num_pixels=area_num_pixels)
+        producer(eventURL, broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic=topic_in, metadata_topic_base=topic_base_meta, event_name=options.NAME, nside=nside, area_center_nside=area_center_nside, area_center_pixel=area_center_pixel, area_num_pixels=area_num_pixels, pixel_list=pixel_list)
     elif mode == "worker":
         scan_pixel(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_in, topic_out=topic_out, fake_scan=options.FAKE_SCAN)
     elif mode == "collector":
@@ -244,6 +256,6 @@ if __name__ == "__main__":
             print("Waiting for all pixels for NSide={}, corresponding to NPixel={}".format(nside, npixels))
             nsides = [nside]
 
-        save_pixels(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, nsides_to_wait_for=nsides, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE)
+        save_pixels(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, nsides_to_wait_for=nsides, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE, npixel_for_nside={1024:12000})
     else:
         raise RuntimeError("Unknown mode \"{}\"".args[0])

@@ -23,7 +23,7 @@ class Specs(dict):
     """Default ec2 instance specs"""
     def __init__(self):
         super(Specs, self).__init__()
-        self['ami'] = 'ami-020bb7a0c05107805'
+        self['ami'] = 'ami-042f36f889b99a205'
         self['instance_types'] = {
             't3a.small': {'max_price': '0.008', 'cores': 1},
             # 't3.small':  {'max_price': '0.008', 'cores': 1},
@@ -477,10 +477,10 @@ async def main():
     collector_spec = spec.copy()
     collector_spec['instance_type'] = 'r5.large'
     collector_spec['instance_types'] = {
-        'r5.large':  {'max_price': '0.022', 'cores': 1},
-        'r5a.large': {'max_price': '0.022', 'cores': 1},
-        'r5n.large': {'max_price': '0.022', 'cores': 1},
-        'r4.large':  {'max_price': '0.022', 'cores': 1},
+        'r5.xlarge':  {'max_price': '0.1', 'cores': 1},
+        'r5a.xlarge': {'max_price': '0.1', 'cores': 1},
+        'r5n.xlarge': {'max_price': '0.1', 'cores': 1},
+        'r4.xlarge':  {'max_price': '0.1', 'cores': 1},
     }
 
     collector_user_data = """\
@@ -493,14 +493,15 @@ async def main():
     worker_spec = spec.copy()
     worker_spec['instance_type'] = 't3a.small'
     worker_spec['instance_types'] = {
-        'm5.xlarge':  {'max_price': '0.011', 'cores': 4},
-        'm5a.xlarge': {'max_price': '0.011', 'cores': 4},
-        'm5n.xlarge': {'max_price': '0.011', 'cores': 4},
-        'c5.xlarge':  {'max_price': '0.011', 'cores': 4},
-        'c5n.xlarge': {'max_price': '0.011', 'cores': 4},
-        'r5.xlarge':  {'max_price': '0.011', 'cores': 4},
-        'r5a.xlarge': {'max_price': '0.011', 'cores': 4},
-        'r5n.xlarge': {'max_price': '0.011', 'cores': 4},
+        # 'm5.xlarge':  {'max_price': '0.011', 'cores': 4},
+        # 'm5a.xlarge': {'max_price': '0.011', 'cores': 4},
+        # 'm5n.xlarge': {'max_price': '0.011', 'cores': 4},
+        'c5.4xlarge':  {'max_price': '0.011', 'cores': 16},
+        'c5d.4xlarge': {'max_price': '0.011', 'cores': 16},
+        'c5n.4xlarge': {'max_price': '0.011', 'cores': 16},
+        # 'r5.xlarge':  {'max_price': '0.011', 'cores': 4},
+        # 'r5a.xlarge': {'max_price': '0.011', 'cores': 4},
+        # 'r5n.xlarge': {'max_price': '0.011', 'cores': 4},
     }
     worker_user_data = """\
     #!/bin/bash

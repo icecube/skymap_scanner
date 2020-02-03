@@ -39,6 +39,8 @@ class WaitForNumberOfPFrames(icetray.I3Module):
         self.data_for_nside = {}
         
         self.best_results = {}
+        
+        self.num_ignored_pixels = {}
 
 
     def report_progress(self):
@@ -65,6 +67,10 @@ class WaitForNumberOfPFrames(icetray.I3Module):
             if pixel_num_done > data['last_pixel_num_done']:
                 increment = pixel_num_done-data['last_pixel_num_done']
                 data['last_pixel_num_done'] = pixel_num_done
+                
+                ignored_pixels = 0
+                if (name, nside) in self.num_ignored_pixels:
+                    data['pbar'].set_postfix(duplicate_pixels=self.num_ignored_pixels[(name, nside)], refresh=False)
                 data['pbar'].update(increment)
 
     def Process(self):
@@ -116,7 +122,12 @@ class WaitForNumberOfPFrames(icetray.I3Module):
         pixelNumToFramesMap = data['pixelNumToFramesMap']
 
         if pixel in pixelNumToFramesMap:
-            print("**** Pixel {} has already been seen. Ignoring this copy!".format(pixel))
+            # print("**** Pixel {} has already been seen. Ignoring this copy!".format(pixel))
+            if (name, nside) not in self.num_ignored_pixels:
+                self.num_ignored_pixels[(name, nside)] = 1
+            else:
+                self.num_ignored_pixels[(name, nside)] += 1
+            
             #self.PushFrame(p_frame) # p-frame -> do NOT push, eat this pixel
             self.PushFrame(delimiter_frame) # delimiter frame -> acknowledge this superfluous frame
             return
@@ -164,7 +175,20 @@ class WaitForNumberOfPFrames(icetray.I3Module):
     def Finish(self):
         if len(self.data_for_nside) > 0:
             print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
-            print(self.data_for_nside)
+            
+            for name, nside in self.data_for_nside:
+                if nside in self.npixels_for_nside:
+                    npixel = self.npixels_for_nside[nside]
+                else:
+                    npixel = 12 * (nside**2)
+                
+                data = self.data_for_nside[(name, nside)]
+                pixel_nums = set(data['pixelNumToFramesMap'].keys())
+                all_pixel_nums = set(range(npixel))
+                missing_pixels = sorted(list(all_pixel_nums.difference(pixel_nums)))
+                
+                print("  - {}:nside{} : missing pixels: {}".format(name, nside, missing_pixels))
+                
             print("**** WARN ****  --  END")
         
         print("")
@@ -180,6 +204,73 @@ class WaitForNumberOfPFrames(icetray.I3Module):
                 minDec*180./numpy.pi, minRA *180./numpy.pi, minRA*12./numpy.pi
                 ))
         print("")
+
+def get_reco_losses_inside(p_frame):
+    if "MillipedeStarting2ndPass_totalRecoLossesInside" in p_frame:
+        del p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"]
+    if "MillipedeStarting2ndPass_totalRecoLossesTotal" in p_frame:
+        del p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"]
+    
+    if "MillipedeStarting2ndPass" not in p_frame:
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(numpy.nan)
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(numpy.nan)
+        return
+    recoParticle = p_frame["MillipedeStarting2ndPass"]
+
+    if "MillipedeStarting2ndPassParams" not in p_frame:
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(numpy.nan)
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(numpy.nan)
+        return
+
+    def getRecoLosses(vecParticles):
+        losses = []
+        for p in vecParticles:
+            if not p.is_cascade: continue
+            if p.energy==0.: continue
+            losses.append([p.time, p.energy])
+        return losses
+    recoLosses = getRecoLosses(p_frame["MillipedeStarting2ndPassParams"])
+
+    intersectionPoints = VHESelfVeto.IntersectionsWithInstrumentedVolume(p_frame["I3Geometry"], recoParticle)
+    intersectionTimes = []
+    for intersectionPoint in intersectionPoints:
+        vecX = intersectionPoint.x - recoParticle.pos.x
+        vecY = intersectionPoint.y - recoParticle.pos.y
+        vecZ = intersectionPoint.z - recoParticle.pos.z
+
+        prod = vecX*recoParticle.dir.x + vecY*recoParticle.dir.y + vecZ*recoParticle.dir.z
+        dist = numpy.sqrt(vecX**2 + vecY**2 + vecZ**2)
+        if prod < 0.: dist *= -1.
+        intersectionTimes.append(dist/dataclasses.I3Constants.c + recoParticle.time)
+
+    entryTime = None
+    exitTime = None
+    intersectionTimes = sorted(intersectionTimes)
+    if len(intersectionTimes)==0:
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(0.)
+
+        totalRecoLosses = 0.
+        for entry in recoLosses:
+            totalRecoLosses += entry[1]
+        p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(totalRecoLosses)
+        return
+
+    entryTime = intersectionTimes[0]-60.*I3Units.m/dataclasses.I3Constants.c
+    intersectionTimes = intersectionTimes[1:]
+    exitTime = intersectionTimes[-1]+60.*I3Units.m/dataclasses.I3Constants.c
+    intersectionTimes = intersectionTimes[:-1]
+
+    totalRecoLosses = 0.
+    totalRecoLossesInside = 0.
+    for entry in recoLosses:
+        totalRecoLosses += entry[1]
+        if entryTime is not None and entry[0] < entryTime: continue
+        if exitTime  is not None and entry[0] > exitTime:  continue
+        totalRecoLossesInside += entry[1]
+
+    p_frame["MillipedeStarting2ndPass_totalRecoLossesInside"] = dataclasses.I3Double(totalRecoLossesInside)
+    p_frame["MillipedeStarting2ndPass_totalRecoLossesTotal"] = dataclasses.I3Double(totalRecoLosses)
+
 
 
 
@@ -216,6 +307,7 @@ def save_pixels(broker, auth_token, topic_in, filename_out, nsides_to_wait_for, 
     tray.Add(uncompress, "GCD_uncompress",
              keep_compressed=False,
              base_path=config.base_GCD_path)
+    tray.AddModule(get_reco_losses_inside, "get_reco_losses_inside")
     
     tray.Add("I3Writer", "writer",
              Filename=filename_out,

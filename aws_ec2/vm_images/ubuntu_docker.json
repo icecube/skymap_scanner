@@ -25,7 +25,7 @@
             "launch_block_device_mappings": [
                 {
                     "device_name": "/dev/sda1",
-                    "volume_size": 16,
+                    "volume_size": 32,
                     "volume_type": "gp2",
                     "delete_on_termination": true
                 }
@@ -65,33 +65,9 @@
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
                 "sudo usermod -aG docker ubuntu",
-                "sudo docker --version"
-            ]
-        },
-        {
-            "type": "shell-local",
-            "inline": [
-              "docker save -o ./generated_files/skymap_scanner.latest.docker.xz icecube/skymap_scanner:latest"
-            ]
-        },
-        {
-            "type": "file",
-            "source": "./generated_files/",
-            "destination": "/home/ubuntu/"
-        },
-        {
-            "type": "shell-local",
-            "inline": [
-              "rm ./generated_files/skymap_scanner.latest.docker.xz"
-            ]
-        },
-        {
-            "type": "shell",
-            "inline": [
-              "rm -f /home/ubuntu/.empty_dir",
-              "sudo docker load -i /home/ubuntu/skymap_scanner.latest.docker.xz",
-              "rm -f /home/ubuntu/skymap_scanner.latest.docker.xz",
-              "sudo docker pull apachepulsar/pulsar:2.5.0"
+                "sudo docker --version",
+                "sudo docker pull icecube/skymap_scanner:latest",
+                "sudo docker pull apachepulsar/pulsar:2.5.0"
             ]
         }
     ]

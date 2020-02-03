@@ -33,6 +33,8 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("AreaCenterPixel", "The healpix pixel number where the area to be scanned is centered.", None)
         self.AddParameter("AreaNumPixels",   "The number of pixels in the area to be scanned (this is in terms of \"NSide\").", None)
 
+        self.AddParameter("PixelList",   "A specific list of pixels to send.", None)
+
         self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
@@ -53,6 +55,8 @@ class SendPixelsToScan(icetray.I3Module):
         self.area_center_pixel = self.GetParameter("AreaCenterPixel")
         self.area_num_pixels = self.GetParameter("AreaNumPixels")
 
+        self.pixel_list_override = self.GetParameter("PixelList")
+
         if (self.area_center_nside is not None or self.area_center_pixel is not None or self.area_num_pixels is not None) and \
            (self.area_center_nside is     None or self.area_center_pixel is     None or self.area_num_pixels is     None):
            raise RuntimeError("You have to either set none of the three options AreaCenterNSide,AreaCenterPixel,AreaNumPixels or all of them")
@@ -68,15 +72,18 @@ class SendPixelsToScan(icetray.I3Module):
         self.event_header = p_frame["I3EventHeader"]
         self.event_mjd = get_event_mjd(self.GCDQpFrames)
 
-        # self.pixels_to_push = range(healpy.nside2npix(self.nside))
-        self.pixels_to_push = create_pixel_list(
-            self.nside,
-            area_center_nside=self.area_center_nside,
-            area_center_pixel=self.area_center_pixel,
-            area_num_pixels=self.area_num_pixels
-            )
+        if self.pixel_list_override is not None:
+            self.pixels_to_push = self.pixel_list_override
+            print("Going to submit {} pixels (from a specific list: {})".format(len(self.pixels_to_push), self.pixel_list_override))
+        else:
+            self.pixels_to_push = create_pixel_list(
+                self.nside,
+                area_center_nside=self.area_center_nside,
+                area_center_pixel=self.area_center_pixel,
+                area_num_pixels=self.area_num_pixels
+                )
         
-        print("Going to submit {} pixels".format(len(self.pixels_to_push)))
+            print("Going to submit {} pixels".format(len(self.pixels_to_push)))
         
         self.pixel_index = 0
         
@@ -150,12 +157,14 @@ class SendPixelsToScan(icetray.I3Module):
             self.PushFrame(p_frame)
 
 
-def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, event_name, nside=1, area_center_nside=None, area_center_pixel=None, area_num_pixels=None):
+def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, event_name, nside=1, area_center_nside=None, area_center_pixel=None, area_num_pixels=None, pixel_list=None):
     if (area_center_nside is not None or area_center_pixel is not None or area_num_pixels is not None) and \
        (area_center_nside is None or area_center_pixel is None or area_num_pixels is None):
        raise RuntimeError("You have to either set none of the three options area_center_nside,area_center_pixel,area_num_pixels or all of them")
     
-    if area_center_nside is None:
+    if pixel_list is not None:
+        producer_name = None # do not use deduplication if we have a specific list of pixels
+    elif area_center_nside is None:
         producer_name = "skymap_to_scan_producer-" + event_name + "-nside" + str(nside)
     else:
         producer_name = "skymap_to_scan_producer-" + event_name + "-nside" + str(nside) + "-Cn" + str(area_center_nside) + "-p" + str(area_center_pixel)
@@ -205,7 +214,8 @@ def send_scan(frame_packet, broker, auth_token, topic, metadata_topic_base, even
         PosVariations=posVariations,
         AreaCenterNSide=area_center_nside,
         AreaCenterPixel=area_center_pixel,
-        AreaNumPixels=area_num_pixels
+        AreaNumPixels=area_num_pixels,
+        PixelList=pixel_list
     )
 
     # sanity check
