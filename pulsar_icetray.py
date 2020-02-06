@@ -71,9 +71,9 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.AddParameter("Topic", "The Apache Pulsar topic to send to (can be either a string or a function converting an input topic name to an output name)", None)
         self.AddParameter("PartitionKey", "A function or string (or None) with the partition key for this frame. All frames with the same partition key end up in the same topic partition.", None)
 
-        self.AddParameter("SendToSingleRandomPartition", "Choose a random partition and stick with it forever.", False)
+        self.AddParameter("SendToSinglePartitionIndex", "Choose a single partition and stick with it forever.", None)
 
-        self.AddParameter("ProducerName", "Name of the producer (random unique name of not specified)", None)
+        self.AddParameter("ProducerName", "Name of the producer (uses a random unique name if not specified)", None)
         self.AddParameter("I3IntForSequenceID", "Name of the I3Int frame object to use as a unique sequence ID within the topic. We will use a simple P-frame counter if nothing is specified. Make sure to use a unique ID object if you use a ProducerName and you are not sure you are the only producer.", None)
 
         self.AddParameter("MetadataTopicBase", "The Apache Pulsar topic prefix for metadata frame information", None)
@@ -88,7 +88,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.topic = self.GetParameter("Topic")
         self.partition_key = self.GetParameter("PartitionKey")
 
-        self.subscribe_to_single_random_partition = self.GetParameter("SendToSingleRandomPartition")
+        self.send_to_single_partition_index = self.GetParameter("SendToSinglePartitionIndex")
 
         self.producer_name = self.GetParameter("ProducerName")
         self.i3int_for_sequence_id = self.GetParameter("I3IntForSequenceID")
@@ -125,15 +125,36 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.metadata_frames_list = [] # list of dicts
 
     def create_producer(self, topic_name):
-        if self.subscribe_to_single_random_partition:
+        if self.send_to_single_partition_index is None:
+            final_topic = topic_name
+        elif isinstance(self.send_to_single_partition_index, str) and (self.send_to_single_partition_index == 'random'):
             all_partitions = self.client.get_topic_partitions(
                 topic=topic_name
             )
             
             final_topic = random.choice(all_partitions)
-            print("Chose to send to partition {} (out of {})".format(final_topic, all_partitions))
+            print("Randomly chose to send to partition {} (out of {})".format(final_topic, all_partitions))
         else:
-            final_topic = topic_name
+            # get all partition names
+            all_partitions = self.client.get_topic_partitions(
+                topic=topic_name
+            )
+            
+            # sort the partition names into an array by their partition index number
+            sorted_partitions = [None] * len(all_partitions)
+            for entry in all_partitions:
+                split_topic_name = entry.split('-')
+                if (len(split_topic_name) < 3) or (split_topic_name[-2] != 'partition'):
+                    raise RuntimeError("Unexpected topic partition name: {}".format(final_topic))
+                partition_index = int(split_topic_name[-1])
+                
+                if sorted_partitions[partition_index] is not None:
+                    raise RuntimeError("Two partition names have the same index! new:{} old:{}".format(entry, sorted_partitions[partition_index]))
+                
+                sorted_partitions[partition_index] = entry
+            
+            final_topic = all_partitions[self.send_to_single_partition_index]
+            print("Chose to send to partition {} (index {}) (out of {})".format(final_topic, self.send_to_single_partition_index, all_partitions))
         
         # Create the producer we will use to send messages.
         producer = self.client.create_producer(
@@ -391,7 +412,18 @@ class ReceiverService():
             )
             
             final_topic = random.choice(all_partitions)
-            print("Chose to read from partition {} (out of {})".format(final_topic, all_partitions))
+
+            if len(all_partitions) == 0:
+                self._chosen_partition_index = 0
+                self._chosen_partition = final_topic
+            else:
+                split_topic_name = final_topic.split('-')
+                if (len(split_topic_name) < 3) or (split_topic_name[-2] != 'partition'):
+                    raise RuntimeError("Unexpected topic partition name: {}".format(final_topic))
+                self._chosen_partition_index = int(split_topic_name[-1])
+                self._chosen_partition = final_topic
+
+            print("Chose to read from partition {}: index {} (out of {})".format(final_topic, self._chosen_partition_index, all_partitions))
             
             if receiver_queue_size is None:
                 receiver_queue_size = 1 # TODO: can we use 0 here? might need to get rid of the timeout below
@@ -402,6 +434,8 @@ class ReceiverService():
             if receiver_queue_size is None:
                 receiver_queue_size = 1
                 max_total_receiver_queue_size_across_partitions
+            self._chosen_partition_index = None
+            self._chosen_partition = final_topic
 
         self._consumer = self._client.subscribe(
             topic=final_topic,
@@ -412,13 +446,16 @@ class ReceiverService():
             initial_position=pulsar.InitialPosition.Earliest
             )
         
-        if subscribe_to_single_random_partition:
-            icetray.logging.log_debug("Set up consumer for topic \"{}\".".format(final_topic, client_service.broker_url()), unit=__name__)
-        else:
-            icetray.logging.log_debug("Set up consumer for topic \"{}\".".format(topic, client_service.broker_url()), unit=__name__)
+        icetray.logging.log_debug("Set up consumer for topic \"{}\".".format(final_topic, client_service.broker_url()), unit=__name__)
 
 
         self.message_in_flight_dict = {}
+
+    def chosen_partition_index(self):
+        return self._chosen_partition_index
+
+    def chosen_partition(self):
+        return self._chosen_partition
 
     def client(self):
         return self._client

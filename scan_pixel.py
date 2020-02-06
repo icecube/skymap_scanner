@@ -50,6 +50,10 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         subscribe_to_single_random_partition=True # if the input is a partitioned topic, subscribe to only *one* partition
     )
 
+    receiving_from_partition = receiver_service.chosen_partition()
+    receiving_from_partition_index = receiver_service.chosen_partition_index()
+    print("This worker is receiving from partition number {} [\"{}\"]".format(receiving_from_partition_index, receiving_from_partition))
+
     ########## the tray
     tray = I3Tray()
 
@@ -180,8 +184,8 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
-        # SendToSingleRandomPartition=True ## dangerous if there are more than 1 partitions... (and more than 1 collector is active)
-        # ... so don't use this in production
+        SendToSinglePartitionIndex=receiving_from_partition_index # send to a specific partition only (the same index we are receiving from)
+        # IMPORTANT: this assumes the input and the output topic have the same number of partitions!
         )
     
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
