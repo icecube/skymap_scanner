@@ -23,7 +23,7 @@ class Specs(dict):
     """Default ec2 instance specs"""
     def __init__(self):
         super(Specs, self).__init__()
-        self['ami'] = 'ami-044b09acfcdbc9630'
+        self['ami'] = 'ami-01d0cc4ea60341c0b'
         self['instance_types'] = {
             't3a.small': {'max_price': '0.008', 'cores': 1},
         }
