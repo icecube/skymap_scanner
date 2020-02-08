@@ -132,6 +132,7 @@ class WaitForNumberOfPFrames(icetray.I3Module):
             self.PushFrame(delimiter_frame) # delimiter frame -> acknowledge this superfluous frame
             return
 
+        # add the pixel to the cache map
         pixelNumToFramesMap[pixel] = (p_frame, delimiter_frame)
 
 
@@ -149,7 +150,7 @@ class WaitForNumberOfPFrames(icetray.I3Module):
 
         if len(pixelNumToFramesMap) >= npixel:
             self.report_progress()
-            print("\nAll frames arrived for nside {}, pushing all frames.".format(nside))
+            print("\nAll frames arrived for nside {}, pushing all {} frames.".format(nside, len(pixelNumToFramesMap)))
             
             for key in sorted(pixelNumToFramesMap.keys()):
                 self.PushFrame(pixelNumToFramesMap[key][0]) # p-frame

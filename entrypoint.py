@@ -176,6 +176,9 @@ if __name__ == "__main__":
     parser.add_option("--delete-output-from-queue", action="store_true",
         dest="DELETE_OUTPUT_FROM_QUEUE", help="When saving the output to a file, delete pixels from the queue once they have been written. They cannot be written a second time in that case.")
 
+    parser.add_option("--connect-worker-to-all-partitions", action="store_true",
+        dest="CONNECT_WORKER_TO_ALL_PARTITIONS", help="In normal operation the worker will choose a random input partition and only receive from it (and only send to the matching output partition). If you set this, it will read from all partitions. Bad for performance, but should be used if you only have very few workers.")
+
     parser.add_option("--fake-scan", action="store_true",
         dest="FAKE_SCAN", help="Just return random numbers and wait 1 second instead of performing the actual calculation in the worker. For testing only.")
 
@@ -241,7 +244,7 @@ if __name__ == "__main__":
         eventURL = args[1]
         producer(eventURL, broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic=topic_in, metadata_topic_base=topic_base_meta, event_name=options.NAME, nside=nside, area_center_nside=area_center_nside, area_center_pixel=area_center_pixel, area_num_pixels=area_num_pixels, pixel_list=pixel_list)
     elif mode == "worker":
-        scan_pixel(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_in, topic_out=topic_out, fake_scan=options.FAKE_SCAN)
+        scan_pixel(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_in, topic_out=topic_out, fake_scan=options.FAKE_SCAN, all_partitions=options.CONNECT_WORKER_TO_ALL_PARTITIONS)
     elif mode == "collector":
         collect_pixels(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_out, topic_base_out=topic_base_col)
     elif mode == "saver":
@@ -256,6 +259,6 @@ if __name__ == "__main__":
             print("Waiting for all pixels for NSide={}, corresponding to NPixel={}".format(nside, npixels))
             nsides = [nside]
 
-        save_pixels(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, nsides_to_wait_for=nsides, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE, npixel_for_nside={1024:12000})
+        save_pixels(broker=options.BROKER, auth_token=options.AUTH_TOKEN, topic_in=topic_base_col+options.NAME, filename_out=options.OUTPUT, nsides_to_wait_for=nsides, delete_from_queue=options.DELETE_OUTPUT_FROM_QUEUE, npixel_for_nside={128:3000, 1024:6000})
     else:
         raise RuntimeError("Unknown mode \"{}\"".args[0])

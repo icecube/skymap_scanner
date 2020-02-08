@@ -21,6 +21,7 @@ from pulsar_icetray import ReceivePFrameWithMetadata, AcknowledgeReceivedPFrame,
 
 def scan_pixel(broker, auth_token, topic_in, topic_out,
     pulsesName="SplitInIcePulsesLatePulseCleaned",
+    all_partitions=False,
     fake_scan=False):
 
     ########## load data
@@ -47,12 +48,17 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
         client_service=client_service,
         topic=topic_in,
         subscription_name="skymap-worker-sub",
-        subscribe_to_single_random_partition=True # if the input is a partitioned topic, subscribe to only *one* partition
+        subscribe_to_single_random_partition=not all_partitions # if the input is a partitioned topic, subscribe to only *one* partition
     )
 
-    receiving_from_partition = receiver_service.chosen_partition()
-    receiving_from_partition_index = receiver_service.chosen_partition_index()
-    print("This worker is receiving from partition number {} [\"{}\"]".format(receiving_from_partition_index, receiving_from_partition))
+    if all_partitions:
+        receiving_from_partition = None
+        receiving_from_partition_index = None
+        print("This worker is receiving from all partitions")
+    else:
+        receiving_from_partition = receiver_service.chosen_partition()
+        receiving_from_partition_index = receiver_service.chosen_partition_index()
+        print("This worker is receiving from partition number {} [\"{}\"]".format(receiving_from_partition_index, receiving_from_partition))
 
     ########## the tray
     tray = I3Tray()
