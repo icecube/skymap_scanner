@@ -2,61 +2,390 @@
 
 # docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118178.i3.zst -n Run00118178 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1465) [llh=1235.02]: dec=-2.39deg RA=140.62deg / 9.38hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118178.i3.zst -n Run00118178 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1465,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+#docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118178 -o /mnt/Run00118178_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118178          at (nside,pix)=(128,94661) [llh=1222.41]: dec=-2.09deg RA=138.52deg / 9.23hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118178.i3.zst -n Run00118178 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,94661,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118178 -o /mnt/Run00118178_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118178          at (nside,pix)=(1024,6077991) [llh=1221.96]: dec=-1.94deg RA=138.47deg / 9.23hours 
+  
+
 
 # docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118309.i3.zst -n Run00118309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,2448) [llh=2407.48]: dec=35.69deg RA=272.81deg / 18.19hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118309.i3.zst -n Run00118309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2448,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118309 -o /mnt/Run00118309_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118309          at (nside,pix)=(128,155779) [llh=2407.04]: dec=35.69deg RA=272.46deg / 18.16hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118309.i3.zst -n Run00118309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,155779,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118309 -o /mnt/Run00118309_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118309          at (nside,pix)=(1024,9958429) [llh=2406.82]: dec=35.64deg RA=272.55deg / 18.17hours 
 
-#docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118342.i3.zst -n Run00118342 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118342.i3.zst -n Run00118342 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1644) [llh=1145.85]: dec=4.78deg RA=70.31deg / 4.69hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118342.i3.zst -n Run00118342 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1644,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118342 -o /mnt/Run00118342_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118342          at (nside,pix)=(128,107365) [llh=1128.79]: dec=5.38deg RA=71.37deg / 4.76hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118342.i3.zst -n Run00118342 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,107365,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118342 -o /mnt/Run00118342_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118342          at (nside,pix)=(1024,6880041) [llh=1127.63]: dec=5.38deg RA=71.15deg / 4.74hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118475.i3.zst -n Run00118475 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1723) [llh=1797.48]: dec=7.18deg RA=151.88deg / 10.12hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118475.i3.zst -n Run00118475 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1723,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118475 -o /mnt/Run00118475_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118475          at (nside,pix)=(128,110039) [llh=1786.80]: dec=6.88deg RA=151.17deg / 10.08hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118475.i3.zst -n Run00118475 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,110039,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118475 -o /mnt/Run00118475_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118475          at (nside,pix)=(1024,7057079) [llh=1786.18]: dec=6.99deg RA=151.08deg / 10.07hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118539.i3.zst -n Run00118539 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1628) [llh=1298.03]: dec=2.39deg RA=337.50deg / 22.50hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118539.i3.zst -n Run00118539 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1628,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118539 -o /mnt/Run00118539_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118539          at (nside,pix)=(128,101087) [llh=1270.00]: dec=1.49deg RA=336.80deg / 22.45hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118539.i3.zst -n Run00118539 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,101087,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118539 -o /mnt/Run00118539_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118539          at (nside,pix)=(1024,6461176) [llh=1269.84]: dec=1.53deg RA=336.80deg / 22.45hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118576.i3.zst -n Run00118576 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1499) [llh=2460.25]: dec=-2.39deg RA=331.88deg / 22.13hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118576.i3.zst -n Run00118576 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1499,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118576 -o /mnt/Run00118576_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118576          at (nside,pix)=(128,94937) [llh=2451.38]: dec=-2.09deg RA=332.58deg / 22.17hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118576.i3.zst -n Run00118576 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,94937,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118576 -o /mnt/Run00118576_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118576          at (nside,pix)=(1024,6063814) [llh=2450.20]: dec=-2.09deg RA=332.45deg / 22.16hours 
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118631.i3.zst -n Run00118631 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1698) [llh=1199.89]: dec=7.18deg RA=11.25deg / 0.75hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118631.i3.zst -n Run00118631 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1698,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118631 -o /mnt/Run00118631_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118631          at (nside,pix)=(128,110862) [llh=1179.07]: dec=7.48deg RA=9.84deg / 0.66hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118631.i3.zst -n Run00118631 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,110862,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118631 -o /mnt/Run00118631_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118631          at (nside,pix)=(1024,7121007) [llh=1177.42]: dec=7.59deg RA=9.76deg / 0.65hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118660.i3.zst -n Run00118660 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1794) [llh=1095.63]: dec=9.59deg RA=194.06deg / 12.94hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118660.i3.zst -n Run00118660 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1794,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118660 -o /mnt/Run00118660_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118660          at (nside,pix)=(128,114199) [llh=1072.45]: dec=9.29deg RA=196.17deg / 13.08hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00118660.i3.zst -n Run00118660 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,114199,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118660 -o /mnt/Run00118660_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118660          at (nside,pix)=(1024,7319735) [llh=1071.99]: dec=9.40deg RA=196.08deg / 13.07hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118738.i3.zst -n Run00118738 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,2725) [llh=3296.28]: dec=51.26deg RA=121.15deg / 8.08hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118738.i3.zst -n Run00118738 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2725,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118738 -o /mnt/Run00118738_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118738          at (nside,pix)=(128,173640) [llh=2808.35]: dec=50.09deg RA=121.54deg / 8.10hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118738.i3.zst -n Run00118738 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,173640,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118738 -o /mnt/Run00118738_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118738          at (nside,pix)=(1024,11113456) [llh=2807.55]: dec=50.04deg RA=121.45deg / 8.10hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118741.i3.zst -n Run00118741 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,1423) [llh=2344.50]: dec=-4.78deg RA=267.19deg / 17.81hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118741.i3.zst -n Run00118741 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1423,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118741 -o /mnt/Run00118741_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118741          at (nside,pix)=(128,90748) [llh=2338.89]: dec=-4.48deg RA=267.19deg / 17.81hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118741.i3.zst -n Run00118741 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,90748,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118741 -o /mnt/Run00118741_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118741          at (nside,pix)=(1024,5805022) [llh=2337.27]: dec=-4.44deg RA=267.01deg / 17.80hours 
+
+
 
 #docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118778.i3.zst -n Run00118778 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 - DONE: at (nside,pix)=(16,2620) [llh=2039.88]: dec=44.99deg RA=171.00deg / 11.40hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118778.i3.zst -n Run00118778 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2620,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118778 -o /mnt/Run00118778_scanned128.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118778          at (nside,pix)=(128,167314) [llh=2007.84]: dec=44.60deg RA=171.45deg / 11.43hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118778.i3.zst -n Run00118778 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,167314,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118778 -o /mnt/Run00118778_scanned1024.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118778          at (nside,pix)=(1024,10716515) [llh=2002.95]: dec=44.70deg RA=172.13deg / 11.48hours 
 
 
 
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118973.i3.zst -n Run00118973 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118973.i3.zst -n Run00118973 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119097.i3.zst -n Run00119097 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119101.i3.zst -n Run00119101 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119125.i3.zst -n Run00119125 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119136.i3.zst -n Run00119136 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119146.i3.zst -n Run00119146 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119739.i3.zst -n Run00119739 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120027.i3.zst -n Run00120027 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120157.i3.zst -n Run00120157 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120185.i3.zst -n Run00120185 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120186.i3.zst -n Run00120186 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120205.i3.zst -n Run00120205 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120244.i3.zst -n Run00120244 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120260.i3.zst -n Run00120260 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120309.i3.zst -n Run00120309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120535.i3.zst -n Run00120535 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120680.i3.zst -n Run00120680 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120798.i3.zst -n Run00120798 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120860.i3.zst -n Run00120860 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120884.i3.zst -n Run00120884 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
-docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120935.i3.zst -n Run00120935 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118973.i3.zst -n Run00118973 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00118973 -o /mnt/Run00118973_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118973          at (nside,pix)=(16,1764) [llh=1425.88]: dec=9.59deg RA=25.31deg / 1.69hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118973.i3.zst -n Run00118973 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1764,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118973 -o /mnt/Run00118973_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118973          at (nside,pix)=(128,114981) [llh=1422.65]: dec=9.90deg RA=26.02deg / 1.73hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00118973.i3.zst -n Run00118973 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,114981,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118973 -o /mnt/Run00118973_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118973          at (nside,pix)=(1024,7362856) [llh=1422.48]: dec=9.82deg RA=26.06deg / 1.74hours
+  
+
+
+
+# docker run -v $PWD:/mnt --rm -ti icecube/skymap_scanner:latest producer /mnt/Run00118973_event2.i3.zst -n Run00118973_event2 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00118973_event2 -o /mnt/Run00118973_event2_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118973_event2   at (nside,pix)=(16,1247) [llh=9320.95]: dec=-12.02deg RA=354.38deg / 23.62hours 
+# docker run -v $PWD:/mnt --rm -ti icecube/skymap_scanner:latest producer /mnt/Run00118973_event2.i3.zst -n Run00118973_event2 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1247,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00118973_event2 -o /mnt/Run00118973_event2_scanned128.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118973_event2   at (nside,pix)=(128,78075) [llh=8763.66]: dec=-12.02deg RA=356.84deg / 23.79hours 
+# docker run -v $PWD:/mnt --rm -ti icecube/skymap_scanner:latest producer /mnt/Run00118973_event2.i3.zst -n Run00118973_event2 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,78075,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00118973_event2 -o /mnt/Run00118973_event2_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00118973_event2   at (nside,pix)=(1024,4986844) [llh=8763.00]: dec=-11.99deg RA=356.84deg / 23.79hours 
+
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119097.i3.zst -n Run00119097 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00119097 -o /mnt/Run00119097_scanned16.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119097          at (nside,pix)=(16,2493) [llh=1013.32]: dec=38.68deg RA=163.12deg / 10.88hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119097.i3.zst -n Run00119097 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2493,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00119097 -o /mnt/Run00119097_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119097          at (nside,pix)=(128,159723) [llh=1006.25]: dec=38.68deg RA=165.59deg / 11.04hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119097.i3.zst -n Run00119097 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,159723,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00119097 -o /mnt/Run00119097_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119097          at (nside,pix)=(1024,10207063) [llh=1006.04]: dec=38.49deg RA=165.19deg / 11.01hours
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119101.i3.zst -n Run00119101 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00119101 -o /mnt/Run00119101_scanned16.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119101          at (nside,pix)=(16,2033) [llh=2063.07]: dec=19.47deg RA=98.44deg / 6.56hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119101.i3.zst -n Run00119101 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2033,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00119101 -o /mnt/Run00119101_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119101          at (nside,pix)=(128,132494) [llh=2040.79]: dec=20.42deg RA=99.84deg / 6.66hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119101.i3.zst -n Run00119101 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,132494,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00119101 -o /mnt/Run00119101_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119101          at (nside,pix)=(1024,8486001) [llh=2040.46]: dec=20.42deg RA=99.98deg / 6.67hours
+  
+  
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119125.i3.zst -n Run00119125 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00119125 -o /mnt/Run00119125_scanned16.i3 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119125          at (nside,pix)=(16,1612) [llh=1899.34]: dec=2.39deg RA=247.50deg / 16.50hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119125.i3.zst -n Run00119125 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1612,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00119125 -o /mnt/Run00119125_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119125          at (nside,pix)=(128,99424) [llh=1846.51]: dec=0.60deg RA=247.85deg / 16.52hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119125.i3.zst -n Run00119125 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,99424,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00119125 -o /mnt/Run00119125_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119125          at (nside,pix)=(1024,6353668) [llh=1846.40]: dec=0.56deg RA=247.85deg / 16.52hours 
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119136.i3.zst -n Run00119136 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00119136 -o /mnt/Run00119136_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119136          at (nside,pix)=(16,2022) [llh=1171.55]: dec=19.47deg RA=36.56deg / 2.44hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119136.i3.zst -n Run00119136 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2022,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00119136 -o /mnt/Run00119136_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119136          at (nside,pix)=(128,129844) [llh=1169.72]: dec=18.84deg RA=36.91deg / 2.46hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119136.i3.zst -n Run00119136 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,129844,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00119136 -o /mnt/Run00119136_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119136          at (nside,pix)=(1024,8325538) [llh=1169.05]: dec=18.88deg RA=36.74deg / 2.45hours 
+
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119146.i3.zst -n Run00119146 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00119146 -o /mnt/Run00119146_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119146          at (nside,pix)=(16,1701) [llh=1612.14]: dec=7.18deg RA=28.12deg / 1.87hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119146.i3.zst -n Run00119146 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1701,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00119146 -o /mnt/Run00119146_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119146          at (nside,pix)=(128,109862) [llh=1607.82]: dec=6.88deg RA=26.72deg / 1.78hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00119146.i3.zst -n Run00119146 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,109862,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00119146 -o /mnt/Run00119146_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119146          at (nside,pix)=(1024,7059761) [llh=1607.75]: dec=7.03deg RA=26.85deg / 1.79hours 
+  
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119739.i3.zst -n Run00119739 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00119739 -o /mnt/Run00119739_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119739          at (nside,pix)=(16,2058) [llh=4335.93]: dec=19.47deg RA=239.06deg / 15.94hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119739.i3.zst -n Run00119739 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2058,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00119739 -o /mnt/Run00119739_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119739          at (nside,pix)=(128,130130) [llh=4138.65]: dec=18.84deg RA=238.01deg / 15.87hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00119739.i3.zst -n Run00119739 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,130130,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00119739 -o /mnt/Run00119739_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00119739          at (nside,pix)=(1024,8315539) [llh=4138.12]: dec=18.76deg RA=237.96deg / 15.86hours 
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120027.i3.zst -n Run00120027 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120027 -o /mnt/Run00120027_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120027          at (nside,pix)=(16,1536) [llh=1249.91]: dec=0.00deg RA=182.81deg / 12.19hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120027.i3.zst -n Run00120027 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1536,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120027 -o /mnt/Run00120027_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120027          at (nside,pix)=(128,99333) [llh=1229.28]: dec=0.60deg RA=183.87deg / 12.26hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120027.i3.zst -n Run00120027 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,99333,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120027 -o /mnt/Run00120027_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120027          at (nside,pix)=(1024,6348840) [llh=1227.51]: dec=0.52deg RA=183.56deg / 12.24hours
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120157.i3.zst -n Run00120157 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120157 -o /mnt/Run00120157_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120157          at (nside,pix)=(16,2307) [llh=2005.72]: dec=30.00deg RA=199.69deg / 13.31hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120157.i3.zst -n Run00120157 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2307,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120157 -o /mnt/Run00120157_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120157          at (nside,pix)=(128,150043) [llh=1929.69]: dec=31.74deg RA=198.98deg / 13.27hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120157.i3.zst -n Run00120157 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,150043,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120157 -o /mnt/Run00120157_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120157          at (nside,pix)=(1024,9625815) [llh=1928.01]: dec=32.00deg RA=198.94deg / 13.26hours
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120185.i3.zst -n Run00120185 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120185 -o /mnt/Run00120185_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120185          at (nside,pix)=(16,2238) [llh=2915.13]: dec=27.28deg RA=168.75deg / 11.25hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120185.i3.zst -n Run00120185 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2238,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120185 -o /mnt/Run00120185_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120185          at (nside,pix)=(128,141811) [llh=2827.03]: dec=26.28deg RA=170.86deg / 11.39hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120185.i3.zst -n Run00120185 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,141811,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120185 -o /mnt/Run00120185_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120185          at (nside,pix)=(1024,9093018) [llh=2821.23]: dec=26.44deg RA=171.08deg / 11.41hours
+  
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120186.i3.zst -n Run00120186 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120186 -o /mnt/Run00120186_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120186          at (nside,pix)=(16,2013) [llh=1002.89]: dec=16.96deg RA=343.12deg / 22.88hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120186.i3.zst -n Run00120186 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2013,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120186 -o /mnt/Run00120186_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120186          at (nside,pix)=(128,124649) [llh=989.76]: dec=15.40deg RA=343.83deg / 22.92hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120186.i3.zst -n Run00120186 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,124649,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120186 -o /mnt/Run00120186_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120186          at (nside,pix)=(1024,7972679) [llh=989.58]: dec=15.48deg RA=343.78deg / 22.92hours 
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120205.i3.zst -n Run00120205 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120205 -o /mnt/Run00120205_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120205          at (nside,pix)=(16,2111) [llh=1041.40]: dec=22.02deg RA=174.38deg / 11.62hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120205.i3.zst -n Run00120205 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2111,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120205 -o /mnt/Run00120205_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120205          at (nside,pix)=(128,136699) [llh=1030.18]: dec=22.99deg RA=176.48deg / 11.77hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120205.i3.zst -n Run00120205 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,136699,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120205 -o /mnt/Run00120205_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120205          at (nside,pix)=(1024,8736728) [llh=1029.86]: dec=22.87deg RA=176.48deg / 11.77hours
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120244.i3.zst -n Run00120244 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120244 -o /mnt/Run00120244_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120244          at (nside,pix)=(16,1909) [llh=1654.82]: dec=14.48deg RA=120.94deg / 8.06hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120244.i3.zst -n Run00120244 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1909,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120244 -o /mnt/Run00120244_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120244          at (nside,pix)=(128,123306) [llh=1632.19]: dec=14.79deg RA=119.53deg / 7.97hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120244.i3.zst -n Run00120244 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,123306,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120244 -o /mnt/Run00120244_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120244          at (nside,pix)=(1024,7896397) [llh=1630.95]: dec=14.79deg RA=119.31deg / 7.95hours 
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120260.i3.zst -n Run00120260 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120260 -o /mnt/Run00120260_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120260          at (nside,pix)=(16,2427) [llh=1855.41]: dec=35.69deg RA=154.69deg / 10.31hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120260.i3.zst -n Run00120260 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2427,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120260 -o /mnt/Run00120260_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120260          at (nside,pix)=(128,156633) [llh=1793.76]: dec=36.42deg RA=152.93deg / 10.20hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120260.i3.zst -n Run00120260 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,156633,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120260 -o /mnt/Run00120260_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120260          at (nside,pix)=(1024,10022600) [llh=1792.94]: dec=36.38deg RA=152.58deg / 10.17hours 
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120309.i3.zst -n Run00120309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120309 -o /mnt/Run00120309_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120309          at (nside,pix)=(16,1127) [llh=13135.04]: dec=-14.48deg RA=42.19deg / 2.81hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120309.i3.zst -n Run00120309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1127,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120309 -o /mnt/Run00120309_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120309          at (nside,pix)=(128,72504) [llh=11490.10]: dec=-15.09deg RA=39.73deg / 2.65hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120309.i3.zst -n Run00120309 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,72504,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120309 -o /mnt/Run00120309_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120309          at (nside,pix)=(1024,4651462) [llh=11468.73]: dec=-15.09deg RA=39.95deg / 2.66hours 
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120535.i3.zst -n Run00120535 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120535 -o /mnt/Run00120535_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120535          at (nside,pix)=(16,1562) [llh=3131.24]: dec=0.00deg RA=329.06deg / 21.94hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120535.i3.zst -n Run00120535 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1562,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120535 -o /mnt/Run00120535_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120535          at (nside,pix)=(128,101077) [llh=2916.14]: dec=1.49deg RA=329.77deg / 21.98hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120535.i3.zst -n Run00120535 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,101077,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120535 -o /mnt/Run00120535_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120535          at (nside,pix)=(1024,6448811) [llh=2912.29]: dec=1.42deg RA=330.07deg / 22.00hours 
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120680.i3.zst -n Run00120680 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120680 -o /mnt/Run00120680_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120680          at (nside,pix)=(16,1664) [llh=1888.31]: dec=4.78deg RA=182.81deg / 12.19hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120680.i3.zst -n Run00120680 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1664,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120680 -o /mnt/Run00120680_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120680          at (nside,pix)=(128,104963) [llh=1834.34]: dec=3.88deg RA=182.11deg / 12.14hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120680.i3.zst -n Run00120680 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,104963,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120680 -o /mnt/Run00120680_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120680          at (nside,pix)=(1024,6717465) [llh=1834.28]: dec=3.88deg RA=182.24deg / 12.15hours 
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120798.i3.zst -n Run00120798 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120798 -o /mnt/Run00120798_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120798          at (nside,pix)=(16,1476) [llh=3235.95]: dec=-2.39deg RA=202.50deg / 13.50hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120798.i3.zst -n Run00120798 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1476,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120798 -o /mnt/Run00120798_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120798          at (nside,pix)=(128,94243) [llh=2898.26]: dec=-2.39deg RA=204.96deg / 13.66hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120798.i3.zst -n Run00120798 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,94243,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120798 -o /mnt/Run00120798_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120798          at (nside,pix)=(1024,6041886) [llh=2894.20]: dec=-2.28deg RA=205.14deg / 13.68hours 
+
+
+
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120860.i3.zst -n Run00120860 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120860 -o /mnt/Run00120860_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120860          at (nside,pix)=(16,2238) [llh=1746.02]: dec=27.28deg RA=168.75deg / 11.25hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120860.i3.zst -n Run00120860 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,2238,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120860 -o /mnt/Run00120860_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120860          at (nside,pix)=(128,144369) [llh=1711.70]: dec=27.95deg RA=169.80deg / 11.32hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00120860.i3.zst -n Run00120860 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,144369,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120860 -o /mnt/Run00120860_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120860          at (nside,pix)=(1024,9236364) [llh=1711.64]: dec=27.91deg RA=169.80deg / 11.32hours 
+  
+  
+  
+
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120884.i3.zst -n Run00120884 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120884 -o /mnt/Run00120884_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120884          at (nside,pix)=(16,1718) [llh=2971.05]: dec=7.18deg RA=123.75deg / 8.25hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120884.i3.zst -n Run00120884 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1718,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120884 -o /mnt/Run00120884_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120884          at (nside,pix)=(128,108463) [llh=2812.97]: dec=5.98deg RA=123.40deg / 8.23hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120884.i3.zst -n Run00120884 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,108463,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120884 -o /mnt/Run00120884_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120884          at (nside,pix)=(1024,6954361) [llh=2812.06]: dec=6.05deg RA=123.18deg / 8.21hours 
+  
+  
+  
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120935.i3.zst -n Run00120935 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 -n Run00120935 -o /mnt/Run00120935_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120935          at (nside,pix)=(16,1736) [llh=1586.56]: dec=7.18deg RA=225.00deg / 15.00hours 
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120935.i3.zst -n Run00120935 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 --area 16,1736,3000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 128 -n Run00120935 -o /mnt/Run00120935_scanned16.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120935          at (nside,pix)=(128,113217) [llh=1506.25]: dec=8.69deg RA=225.70deg / 15.05hours
+# docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00120935.i3.zst -n Run00120935 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 --area 128,113217,6000 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+# docker run --rm -v /Users/claudio/Code/skymap_scanner:/mnt -ti icecube/skymap_scanner:latest saver --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 1024 -n Run00120935 -o /mnt/Run00120935_scanned1024.i3.zst --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
+  ** best entry for Run00120935          at (nside,pix)=(1024,7262728) [llh=1504.75]: dec=8.88deg RA=225.70deg / 15.05hours
+
+
+
+
 docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00121761.i3.zst -n Run00121761 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 docker run --rm -ti icecube/skymap_scanner:latest producer http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_bronze/Run00121762.i3.zst -n Run00121762 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
 docker run --rm -ti icecube/skymap_scanner:latest producer   http://icecube:skua@convey.icecube.wisc.edu/data/user/tkintscher/samples/gfu_2017/i3/muons_gold/Run00121769.i3.zst -n Run00121769 --broker pulsar+ssl://pulsar.api.icecube.aq:6651 --nside 16 --auth-token `cat aws_ec2/pulsar_terraform_ansible/secrets/icecube.skymap.token`
