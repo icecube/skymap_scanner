@@ -25,10 +25,10 @@ After=network.target
 ExecStart=/opt/pulsar/bin/pulsar bookie
 WorkingDirectory=/opt/pulsar
 RestartSec=1s
-Restart=on-failure
+Restart=always
 Type=simple
-LimitNOFILE=39693561
-LimitNPROC=500000
+LimitNOFILE=52428800
+LimitNPROC=infinity
 
 [Install]
 WantedBy=multi-user.target

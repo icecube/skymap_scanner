@@ -27,8 +27,8 @@ WorkingDirectory=/opt/pulsar
 RestartSec=1s
 Restart=on-failure
 Type=simple
-LimitNOFILE=39693561
-LimitNPROC=500000
+LimitNOFILE=52428800
+LimitNPROC=infinity
 
 [Install]
 WantedBy=multi-user.target

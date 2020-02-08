@@ -53,8 +53,8 @@ pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 pulsar-admin namespaces grant-permission icecube/skymap          --actions produce,consume --role icecube.skymap
 pulsar-admin namespaces grant-permission icecube/skymap_metadata --actions produce,consume --role icecube.skymap
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 8
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 8
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 32
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 32
 ```
 
 If you want to use pulsar-admin from a different host, you could use docker to get access
@@ -63,15 +63,15 @@ This can be used from remote hosts to administer the pulsar cluster:
 ```
 alias pulsar-admin='docker run --rm -ti apachepulsar/pulsar:2.5.0 bin/pulsar-admin --admin-url https://pulsar.api.icecube.aq:8443 --auth-plugin org.apache.pulsar.client.impl.auth.AuthenticationToken --auth-params token:`cat secrets/admin.token`'
 pulsar-admin tenants create --admin-roles icecube icecube
-pulsar-admin namespaces create icecube/skymap --bundles 64
+pulsar-admin namespaces create icecube/skymap --bundles 128
 pulsar-admin namespaces set-deduplication icecube/skymap --enable
-pulsar-admin namespaces create icecube/skymap_metadata --bundles 64
+pulsar-admin namespaces create icecube/skymap_metadata --bundles 128
 pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
 pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
 pulsar-admin namespaces grant-permission icecube/skymap          --actions produce,consume --role icecube.skymap
 pulsar-admin namespaces grant-permission icecube/skymap_metadata --actions produce,consume --role icecube.skymap
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 8
-pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 8
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 32
+pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 32
 ```
 
 Once you are ready, use something like this to submit your jobs:

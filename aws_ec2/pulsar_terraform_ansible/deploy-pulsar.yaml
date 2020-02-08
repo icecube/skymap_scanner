@@ -103,7 +103,13 @@
           - nano
     - sysctl:
         name: fs.file-max
-        value: '15496840'
+        value: '1572864000'
+        sysctl_set: yes
+        state: present
+        reload: yes
+    - sysctl:
+        name: fs.nr_open
+        value: '157286400'
         sysctl_set: yes
         state: present
         reload: yes

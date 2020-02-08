@@ -18,6 +18,20 @@
 # under the License.
 #
 
+# unlimited everything!
+ulimit -Hi unlimited
+ulimit -Si unlimited
+ulimit -Hu unlimited
+ulimit -Su unlimited
+ulimit -Hu unlimited
+ulimit -Su unlimited
+ulimit -Hq unlimited
+ulimit -Sq unlimited
+ulimit -Hs unlimited
+ulimit -Ss unlimited
+ulimit -Hn 52428800
+ulimit -Sn 52428800
+
 # Set JAVA_HOME here to override the environment setting
 # JAVA_HOME=
 
