@@ -1,8 +1,4 @@
-# icetray:combo-stable-prod is the same as "slim",
-# but also includes photon tables
-# and baseline GCDs, both of which we need.
-# FROM icecube/icetray:combo-stable-prod
-FROM icecube/icetray:combo-stable-tensorflow.2.1.0-ubuntu18.04
+FROM icecube/icetray:combo-V00-00-01-tensorflow.2.1.0-ubuntu18.04
 
 # Make this tensorflow image "universal" (enable the library
 # to load even in absence of libcuda.so linked in by nvidia-docker).
@@ -18,13 +14,6 @@ RUN pip install pulsar-client==2.5.0 && \
     pip install tqdm && \
     pip install backports.tempfile && \
     pip install psutil
-
-######### SNIP
-##### TODO: remove this once icetray has been updated
-# patch frame_object_diff here until we get a new release of icetray
-COPY segments.py.patch /tmp/segments.py.patch
-RUN patch /usr/local/icetray/lib/icecube/frame_object_diff/segments.py /tmp/segments.py.patch && rm /tmp/segments.py.patch
-######### SNAP
 
 # copy all .py files from the repository into the container image
 COPY *.py /local/
