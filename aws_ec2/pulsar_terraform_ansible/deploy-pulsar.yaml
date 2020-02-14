@@ -113,6 +113,12 @@
         sysctl_set: yes
         state: present
         reload: yes
+    - sysctl:
+        name: vm.max_map_count
+        value: '1966080'
+        sysctl_set: yes
+        state: present
+        reload: yes
     - set_fact:
         zookeeper_servers: "{{ groups['zookeeper']|map('extract', hostvars, ['ansible_default_ipv4', 'address'])|map('regex_replace', '^(.*)$', '\\1:2181') | join(',') }}"
         service_url: "pulsar://{{ hostvars[groups['proxy'][0]].public_ip }}:6650/"
