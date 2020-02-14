@@ -32,6 +32,7 @@ from scan_pixel import scan_pixel
 from collect_pixels import collect_pixels
 from save_pixels import save_pixels
 from extract_i3_file import extract_i3_file
+from calculate_online_alert_dict import calculate_online_alert_dict
 
 def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_name, nside, area_center_nside=None, area_center_pixel=None, area_num_pixels=None, pixel_list=None):
     """
@@ -88,6 +89,9 @@ def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_nam
             GCDQp_packet = extract_i3_file( eventURL )
 
             pulsesName="SplitInIcePulses"
+            
+        GCDQp_packet = calculate_online_alert_dict(GCDQp_packet, pulsesName=pulsesName)
+            
         
         # This step will create missing frame objects if necessary.
         print('Event extracted. I will now perform some simple tasks like the HESE veto calculation...')
