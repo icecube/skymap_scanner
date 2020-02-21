@@ -114,7 +114,7 @@ class SendPixelsToScan(icetray.I3Module):
 
     def CreatePFrame(self, nside, pixel, pixel_index):
         dec, ra = healpy.pix2ang(nside, pixel)
-        dec = dec - numpy.pi/2.
+        dec = numpy.pi/2. - dec
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)

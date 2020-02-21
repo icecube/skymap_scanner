@@ -198,7 +198,7 @@ class WaitForNumberOfPFrames(icetray.I3Module):
             entry = self.best_results[name]
             
             minDec, minRA = healpy.pix2ang(entry['nside'], entry['pixel'])
-            minDec = minDec - numpy.pi/2.
+            minDec = numpy.pi/2. - minDec
 
             print("  ** best entry for {:20} at (nside,pix)=({},{}) [llh={:.2f}]: dec={:.2f}deg RA={:.2f}deg / {:.2f}hours ".format(
                 name, entry['nside'], entry['pixel'], entry['llh'],
