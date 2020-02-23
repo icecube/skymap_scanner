@@ -54,55 +54,6 @@ class FrameArraySink(icetray.I3Module):
             if self.suspend_after_stop == frame.Stop:
                 self.RequestSuspension()
 
-class CleanupFrameObjects(icetray.I3Module):
-    def __init__(self, ctx):
-        super(CleanupFrameObjects, self).__init__(ctx)
-        self.AddOutBox("OutBox")
-
-    def Configure(self):
-        self.keep_regexs = {
-            icetray.I3Frame.Physics : [
-                "^FilterMask$",
-                "^I3EventHeader$",
-                # "^SplitInIceDSTPulses.*",
-                "^SplitInIcePulses.*",
-            ],
-            icetray.I3Frame.DAQ : [
-                "^.*$"
-            ]
-        }
-        
-        # compile the regexps
-        new_keep_regexs={}
-        for i in self.keep_regexs.keys():
-            new_keep_regexs[i.id] = [re.compile(k) for k in self.keep_regexs[i]]
-        self.keep_regexs = new_keep_regexs
-
-
-    def Process(self):
-        frame = self.PopFrame()
-        if not frame: return
-
-        if frame.Stop.id in self.keep_regexs:
-            regexs = self.keep_regexs[frame.Stop.id]
-            
-            # see if any of them apply
-            old_keys = frame.keys()
-            for key in old_keys:
-                keep=False
-                for r in regexs:
-                    if r.match(key):
-                        keep=True
-                        break
-            
-                if not keep:
-                    frame.Rename(key, '__old__/'+key)
-        else:
-            # do nothing
-            pass
-
-        self.PushFrame(frame)
-
 def extract_i3_file_gcd_diff(url, baseline_gcd, stop_after_first_p_frame=True):
     frame_packet = []
     
@@ -116,7 +67,6 @@ def extract_i3_file_gcd_diff(url, baseline_gcd, stop_after_first_p_frame=True):
     tray = I3Tray()
     
     tray.Add("I3Reader", "reader", FilenameList=[url])
-    tray.Add(CleanupFrameObjects, "CleanupFrameObjects")
     
     if baseline_gcd is not None:
         tray.Add(compress, "GCD_diff",
