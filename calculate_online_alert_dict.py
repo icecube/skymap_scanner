@@ -98,14 +98,20 @@ def check_alerts(frame):
 
     frame["AlertPassed"] = dataclasses.I3String(alert_pass)
 
+    def conv_to_float(a):
+        if a is None:
+            return numpy.nan
+        else:
+            return float(a)
+
     if gfu_val is not None:
-        gfu_val  = {k : float(v) for k, v in gfu_val.iteritems()}
+        gfu_val  = {k : conv_to_float(v) for k, v in gfu_val.iteritems()}
     else:
         gfu_val = {}
     frame["AlertInfoGFU"] = dataclasses.I3MapStringDouble(gfu_val)
 
     if hese_val is not None:
-        hese_val = {k : float(v) for k, v in hese_val.iteritems()}
+        hese_val = {k : conv_to_float(v) for k, v in hese_val.iteritems()}
     else:
         hese_val = {}
     frame["AlertInfoHESE"] = dataclasses.I3MapStringDouble(hese_val)
