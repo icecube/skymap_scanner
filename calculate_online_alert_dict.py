@@ -125,8 +125,8 @@ def recreate_alert_short_followup_msg(frame_packet, pulsesName="SplitInIcePulses
     icetray.load("DomTools", False)
 
     SplineDir                = '/opt/i3-data/photon-tables/splines/'
-    SplineRecoAmplitudeTable = os.path.join(SplineDir, 'InfBareMu_mie_abs_z20a10.fits')
-    SplineRecoTimingTable    = os.path.join(SplineDir, 'InfBareMu_mie_prob_z20a10.fits')
+    SplineRecoAmplitudeTable = os.path.join(SplineDir, 'InfBareMu_mie_abs_z20a10_V2.fits')
+    SplineRecoTimingTable    = os.path.join(SplineDir, 'InfBareMu_mie_prob_z20a10_V2.fits')
 
     nominalPulsesName = "SplitInIcePulses"
 

@@ -1,10 +1,10 @@
 FROM icecube/icetray:combo-V00-00-01-tensorflow.2.1.0-ubuntu18.04
 
 # we need more spline tables (since we need to potentially re-do onlineL2)
-RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10.fits \
-        http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_abs_z20a10.fits && \
-    wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_prob_z20a10.fits \
-        http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_prob_z20a10.fits
+RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10_V2.fits \
+        http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_abs_z20a10_V2.fits && \
+    wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_prob_z20a10_V2.fits \
+        http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_prob_z20a10_V2.fits
 
 # Make this tensorflow image "universal" (enable the library
 # to load even in absence of libcuda.so linked in by nvidia-docker).
