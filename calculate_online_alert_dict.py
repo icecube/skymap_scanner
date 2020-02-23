@@ -136,6 +136,9 @@ def recreate_alert_short_followup_msg(frame_packet, pulsesName="SplitInIcePulses
 
     nominalPulsesName = "SplitInIcePulses"
 
+    # make a copy so we don't change any other references
+    frame_packet = [copy.copy(frame) for frame in frame_packet]
+    
     # sanity check the packet
     if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("frame packet does not end with Physics frame")
