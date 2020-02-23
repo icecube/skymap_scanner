@@ -24,7 +24,7 @@ After=network.target
 [Service]
 ExecStart=/opt/pulsar/bin/pulsar bookie
 WorkingDirectory=/opt/pulsar
-RestartSec=1s
+RestartSec=10s
 Restart=always
 Type=simple
 LimitNOFILE=52428800
