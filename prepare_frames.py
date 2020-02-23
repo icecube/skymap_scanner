@@ -223,16 +223,6 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
         ListNames = ExcludedDOMs,
         Streams=[icetray.I3Frame.Physics])
     
-    def delFrameObjectsWithDiffsAvailable(frame):
-        all_keys = frame.keys()
-        for key in frame.keys():
-            if not key.endswith('Diff'): continue
-            non_diff_key = key[:-4]
-            if non_diff_key in all_keys:
-                del frame[non_diff_key]
-                # print("deleted", non_diff_key, "from frame because a Diff exists")
-    tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
-
     tray.AddModule(FrameArraySink, FrameStore=intermediate_frames)
     tray.AddModule("TrashCan")
     tray.Execute()
@@ -242,6 +232,7 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
 
     print("")
     print("Starting CNN classification....")
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
     ##### DeepIceLearning has a bug that does not allow multiple instances to be used.
     ##### work around this by just re-starting a full tray
@@ -260,7 +251,7 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
                     saturation_windows='SaturationWindows',
                     bright_doms='BrightDOMs',
                     save_as='CNN_classification')
-    
+
     def print_classifier(frame):
         print("")
         print("CNN classification done:\n", frame["CNN_classification"])
@@ -281,7 +272,7 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
 
     ##### DeepIceLearning has a bug that does not allow multiple instances to be used.
     ##### work around this by just re-starting a full tray
-    output_frames = []
+    output_frames_fullGCD = []
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=intermediate_frames2)
 
@@ -296,7 +287,7 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
                     saturation_windows='SaturationWindows',
                     bright_doms='BrightDOMs',
                     save_as='CNN_mu_energy_reco_full_range')
-                    
+
     def print_energy(frame):
         print("")
         print("CNN energy reco done: {:.2f}TeV".format( (10**frame["CNN_mu_energy_reco_full_range"]['mu_E_on_entry'])/1e3) )
@@ -305,11 +296,36 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
     
     ##################
 
+    tray.AddModule(FrameArraySink, FrameStore=output_frames_fullGCD)
+    tray.AddModule("TrashCan")
+    tray.Execute()
+    tray.Finish()
+    del tray
+
+
+
+    print("Final cleanup of GCD objects (where a Diff is avaiable)....")
+
+    ##### Now remove GCD objects again where a Diff is available
+    output_frames = []
+
+    tray = I3Tray()
+    tray.AddModule(FrameArraySource, Frames=output_frames_fullGCD)
+    def delFrameObjectsWithDiffsAvailable(frame):
+        all_keys = frame.keys()
+        for key in frame.keys():
+            if not key.endswith('Diff'): continue
+            non_diff_key = key[:-4]
+            if non_diff_key in all_keys:
+                del frame[non_diff_key]
+                # print("deleted", non_diff_key, "from frame because a Diff exists")
+    tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
     tray.AddModule("TrashCan")
     tray.Execute()
     tray.Finish()
     del tray
+
 
     icetray.set_log_level_for_unit('I3Tray', icetray.I3LogLevel.LOG_NOTICE)
 
