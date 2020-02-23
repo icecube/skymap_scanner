@@ -41,6 +41,12 @@ WORKDIR /local
 COPY i3deepice/ /local/i3deepice/
 ENV PYTHONPATH /local/i3deepice/
 
+# patch onlinel2filter.py (it tries to do some magic with the pulse masks
+# which is unnecessary and makes assumptions that are not true for L2 data.)
+COPY onlinel2filter.py.patch /local
+RUN patch /usr/local/icetray/lib/icecube/filterscripts/onlinel2filter.py onlinel2filter.py.patch && \
+    rm onlinel2filter.py.patch
+
 # set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
 ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "python", "/local/entrypoint.py"]
 CMD []
