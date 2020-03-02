@@ -91,7 +91,6 @@ def check_alerts(frame):
     elif (hese_val is not None and hese_val['pass_loose'] == True):
         #print 'This is a BRONZE HESE alert'
         alert_pass = 'hese-bronze'
-        return results
     else:
         #print 'No Bronze or gold alerts found'
         alert_pass = 'none'
@@ -303,7 +302,10 @@ def recreate_alert_short_followup_msg(frame_packet, pulsesName="SplitInIcePulses
 
     icetray.set_log_level_for_unit('I3Tray', icetray.I3LogLevel.LOG_NOTICE)
     
-    return output_frames[-1]["AlertShortFollowupMsg"]
+    if "AlertShortFollowupMsg" not in output_frames[-1]:
+        return dataclasses.I3String(json.dumps({'value': {'data': {}}}))
+    else:
+        return output_frames[-1]["AlertShortFollowupMsg"]
     
     
 def calculate_online_alert_dict(frame_packet, pulsesName="SplitInIcePulses", always_recreate_alert_short_followup_msg=True):
