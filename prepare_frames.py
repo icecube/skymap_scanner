@@ -113,11 +113,57 @@ def prepare_frames(frame_packet, pulsesName="SplitInIcePulses"):
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
     tray.AddModule('VHESelfVeto', 'selfveto',
+        VertexThreshold=250., # 250pe is the default setting
         Pulses=nominalPulsesName+'HLC',
         OutputBool='HESE_VHESelfVeto',
         OutputVertexTime='HESE_VHESelfVetoVertexTime',
         OutputVertexPos='HESE_VHESelfVetoVertexPos',
         If=lambda frame: "HESE_VHESelfVeto" not in frame)
+
+    def MarkFrameForSubThresholdVeto(frame):
+        any_in_frame = ("HESE_VHESelfVeto" in frame) or ("HESE_VHESelfVetoVertexTime" in frame) or ("HESE_VHESelfVetoVertexPos" in frame)
+        all_in_frame = ("HESE_VHESelfVeto" in frame) and ("HESE_VHESelfVetoVertexTime" in frame) and ("HESE_VHESelfVetoVertexPos" in frame)
+        
+        if all_in_frame:
+            # all good
+            frame["HESE_VertexThreshold"] = dataclasses.I3Double(250.)
+        elif any_in_frame:
+            print(frame)
+            raise RuntimeError("Some of the HESE veto objects exist but not all of them. This is an error.")
+        else:
+            print(" ******* VERY LOW CHARGE EVENT - re-doing HESE veto with much lower pe vertex threshold to at least get a seed position ******* ")
+            # Re-do this with 10pe, but let people looking at the resulting
+            # frame know! (the resulting veto condition is basically meaningless)
+            frame["HESE_VertexThreshold"] = dataclasses.I3Double(5.)
+            frame["HESE_VHESelfVeto"] = icetray.I3Bool(False)
+    tray.AddModule(MarkFrameForSubThresholdVeto, 'MarkFrameForSubThresholdVeto')
+
+    # Make sure this actually calculated something - especially if we are far below the
+    # veto threshold, this will silently do nothing (which is kind of expected).
+    tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
+        VertexThreshold=5., # usually this is at 250pe - use a much lower setting here
+        Pulses=nominalPulsesName+'HLC',
+        OutputBool='HESE_VHESelfVeto_meaningless_lowen',
+        OutputVertexTime='HESE_VHESelfVetoVertexTime',
+        OutputVertexPos='HESE_VHESelfVetoVertexPos',
+        If=lambda frame: (frame.Stop==icetray.I3Frame.Physics) and (frame["HESE_VertexThreshold"].value < 250.)) # this only runs if the previous module did not return anything
+    
+    def CheckHESEVertexExists(frame):
+        pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, nominalPulsesName+'HLC')
+        if "HESE_VHESelfVeto" not in frame:
+            print(pulses)
+            print(frame)
+            raise RuntimeError("Cannot continue, HESE_VHESelfVeto not in frame (too low total charge?).")
+        if "HESE_VHESelfVetoVertexTime" not in frame:
+            print(pulses)
+            print(frame)
+            raise RuntimeError("Cannot continue, HESE_VHESelfVetoVertexTime not in frame (too low total charge?).")
+        if "HESE_VHESelfVetoVertexPos" not in frame:
+            print(pulses)
+            print(frame)
+            raise RuntimeError("Cannot continue, HESE_VHESelfVetoVertexPos not in frame (too low total charge?).")
+    tray.AddModule(CheckHESEVertexExists, 'CheckHESEVertexExists')
+        
 
     # make sure the script doesn't fail because some objects alreadye exist
     def cleanupFrame(frame):
