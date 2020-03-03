@@ -477,6 +477,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
     def __init__(self, ctx):
         super(ReceivePFrameWithMetadata, self).__init__(ctx)
         self.AddParameter("ReceiverService", "An instance of ReceiverService owning the broker connection", None)
+        self.AddParameter("MaxCacheEntriesPerFrameStop", "The number of entries this service can cache per frame stop", 10)
 
         self.AddOutBox("OutBox")
 
@@ -487,7 +488,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
 
         self.metadata_cache = {}
         self.pushed_metadata_topics = []
-        self.max_entries_per_frame_stop = 10
+        self.max_entries_per_frame_stop = self.GetParameter("MaxCacheEntriesPerFrameStop")
         
     def is_metadata_topic_pushed_and_active(self, topic):
         for entry in self.pushed_metadata_topics:
