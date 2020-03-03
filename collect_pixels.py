@@ -210,6 +210,7 @@ def collect_pixels(broker, auth_token, topic_in, topic_base_out):
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         ClientService=client_service,
         Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
+        ProducerCacheSize=100,
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags - do NOT change this as we mess with the metadata frames
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
         )

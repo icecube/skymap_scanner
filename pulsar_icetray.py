@@ -80,6 +80,8 @@ class SendPFrameWithMetadata(icetray.I3Module):
 
         self.AddParameter("IgnoreStops", "Ignore these frame stream stops", [icetray.I3Frame.Stream('\03')])
 
+        self.AddParameter("ProducerCacheSize", "The maximum number of (dynamic) producer connections to keep open", 5)
+
         self.AddOutBox("OutBox")
 
     def Configure(self):
@@ -97,7 +99,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
         
         self.ignore_stops = self.GetParameter("IgnoreStops")
         
-        self.producer_cache_size = 5
+        self.producer_cache_size = self.GetParameter("ProducerCacheSize")
         
         self.sent_metadata_cache = {}
         
