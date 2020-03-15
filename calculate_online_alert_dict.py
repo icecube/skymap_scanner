@@ -332,6 +332,8 @@ def calculate_online_alert_dict(frame_packet, pulsesName="SplitInIcePulses", alw
 
     print("")
     print("")
+    print(" ** Alert dict: {}".format(out_frame_packet[-1]["AlertShortFollowupMsg"].value))
+    print("")
     print(" ** Alert type: {}".format(out_frame_packet[-1]["AlertPassed"].value))
     print("")
     print(" ** GFU:  {}".format(out_frame_packet[-1]["AlertInfoGFU"]))
