@@ -31,6 +31,7 @@ def find_first_event_id(filename):
 # first, find all run files and the GCD file in the input directory
 indir = sys.argv[1]
 eventnum = int(sys.argv[2])
+sub_event_id = int(sys.argv[3])
 
 # find the GCD file
 GCD_file = glob.glob(os.path.join(indir, "Level2_*_GCD.i3.zst"))
@@ -124,7 +125,7 @@ keep_QP_event_num.event_encountered = False
 tray.Add(keep_QP_event_num, "keep_QP_event_num",
     Streams=[icetray.I3Frame.DAQ, icetray.I3Frame.Physics],
     event_num=eventnum,
-    sub_event_id=0,
+    sub_event_id=sub_event_id,
     )
 
 tray.Add("I3Writer", "writer",
