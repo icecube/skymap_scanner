@@ -20,7 +20,7 @@ For testing, you can start your own local instance with this command:
 parameter is set to false, otherwise topics without a consumer running will be
 deleted after 60 seconds.)
 ```
-docker run -it --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.5.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+docker run -it --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
 ```
 
 You will need to connect to the pulsar broker using your machine IP,

@@ -16,7 +16,7 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
 # add the pulsar client and some other python packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python-pip bzip2 zstd && apt-get clean
-RUN pip install pulsar-client==2.5.0 && \
+RUN pip install pulsar-client==2.6.0 && \
     pip install tqdm && \
     pip install backports.tempfile && \
     pip install psutil && \
