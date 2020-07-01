@@ -64,7 +64,8 @@ def scan_pixel(broker, auth_token, topic_in, topic_out,
     tray = I3Tray()
 
     tray.Add(ReceivePFrameWithMetadata, "ReceivePFrameWithMetadata",
-        ReceiverService=receiver_service
+        ReceiverService=receiver_service,
+        MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
         )
 
     ########## perform the fit
