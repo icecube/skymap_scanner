@@ -31,7 +31,10 @@ def find_first_event_id(filename):
 # first, find all run files and the GCD file in the input directory
 indir = sys.argv[1]
 eventnum = int(sys.argv[2])
-sub_event_id = int(sys.argv[3])
+if sys.argv[3] == "None":
+    sub_event_id = None
+else:
+    sub_event_id = int(sys.argv[3])
 
 # find the GCD file
 GCD_file = glob.glob(os.path.join(indir, "Level2_*_GCD.i3.zst"))
