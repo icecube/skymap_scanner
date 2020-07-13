@@ -124,7 +124,7 @@
         service_url: "pulsar://{{ hostvars[groups['proxy'][0]].public_ip }}:6650/"
         http_url: "http://{{ hostvars[groups['proxy'][0]].public_ip }}:8080/"
         client_connection_address: "{{ hostvars[inventory_hostname].external_dns_name }}"
-        pulsar_version: "2.5.0"
+        pulsar_version: "2.6.0"
     - name: check if pulsar has already been unpacked
       stat:
         path: /opt/pulsar/bin/pulsar
@@ -133,7 +133,7 @@
       get_url:
         url: https://archive.apache.org/dist/pulsar/pulsar-{{ pulsar_version }}/apache-pulsar-{{ pulsar_version }}-bin.tar.gz
         dest: /opt/apache-pulsar-{{ pulsar_version }}-bin.tar.gz
-        checksum: sha256:721b12c6fa7d87cbf2763d2b7c3ffc0c5395d2cb1f3760e9ae33d6f8c650a064
+        checksum: sha256:5b5f93e4460576b48a2f685311428bab777fead2e1d83a987f79a100f6b6e924
       when: result.stat.exists == false
     - name: Unpack the Pulsar binary package
       unarchive:
