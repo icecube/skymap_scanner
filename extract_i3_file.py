@@ -28,11 +28,13 @@ class FrameArraySink(icetray.I3Module):
         super(FrameArraySink, self).__init__(ctx)
         self.AddParameter("FrameStore", "Array to which to add frames", [])
         self.AddParameter("SuspendAfterStop", "", None)
+        self.AddParameter("IgnoreSplits", "", ["NullSplit"])
         self.AddOutBox("OutBox")
 
     def Configure(self):
         self.frame_store = self.GetParameter("FrameStore")
         self.suspend_after_stop = self.GetParameter("SuspendAfterStop")
+        self.ignore_splits = self.GetParameter("IgnoreSplits")
 
     def Process(self):
         frame = self.PopFrame()
@@ -42,6 +44,14 @@ class FrameArraySink(icetray.I3Module):
         if frame.Stop == icetray.I3Frame.TrayInfo:
             self.PushFrame(frame)
             return
+
+        # ignore things like the "NullSplit"
+        if frame.Stop == icetray.I3Frame.Physics:
+            if "I3EventHeader" in frame:
+                header = frame["I3EventHeader"]
+                if header.sub_event_stream in self.ignore_splits:
+                    self.PushFrame(frame)
+                    return
 
         frame_copy = copy.copy(frame)
         frame_copy.purge()
