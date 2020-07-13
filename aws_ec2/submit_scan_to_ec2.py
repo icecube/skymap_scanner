@@ -27,7 +27,7 @@ class Specs(dict):
         self['instance_types'] = {
             't3a.small': {'max_price': '0.008', 'cores': 1},
         }
-        self['hours'] = 6
+        self['hours'] = 16
         self['keypair'] = 'claudiok'
         self['region'] = 'us-east-2'
         self['public_zones'] = {
@@ -491,15 +491,22 @@ async def main():
     worker_spec = spec.copy()
     worker_spec['instance_type'] = 't3a.small'
     worker_spec['instance_types'] = {
-        # 'm5.xlarge':  {'max_price': '0.011', 'cores': 4},
-        # 'm5a.xlarge': {'max_price': '0.011', 'cores': 4},
-        # 'm5n.xlarge': {'max_price': '0.011', 'cores': 4},
-        'c5.4xlarge':  {'max_price': '0.011', 'cores': 16},
-        'c5d.4xlarge': {'max_price': '0.011', 'cores': 16},
-        'c5n.4xlarge': {'max_price': '0.011', 'cores': 16},
-        # 'r5.xlarge':  {'max_price': '0.011', 'cores': 4},
-        # 'r5a.xlarge': {'max_price': '0.011', 'cores': 4},
-        # 'r5n.xlarge': {'max_price': '0.011', 'cores': 4},
+        'c5.4xlarge':   {'max_price': '0.012', 'cores': 16},
+        'c5d.4xlarge':  {'max_price': '0.012', 'cores': 16},
+        'c5n.4xlarge':  {'max_price': '0.012', 'cores': 16},
+        'c5.9xlarge':   {'max_price': '0.012', 'cores': 36},
+        'c5d.9xlarge':  {'max_price': '0.012', 'cores': 36},
+        'c5n.9xlarge':  {'max_price': '0.012', 'cores': 36},
+        'c5d.12xlarge': {'max_price': '0.012', 'cores': 48},
+        'c5.18xlarge':  {'max_price': '0.012', 'cores': 72},
+        'c5d.18xlarge': {'max_price': '0.012', 'cores': 72},
+        'c5n.18xlarge': {'max_price': '0.012', 'cores': 72},
+        'm5.4xlarge':   {'max_price': '0.012', 'cores': 16},
+        'm5a.4xlarge':  {'max_price': '0.012', 'cores': 16},
+        'm5n.4xlarge':  {'max_price': '0.012', 'cores': 16},
+        'r5.4xlarge':   {'max_price': '0.012', 'cores': 16},
+        'r5a.4xlarge':  {'max_price': '0.012', 'cores': 16},
+        'r5n.4xlarge':  {'max_price': '0.012', 'cores': 16},
     }
     worker_user_data = """\
     #!/bin/bash
