@@ -4,6 +4,11 @@
 # optionally, try just `icecube/icetray:combo-stable-tensorflow`
 # FROM icecube/icetray:combo-stable-tensorflow
 
+
+#
+# Get Data
+#
+
 # we need more spline tables (since we need to potentially re-do onlineL2)
 RUN mkdir -p /opt/i3-data/photon-tables/splines/
 RUN ls /opt/i3-data
@@ -19,7 +24,37 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
     echo "/usr/local/cuda/lib64/stubs" > /etc/ld.so.conf.d/z-cuda-stubs.conf && \
     ldconfig
 
+
+#
+# Setup Python
+#
+
+# from https://gist.github.com/jprjr/7667947#gistcomment-3684823
+
+ENV PYTHON_VERSION 3.8.10
+
+# Set of all dependencies needed for pyenv to work on Ubuntu
+RUN apt-get update \
+        && apt-get install -y --no-install-recommends make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget ca-certificates curl llvm libncurses5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev mecab-ipadic-utf8 git
+
+# Set-up necessary Env vars for PyEnv
+ENV PYENV_ROOT /root/.pyenv
+ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+
+# Install pyenv
+RUN set -ex \
+    && curl https://pyenv.run | bash \
+    && pyenv update \
+    && pyenv install $PYTHON_VERSION \
+    && pyenv global $PYTHON_VERSION \
+    && pyenv rehash
+
 RUN python3 -V
+
+
+#
+# Add Python Packages
+#
 
 # add the pulsar client and some other python packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
@@ -30,6 +65,11 @@ RUN pip3 install pulsar-client==2.6.0 && \
     pip3 install psutil && \
     pip3 install pygcn && \
     pip3 install healpy
+
+
+#
+# Get IceTray Setup
+#
 
 # add realtime_gfu python checkout from V19-11-00
 RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V19-11-00/realtime_gfu \
@@ -55,6 +95,11 @@ ENV PYTHONPATH /local/i3deepice/
 COPY onlinel2filter.py.patch /local
 RUN patch /usr/local/icetray/lib/icecube/filterscripts/onlinel2filter.py onlinel2filter.py.patch && \
     rm onlinel2filter.py.patch
+
+
+#
+# ENTRYPOINT
+#
 
 # set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
 ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "python3", "/local/entrypoint.py"]
