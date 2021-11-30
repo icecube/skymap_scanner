@@ -32,15 +32,7 @@ Once Pulsar is up and running, make sure the `icecube/skymap` and
 instance as described above, you can create it like this
 (Deduplication is optional but useful. Retention is necessary.):
 ```
-docker exec -ti pulsar_local bin/pulsar-admin tenants create icecube
-docker exec -ti pulsar_local bin/pulsar-admin namespaces create icecube/skymap
-docker exec -ti pulsar_local bin/pulsar-admin namespaces set-deduplication icecube/skymap --enable
-docker exec -ti pulsar_local bin/pulsar-admin namespaces create icecube/skymap_metadata
-docker exec -ti pulsar_local bin/pulsar-admin namespaces set-deduplication icecube/skymap_metadata --enable
-docker exec -ti pulsar_local bin/pulsar-admin namespaces set-retention icecube/skymap_metadata --size -1 --time -1
-
-docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/to_be_scanned --partitions 6
-docker exec -ti pulsar_local bin/pulsar-admin topics create-partitioned-topic persistent://icecube/skymap/scanned --partitions 6
+./testing_scripts/make_namespaces.sh
 ```
 
 You can run the producer to send a scan like this. Notice that you are submitting the
@@ -80,3 +72,4 @@ docker exec -ti pulsar_local bin/pulsar-admin topics delete persistent://icecube
 docker exec -ti pulsar_local bin/pulsar-admin topics list icecube/skymap_metadata
 docker exec -ti pulsar_local bin/pulsar-admin topics delete persistent://icecube/skymap_metadata/<name>
 ```
+(or just remove & re-run the pulsar docker service)
