@@ -1,4 +1,6 @@
-FROM icecube/icetray:combo-V00-00-01-tensorflow.2.1.0-ubuntu18.04
+# FROM icecube/icetray:combo-V00-00-01-tensorflow.2.1.0-ubuntu18.04
+FROM icecube/icetray:combo-stable-tensorflow.1.13.2-ubuntu18.04
+# optionally, try just `icecube/icetray:combo-stable-tensorflow`
 
 # we need more spline tables (since we need to potentially re-do onlineL2)
 RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10_V2.fits \
@@ -13,14 +15,17 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
     echo "/usr/local/cuda/lib64/stubs" > /etc/ld.so.conf.d/z-cuda-stubs.conf && \
     ldconfig
 
+RUN python3 -V
+
 # add the pulsar client and some other python packages
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    python-pip bzip2 zstd && apt-get clean
-RUN pip install pulsar-client==2.6.0 && \
-    pip install tqdm && \
-    pip install backports.tempfile && \
-    pip install psutil && \
-    pip install pygcn
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
+RUN sudo apt-get install python3-pip -y
+RUN pip3 install pulsar-client==2.6.0 && \
+    pip3 install tqdm && \
+    pip3 install backports.tempfile && \
+    pip3 install psutil && \
+    pip3 install pygcn && \
+    pip3 install healpy
 
 # add realtime_gfu python checkout from V19-11-00
 RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V19-11-00/realtime_gfu \
@@ -48,5 +53,5 @@ RUN patch /usr/local/icetray/lib/icecube/filterscripts/onlinel2filter.py onlinel
     rm onlinel2filter.py.patch
 
 # set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
-ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "python", "/local/entrypoint.py"]
+ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "python3", "/local/entrypoint.py"]
 CMD []
