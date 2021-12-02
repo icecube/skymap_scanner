@@ -71,15 +71,17 @@ RUN pip3 install pulsar-client==2.6.0 && \
 # Get IceTray Setup
 #
 
-# add realtime_gfu python checkout from V19-11-00
-RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V19-11-00/realtime_gfu \
+# add realtime_gfu python checkout from V21-06-00
+RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-06-00/realtime_gfu \
         /usr/local/icetray/realtime_gfu --username=icecube --password=skua --no-auth-cache && \
-    svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V19-11-00/realtime_hese \
+    ln -sf /usr/local/icetray/realtime_gfu/python /usr/local/icetray/lib/icecube/realtime_gfu
+# add realtime_hese
+RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-06-00/realtime_hese \
         /usr/local/icetray/realtime_hese --username=icecube --password=skua --no-auth-cache && \
-    svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V19-11-00/realtime_tools \
+    ln -sf /usr/local/icetray/realtime_hese/python /usr/local/icetray/lib/icecube/realtime_hese
+# add realtime_tools
+RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-06-00/realtime_tools \
         /usr/local/icetray/realtime_tools --username=icecube --password=skua --no-auth-cache && \
-    ln -sf /usr/local/icetray/realtime_gfu/python /usr/local/icetray/lib/icecube/realtime_gfu && \
-    ln -sf /usr/local/icetray/realtime_hese/python /usr/local/icetray/lib/icecube/realtime_hese && \
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
 # copy all .py files from the repository into the container image
