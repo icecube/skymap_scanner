@@ -64,7 +64,8 @@ RUN pip3 install pulsar-client==2.6.0 && \
     pip3 install backports.tempfile && \
     pip3 install psutil && \
     pip3 install pygcn && \
-    pip3 install healpy
+    pip3 install healpy && \
+    pip3 install pyzmq
 
 
 #
