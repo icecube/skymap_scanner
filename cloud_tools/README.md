@@ -1,4 +1,4 @@
-# skymap_scanner
+# skymap_scanner/cloud_tools
 
 Distributed likelihood scan of event directions for real-time alerts.
 This is a set of scripts meant to be deployed as containers.
