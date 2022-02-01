@@ -10,10 +10,10 @@ import matplotlib.pyplot
 import healpy
 
 from icecube import icetray, dataclasses, dataio
-
+# test-case-scan: importing from icecube.skymap_scanner instead of local importing
 from icecube.skymap_scanner.utils import parse_event_id, get_event_mjd
-
-#from . import slack_tools
+# test-case-scan: we don't need the slack_tools
+#from . import slack_tools 
 
 from matplotlib.axes import Axes
 from matplotlib import text
@@ -104,11 +104,10 @@ def create_plot(event_id_string, state_dict):
     if "nsides" not in state_dict:
         raise RuntimeError("\"nsides\" not in dictionary..")
 
+    # test-case-scan: parse_event_id assumes that the event is called runXXX.evtYYY.HESE and just divides the string into run_id, etc
     #run_id, event_id, event_type = parse_event_id(event_id_string)
-    #run_id = '123986'
-    #event_id = '77999595'
-    run_id = '133781'
-    event_id = '21701751'
+    run_id = ''
+    event_id = ''
     event_type = ''
     mjd = get_event_mjd(state_dict)
 
@@ -237,12 +236,13 @@ def create_plot(event_id_string, state_dict):
 
     print(("saving: {0}...".format(plot_filename)))
 
+    # test-case-scan: uncomment this to store the plot
     fig.savefig(plot_filename, dpi=dpi, transparent=True)
 
     # use io.BytesIO to save this into a memory buffer
-    #imgdata = io.BytesIO()
-    #fig.savefig(imgdata, format='png', dpi=dpi, transparent=True)
-    #imgdata.seek(0)
+    imgdata = io.BytesIO()
+    fig.savefig(imgdata, format='png', dpi=dpi, transparent=True)
+    imgdata.seek(0)
 
     print("done.")
 
@@ -251,6 +251,7 @@ def create_plot(event_id_string, state_dict):
 
 if __name__ == "__main__":
     from optparse import OptionParser
+    # test-case-scan: import from metaproject
     from icecube.skymap_scanner.load_scan_state import load_cache_state
 
     parser = OptionParser()
@@ -272,5 +273,6 @@ if __name__ == "__main__":
     eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
     plot_png_buffer = create_plot(eventID, state_dict)
 
+    # test-case-scan: don't post it to slack
     # we have a buffer containing a valid png file now, post it to Slack
     #slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")

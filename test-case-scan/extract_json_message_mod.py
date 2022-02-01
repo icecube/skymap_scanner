@@ -6,6 +6,7 @@ import numpy as np
 from icecube import icetray, dataclasses, dataio
 from icecube import full_event_followup, frame_object_diff
 
+# test-case-scan: import from icecube.skymap_scanner instead of .
 from icecube.skymap_scanner import config
 from icecube.skymap_scanner.utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop
 from icecube.skymap_scanner.load_scan_state import load_scan_state
@@ -43,7 +44,7 @@ def extract_json_message(json_data, filestager, cache_dir="./cache/", override_G
     # extract the packet
     frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
 
-    #added event id string so extract frame packet works 
+    # test-case-scan: added event_id_string so extract_frame_packet works 
     r = __extract_frame_packet(event_id_string, frame_packet, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
     event_id = r[1]
     state_dict = r[2]
@@ -51,14 +52,16 @@ def extract_json_message(json_data, filestager, cache_dir="./cache/", override_G
     # try to load existing pixels if there are any
     return load_scan_state(event_id, state_dict, cache_dir=cache_dir)
 
-def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitInIcePulses"):#for golden muons: "SplitInIcePulses"):#current:"SplitUncleanedInIcePulses"):
+# test-case-scan: added event_id_string so extract_frame_packet works
+def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitInIcePulses"):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
+    # test-case-scan: this sanity check doesn't make sense with the simulated event
     # sanity check the packet
-   # if len(frame_packet) != 5:
+    #if len(frame_packet) != 5:
     #    raise RuntimeError("frame packet length is not 5")
     if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("frame packet does not end with Physics frame")
@@ -67,11 +70,13 @@ def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir=
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('P'))
     physics_frame = frame_packet[-1]
 
+    # test-case-scan: all of this is just to find the event_id, but it's not stored in the same way in the simulated event as in realtime. I parse 
+    # the event_id_string (comments above) just for this
     # extract event ID
     #if "I3EventHeader" not in physics_frame:
     #    raise RuntimeError("No I3EventHeader in Physics frame")
     #header = physics_frame["I3EventHeader"]
-    #event_id_string = get_event_id(frame_packet)#create_event_id(header.run_id, header.event_id)
+    #event_id_string = create_event_id(header.run_id, header.event_id)
     print("event ID is {0}".format(event_id_string))
 
     # create the cache directory if necessary
@@ -84,7 +89,7 @@ def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir=
     # see if we have the required baseline GCD to which to apply the GCD diff
     GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
     if np.logical_and(GCD_diff_base_filename is not None, override_GCD_filename is not None):
-        new_GCD_diff_base_filename = os.path.join(override_GCD_filename, GCD_diff_base_filename) 
+        new_GCD_diff_base_filename = os.path.join(override_GCD_filename, GCD_diff_base_filename)
         print(("Trying GCD file: {0}".format(new_GCD_diff_base_filename)))
         if os.path.isfile(new_GCD_diff_base_filename):
             GCD_diff_base_filename = new_GCD_diff_base_filename
@@ -177,8 +182,6 @@ def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir=
         frame_packet[2] = ehe_override_gcd[2]
         del ehe_override_gcd
 
-    print(pulsesName)
-    print(("GCD_diff_base_filename: ", GCD_diff_base_filename))
     if GCD_diff_base_filename is not None:
         frame_packet, ExcludedDOMs = prepare_frames(frame_packet, str(GCD_diff_base_handle), pulsesName=pulsesName)
     else:
@@ -190,7 +193,7 @@ def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir=
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
 
     GCDQp_filename = os.path.join(this_event_cache_dir, "GCDQp.i3")
-    print((GCDQp_filename, "gcdqp file name"))
+    
     if os.path.exists(GCDQp_filename):
         # GCD already exists - check to make sure it is consistent
         this_packet_hash = hash_frame_packet(frame_packet)
@@ -205,7 +208,6 @@ def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir=
         # no GCD exists yet
         save_GCD_frame_packet_to_file(frame_packet, GCDQp_filename)
         print("wrote GCDQp dependency frames to {0}".format(GCDQp_filename))
-    print(("GCD_diff_base_filename: ", GCD_diff_base_filename))
     return (this_event_cache_dir, event_id_string, dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename))
 
 

@@ -6,6 +6,9 @@ import numpy
 import healpy
 import random
 
+# test-case-scan: only change in this script is substituting in every place where nside = 8 was hard-coded 
+# for nside = magic_nside. It would be easy to change the scanner script to include this as an option
+# but it would be important to double-check if this makes sense
 magic_nside = 1
 
 def __healpix_pixel_upgrade(nside, pix):
