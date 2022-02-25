@@ -44,8 +44,7 @@ def extract_json_message(json_data, filestager, cache_dir="./cache/", override_G
     # extract the packet
     frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
 
-    # test-case-scan: added event_id_string so extract_frame_packet works 
-    r = __extract_frame_packet(event_id_string, frame_packet, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
+    r = __extract_frame_packet(frame_packet, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
     event_id = r[1]
     state_dict = r[2]
 
@@ -53,16 +52,16 @@ def extract_json_message(json_data, filestager, cache_dir="./cache/", override_G
     return load_scan_state(event_id, state_dict, cache_dir=cache_dir)
 
 # test-case-scan: added event_id_string so extract_frame_packet works
-def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitInIcePulses"):
+def __extract_frame_packet(frame_packet, filestager, event_id_string=None, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitInIcePulses"):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
-    # test-case-scan: this sanity check doesn't make sense with the simulated event
+    # test-case-scan: simulated events have more than 5 frames
     # sanity check the packet
-    #if len(frame_packet) != 5:
-    #    raise RuntimeError("frame packet length is not 5")
+    if len(frame_packet) < 5:
+        raise RuntimeError("frame packet length is smaller than 5")
     if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("frame packet does not end with Physics frame")
 
@@ -73,10 +72,12 @@ def __extract_frame_packet(event_id_string, frame_packet, filestager, cache_dir=
     # test-case-scan: all of this is just to find the event_id, but it's not stored in the same way in the simulated event as in realtime. I parse 
     # the event_id_string (comments above) just for this
     # extract event ID
-    #if "I3EventHeader" not in physics_frame:
-    #    raise RuntimeError("No I3EventHeader in Physics frame")
-    #header = physics_frame["I3EventHeader"]
-    #event_id_string = create_event_id(header.run_id, header.event_id)
+    if event_id_string is None:
+        if "I3EventHeader" not in physics_frame:
+            raise RuntimeError("No I3EventHeader in Physics frame")
+        header = physics_frame["I3EventHeader"]
+        event_id_string = create_event_id(header.run_id, header.event_id)
+    
     print("event ID is {0}".format(event_id_string))
 
     # create the cache directory if necessary

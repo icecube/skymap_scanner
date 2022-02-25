@@ -105,10 +105,12 @@ def create_plot(event_id_string, state_dict):
         raise RuntimeError("\"nsides\" not in dictionary..")
 
     # test-case-scan: parse_event_id assumes that the event is called runXXX.evtYYY.HESE and just divides the string into run_id, etc
-    #run_id, event_id, event_type = parse_event_id(event_id_string)
-    run_id = ''
-    event_id = ''
-    event_type = ''
+    try: 
+        run_id, event_id, event_type = parse_event_id(event_id_string)
+    except:
+        run_id = ''
+        event_id = ''
+        event_type = ''
     mjd = get_event_mjd(state_dict)
 
     plot_title = "Run: {0} Event {1}: Type: {2} MJD: {3}".format(run_id, event_id, event_type, mjd)
@@ -275,4 +277,7 @@ if __name__ == "__main__":
 
     # test-case-scan: don't post it to slack
     # we have a buffer containing a valid png file now, post it to Slack
-    #slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")
+    try:
+        slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")
+    except:
+        pass

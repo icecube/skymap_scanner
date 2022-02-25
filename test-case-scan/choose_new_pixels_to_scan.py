@@ -7,9 +7,7 @@ import healpy
 import random
 
 # test-case-scan: only change in this script is substituting in every place where nside = 8 was hard-coded 
-# for nside = magic_nside. It would be easy to change the scanner script to include this as an option
-# but it would be important to double-check if this makes sense
-magic_nside = 1
+# for nside = min_nside. Should double-check if this makes sense in all cases
 
 def __healpix_pixel_upgrade(nside, pix):
     pix_nested = healpy.ring2nest(nside, pix)
@@ -154,7 +152,7 @@ def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*
 
     return scan_pixels
 
-def choose_new_pixels_to_scan(state_dict, max_nside=512, ang_dist=2.):
+def choose_new_pixels_to_scan(state_dict, max_nside=512, ang_dist=2., min_nside=8):
     # special case if we have MC truth
     if "MCradec" in state_dict:
         # scan only at max_nside around the true minimum
@@ -163,27 +161,27 @@ def choose_new_pixels_to_scan(state_dict, max_nside=512, ang_dist=2.):
     # first check if any pixels with nside=8 are missing (we need all of them)
     if "nsides" not in state_dict:
         # print("nsides is missing - scan all pixels at nside=8")
-        scan_pixels = list(range(healpy.nside2npix(magic_nside)))
+        scan_pixels = list(range(healpy.nside2npix(min_nside)))
         random.shuffle(scan_pixels)
-        return [(magic_nside, pix) for pix in scan_pixels]
-    if magic_nside not in state_dict["nsides"]:
+        return [(min_nside, pix) for pix in scan_pixels]
+    if min_nside not in state_dict["nsides"]:
         # print("nsides=8 is missing - scan all pixels at nside=8")
-        scan_pixels = list(range(healpy.nside2npix(magic_nside)))
+        scan_pixels = list(range(healpy.nside2npix(min_nside)))
         random.shuffle(scan_pixels)
-        return [(magic_nside, pix) for pix in scan_pixels]
+        return [(min_nside, pix) for pix in scan_pixels]
 
     scan_pixels = []
-    existing_pixels = list(state_dict["nsides"][magic_nside].keys())
-    for i in range(healpy.nside2npix(magic_nside)):
+    existing_pixels = list(state_dict["nsides"][min_nside].keys())
+    for i in range(healpy.nside2npix(min_nside)):
         if i not in existing_pixels:
             scan_pixels.append(i)
 
     if len(scan_pixels) > 0:
         random.shuffle(scan_pixels)
-        scan_pixels = [(magic_nside, pix) for pix in scan_pixels]
+        scan_pixels = [(min_nside, pix) for pix in scan_pixels]
 
     # some or all 768 pixels with nside 8 exist
-    current_nside = magic_nside
+    current_nside = min_nside
 
     all_pixels_to_refine = scan_pixels
 
