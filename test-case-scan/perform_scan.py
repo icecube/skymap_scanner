@@ -10,34 +10,22 @@ from icecube import gulliver, millipede
 from icecube import astro
 from I3Tray import *
 
-from icecube.skymap_scanner.utils import parse_event_id # .
+from icecube.skymap_scanner.utils import parse_event_id
 
-#from icecube.skymap_scanner.choose_new_pixels_to_scan import choose_new_pixels_to_scan #.
 from choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from icecube.skymap_scanner.utils import save_GCD_frame_packet_to_file# , get_event_mjd
+from icecube.skymap_scanner.utils import save_GCD_frame_packet_to_file, get_event_mjd
 #from icecube.skymap_scanner import scan_pixel_distributed
-from icecube.skymap_scanner.traysegments import scan_pixel_distributed#.
+from icecube.skymap_scanner.traysegments import scan_pixel_distributed
 
-from icecube.skymap_scanner import config#.
+from icecube.skymap_scanner import config
 
+# test-case-scan: needed to read i3 files
 from extract_i3_file import extract_i3_file
 from extract_json_message_mod import __extract_frame_packet
 
-magic_nside = 1
-
-def get_event_mjd(state_dict):
-    if "GCDQp_packet" not in state_dict:
-        raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
-    
-    p_frame = frame_packet[-1]
-    if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
-        raise RuntimeError("no p-frame found at the end of the GCDQp packet")
-    if "I3EventHeader" not in p_frame:
-        raise RuntimeError("No I3EventHeader in p-frame")
-    time = p_frame["I3EventHeader"].start_time
-
-    return time.mod_julian_day_double
+# test-case-scan: scan with nside = 1 only
+min_nside = 1
+max_nside = 1
 
 
 def simple_print_logger(text):
@@ -148,18 +136,14 @@ class SendPixelsToScan(icetray.I3Module):
                 if (nside,pixel) in self.pixels_in_process:
                     self.pixels_in_process.remove( (nside,pixel) )
 
+        # test-case-scan: use the defined max and min nsides for the scan
         # find pixels to refine
-        pixels_to_refine = choose_new_pixels_to_scan(self.state_dict, max_nside=1, ang_dist=3.)
+        pixels_to_refine = choose_new_pixels_to_scan(self.state_dict, max_nside=max_nside, min_nside=min_nside)
         
         if len(pixels_to_refine) == 0:
             print("** there are no pixels left to refine. stopping.")
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
-
-            #cmd = "bash /data/user/clagunas/BranStarkResim/reco/scripts/remove_jobs.sh"
-            #os.system(cmd)
-            #cmd2 = "bash /data/user/clagunas/BranStarkResim/reco/scripts/kill_execution.sh"
-            #os.system(cmd2)
 
             self.RequestSuspension()
             return
@@ -206,7 +190,8 @@ class SendPixelsToScan(icetray.I3Module):
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        if nside == magic_nside:
+        # test-case-scan: this whole part is different
+        if nside == min_nside:
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
@@ -216,7 +201,7 @@ class SendPixelsToScan(icetray.I3Module):
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
                 
-                if coarser_nside < magic_nside:
+                if coarser_nside < min_nside:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
@@ -225,7 +210,7 @@ class SendPixelsToScan(icetray.I3Module):
                         # coarser pixel found
                         break
             
-            if coarser_nside < magic_nside:
+            if coarser_nside < min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
                 time = self.fallback_time
@@ -398,7 +383,7 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
+def perform_scan_test(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
     npos_per_pixel = 7
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
@@ -459,7 +444,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
 
 if __name__ == "__main__":
     from optparse import OptionParser
-    from icecube.skymap_scanner.load_scan_state import load_cache_state#.
+    from icecube.skymap_scanner.load_scan_state import load_cache_state
     from icecube import icetray, dataclasses, dataio
 
     #import config
@@ -476,6 +461,7 @@ if __name__ == "__main__":
         default=10, dest="NUMCLIENTS", help="The number of clients to start")
     parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
         default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
+    # test-case-scan: parse i3 file
     parser.add_option( "--event", dest="event", default=None, help="i3 file with event")
     parser.add_option( "--gcd_dir", dest="gcd_dir", default=None, help="The GCD directory to use")
 
@@ -492,17 +478,18 @@ if __name__ == "__main__":
     # get a file stager
     stagers = dataio.get_stagers()
 
-    # read info from i3 file #############################################################################
-    event = options.event
-    event_cache_dir = options.CACHEDIR
-    gcd_dir = options.gcd_dir 
-    print('Skymap scanner is starting. Reading event information from i3 file at `{0}`.'.format(event))
-    GCDQp_packet = extract_i3_file(event)
+    # test-case-scan: read info from i3 file
+    if options.event is not None:
+        event = options.event
+        event_cache_dir = options.CACHEDIR
+        gcd_dir = options.gcd_dir 
+        print('Skymap scanner is starting. Reading event information from i3 file at `{0}`.'.format(event))
+        GCDQp_packet = extract_i3_file(event)
+        
+        r = __extract_frame_packet(GCDQp_packet, filestager=stagers, event_id_string=eventID, cache_dir=event_cache_dir, override_GCD_filename=gcd_dir)
+        
+        state_dict = r[2]
+    else:
+        eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
 
-    r = __extract_frame_packet(eventID, GCDQp_packet, filestager=stagers, cache_dir=event_cache_dir, override_GCD_filename=gcd_dir)
-    
-    state_dict = r[2]
-
-    ############################################################################################################
-
-    perform_scan(event_id_string=eventID, state_dict=state_dict, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS, RemoteSubmitPrefix=RemoteSubmitPrefix)
+    perform_scan_test(event_id_string=eventID, state_dict=state_dict, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS, RemoteSubmitPrefix=RemoteSubmitPrefix)
