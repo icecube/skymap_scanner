@@ -35,9 +35,8 @@ def post_to_slack(text):
         logger = logging.getLogger()
         logger.info(text)
         return slack_tools.post_message(text)
-    except:
-        logger.warning("Posting to Slack failed!")
-        pass
+    except Exception as err:
+        logger.warning(f"Posting to Slack failed because of: {err}")
 
 # ==============================================================================
 # If operating on cobalt machines, ssh into submitter
@@ -272,6 +271,8 @@ def individual_event(event):
 if __name__ == "__main__":
     from optparse import OptionParser
 
+    logger = logging.getLogger(__name__)
+
     parser = OptionParser()
     parser.add_option("-x", "--execute",
                       action="store_true", dest="execute", default=False,
@@ -290,6 +291,7 @@ if __name__ == "__main__":
                       help="Number of workers to send out")
     parser.add_option( "--event", dest="event", default=None,
                       help="Send scans to cluster")
+
     # get parsed args
     (options, args) = parser.parse_args()
 
