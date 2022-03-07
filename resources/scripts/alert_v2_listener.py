@@ -19,19 +19,6 @@ from icecube.skymap_scanner.scan_logic import whether_to_scan, stream_logic_map,
 
 
 # ==============================================================================
-# Configure whether to listen to localhost stream. Default is live stream
-# ==============================================================================
-
-# If you want to listen to replayed events, uncomment the following two lines:
-# realtime_tools.config.ZMQ_HOST = 'localhost'
-# realtime_tools.config.ZMQ_SUB_PORT = 5556
-
-# If untoggled, you can replay alerts using commands such as:
-
-# python $I3_SRC/realtime_tools/resources/scripts/replayI3LiveMoni.py --varname=realtimeEventData --pass=skua --start="2019-02-14 16:09:00" --stop="2019-02-14 16:15:39"
-
-
-# ==============================================================================
 # Set the rate of GFU prescaling.
 # ==============================================================================
 
@@ -329,9 +316,14 @@ if __name__ == "__main__":
     # If localhost is toggled, listen for local replays
 
     if options.localhost:
+        # ==============================================================================
+        # Configure whether to listen to localhost stream. Default is live stream
+        # ==============================================================================
         realtime_tools.config.ZMQ_HOST = 'localhost'
         realtime_tools.config.ZMQ_SUB_PORT = 5556
         final_channels = [options.slackchannel]
+        # If untoggled, you can replay alerts using commands such as:
+        # python $I3_SRC/realtime_tools/resources/scripts/replayI3LiveMoni.py --varname=realtimeEventData --pass=skua --start="2019-02-14 16:09:00" --stop="2019-02-14 16:15:39"
     
     if realtime_tools.config.ZMQ_HOST == 'live.icecube.wisc.edu':
         notify_alert = "<!channel> I have found a `{0}` `{1}` Alert." \
