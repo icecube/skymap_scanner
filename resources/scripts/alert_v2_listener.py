@@ -29,7 +29,6 @@ gfu_prescale = 40.
 # Configure Slack posting settings
 # ==============================================================================
 
-
 def post_to_slack(text):
     # never crash because of Slack
     try:
@@ -37,10 +36,14 @@ def post_to_slack(text):
         logger.info(text)
         return slack_tools.post_message(text)
     except:
+        logger.warning("Posting to Slack failed!")
         pass
 
-# If opertaing on cobalt machines, ssh into submitter
-# Otherise, submit from the followup machines directly
+# ==============================================================================
+# If operating on cobalt machines, ssh into submitter
+# otherwise, submit from the followup machines directly
+# ==============================================================================
+
 if realtime_tools.config.NAME == "PRIVATE":
     submit_prefix = "ssh submitter"
 else:
