@@ -39,17 +39,6 @@ def post_to_slack(text):
     except:
         pass
 
-
-# If archival alerts are replayed, no @channel notification will be used.
-# However, if live alerts are found, the slack channel will be notified.
-
-if realtime_tools.config.ZMQ_HOST == 'live.icecube.wisc.edu':
-    notify_alert = "<!channel> I have found a `{0}` `{1}` Alert." \
-                   "I will scan this."
-#    notify_alert = "<@U64169Z6C> I have found a `{0}` `{1}` Alert. " \
-#                   "I will scan this."
-notify_alert = "<@UQ8LZG42G> I have found a `{0}` `{1}` Alert. I will scan this."
-
 # If opertaing on cobalt machines, ssh into submitter
 # Otherise, submit from the followup machines directly
 if realtime_tools.config.NAME == "PRIVATE":
