@@ -257,7 +257,6 @@ exception_message))
 
 
 if __name__ == "__main__":
-    from optparse import OptionParser
 
     logger = logging.getLogger(__name__)
 
