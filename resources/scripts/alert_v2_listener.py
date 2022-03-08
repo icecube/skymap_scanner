@@ -10,6 +10,8 @@ import datetime
 import pickle as Pickle
 import numpy as np
 
+import argparse
+
 from icecube import dataclasses, dataio, realtime_tools, astro
 from icecube.skymap_scanner import extract_json_message, create_plot, \
     perform_scan, config, loop_over_plots, get_best_fit_v2
@@ -259,34 +261,34 @@ if __name__ == "__main__":
 
     logger = logging.getLogger(__name__)
 
-    parser = OptionParser()
-    parser.add_option("-x", "--execute",
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-x", "--execute",
                       action="store_true", dest="execute", default=False,
                       help="Send scans to cluster")
-    parser.add_option("-l", "--localhost",
+    parser.add_argument("-l", "--localhost",
                       action="store_true", dest="localhost", default=False,
-                      help="Send scans to cluster")
-    parser.add_option("-t", "--tmux_spawn",
+                      help="Listen to localhost for alerts")
+    parser.add_argument("-t", "--tmux_spawn",
                       action="store_true", dest="tmuxspawn", default=False,
                       help="Spawn new jobs with tmux")
-    parser.add_option("-s", "--slackchannel",
+    parser.add_argument("-s", "--slackchannel",
                       dest="slackchannel", default="#gfu_live",
                       help="Slack channel")
-    parser.add_option("-n", "--nworkers",
+    parser.add_argument("-n", "--nworkers",
                       dest="nworkers", default=1000,
                       help="Number of workers to send out")
-    parser.add_option( "--event", dest="event", default=None,
+    parser.add_argument( "--event", dest="event", default=None,
                       help="Send scans to cluster")
 
-    # get parsed args
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    config.slack_channel = options.slackchannel
-    distribute_numclients = options.nworkers
+    config.slack_channel = args.slackchannel
+    distribute_numclients = args.nworkers
     # If execute is not toggled on, then replace perform_scan with dummy
     # function
 
-    if not options.execute:
+    if not args.execute:
 
         def perform_scan(**kwargs):
             post_to_slack("Scanning Mode is disabled! No scan will be "
@@ -295,28 +297,28 @@ if __name__ == "__main__":
 
     # If localhost is toggled, listen for local replays
 
-    if options.localhost:
+    if args.localhost:
         # ==============================================================================
         # Configure whether to listen to localhost stream. Default is live stream
         # ==============================================================================
         realtime_tools.config.ZMQ_HOST = 'localhost'
         realtime_tools.config.ZMQ_SUB_PORT = 5556
-        final_channels = [options.slackchannel]
+        final_channels = [args.slackchannel]
         # If untoggled, you can replay alerts using commands such as:
         # python $I3_SRC/realtime_tools/resources/scripts/replayI3LiveMoni.py --varname=realtimeEventData --pass=skua --start="2019-02-14 16:09:00" --stop="2019-02-14 16:15:39"
     
     if realtime_tools.config.ZMQ_HOST == 'live.icecube.wisc.edu':
         notify_alert = "<!channel> I have found a `{0}` `{1}` Alert." \
                        "I will scan this."
-        final_channels = [options.slackchannel] # "#alerts"
+        final_channels = [args.slackchannel] # "#alerts"
 
     # The alert listener can spawn new alert listeners. If a specific path is given, the listener 
     # will open that pickle file and read the message inside. Otherwise will proceed as normal. 
-    if options.event is not None:
-        with open(options.event, "rb") as f:
+    if args.event is not None:
+        with open(args.event, "rb") as f:
             event = Pickle.load(f)
         individual_event(event)
-        os.remove(options.event)
+        os.remove(args.event)
 
     else:
 
@@ -324,11 +326,11 @@ if __name__ == "__main__":
 
         post_to_slack("Switching on. I will now listen to the stream from `{0}`. "
                       "Sending scans is toggled to `{1}`. "
-                      "".format(realtime_tools.config.ZMQ_HOST, options.execute))
+                      "".format(realtime_tools.config.ZMQ_HOST, args.execute))
 
         # Replace default behaviour with script to spawn new tmux sessions for each event
 
-        if options.tmuxspawn:
+        if args.tmuxspawn:
             def incoming_event(varname, topics, event):
                 """
                 Handle incoming events and perform a full scan.
@@ -339,10 +341,10 @@ if __name__ == "__main__":
                 with open(event_path, "wb") as f:
                     Pickle.dump(event, f)
                 cmd = "bash " + submit_file + " " + uid + " " + env_path + ' " --event ' + event_path
-                cmd += " -n " + str(options.nworkers) + " -s '" + options.slackchannel + "'"
-                if options.execute:
+                cmd += " -n " + str(args.nworkers) + " -s '" + args.slackchannel + "'"
+                if args.execute:
                      cmd += " -x "
-                if options.localhost:
+                if args.localhost:
                      cmd += " -l "
                 cmd += '"'
                 os.system(cmd)
