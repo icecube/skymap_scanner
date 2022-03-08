@@ -17,13 +17,7 @@ from icecube.skymap_scanner import slack_tools
 from icecube.skymap_scanner.utils import create_event_id
 from icecube.skymap_scanner.scan_logic import whether_to_scan, stream_logic_map, extract_short_message
 
-
-# ==============================================================================
-# Set the rate of GFU prescaling.
-# ==============================================================================
-
-# For GFU-only events, only 1 in N are sent out to slack
-gfu_prescale = 40.
+from listener_conf import *
 
 # ==============================================================================
 # Configure Slack posting settings
@@ -49,7 +43,7 @@ else:
     submit_prefix = ""
 
 # ==============================================================================
-# Configure paths and ports for downloading/scanning
+# Configure and prepare cache dir
 # ==============================================================================
 
 event_cache_dir = os.path.join(realtime_tools.config.SCRATCH, "skymap_scanner_cache/")
@@ -58,13 +52,6 @@ try:
     os.makedirs(event_cache_dir)
 except OSError:
     pass
-
-# Hardcode path to GCD file on cvmfs
-
-#gcd_dir = os.path.join("/cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/baseline_gcd_131577.i3")
-gcd_dir = "/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/"
-# distribute_port = "21339"
-distribute_numclients = 1000.
 
 submit_file = os.path.dirname(os.path.abspath(__file__)) + "/spawn_session.sh"
 
@@ -83,7 +70,6 @@ def port_number():
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
     seconds = (now - midnight).seconds
     return '{:05d}'.format(seconds)
-
 
 # ==============================================================================
 # Function to factor out into separate scanner script
@@ -262,9 +248,9 @@ def individual_event(event):
         exception_message = str(sys.exc_info()[0]) + '\n' + str(
             sys.exc_info()[1]) + '\n' + str(sys.exc_info()[2])
         post_to_slack(
-            'Switching off. <@UQ8LZG42G>,  something went wrong while scanning '
-            'the event (python caught an exception): ```{0}``` *I blame human error*'.format(
-                exception_message))
+            'Switching off. {0},  something went wrong while scanning '
+            'the event (python caught an exception): ```{1}``` *I blame human error*'.format(shifters_slackid,
+exception_message))
         raise  # re-raise exceptions
 
 
@@ -376,7 +362,7 @@ if __name__ == "__main__":
             exception_message = str(sys.exc_info()[0]) + '\n' + str(
                 sys.exc_info()[1]) + '\n' + str(sys.exc_info()[2])
             post_to_slack(
-                'Switching off. <@UQ8LZG42G>,  something went wrong with the '
-                'listener (python caught an exception): ```{0}``` *I blame human error*'.format(
+                'Switching off. {0},  something went wrong with the '
+                'listener (python caught an exception): ```{1}``` *I blame human error*'.format(shifters_slackid,
                     exception_message))
             raise
