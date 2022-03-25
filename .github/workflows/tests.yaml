@@ -6,6 +6,8 @@ jobs:
 
   test-case-scan:
     runs-on: ubuntu-latest
+    docker:
+      - image: icecube/icetray
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
