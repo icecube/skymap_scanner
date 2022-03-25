@@ -1,0 +1,3 @@
+healpy
+matplotlib
+numpy
