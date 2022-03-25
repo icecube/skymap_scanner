@@ -11,5 +11,7 @@ jobs:
       - uses: actions/setup-python@v3
       - run: |
           cd test-case-scan/
+          pwd
+          ls
           ./scan.sh
           python create_plot.py ic191001a_sim -c output_skymap_scanner
