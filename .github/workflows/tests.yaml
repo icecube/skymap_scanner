@@ -1,0 +1,15 @@
+name: tests
+
+on: [push]
+
+jobs:
+
+  test-case-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - run: |
+        cd test-case-scan/
+        ./scan.sh
+        python create_plot.py ic191001a_sim -c output_skymap_scanner
