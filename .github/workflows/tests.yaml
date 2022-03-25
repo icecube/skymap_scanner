@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
       - run: |
+          echo $PYTHONPATH
           cd test-case-scan/
           pip install -r requirements.txt
           ./scans.sh
