@@ -9,8 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
-      - uses: docker://icecube/icetray
+      # - uses: docker://icecube/icetray
       - run: |
+          docker run icecube/icetray
           cd test-case-scan/
           pip install -r requirements.txt
           ./scans.sh
