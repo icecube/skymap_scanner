@@ -13,12 +13,14 @@ jobs:
       - uses: actions/setup-python@v3
       - run: |
           whereis python
-          whereis python3
+          which python
           echo $PYTHONPATH
           pip install virtualenv
           echo $PYTHONPATH
           python3 -m virtualenv -p python3 env
           . env/bin/activate
+          whereis python
+          which python
           echo $PYTHONPATH
           cd test-case-scan/
           pip install -r requirements.txt
