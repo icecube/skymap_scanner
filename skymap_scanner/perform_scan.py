@@ -17,7 +17,7 @@ from .utils import parse_event_id
 
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .utils import save_GCD_frame_packet_to_file, get_event_mjd
-#from icecube.skymap_scanner import scan_pixel_distributed
+#from skymap_scanner import scan_pixel_distributed
 from .traysegments import scan_pixel_distributed
 
 from . import config

@@ -16,14 +16,14 @@ from icecube import gulliver, millipede
 from icecube import astro
 from I3Tray import *
 
-from icecube.skymap_scanner.utils import parse_event_id
+from skymap_scanner.utils import parse_event_id
 
 from choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from icecube.skymap_scanner.utils import save_GCD_frame_packet_to_file, get_event_mjd
-#from icecube.skymap_scanner import scan_pixel_distributed
-from icecube.skymap_scanner.traysegments import scan_pixel_distributed
+from skymap_scanner.utils import save_GCD_frame_packet_to_file, get_event_mjd
+#from skymap_scanner import scan_pixel_distributed
+from skymap_scanner.traysegments import scan_pixel_distributed
 
-from icecube.skymap_scanner import config
+from skymap_scanner import config
 
 # test-case-scan: needed to read i3 files
 from extract_i3_file import extract_i3_file
@@ -450,7 +450,7 @@ def perform_scan_test(event_id_string, state_dict, cache_dir, port=5555, numclie
 
 if __name__ == "__main__":
     from optparse import OptionParser
-    from icecube.skymap_scanner.load_scan_state import load_cache_state
+    from skymap_scanner.load_scan_state import load_cache_state
     from icecube import icetray, dataclasses, dataio
 
     #import config

@@ -14,11 +14,11 @@ import pickle as Pickle
 import numpy as np
 
 from icecube import dataclasses, dataio, realtime_tools, astro
-from icecube.skymap_scanner import extract_json_message, create_plot, \
+from skymap_scanner import extract_json_message, create_plot, \
     perform_scan, config, loop_over_plots, get_best_fit_v2
-from icecube.skymap_scanner import slack_tools
-from icecube.skymap_scanner.utils import create_event_id
-from icecube.skymap_scanner.scan_logic import whether_to_scan, stream_logic_map, extract_short_message
+from skymap_scanner import slack_tools
+from skymap_scanner.utils import create_event_id
+from skymap_scanner.scan_logic import whether_to_scan, stream_logic_map, extract_short_message
 
 
 # ==============================================================================
