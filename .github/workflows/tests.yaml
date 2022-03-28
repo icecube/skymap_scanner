@@ -16,6 +16,7 @@ jobs:
           pip install virtualenv
           echo $PYTHONPATH
           python3 -m virtualenv -p python3 env
+          . env/bin/activate
           echo $PYTHONPATH
           cd test-case-scan/
           pip install -r requirements.txt
