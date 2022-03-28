@@ -25,6 +25,7 @@ jobs:
           which python3
           printenv
           echo "---"
+          pip freeze
           cd test-case-scan/
           pip install -r requirements.txt
           ./scans.sh
