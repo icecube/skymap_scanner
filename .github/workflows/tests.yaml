@@ -17,23 +17,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          # /usr/local/icetray/env-shell.sh
-          whereis python
-          which python
-          which python3
-          # sudo -H pip install virtualenv
-          printenv
-          echo "---"
-          # python3 -m virtualenv -p python3 env
-          # . env/bin/activate
-          echo "---"
-          whereis python
-          which python
-          which python3
-          printenv
-          echo "---"
-          pip freeze
-          cd test-case-scan/
-          pip install -r requirements.txt
           ./scans.sh
           python create_plot.py ic191001a_sim -c output_skymap_scanner
