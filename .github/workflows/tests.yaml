@@ -14,14 +14,18 @@ jobs:
       - run: |
           whereis python
           which python
-          echo $PYTHONPATH
+          which python3
           sudo -H pip install virtualenv
-          echo $PYTHONPATH
+          printenv
+          echo "---"
           python3 -m virtualenv -p python3 env
           . env/bin/activate
+          echo "---"
           whereis python
           which python
-          echo $PYTHONPATH
+          which python3
+          printenv
+          echo "---"
           cd test-case-scan/
           pip install -r requirements.txt
           ./scans.sh
