@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-
+# fmt: off
+# isort: skip_file
 
 import os
 import sys
@@ -8,9 +9,9 @@ import logging
 import json
 
 from icecube import icetray, dataclasses, dataio
-from icecube.skymap_scanner import extract_json_message, perform_scan, create_plot
-from icecube.skymap_scanner import slack_tools
-from icecube.skymap_scanner import scan_pixel_distributed_client
+from skymap_scanner import extract_json_message, perform_scan, create_plot
+from skymap_scanner import slack_tools
+from skymap_scanner import scan_pixel_distributed_client
 
 def post_to_slack(text):
     print(text)
@@ -92,7 +93,7 @@ def incoming_event(eventURL, base_GCD_path, cache_dir, port):
 
 if __name__ == "__main__":
     from optparse import OptionParser
-    from icecube.skymap_scanner.load_scan_state import load_cache_state
+    from skymap_scanner.load_scan_state import load_cache_state
 
     parser = OptionParser()
     usage = """%prog <master|worker> [options] event_URL/master_IP"""

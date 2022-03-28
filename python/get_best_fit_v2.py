@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# fmt: off
+# isort: skip_file
+
 import os
 import numpy
 
@@ -7,7 +10,7 @@ from I3Tray import I3Units
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
-from icecube.skymap_scanner import load_cache_state
+from skymap_scanner import load_cache_state
 
 def get_best_fit_v2(eventID, cache_dir, log_func=None):
     
@@ -59,5 +62,3 @@ if __name__ == "__main__":
     eventID = args[0]
 
     get_best_fit_v2(eventID, options.CACHEDIR)
-
-    

@@ -1,3 +1,5 @@
+# fmt: off
+# isort: skip_file
 
 from __future__ import print_function
 from __future__ import absolute_import
@@ -15,8 +17,8 @@ import cPickle as Pickle
 from icecube import icetray, dataclasses, dataio
 from icecube.astro import angular_distance
 
-from icecube.skymap_scanner.utils import parse_event_id, get_event_mjd
-from icecube.skymap_scanner import config
+from skymap_scanner.utils import parse_event_id, get_event_mjd
+from skymap_scanner import config
 
 # from . import slack_tools
 
@@ -443,7 +445,7 @@ def create_plot_zoomed(event_id_string, state_dict, systematics=True, extra_ra=n
 
 
 def loop_over_plots(eventID, cache_dir, ra=numpy.nan, dec=numpy.nan, radius=numpy.nan, state_dict=None, log_func=None, upload_func=None, final_channels=None):
-    from icecube.skymap_scanner.load_scan_state import load_cache_state
+    from skymap_scanner.load_scan_state import load_cache_state
     # get the file stager instance
 
     if state_dict is None:
@@ -461,7 +463,7 @@ def loop_over_plots(eventID, cache_dir, ra=numpy.nan, dec=numpy.nan, radius=nump
 
 if __name__ == "__main__":
     from optparse import OptionParser
-#    from icecube.skymap_scanner.load_scan_state import load_cache_state
+#    from skymap_scanner.load_scan_state import load_cache_state
 
     parser = OptionParser()
     usage = """%prog [options]"""
@@ -487,8 +489,8 @@ if __name__ == "__main__":
     # get the file stager instance
 #    stagers = dataio.get_stagers()
 
- #   eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
-  #  for syst in [True, False]:
-   #     plot_png_buffer = create_plot_zoomed(eventID, state_dict, syst, options.RA, options.DEC, options.RADIUS)
-        # # we have a buffer containing a valid png file now, post it to Slack
-        # slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")
+#   eventID, state_dict = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
+#  for syst in [True, False]:
+#     plot_png_buffer = create_plot_zoomed(eventID, state_dict, syst, options.RA, options.DEC, options.RADIUS)
+# # we have a buffer containing a valid png file now, post it to Slack
+# slack_tools.upload_file(plot_png_buffer, "skymap.png", "Skymap!")

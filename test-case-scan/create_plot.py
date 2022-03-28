@@ -1,5 +1,5 @@
-
-
+# fmt: off
+# isort: skip_file
 
 import io
 import os
@@ -10,8 +10,8 @@ import matplotlib.pyplot
 import healpy
 
 from icecube import icetray, dataclasses, dataio
-# test-case-scan: importing from icecube.skymap_scanner instead of local importing
-from icecube.skymap_scanner.utils import parse_event_id, get_event_mjd
+# test-case-scan: importing from skymap_scanner instead of local importing
+from skymap_scanner.utils import parse_event_id, get_event_mjd
 # test-case-scan: we don't need the slack_tools
 #from . import slack_tools 
 
@@ -254,7 +254,7 @@ def create_plot(event_id_string, state_dict):
 if __name__ == "__main__":
     from optparse import OptionParser
     # test-case-scan: import from metaproject
-    from icecube.skymap_scanner.load_scan_state import load_cache_state
+    from skymap_scanner.load_scan_state import load_cache_state
 
     parser = OptionParser()
     usage = """%prog [options]"""

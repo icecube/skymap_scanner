@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# fmt: off
+# isort: skip_file
+
 import os
 import sys
 import logging

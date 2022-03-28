@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# fmt: off
+# isort: skip_file
+
 import os
 import numpy
 
@@ -7,7 +10,7 @@ from I3Tray import I3Units
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
-from icecube.skymap_scanner import load_cache_state
+from skymap_scanner import load_cache_state
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -48,4 +51,3 @@ if __name__ == "__main__":
                 best_energy = energy
     
     print("best-fit pixel: nside =", best_nside, ", best_pix =", best_pix, ", best_llh =", best_llh, ", best_energy =", best_energy/I3Units.TeV, "TeV")
-    

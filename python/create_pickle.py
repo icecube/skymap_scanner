@@ -1,7 +1,10 @@
+# fmt: off
+# isort: skip_file
+
 import os
 import pickle
 from icecube import dataio
-from icecube.skymap_scanner.load_scan_state import load_cache_state
+from skymap_scanner.load_scan_state import load_cache_state
 
 def parse_scan(cache_dir, eventID):
     stagers = dataio.get_stagers()

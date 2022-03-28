@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
+# fmt: off
+# isort: skip_file
+
 import os
 import sys
 import logging
 
 from icecube import icetray, dataclasses, dataio, realtime_tools
-from icecube.skymap_scanner import extract_json_message, perform_scan, create_plot
-from icecube.skymap_scanner import slack_tools
+from skymap_scanner import extract_json_message, perform_scan, create_plot
+from skymap_scanner import slack_tools
 
 def post_to_slack(text):
     # never crash because of Slack

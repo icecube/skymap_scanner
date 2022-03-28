@@ -1,3 +1,6 @@
+# fmt: off
+# isort: skip_file
+
 import os
 import shutil
 import json
@@ -6,11 +9,11 @@ import numpy as np
 from icecube import icetray, dataclasses, dataio
 from icecube import full_event_followup, frame_object_diff
 
-# test-case-scan: import from icecube.skymap_scanner instead of .
-from icecube.skymap_scanner import config
-from icecube.skymap_scanner.utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop
-from icecube.skymap_scanner.load_scan_state import load_scan_state
-from icecube.skymap_scanner.prepare_frames import prepare_frames
+# test-case-scan: import from skymap_scanner instead of .
+from skymap_scanner import config
+from skymap_scanner.utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop
+from skymap_scanner.load_scan_state import load_scan_state
+from skymap_scanner.prepare_frames import prepare_frames
 
 def extract_GCD_diff_base_filename(frame_packet):
     # check the base filename (it should be the same for all "Diff" objects)

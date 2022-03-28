@@ -1,3 +1,6 @@
+# fmt: off
+# isort: skip_file
+
 import os
 import numpy as np
 
@@ -5,7 +8,7 @@ from I3Tray import I3Units
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
-from icecube.skymap_scanner import load_cache_state
+from skymap_scanner import load_cache_state
 import matplotlib.pyplot as plt
 
 # import os
@@ -327,4 +330,3 @@ if __name__ == "__main__":
                 pass
 
         print(("Final Fractions", fracs))
-
