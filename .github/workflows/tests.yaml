@@ -7,7 +7,7 @@ jobs:
   test-case-scan:
     runs-on: ubuntu-latest
     container:
-      image: icecube/icetray:combo-stable
+      image: icecube/icetray:stable-devel
       env:
         PYTHONPATH: /usr/local/icetray/lib
         PATH: /usr/local/icetray/bin:/usr/bin:/bin
