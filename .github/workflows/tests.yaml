@@ -14,11 +14,11 @@ jobs:
           whereis python
           which python
           which python3
-          sudo -H pip install virtualenv
+          # sudo -H pip install virtualenv
           printenv
           echo "---"
-          python3 -m virtualenv -p python3 env
-          . env/bin/activate
+          # python3 -m virtualenv -p python3 env
+          # . env/bin/activate
           echo "---"
           whereis python
           which python
