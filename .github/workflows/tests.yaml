@@ -15,7 +15,7 @@ jobs:
           whereis python
           which python
           echo $PYTHONPATH
-          pip install virtualenv
+          sudo -H pip install virtualenv
           echo $PYTHONPATH
           python3 -m virtualenv -p python3 env
           . env/bin/activate
