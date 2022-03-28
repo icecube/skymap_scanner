@@ -1,3 +1,9 @@
+# fmt: off
+# isort: skip_file
+
+import sys
+sys.path.append("..")
+
 import numpy
 import healpy
 import os
