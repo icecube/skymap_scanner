@@ -10,7 +10,6 @@ jobs:
       image: icecube/icetray
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
       - run: |
           whereis python
           which python
