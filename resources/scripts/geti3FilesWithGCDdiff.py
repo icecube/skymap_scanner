@@ -3,8 +3,8 @@
 from icecube import icetray, dataio, dataclasses
 import json
 import datetime
-import urllib, urllib2, zmq
-import cPickle as pickle
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, zmq
+import pickle as pickle
 import zlib, base64
 from collections import OrderedDict
 
@@ -13,7 +13,7 @@ def json_to_frame_packet(json_msg):
     assert isinstance(json_msg, dict)
     frame_packets = []
 
-    for keytype, compressed_string in json_msg.iteritems():
+    for keytype, compressed_string in json_msg.items():
         frame = pickle.loads( zlib.decompress(
                 base64.b64decode( compressed_string) )
                 )
@@ -40,13 +40,13 @@ def GetDataBaseOutput(varname='heseEvent16', topic='heseEvent16',
       - heseEvent/heseEventFull"""
     url = 'https://live.icecube.wisc.edu/pfow_data/'
 
-    req = urllib2.Request(url,
-                urllib.urlencode(
+    req = urllib.request.Request(url,
+                urllib.parse.urlencode(
                 {'user':'icecube', 'pass':'skua',
                 'varname':varname, 'topic':topic,
                 'timekey':'time', 'start':starttime, 'stop':stoptime})
                 )
-    response = urllib2.urlopen(req).read()
+    response = urllib.request.urlopen(req).read()
     db_output = json.loads(response)
 
     data = []
@@ -66,7 +66,7 @@ if __name__ == "__main__":
             topic="subThreshold_heseEvent16Data",
             starttime=datetime.datetime.now()-datetime.timedelta(days=3),
             )
-    print 'Found {} events'.format( len(data))
+    print('Found {} events'.format( len(data)))
 
     """Get rid of varname and topic info"""
     ## If only QP frames desired, remove GCD elements from goodkeys
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     for event in GCDQPdicts:
         frame_packet = json_to_frame_packet(event)
         for frame in frame_packet:
-            print frame
+            print(frame)
             i3file.push(frame)
     i3file.close()
-    print "{} saved".format(i3fname)
+    print("{} saved".format(i3fname))

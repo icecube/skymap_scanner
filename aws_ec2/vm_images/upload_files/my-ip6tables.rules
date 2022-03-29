@@ -1,3 +1,0 @@
-*nat
--A POSTROUTING -s fd00::/64 -j MASQUERADE
-COMMIT
