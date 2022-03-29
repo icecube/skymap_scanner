@@ -1,0 +1,20 @@
+name: tests
+
+on: [push]
+
+jobs:
+
+  test-case-scan:
+    runs-on: ubuntu-latest
+    container:
+      image: icecube/icetray
+      env:
+        PYTHONPATH: /usr/local/icetray/lib
+        PATH: /usr/local/icetray/bin:/usr/bin:/bin
+        LD_LIBRARY_PATH: /usr/local/icetray/lib
+        I3_BUILD: /usr/local/icetray
+        I3_SRC: /usr/local/icetray
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          ls
