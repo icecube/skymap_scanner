@@ -1,0 +1,3 @@
+psutil
+pulsar-client
+tqdm
