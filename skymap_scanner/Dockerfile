@@ -79,6 +79,7 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
 COPY *.py /local/
 WORKDIR /local
 
+RUN ls /local
 
 #
 # ENTRYPOINT
