@@ -34,6 +34,7 @@ RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/li
 ENV PYTHON_VERSION 3.8.10
 
 # Set of all dependencies needed for pyenv to work on Ubuntu
+RUN apt-get install ca-certificates
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget ca-certificates curl llvm libncurses5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev mecab-ipadic-utf8 git
 
