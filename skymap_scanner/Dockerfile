@@ -1,7 +1,3 @@
-# FROM icecube/icetray:combo-V00-00-01-tensorflow.2.1.0-ubuntu18.04
-# FROM icecube/icetray:combo-stable-tensorflow.1.13.2-ubuntu18.04
-# FROM icecube/icetray:combo-stable-tensorflow2.4.1-ubuntu20.04
-# optionally, try just `icecube/icetray:combo-stable-tensorflow`
 FROM icecube/icetray:combo-stable
 
 
@@ -16,13 +12,6 @@ RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10
         http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_abs_z20a10_V2.fits
 RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_prob_z20a10_V2.fits \
         http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_prob_z20a10_V2.fits
-
-# Make this tensorflow image "universal" (enable the library
-# to load even in absence of libcuda.so linked in by nvidia-docker).
-# This should make this work on both GPU and CPU systems.
-RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
-    echo "/usr/local/cuda/lib64/stubs" > /etc/ld.so.conf.d/z-cuda-stubs.conf && \
-    ldconfig
 
 
 #
