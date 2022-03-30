@@ -79,10 +79,6 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
 COPY *.py /local/
 WORKDIR /local
 
-# add i3deepice to the container
-COPY i3deepice/ /local/i3deepice/
-ENV PYTHONPATH /local/i3deepice/
-
 # patch onlinel2filter.py (it tries to do some magic with the pulse masks
 # which is unnecessary and makes assumptions that are not true for L2 data.)
 COPY onlinel2filter.py.patch /local
