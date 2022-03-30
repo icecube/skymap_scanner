@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# fmt: off
-# isort: skip_file
-
 from __future__ import print_function
 from __future__ import absolute_import
 
@@ -102,8 +99,7 @@ def producer(eventURL, broker, auth_token, topic, metadata_topic_base, event_nam
         
         # This step will create missing frame objects if necessary.
         print('Event extracted. I will now perform some simple tasks like the HESE veto calculation...')
-        # FIXME/TODO - this call to symbolic link 'prepare_frames.py'
-        GCDQp_packet, _ = prepare_frames(GCDQp_packet, pulsesName=pulsesName)
+        GCDQp_packet = prepare_frames(GCDQp_packet, pulsesName=pulsesName)
         print('Done.')
         
         
