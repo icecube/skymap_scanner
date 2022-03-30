@@ -76,7 +76,7 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
 # copy all .py files from the repository into the container image
-COPY * /local/
+COPY *.py /local/
 WORKDIR /local
 
 # patch onlinel2filter.py (it tries to do some magic with the pulse masks
