@@ -1,0 +1,13 @@
+name: tests
+
+on: [push]
+
+jobs:
+
+  test-build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          cd cloud_tools/
+          docker build --no-cache -t skyscan-cloud .
