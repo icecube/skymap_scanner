@@ -23,4 +23,5 @@ jobs:
           cp -r -n ../cloud_tools/* .
           cp ../python/prepare_frames.py .
           docker build --no-cache -t skyscan-cloud .
+      - run: |
           docker run -p 6650:6650 skyscan-cloud
