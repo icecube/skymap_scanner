@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          cd cloud_tools/
+          cd skymap_scanner/
+          cp -r -n ../cloud_tools/ .
           cp ../python/prepare_frames.py .
           docker build --no-cache -t skyscan-cloud .
