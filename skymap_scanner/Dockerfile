@@ -49,6 +49,7 @@ RUN python3 -V
 # add the pulsar client and some other python packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
 RUN sudo apt-get install python3-pip -y
+RUN python3 -m pip install --upgrade pip
 RUN pip3 install pulsar-client==2.6.0 && \
     pip3 install tqdm && \
     pip3 install backports.tempfile && \
