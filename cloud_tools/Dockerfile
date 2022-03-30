@@ -1,8 +1,8 @@
 # FROM icecube/icetray:combo-V00-00-01-tensorflow.2.1.0-ubuntu18.04
 # FROM icecube/icetray:combo-stable-tensorflow.1.13.2-ubuntu18.04
- FROM icecube/icetray:combo-stable-tensorflow2.4.1-ubuntu20.04
+# FROM icecube/icetray:combo-stable-tensorflow2.4.1-ubuntu20.04
 # optionally, try just `icecube/icetray:combo-stable-tensorflow`
-# FROM icecube/icetray:combo-stable-tensorflow
+FROM icecube/icetray:combo-stable-tensorflow
 
 
 #
