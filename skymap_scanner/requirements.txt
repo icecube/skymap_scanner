@@ -1,0 +1,7 @@
+backports.tempfile
+healpy
+psutil
+pulsar-client==2.6.0
+pygcn
+pyzmq
+tqdm
