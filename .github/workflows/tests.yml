@@ -13,31 +13,14 @@ jobs:
           cp -r -n ../cloud_tools/* .
           docker build --no-cache -t skyscan-cloud .
 
-  # test-docker-run:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - run: |
-  #         cd skymap_scanner/
-  #         cp -r -n ../cloud_tools/* .
-  #         cp ../python/prepare_frames.py .
-  #         docker build --no-cache -t skyscan-cloud .
-  #     - run: |
-  #         docker run -p 6650:6650 skyscan-cloud
-
-  without-docker:
+  test-docker-run:
     runs-on: ubuntu-latest
-    container:
-      image: icecube/icetray
-      env:
-        PYTHONPATH: /usr/local/icetray/lib
-        PATH: /usr/local/icetray/bin:/usr/bin:/bin
-        LD_LIBRARY_PATH: /usr/local/icetray/lib
-        I3_BUILD: /usr/local/icetray
-        I3_SRC: /usr/local/icetray
     steps:
       - uses: actions/checkout@v3
       - run: |
-          # manually -- not using Dockerfile
-          pip install -r cloud_tools/requirements.txt
-          python cloud_tools/entrypoint.py
+          cd skymap_scanner/
+          cp -r -n ../cloud_tools/* .
+          cp ../python/prepare_frames.py .
+          docker build --no-cache -t skyscan-cloud .
+      - run: |
+          docker run -p 6650:6650 skyscan-cloud
