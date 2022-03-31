@@ -50,7 +50,7 @@ RUN python3 -V
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
 RUN sudo apt-get install python3-pip -y
 RUN python3 -m pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install -r skymap_scanner/requirements.txt
 
 
 #
