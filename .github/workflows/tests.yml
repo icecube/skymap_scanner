@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Apache Pulsar
+        uses: reugn/github-action-pulsar@v1
       - name: Build Docker Image
         run: |
           cd skymap_scanner/
