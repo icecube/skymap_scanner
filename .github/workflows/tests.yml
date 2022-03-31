@@ -27,6 +27,5 @@ jobs:
           docker build --no-cache -t skyscan-cloud .
       - name: Run Test(s)
         run: |
-          ls
-          ./make_pulsar_server_config.sh
+          ./skymap_scanner/make_pulsar_server_config.sh
           docker run -p 6650:6650 skyscan-cloud
