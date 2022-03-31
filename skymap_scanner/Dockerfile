@@ -43,18 +43,6 @@ RUN python3 -V
 
 
 #
-# Add Python Packages
-#
-
-# add the pulsar client and some other python packages
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
-RUN sudo apt-get install python3-pip -y
-RUN python3 -m pip install --upgrade pip
-RUN ls
-RUN pip install -r skymap_scanner/requirements.txt
-
-
-#
 # Get IceTray Setup
 #
 
@@ -72,10 +60,21 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
 # copy all .py files from the repository into the container image
-COPY *.py /local/
+COPY * /local/
 WORKDIR /local
 
 RUN ls /local
+
+
+#
+# Add Python Packages
+#
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
+RUN sudo apt-get install python3-pip -y
+RUN python3 -m pip install --upgrade pip
+RUN pip install -r /local/requirements.txt
+
 
 #
 # ENTRYPOINT
