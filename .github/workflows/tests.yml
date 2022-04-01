@@ -35,9 +35,11 @@ jobs:
           cp -r -n ../cloud_tools/* .
           docker build --no-cache -t skyscan-cloud .
 
-      - name: Run Test(s)
+      - name: Configure Pulsar Server
         run: |
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/make_pulsar_server_config.sh pulsar_local
+
+      - name: Run Test(s)
           docker run -p 6650:6650 skyscan-cloud
