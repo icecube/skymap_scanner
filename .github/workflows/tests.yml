@@ -42,4 +42,5 @@ jobs:
           ./skymap_scanner/make_pulsar_server_config.sh pulsar_local
 
       - name: Run Test(s)
+        run: |
           docker run -p 6650:6650 skyscan-cloud
