@@ -28,9 +28,17 @@ jobs:
           cp -r -n ../cloud_tools/* .
           docker build --no-cache -t skyscan-cloud .
 
+      - name: Install Dockerize
+        run: |
+          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+        env:
+          DOCKERIZE_VERSION: v0.3.0
+
       - name: Run Pulsar Server Docker Container & Configure
         run: |
           docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          dockerize -wait tcp://localhost:8080 -timeout 1m
+          dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/make_pulsar_server_config.sh pulsar_local
 
       - name: Run Test(s)
