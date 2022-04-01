@@ -43,4 +43,5 @@ jobs:
 
       - name: Run Test(s)
         run: |
-          docker run -p 6650:6650 skyscan-cloud
+          cd ./skymap_scanner/tests/docker_scripts
+          ./launch.sh skyscan-cloud ./event_HESE_2017-11-28.json
