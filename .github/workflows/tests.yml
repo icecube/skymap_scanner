@@ -39,7 +39,7 @@ jobs:
         run: |
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
-          ./skymap_scanner/make_pulsar_server_config.sh pulsar_local
+          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
 
       - name: Run Test(s)
         run: |
