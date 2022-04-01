@@ -30,7 +30,7 @@ jobs:
 
       - name: Run Pulsar Server Docker Container & Configure
         run: |
-          docker run -i --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
           ./skymap_scanner/make_pulsar_server_config.sh pulsar_local
 
       - name: Run Test(s)
