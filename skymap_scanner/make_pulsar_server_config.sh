@@ -2,6 +2,8 @@
 
 # From the README.md
 
+set -x
+
 docker exec -i $1 bin/pulsar-admin tenants create icecube
 docker exec -i $1 bin/pulsar-admin namespaces create icecube/skymap
 docker exec -i $1 bin/pulsar-admin namespaces set-deduplication icecube/skymap --enable
