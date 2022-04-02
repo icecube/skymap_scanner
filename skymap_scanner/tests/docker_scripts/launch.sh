@@ -7,13 +7,13 @@ set -x
 # You can run the producer to send a scan like this.
 # Notice that you are submitting the event with a specific name that you
 # can use later in order to save all data:
-docker run --rm -i $1 producer $2 --broker pulsar://localhost:6650 --nside 1 -n test_event_01
+# docker run --rm -i $1 producer $2 --broker pulsar://localhost:6650 --nside 1 -n test_event_01
 
 # Then you can then start some workers to scan the jobs in the queue:
-# docker run --rm -i $1 worker --broker pulsar://localhost:6650
+docker run --rm -i $1 worker --broker pulsar://localhost:6650
 
-# # Finally, since there are 7 jobs per pixel (different reconstruction
-# # seeds in absolute position in the detector), they need to be collected
+# Finally, since there are 7 jobs per pixel (different reconstruction
+# seeds in absolute position in the detector), they need to be collected
 # # for each pixel. You have to run one (or several) of these:
 # docker run --rm -i $1 collector --broker pulsar://localhost:6650
 
