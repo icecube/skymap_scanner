@@ -7,7 +7,7 @@ set -x
 # You can run the producer to send a scan like this.
 # Notice that you are submitting the event with a specific name that you
 # can use later in order to save all data:
-docker run --rm -i $1 producer $2 --broker pulsar://localhost:6650 --nside 1 -n test_event_01
+# docker run --rm -i $1 producer $2 --broker pulsar://localhost:6650 --nside 1 -n test_event_01
 
 # Then you can then start some workers to scan the jobs in the queue:
 docker run --rm -i $1 worker --broker pulsar://localhost:6650
