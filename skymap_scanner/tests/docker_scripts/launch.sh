@@ -15,7 +15,7 @@ set -x
 # Finally, since there are 7 jobs per pixel (different reconstruction
 # seeds in absolute position in the detector), they need to be collected
 # for each pixel. You have to run one (or several) of these:
-docker run --rm -i $1 collector --broker pulsar://localhost:6650
+# docker run --rm -i $1 collector --broker pulsar://localhost:6650
 
 # Now, you can save the output queue into an .i3 file and have a look at
 # it: (Note that saver will block until all frames have been processed.)
