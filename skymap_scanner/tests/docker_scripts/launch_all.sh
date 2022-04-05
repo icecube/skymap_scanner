@@ -19,7 +19,7 @@ $MYDIR/launch_worker.sh $1
 # # for each pixel. You have to run one (or several) of these:
 $MYDIR/launch_collector.sh $1
 
-# # Now, you can save the output queue into an .i3 file and have a look at
-# # it: (Note that saver will block until all frames have been processed.)
-docker run --rm -v $PWD:/mnt -i $1 saver --broker pulsar://localhost:6650 --nside 16 -n test_event_01 -o /mnt/test_event_01.i3
+# Now, you can save the output queue into an .i3 file and have a look at
+# it: (Note that saver will block until all frames have been processed.)
+$MYDIR/launch_saver.sh $1 test_event_01 /mnt/test_event_01.i3
 docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
