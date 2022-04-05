@@ -11,7 +11,7 @@ env:
 
 jobs:
 
-  test-docker-build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,7 +21,7 @@ jobs:
           cp -r -n ../cloud_tools/* .
           docker build --no-cache -t $SKYSCAN_CONTAINER .
 
-  test-all:
+  test-run-all:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -40,7 +40,7 @@ jobs:
         run: |
           ./skymap_scanner/tests/docker_scripts/launch_all.sh $SKYSCAN_CONTAINER
 
-  test-producer:
+  test-run-producer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -59,7 +59,7 @@ jobs:
         run: |
           ./skymap_scanner/tests/docker_scripts/launch_producer.sh $SKYSCAN_CONTAINER
 
-  test-worker:
+  test-run-worker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -78,7 +78,7 @@ jobs:
         run: |
           ./skymap_scanner/tests/docker_scripts/launch_worker.sh $SKYSCAN_CONTAINER
 
-  test-collector:
+  test-run-collector:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -97,7 +97,7 @@ jobs:
         run: |
           ./skymap_scanner/tests/docker_scripts/launch_collector.sh $SKYSCAN_CONTAINER
 
-  test-saver:
+  test-run-saver:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
