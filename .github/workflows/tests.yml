@@ -59,7 +59,7 @@ jobs:
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_producer.sh skyscan-cloud http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json
+          ./skymap_scanner/tests/docker_scripts/launch_producer.sh skyscan-cloud http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json test_event_01
 
   test-worker:
     runs-on: ubuntu-latest

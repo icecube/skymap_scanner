@@ -9,7 +9,7 @@ set -x
 # You can run the producer to send a scan like this.
 # Notice that you are submitting the event with a specific name that you
 # can use later in order to save all data:
-$MYDIR/launch_producer.sh $1 $2
+$MYDIR/launch_producer.sh $1 $2 test_event_01
 
 # Then you can then start some workers to scan the jobs in the queue:
 $MYDIR/launch_worker.sh $1
