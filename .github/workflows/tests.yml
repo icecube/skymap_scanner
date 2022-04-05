@@ -4,6 +4,11 @@ on: [push]
 
 env:
   DOCKERIZE_VERSION: v0.3.0
+  SKYSCAN_TEST_EVENT: test_event_01
+  SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
+  PULSAR_CONTAINER: pulsar_local
+  SKYSCAN_CONTAINER: skyscan-cloud
+  SKYSCAN_EVENT_URL: http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json
 
 jobs:
 
@@ -15,7 +20,7 @@ jobs:
         run: |
           cd skymap_scanner/
           cp -r -n ../cloud_tools/* .
-          docker build --no-cache -t skyscan-cloud .
+          docker build --no-cache -t $SKYSCAN_CONTAINER .
 
   test-all:
     runs-on: ubuntu-latest
@@ -23,21 +28,21 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
       - name: Build Skymap Scanner Docker Image
         run: |
           cd skymap_scanner/
           cp -r -n ../cloud_tools/* .
-          docker build --no-cache -t skyscan-cloud .
+          docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
           wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
+          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_all.sh skyscan-cloud http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json
+          ./skymap_scanner/tests/docker_scripts/launch_all.sh $SKYSCAN_CONTAINER
 
   test-producer:
     runs-on: ubuntu-latest
@@ -45,21 +50,21 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
       - name: Build Skymap Scanner Docker Image
         run: |
           cd skymap_scanner/
           cp -r -n ../cloud_tools/* .
-          docker build --no-cache -t skyscan-cloud .
+          docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
           wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
+          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_producer.sh skyscan-cloud http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json test_event_01
+          ./skymap_scanner/tests/docker_scripts/launch_producer.sh $SKYSCAN_CONTAINER
 
   test-worker:
     runs-on: ubuntu-latest
@@ -67,21 +72,21 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
       - name: Build Skymap Scanner Docker Image
         run: |
           cd skymap_scanner/
           cp -r -n ../cloud_tools/* .
-          docker build --no-cache -t skyscan-cloud .
+          docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
           wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
+          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_worker.sh skyscan-cloud
+          ./skymap_scanner/tests/docker_scripts/launch_worker.sh $SKYSCAN_CONTAINER
 
   test-collector:
     runs-on: ubuntu-latest
@@ -89,21 +94,21 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
       - name: Build Skymap Scanner Docker Image
         run: |
           cd skymap_scanner/
           cp -r -n ../cloud_tools/* .
-          docker build --no-cache -t skyscan-cloud .
+          docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
           wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
+          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_collector.sh skyscan-cloud
+          ./skymap_scanner/tests/docker_scripts/launch_collector.sh $SKYSCAN_CONTAINER
 
   test-saver:
     runs-on: ubuntu-latest
@@ -111,18 +116,18 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name pulsar_local apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          docker run -i -d --rm -p 6650:6650 -p 8080:8080 --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
       - name: Build Skymap Scanner Docker Image
         run: |
           cd skymap_scanner/
           cp -r -n ../cloud_tools/* .
-          docker build --no-cache -t skyscan-cloud .
+          docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
           wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           dockerize -wait tcp://localhost:8080 -timeout 1m
           dockerize -wait tcp://localhost:6650 -timeout 1m
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh pulsar_local
+          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_saver.sh skyscan-cloud test_event_01 /mnt/test_event_01.i3
+          ./skymap_scanner/tests/docker_scripts/launch_saver.sh $SKYSCAN_CONTAINER
