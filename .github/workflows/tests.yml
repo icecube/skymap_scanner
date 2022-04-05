@@ -41,4 +41,4 @@ jobs:
 
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch.sh skyscan-cloud http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json
+          ./skymap_scanner/tests/docker_scripts/launch_all.sh skyscan-cloud http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json
