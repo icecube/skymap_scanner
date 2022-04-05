@@ -12,7 +12,7 @@ set -x
 $MYDIR/launch_producer.sh $1 $2
 
 # Then you can then start some workers to scan the jobs in the queue:
-docker run --rm -i $1 worker --broker pulsar://localhost:6650
+$MYDIR/launch_worker.sh $1
 
 # Finally, since there are 7 jobs per pixel (different reconstruction
 # seeds in absolute position in the detector), they need to be collected
