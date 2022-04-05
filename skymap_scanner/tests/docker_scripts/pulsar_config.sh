@@ -4,6 +4,12 @@
 
 set -x
 
+# make sure the ports are active
+export DOCKERIZE_VERSION=v0.3.0
+wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+dockerize -wait tcp://localhost:8080 -timeout 1m
+dockerize -wait tcp://localhost:6650 -timeout 1m
+
 docker exec -i $1 bin/pulsar-admin tenants create icecube
 docker exec -i $1 bin/pulsar-admin namespaces create icecube/skymap
 docker exec -i $1 bin/pulsar-admin namespaces set-deduplication icecube/skymap --enable

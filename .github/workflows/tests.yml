@@ -3,7 +3,6 @@ name: tests
 on: [push]
 
 env:
-  DOCKERIZE_VERSION: v0.3.0
   SKYSCAN_TEST_EVENT: test_event_01
   SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
   PULSAR_CONTAINER: pulsar_local
@@ -36,9 +35,6 @@ jobs:
           docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
@@ -58,9 +54,6 @@ jobs:
           docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
@@ -80,9 +73,6 @@ jobs:
           docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
@@ -102,9 +92,6 @@ jobs:
           docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
@@ -124,9 +111,6 @@ jobs:
           docker build --no-cache -t $SKYSCAN_CONTAINER .
       - name: Configure Pulsar Server
         run: |
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
