@@ -4,6 +4,8 @@ import argparse
 
 import healpy  # type: ignore[import]
 
+from . import producer
+
 
 def main() -> None:
     """Read command-line arguments and trigger producer, worker, collector, or saver."""
@@ -184,7 +186,7 @@ def main() -> None:
         else:
             pixel_list = None
 
-        producer(
+        producer.producer.producer(
             args.event_url,
             broker=args.BROKER,
             auth_token=args.AUTH_TOKEN,
