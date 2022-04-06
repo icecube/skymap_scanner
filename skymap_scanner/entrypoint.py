@@ -2,18 +2,22 @@
 
 import argparse
 
+import healpy  # type: ignore[import]
+
 
 def main() -> None:
-
+    """Read command-line arguments and trigger producer, worker, collector, or saver."""
     parser = argparse.ArgumentParser(
         description="Run Skymap Scanner according to `mode` argument.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
     parser.add_argument(
         "mode",
         choices=["producer", "worker", "collector", "saver"],
         help="the Skymap Scanner role to invoke",
-    )
+    )  # TODO - once dust settles, this could be a subparser
+
     parser.add_argument(
         "-e",
         "--event_url",
@@ -120,12 +124,8 @@ def main() -> None:
         dest="FAKE_SCAN",
         help="Just return random numbers and wait 1 second instead of performing the actual calculation in the worker. For testing only.",
     )
-    args = parser.parse_args()
 
-    topic_base_meta = args.TOPICMETA
-    topic_in = args.TOPICIN
-    topic_out = args.TOPICOUT
-    topic_base_col = args.TOPICCOL
+    args = parser.parse_args()
 
     if args.mode == "producer":
         if args.NAME is None:
@@ -171,10 +171,11 @@ def main() -> None:
             area_center_pixel = None
             area_num_pixels = None
 
-        nside = args.NSIDE
-        npixels = 12 * (nside ** 2)
-
-        print("Scanning NSide={}, corresponding to NPixel={}".format(nside, npixels))
+        print(
+            "Scanning NSide={}, corresponding to NPixel={}".format(
+                args.NSIDE, 12 * (args.NSIDE ** 2)
+            )
+        )
 
         if args.PIXELLIST is not None:
             print("****** SPECIFIC PIXEL LIST OVERRIDE IS BEING USED ******")
@@ -187,10 +188,10 @@ def main() -> None:
             args.event_url,
             broker=args.BROKER,
             auth_token=args.AUTH_TOKEN,
-            topic=topic_in,
-            metadata_topic_base=topic_base_meta,
+            topic=args.TOPICIN,
+            metadata_topic_base=args.TOPICMETA,
             event_name=args.NAME,
-            nside=nside,
+            nside=args.NSIDE,
             area_center_nside=area_center_nside,
             area_center_pixel=area_center_pixel,
             area_num_pixels=area_num_pixels,
@@ -200,8 +201,8 @@ def main() -> None:
         scan_pixel(
             broker=args.BROKER,
             auth_token=args.AUTH_TOKEN,
-            topic_in=topic_in,
-            topic_out=topic_out,
+            topic_in=args.TOPICIN,
+            topic_out=args.TOPICOUT,
             fake_scan=args.FAKE_SCAN,
             all_partitions=args.CONNECT_WORKER_TO_ALL_PARTITIONS,
         )
@@ -209,8 +210,8 @@ def main() -> None:
         collect_pixels(
             broker=args.BROKER,
             auth_token=args.AUTH_TOKEN,
-            topic_in=topic_out,
-            topic_base_out=topic_base_col,
+            topic_in=args.TOPICOUT,
+            topic_base_out=args.TOPICCOL,
         )
     elif args.mode == "saver":
         if args.NAME is None:
@@ -221,19 +222,17 @@ def main() -> None:
         if args.NSIDE is None:
             nsides = None
         else:
-            nside = args.NSIDE
-            npixels = 12 * (nside ** 2)
             print(
                 "Waiting for all pixels for NSide={}, corresponding to NPixel={}".format(
-                    nside, npixels
+                    args.NSIDE, 12 * (args.NSIDE ** 2)
                 )
             )
-            nsides = [nside]
+            nsides = [args.NSIDE]
 
         save_pixels(
             broker=args.BROKER,
             auth_token=args.AUTH_TOKEN,
-            topic_in=topic_base_col + args.NAME,
+            topic_in=args.TOPICCOL + args.NAME,
             filename_out=args.OUTPUT,
             nsides_to_wait_for=nsides,
             delete_from_queue=args.DELETE_OUTPUT_FROM_QUEUE,
