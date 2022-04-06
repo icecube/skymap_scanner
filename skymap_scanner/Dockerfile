@@ -33,30 +33,13 @@ ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
 # Install pyenv
 RUN set -ex \
-    && curl https://pyenv.run | bash \
+    && curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash \
     && pyenv update \
     && pyenv install $PYTHON_VERSION \
     && pyenv global $PYTHON_VERSION \
     && pyenv rehash
 
 RUN python3 -V
-
-
-#
-# Add Python Packages
-#
-
-# add the pulsar client and some other python packages
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
-RUN sudo apt-get install python3-pip -y
-RUN python3 -m pip install --upgrade pip
-RUN pip3 install pulsar-client==2.6.0 && \
-    pip3 install tqdm && \
-    pip3 install backports.tempfile && \
-    pip3 install psutil && \
-    pip3 install pygcn && \
-    pip3 install healpy && \
-    pip3 install pyzmq
 
 
 #
@@ -77,10 +60,22 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
 # copy all .py files from the repository into the container image
-COPY *.py /local/
+COPY * /local/
 WORKDIR /local
 
 RUN ls /local
+
+
+#
+# Add Python Packages
+#
+
+RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
+RUN sudo apt-get install python3-pip -y
+RUN python3 -m pip install --upgrade pip
+RUN pip install -r /local/requirements.txt
+
 
 #
 # ENTRYPOINT
