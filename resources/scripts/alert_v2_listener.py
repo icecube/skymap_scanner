@@ -15,24 +15,21 @@ import argparse
 from icecube import dataclasses, dataio, realtime_tools, astro
 from icecube.skymap_scanner import extract_json_message, create_plot, \
     perform_scan, config, loop_over_plots, get_best_fit_v2
-from icecube.skymap_scanner import slack_tools
+
 from icecube.skymap_scanner.utils import create_event_id
 from icecube.skymap_scanner.scan_logic import whether_to_scan, stream_logic_map, extract_short_message
 
-from listener_conf import *
 
-# ==============================================================================
-# Configure Slack posting settings
-# ==============================================================================
 
-def post_to_slack(text):
-    # never crash because of Slack
-    try:
-        logger = logging.getLogger()
-        logger.info(text)
-        return slack_tools.post_message(text)
-    except Exception as err:
-        logger.warning(f"Posting to Slack failed because of: {err}")
+# from icecube.skymap_scanner import slack_tools
+# slack_tools is now tentatively symlinked to local directory
+from slack_tools import SlackInterface
+from slack_tools import MessageHelper as msg
+
+slack = SlackInterface()
+
+
+from listener_conf import gfu_prescale, gcd_dir, shifters_slackid
 
 # ==============================================================================
 # If operating on cobalt machines, ssh into submitter
@@ -78,19 +75,17 @@ def port_number():
 # ==============================================================================
 
 def skymap_plotting_callback(event_id, state_dict):
-    post_to_slack(
-        "I am creating a plot of the current status of the scan of `{0}` for you. This should only take a minute...".format(
-            event_id))
+    slack.post(msg.intermediate_scan(event_id))
 
     # create a plot when done and upload it to slack
     plot_png_buffer = create_plot(event_id, state_dict)
 
     # we have a buffer containing a valid png file now, post it to Slack
-    slack_tools.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id),
+    slack.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id),
                             "Skymap of {0}".format(event_id))
 
 
-def spawn_scan(post_to_slack, short_message=None, **kwargs):
+def spawn_scan(slack_interface, short_message=None, **kwargs):
 
     def finish_function(state_dict):
         try:
@@ -104,7 +99,7 @@ def spawn_scan(post_to_slack, short_message=None, **kwargs):
             rad = np.nan
         #post_to_slack("Ra: {0}, Dec: {1}, Rad: {2}".format(ra, dec, rad))
 
-        post_to_slack(
+        slack_interface.post(
             "Scanning of `{0}` is done. Let me create a plot for you real quick.".format(
                 kwargs["event_id_string"]))
 
@@ -114,7 +109,7 @@ def spawn_scan(post_to_slack, short_message=None, **kwargs):
         def log_func(text):
             for i,ch in enumerate(final_channels):
                 config.slack_channel=ch
-                post_to_slack(text)
+                slack_interface.post(text)
          
         event_id = kwargs["event_id_string"]
         loop_over_plots(event_id, state_dict=state_dict, cache_dir=event_cache_dir, ra=ra, dec=dec, radius=rad, log_func=log_func, upload_func=upload_func, final_channels=final_channels)
@@ -124,8 +119,7 @@ def spawn_scan(post_to_slack, short_message=None, **kwargs):
         except:
             pass
 
-        post_to_slack(
-            "Okay, that's it. I'm finished with this `{0}`. Look for the cache in `{1}`".format(event_id, event_cache_dir))
+        slack_interface.post(msg.finish_message(event_id, event_cache_dir))
 
     # # now perform the actual scan
     state_dict = perform_scan(finish_function=finish_function, **kwargs)
@@ -142,11 +136,11 @@ def individual_event(event):
 
         # first check if we are supposed to work on this specific kind of alert
         if "value" not in event:
-            post_to_slack(
+            slack.post(
                 'incoming message is invalid - no key named "value" in message')
             return
         if "streams" not in event["value"]:
-            post_to_slack(
+            slack.post(
                 'incoming message is invalid - no key named "streams" in event["value"]')
         alert_streams = [str(x) for x in event["value"]["streams"]]
 
@@ -182,14 +176,14 @@ def individual_event(event):
 
         if alert_streams != ["neutrino"]:
 
-            post_to_slack(
+            slack.post(
                 'New event found, `{0}`, `{1}`, tagged with alert '
                 'streams: `{2}`'.format(run, evt, alert_streams))
 
         # Post a Slack message for a random subset of GFU-only events
 
         elif (random.random() * gfu_prescale) < 1.:
-            post_to_slack(
+            slack.post(
                 "New GFU-only event found, `{0}`, `{1}`, with Passing "
                 "Faction: {2}. "
                 "It's probably sub-threshold, but I'll check it anyway. *sigh*".format(
@@ -198,7 +192,7 @@ def individual_event(event):
         # try to get the event time
         p_frame = state_dict['GCDQp_packet'][-1]
         if "I3EventHeader" not in p_frame:
-            post_to_slack(
+            slack.post(
                 "Something is wrong with this event (ID `{0}`). Its P-frame "
                 "doesn't have a header... I will try to continue with "
                 "submitting the scan anyway, but this doesn't look good.".format(
@@ -207,7 +201,7 @@ def individual_event(event):
         # Determine whether event should be scanned or not
 
         do_scan = whether_to_scan(p_frame, alert_streams, notify_alert,
-                                  post_to_slack, short_message)
+                                  slack, short_message)
 
         # If event should not be scanned, do not scan. Post a message to
         # slack, unless the event is GFU-only
@@ -217,7 +211,7 @@ def individual_event(event):
             # Only notify if event is not GFU-only
 
             if alert_streams != ["neutrino"]:
-                post_to_slack("This event is subthreshold. No scan is needed.")
+                slack.post("This event is subthreshold. No scan is needed.")
 
             # Delete file (which can be ~40Mb each!!!)
 
@@ -228,18 +222,18 @@ def individual_event(event):
         try:
             for f in stream_logic_map.values():
                 if short_message is None:
-                    short_message = f(extract_short_message(p_frame, post_to_slack))
+                    short_message = f(extract_short_message(p_frame, slack))
         except:
             pass
 
         spawn_scan(
-            post_to_slack,
+            slack,
             event_id_string=event_id,
             state_dict=state_dict,
             cache_dir=event_cache_dir,
             port=port_number(),
             numclients=distribute_numclients,
-            logger=post_to_slack,  # logging callback
+            # logger=post_to_slack,  # logging callback ??? TODO
             skymap_plotting_callback=lambda d: skymap_plotting_callback(
                 event_id, d),
             RemoteSubmitPrefix=submit_prefix, # Actually send jobs
@@ -249,7 +243,7 @@ def individual_event(event):
     except:
         exception_message = str(sys.exc_info()[0]) + '\n' + str(
             sys.exc_info()[1]) + '\n' + str(sys.exc_info()[2])
-        post_to_slack(
+        slack.post(
             'Switching off. {0},  something went wrong while scanning '
             'the event (python caught an exception): ```{1}``` *I blame human error*'.format(shifters_slackid,
 exception_message))
@@ -290,7 +284,7 @@ if __name__ == "__main__":
     if not args.execute:
 
         def perform_scan(**kwargs):
-            post_to_slack("Scanning Mode is disabled! No scan will be "
+            slack.post("Scanning Mode is disabled! No scan will be "
                           "performed.")
             return {}
 
@@ -323,9 +317,7 @@ if __name__ == "__main__":
 
         # Post initial message to verify Slack connection
 
-        post_to_slack("Switching on. I will now listen to the stream from `{0}`. "
-                      "Sending scans is toggled to `{1}`. "
-                      "".format(realtime_tools.config.ZMQ_HOST, args.execute))
+        slack.post(msg.switch_on(realtime_tools.config.ZMQ_HOST, args.execute))
 
         # Replace default behaviour with script to spawn new tmux sessions for each event
 
@@ -362,8 +354,5 @@ if __name__ == "__main__":
         except:
             exception_message = str(sys.exc_info()[0]) + '\n' + str(
                 sys.exc_info()[1]) + '\n' + str(sys.exc_info()[2])
-            post_to_slack(
-                'Switching off. {0},  something went wrong with the '
-                'listener (python caught an exception): ```{1}``` *I blame human error*'.format(shifters_slackid,
-                    exception_message))
+            slack.post(msg.switch_off(shifters_slackid, exception_message))
             raise

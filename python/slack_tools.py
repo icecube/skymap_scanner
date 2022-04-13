@@ -1,11 +1,60 @@
-
-
-
 from . import config
 import json
 import requests
+import logging
 
 API_BASE_URL = 'https://slack.com/api/{api}'
+
+# ========
+# NEW CODE
+# ======== 
+
+'''
+This file is tentatively linked from `python` to `resources/scripts` so it can be directly imported in `alert_v2_listener.py`. Waiting for the conversion into a python package.
+
+The idea is to handle the slack posting and messages through dedicated classes.
+'''
+
+class SlackInterface():
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
+    def post(self, msg):
+        # never crash because of Slack
+        try:
+            self.logger.info(msg)
+            return post_message(text)
+        except Exception as err:
+            logger.warning(f"Posting to Slack failed because of: {err}")
+
+    def upload_file(self, file_handle, filename, title):
+        return upload_file(file_handle, filename, title)
+
+
+class MessageHelper():
+    def __init__(self):
+        pass
+
+    def intermediate_scan(self, event_id : str):
+        msg = f"I am creating a plot of the current status of the scan of `{event_id}` for you. This should only take a minute."
+        return msg
+
+    def finish_message(self, event_id : str, event_cache_dir : str)
+        msg = f"Okay, that's it. I'm finished with this `{event_id}`. Look for the cache in `{event_cache_dir}`"
+        return msg
+
+    def switch_on(self, source, send_scans):
+        msg = f"Switching on. I will now listen to the stream from `{source}`. Sending scans is toggled to `{send_scans}`."
+        return msg
+
+    def switch_off(self, shifters_slackid, exception_message):
+        msg = f'Switching off. {shifters_slackid}, something went wrong with the listener (python caught an exception): ```{exception_message}``` *I blame human error*'
+        return msg
+
+
+# ===
+# OLD CODE
+# === 
 
 class Error(Exception):
     pass
@@ -83,3 +132,4 @@ if __name__ == "__main__":
     message = args[0]
 
     post_message(message)
+
