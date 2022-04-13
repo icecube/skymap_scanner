@@ -30,6 +30,14 @@ class SlackInterface():
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
+    def set_channel(self, channel):
+        self.channel = channel
+
+    def set_api_key(self, api_keyfile):
+        with open(api_keyfile,"r") as f:
+            key = f.read()
+        self.api_key = key
+
     def post(self, msg):
         # never crash because of Slack
         try:
@@ -44,14 +52,14 @@ class SlackInterface():
         response = requests.post(
             API_BASE_URL.format(api=api),
             timeout=60,
-            params={'token': config.slack_api_key},
+            params={'token': self.api_key},
             data={
                 # 'content': content,
                 # 'filetype': filetype,
                 'filename': filename,
                 'title': title,
                 # 'initial_comment': initial_comment,
-                'channels': config.slack_channel
+                'channels': self.channel
             },
             files={'file': file_handle}
             )
@@ -64,16 +72,16 @@ class SlackInterface():
 
         return response
 
-    def post_message(text):
+    def post_message(self, text):
         api = 'chat.postMessage'
 
         response = requests.post(
             API_BASE_URL.format(api=api),
             timeout=10,
-            params={'token': config.slack_api_key},
+            params={'token': self.api_key},
             data={
                 'text': text,
-                'channel': config.slack_channel,
+                'channel': self.channel,
                 'as_user': False,
                 'username': 'Marvin-the-Paranoid-Android',
                 'icon_emoji': ':disappointed:',
@@ -93,20 +101,56 @@ class MessageHelper():
     def __init__(self):
         pass
 
-    def intermediate_scan(self, event_id : str):
+    def intermediate_scan(event_id : str):
         msg = f"I am creating a plot of the current status of the scan of `{event_id}` for you. This should only take a minute."
         return msg
 
-    def finish_message(self, event_id : str, event_cache_dir : str):
+    def finish_message(event_id : str, event_cache_dir : str):
         msg = f"Okay, that's it. I'm finished with this `{event_id}`. Look for the cache in `{event_cache_dir}`"
         return msg
 
-    def switch_on(self, source, send_scans):
+    def switch_on(source, send_scans):
         msg = f"Switching on. I will now listen to the stream from `{source}`. Sending scans is toggled to `{send_scans}`."
         return msg
 
-    def switch_off(self, shifters_slackid, exception_message):
+    def switch_off(shifters_slackid, exception_message):
         msg = f'Switching off. {shifters_slackid}, something went wrong with the listener (python caught an exception): ```{exception_message}``` *I blame human error*'
+        return msg
+
+    def scan_fail(shifters_slackid, exception_message):
+        msg = f'Switching off. {0},  something went wrong while scanning the event (python caught an exception): ```{1}``` *I blame human error*'
+        return msg
+
+    def sub_threshold():
+        msg = "This event is subthreshold. No scan is needed."
+        return msg
+
+    def nokey_value():
+        msg = 'incoming message is invalid - no key named "value" in message'
+        return msg
+
+    def nokey_streams():
+        msg = 'incoming message is invalid - no key named "streams" in event["value"]'
+        return msg
+
+    def new_event(run, evt, alert_streams):
+        msg = f'New event found, `{run}`, `{evt}`, tagged with alert streams: `{alert_streams}`'
+        return msg
+
+    def scanning_done(event_id):
+        msg = f"Scanning of `{event_id}` is done. Let me create a plot for you real quick."
+        return msg
+
+    def new_gfu(run, evt, frac):
+        msg = f"New GFU-only event found, `{run}`, `{evt}`, with Passing Fraction: {frac}. It's probably sub-threshold, but I'll check it anyway. *sigh*"
+        return msg
+        
+    def missing_header(event_id):
+        msg = f"Something is wrong with this event (ID `{event_id}`). Its P-frame doesn't have a header... I will try to continue with submitting the scan anyway, but this doesn't look good."
+        return msg
+
+    def scan_disabled():
+        msg = "Scanning Mode is disabled! No scan will be performed."
         return msg
 
 if __name__ == "__main__":

@@ -28,7 +28,6 @@ from slack_tools import MessageHelper as msg
 
 slack = SlackInterface()
 
-
 from listener_conf import gfu_prescale, gcd_dir, shifters_slackid
 
 # ==============================================================================
@@ -97,22 +96,19 @@ def spawn_scan(slack_interface, short_message=None, **kwargs):
             ra = np.nan
             dec = np.nan
             rad = np.nan
-        #post_to_slack("Ra: {0}, Dec: {1}, Rad: {2}".format(ra, dec, rad))
+        #slack_interface.post("Ra: {0}, Dec: {1}, Rad: {2}".format(ra, dec, rad))
 
-        slack_interface.post(
-            "Scanning of `{0}` is done. Let me create a plot for you real quick.".format(
-                kwargs["event_id_string"]))
+        event_id = kwargs["event_id_string"]
+
+        slack_interface.post(msg.scanning_done(event_id))
 
         def upload_func(png_buffer, filename, title):
-            slack_tools.upload_file(png_buffer, filename, title)
+            slack_interface.upload_file(png_buffer, filename, title)
         
         def log_func(text):
-            for i,ch in enumerate(final_channels):
-                config.slack_channel=ch
-                slack_interface.post(text)
+            slack_interface.post(text)
          
-        event_id = kwargs["event_id_string"]
-        loop_over_plots(event_id, state_dict=state_dict, cache_dir=event_cache_dir, ra=ra, dec=dec, radius=rad, log_func=log_func, upload_func=upload_func, final_channels=final_channels)
+        loop_over_plots(event_id, state_dict=state_dict, cache_dir=event_cache_dir, ra=ra, dec=dec, radius=rad, log_func=log_func, upload_func=upload_func)
         
         try:
             get_best_fit_v2(event_id, cache_dir=event_cache_dir, log_func=log_func)
@@ -136,12 +132,11 @@ def individual_event(event):
 
         # first check if we are supposed to work on this specific kind of alert
         if "value" not in event:
-            slack.post(
-                'incoming message is invalid - no key named "value" in message')
+            slack.post(msg.nokey_value())
             return
         if "streams" not in event["value"]:
-            slack.post(
-                'incoming message is invalid - no key named "streams" in event["value"]')
+            slack.post(msg.nokey_streams())
+
         alert_streams = [str(x) for x in event["value"]["streams"]]
 
         matched_keys = [x for x in list(stream_logic_map.keys())
@@ -175,28 +170,17 @@ def individual_event(event):
         # Post a slack message for non-GFU-only events
 
         if alert_streams != ["neutrino"]:
-
-            slack.post(
-                'New event found, `{0}`, `{1}`, tagged with alert '
-                'streams: `{2}`'.format(run, evt, alert_streams))
+            slack.post(msg.new_event(run, evt, alert_streams))
 
         # Post a Slack message for a random subset of GFU-only events
 
         elif (random.random() * gfu_prescale) < 1.:
-            slack.post(
-                "New GFU-only event found, `{0}`, `{1}`, with Passing "
-                "Faction: {2}. "
-                "It's probably sub-threshold, but I'll check it anyway. *sigh*".format(
-                    run, evt, 1./gfu_prescale))
+            slack.post(msg.new_gfu(run, evt, frac=1./gfu_prescale))
 
         # try to get the event time
         p_frame = state_dict['GCDQp_packet'][-1]
         if "I3EventHeader" not in p_frame:
-            slack.post(
-                "Something is wrong with this event (ID `{0}`). Its P-frame "
-                "doesn't have a header... I will try to continue with "
-                "submitting the scan anyway, but this doesn't look good.".format(
-                    event_id))
+            slack.post(msg.missing_header(event_id))
 
         # Determine whether event should be scanned or not
 
@@ -211,7 +195,7 @@ def individual_event(event):
             # Only notify if event is not GFU-only
 
             if alert_streams != ["neutrino"]:
-                slack.post("This event is subthreshold. No scan is needed.")
+                slack.post(msg.sub_threshold())
 
             # Delete file (which can be ~40Mb each!!!)
 
@@ -243,12 +227,8 @@ def individual_event(event):
     except:
         exception_message = str(sys.exc_info()[0]) + '\n' + str(
             sys.exc_info()[1]) + '\n' + str(sys.exc_info()[2])
-        slack.post(
-            'Switching off. {0},  something went wrong while scanning '
-            'the event (python caught an exception): ```{1}``` *I blame human error*'.format(shifters_slackid,
-exception_message))
+        slack.post(msg.scan_fail(shifters_slackid, exception_message))
         raise  # re-raise exceptions
-
 
 if __name__ == "__main__":
 
@@ -276,16 +256,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    config.slack_channel = args.slackchannel
     distribute_numclients = args.nworkers
+
+    slack.set_channel(args.slackchannel)
+    slack.set_api_key('./slack_api.key')
+
     # If execute is not toggled on, then replace perform_scan with dummy
     # function
 
     if not args.execute:
 
         def perform_scan(**kwargs):
-            slack.post("Scanning Mode is disabled! No scan will be "
-                          "performed.")
+            slack.post(msg.scan_disabled())
             return {}
 
     # If localhost is toggled, listen for local replays
@@ -296,14 +278,12 @@ if __name__ == "__main__":
         # ==============================================================================
         realtime_tools.config.ZMQ_HOST = 'localhost'
         realtime_tools.config.ZMQ_SUB_PORT = 5556
-        final_channels = [args.slackchannel]
         # If untoggled, you can replay alerts using commands such as:
         # python $I3_SRC/realtime_tools/resources/scripts/replayI3LiveMoni.py --varname=realtimeEventData --pass=skua --start="2019-02-14 16:09:00" --stop="2019-02-14 16:15:39"
     
     if realtime_tools.config.ZMQ_HOST == 'live.icecube.wisc.edu':
         notify_alert = "<!channel> I have found a `{0}` `{1}` Alert." \
                        "I will scan this."
-        final_channels = [args.slackchannel] # "#alerts"
 
     # The alert listener can spawn new alert listeners. If a specific path is given, the listener 
     # will open that pickle file and read the message inside. Otherwise will proceed as normal. 
