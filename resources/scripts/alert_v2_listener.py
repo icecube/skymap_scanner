@@ -13,20 +13,19 @@ import numpy as np
 import argparse
 
 from icecube import dataclasses, dataio, realtime_tools, astro
-from icecube.skymap_scanner import extract_json_message, create_plot, \
+from icecube.skymap_scanner import create_plot, \
     perform_scan, config, loop_over_plots, get_best_fit_v2
 
 from icecube.skymap_scanner.utils import create_event_id
 from icecube.skymap_scanner.scan_logic import whether_to_scan, stream_logic_map, extract_short_message
 
-
-
 # from icecube.skymap_scanner import slack_tools
-# slack_tools is now tentatively symlinked to local directory
+# import of files which are tentatively symlinked to the local directory
+from extract_json_message import extract_json_message
 from slack_tools import SlackInterface
 from slack_tools import MessageHelper as msg
 
-slack = SlackInterface()
+slack = SlackInterface(whoami='[bot development instance]')
 
 from listener_conf import gfu_prescale, gcd_dir, shifters_slackid
 
@@ -217,7 +216,7 @@ def individual_event(event):
             cache_dir=event_cache_dir,
             port=port_number(),
             numclients=distribute_numclients,
-            # logger=post_to_slack,  # logging callback ??? TODO
+            logger=slack.post, # logging callback 
             skymap_plotting_callback=lambda d: skymap_plotting_callback(
                 event_id, d),
             RemoteSubmitPrefix=submit_prefix, # Actually send jobs
