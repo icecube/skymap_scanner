@@ -11,12 +11,6 @@ gcd_dir = "/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/"
 #gcd_dir = os.path.join("/cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/baseline_gcd_131577.i3")
 
 # ==============================================================================
-# Configure paths and ports for downloading/scanning
-# ==============================================================================
-distribute_numclients = 1000.
-# distribute_port = "21339"
-
-# ==============================================================================
 # Configure slackids for user notifications
 # Still a bit ugly but more readable than before.
 # ==============================================================================
