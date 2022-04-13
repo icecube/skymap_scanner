@@ -7,7 +7,7 @@ API_BASE_URL = 'https://slack.com/api/{api}'
 
 # ========
 # NEW CODE
-# ======== 
+# ========
 
 '''
 This file is tentatively linked from `python` to `resources/scripts` so it can be directly imported in `alert_v2_listener.py`. Waiting for the conversion into a python package.
@@ -25,7 +25,7 @@ class SlackInterface():
             self.logger.info(msg)
             return post_message(text)
         except Exception as err:
-            logger.warning(f"Posting to Slack failed because of: {err}")
+            self.logger.warning(f"Posting to Slack failed because of: {err}")
 
     def upload_file(self, file_handle, filename, title):
         return upload_file(file_handle, filename, title)
