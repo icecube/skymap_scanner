@@ -1,4 +1,3 @@
-from . import config
 import json
 import requests
 import logging
@@ -27,7 +26,8 @@ class SlackResponse(object):
 
 
 class SlackInterface():
-    def __init__(self):
+    def __init__(self, whoami=""):
+        self.name = whoami
         self.logger = logging.getLogger(__name__)
 
     def set_channel(self, channel):
@@ -35,14 +35,15 @@ class SlackInterface():
 
     def set_api_key(self, api_keyfile):
         with open(api_keyfile,"r") as f:
-            key = f.read()
+            key = f.read().rstrip()
+            # rstrip() needed to drop trailing newline
         self.api_key = key
 
     def post(self, msg):
         # never crash because of Slack
         try:
             self.logger.info(msg)
-            return self.post_message(msg)
+            return self.post_message(self.name + " " + msg)
         except Exception as err:
             self.logger.warning(f"Posting to Slack failed because of: {err}")
 
@@ -118,7 +119,7 @@ class MessageHelper():
         return msg
 
     def scan_fail(shifters_slackid, exception_message):
-        msg = f'Switching off. {0},  something went wrong while scanning the event (python caught an exception): ```{1}``` *I blame human error*'
+        msg = f'Switching off. {shifters_slackid},  something went wrong while scanning the event (python caught an exception): ```{exception_message}``` *I blame human error*'
         return msg
 
     def sub_threshold():
