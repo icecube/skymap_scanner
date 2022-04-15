@@ -1,4 +1,4 @@
-"""Entry point for the Producer sub-package."""
+"""The Producer service."""
 
 
 def producer(
@@ -148,3 +148,12 @@ def producer(
             )
         )
         raise  # re-raise exceptions
+
+
+def main() -> None:
+    """Start up Producer service."""
+    print("Hello World, I'm the Producer")
+
+
+if __name__ == "__main__":
+    main()

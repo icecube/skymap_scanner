@@ -82,5 +82,5 @@ RUN pip install -r /local/requirements.txt
 #
 
 # set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
-ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "python3", "/local/producer/producer.py"]
+ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "/local/common_entrypoint.sh"]
 CMD []
