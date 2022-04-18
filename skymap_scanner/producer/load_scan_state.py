@@ -1,12 +1,18 @@
+"""Tools for loading the scan state."""
+
+# fmt: off
+# mypy: ignore-errors
+# pylint: skip-file
+
 import os
+
 import numpy
-
 from I3Tray import I3Units
-from icecube import icetray, dataclasses, dataio
-from icecube import gulliver, millipede
+from icecube import VHESelfVeto, dataclasses, dataio
 
-from .utils import load_GCD_frame_packet_from_file, hash_frame_packet
 from . import config
+from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
+
 
 def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
     this_event_cache_dir = os.path.join(cache_dir, event_id)
@@ -21,7 +27,6 @@ def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
 
     return (event_id, state_dict)
 
-from icecube import VHESelfVeto
 
 def get_reco_losses_inside(p_frame, g_frame):
     if "MillipedeStarting2ndPass" not in p_frame: return numpy.nan, numpy.nan
