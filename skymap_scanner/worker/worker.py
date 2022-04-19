@@ -14,6 +14,7 @@ from icecube import dataio, distribute, icetray, photonics_service
 
 
 def makeSurePulsesExist(frame, pulsesName):
+    """TODO - add this to pre-data processing"""
     if pulsesName not in frame:
         raise RuntimeError("{0} not in frame".format(pulsesName))
     if pulsesName+"TimeWindows" not in frame:

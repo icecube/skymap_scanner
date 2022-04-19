@@ -5,22 +5,11 @@
 # pylint: skip-file
 
 import os
-import random
-import time
-from optparse import OptionParser
 
-import healpy
 import numpy
-from I3Tray import *
-from icecube import astro, dataclasses, dataio, gulliver, icetray, millipede
+from icecube import icetray
 
-from . import config
-from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from .load_scan_state import load_cache_state
-
-#from icecube.skymap_scanner import scan_pixel_distributed
-from .traysegments import scan_pixel_distributed
-from .utils import get_event_mjd, parse_event_id, save_GCD_frame_packet_to_file
+from .utils import save_GCD_frame_packet_to_file
 
 
 class FindBestRecoResultForPixel(icetray.I3Module):
