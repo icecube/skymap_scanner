@@ -1,4 +1,7 @@
-"""The Collector service."""
+"""The Collector service.
+
+Based on python/perform_scan.py
+"""
 
 # fmt: off
 # mypy: ignore-errors

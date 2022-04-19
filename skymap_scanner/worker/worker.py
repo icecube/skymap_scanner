@@ -1,4 +1,7 @@
-"""The Worker service."""
+"""The Worker service.
+
+Based on python/perform_scan.py
+"""
 
 
 # fmt: off

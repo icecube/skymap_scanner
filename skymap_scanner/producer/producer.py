@@ -1,4 +1,7 @@
-"""The Producer service."""
+"""The Producer service.
+
+Based on python/perform_scan.py
+"""
 
 # fmt: off
 # pylint: skip-file
