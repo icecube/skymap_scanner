@@ -104,7 +104,7 @@ class SendPixelsToScan:
 
         self.logger(message)
 
-    def process_and_send(self):
+    def do_process(self) -> Iterator[icetray.I3Frame]:
         """Process the GCDQpFrames & PFrames, and send each to worker client(s)."""
 
         # push GCDQp packet if not done so already
@@ -179,7 +179,7 @@ class SendPixelsToScan:
             # output queue
             self.send_to_worker( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
 
-    def create_then_send_pframe(self, nside, pixel):
+    def create_pframe(self, nside, pixel) -> Iterator[icetray.I3Frame]:
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
 
         dec, ra = healpy.pix2ang(nside, pixel)
