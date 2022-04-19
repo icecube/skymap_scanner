@@ -9,6 +9,7 @@ Based on python/perform_scan.py
 
 import time
 from optparse import OptionParser
+from typing import Iterator
 
 import healpy  # type: ignore[import]
 import numpy  # type: ignore[import]
@@ -84,11 +85,6 @@ class SendPixelsToScan:
         self.last_time_reported = time.time()
         self.last_time_reported_skymap = time.time()
 
-    def send_to_worker(self, frame):
-        """Send frame to worker client."""
-        # TODO
-        print(f"<MOCK SEND TO WORKER>: {frame}")
-
     def send_status_report(self):
         num_pixels_in_process = len(self.pixels_in_process)
         message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
@@ -110,9 +106,8 @@ class SendPixelsToScan:
         # push GCDQp packet if not done so already
         if self.GCDQpFrames:
             for frame in self.GCDQpFrames:
-                self.send_to_worker(frame)
+                yield frame
             self.GCDQpFrames = None
-            self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
             return
 
         # check if we need to send a report to the logger
@@ -143,10 +138,7 @@ class SendPixelsToScan:
             print("** there are no pixels left to refine. stopping.")
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
-
-            # self.RequestSuspension()  # TODO - replace with some stopping signal
             raise NothingToSendException()
-            # return
 
         for nside in self.state_dict["nsides"]:
             for pixel in self.state_dict["nsides"][nside]:
@@ -166,7 +158,7 @@ class SendPixelsToScan:
                 # too many pixels in process. let some of them finish before sending more requests
                 break
             self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
-            self.create_then_send_pframe(nside=nside_pix[0], pixel=nside_pix[1])
+            yield from self.create_pframe(nside=nside_pix[0], pixel=nside_pix[1])
             something_was_submitted = True
 
         if not something_was_submitted:
@@ -177,7 +169,8 @@ class SendPixelsToScan:
 
             # send a special frame type to I3Distribute in order to flush its
             # output queue
-            self.send_to_worker( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
+            # TODO - would analogous logic be needed?
+            yield icetray.I3Frame( icetray.I3Frame.Stream('\x05') )
 
     def create_pframe(self, nside, pixel) -> Iterator[icetray.I3Frame]:
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
@@ -253,7 +246,7 @@ class SendPixelsToScan:
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
-            self.send_to_worker(p_frame)
+            yield p_frame
 
 
 def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
@@ -280,7 +273,8 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
 
     while True:
         try:
-            sender.process_and_send()
+            for frame in sender.do_process():
+                print(f"<MOCK SEND TO WORKER>: {frame}")
         except NothingToSendException:
             break
 
