@@ -1,7 +1,6 @@
 """The Producer service."""
 
 # fmt: off
-# mypy: ignore-errors
 # pylint: skip-file
 
 
@@ -10,7 +9,7 @@ from optparse import OptionParser
 
 import healpy
 import numpy
-from I3Tray import I3Tray, I3Units
+from I3Tray import I3Units
 from icecube import astro, dataclasses, dataio, icetray
 
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
@@ -22,32 +21,36 @@ def simple_print_logger(text):
     print(text)
 
 
-class SendPixelsToScan(icetray.I3Module):
-    def __init__(self, ctx):
-        super(SendPixelsToScan, self).__init__(ctx)
-        self.AddParameter("state_dict", "The state_dict", None)
-        self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
-        self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
-        self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
-        self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
-        self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
-        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 5*60)
-        self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
-        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 30*60)
-        self.AddParameter("finish_function", "function to be run once scan is finished. handles final plotting.", None)
-        self.AddOutBox("OutBox")
+class NothingToSendException(Exception):
+    """Raise this when there is nothing (more) to send."""
 
-    def Configure(self):
-        self.state_dict = self.GetParameter("state_dict")
-        self.input_pos_name = self.GetParameter("InputPosName")
-        self.input_time_name = self.GetParameter("InputTimeName")
-        self.output_particle_name = self.GetParameter("OutputParticleName")
-        self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
-        self.logger = self.GetParameter("logger")
-        self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
-        self.skymap_plotting_callback = self.GetParameter("skymap_plotting_callback")
-        self.skymap_plotting_callback_interval_in_seconds = self.GetParameter("skymap_plotting_callback_interval_in_seconds")
-        self.finish_function = self.GetParameter("finish_function")
+
+class SendPixelsToScan:
+    """Manage sending pixels to worker clients for processing."""
+
+    def __init__(
+        self,
+        state_dict=None,  # The state_dict
+        InputTimeName="HESE_VHESelfVetoVertexTime",  # Name of an I3Double to use as the vertex time for the coarsest scan
+        InputPosName="HESE_VHESelfVetoVertexPos",  # Name of an I3Position to use as the vertex position for the coarsest scan
+        OutputParticleName="MillipedeSeedParticle",  # Name of the output I3Particle
+        MaxPixelsInProcess=1000,  # Do not submit more pixels than this to the downstream module
+        logger=simple_print_logger,  # a callback function for semi-verbose logging
+        logging_interval_in_seconds=5*60,  # call the logger callback with this interval
+        skymap_plotting_callback=None,  # a callback function the receives the full current state of the map
+        skymap_plotting_callback_interval_in_seconds=30*60,
+        finish_function=None  # function to be run once scan is finished. handles final plotting
+    ):
+        self.state_dict = state_dict
+        self.input_pos_name = InputPosName
+        self.input_time_name = InputTimeName
+        self.output_particle_name = OutputParticleName
+        self.max_pixels_in_process = MaxPixelsInProcess
+        self.logger = logger
+        self.logging_interval_in_seconds = logging_interval_in_seconds
+        self.skymap_plotting_callback = skymap_plotting_callback
+        self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
+        self.finish_function = finish_function
 
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -78,6 +81,11 @@ class SendPixelsToScan(icetray.I3Module):
         self.last_time_reported = time.time()
         self.last_time_reported_skymap = time.time()
 
+    def send_to_worker(self, frame):
+        """Send frame to worker client."""
+        # TODO
+        print(f"<MOCK SEND TO WORKER>: {frame}")
+
     def send_status_report(self):
         num_pixels_in_process = len(self.pixels_in_process)
         message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
@@ -93,15 +101,13 @@ class SendPixelsToScan(icetray.I3Module):
 
         self.logger(message)
 
-    def Process(self):
-        # driving module - we will be called repeatedly by IceTray with no input frames
-        if self.PopFrame():
-            raise RuntimeError("SendPixelsToScan needs to be used as a driving module")
+    def process_and_send(self):
+        """Process the GCDQpFrames & PFrames, and send each to worker client(s)."""
 
         # push GCDQp packet if not done so already
         if self.GCDQpFrames:
             for frame in self.GCDQpFrames:
-                self.PushFrame(frame)
+                self.send_to_worker(frame)
             self.GCDQpFrames = None
             self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
             return
@@ -135,8 +141,9 @@ class SendPixelsToScan(icetray.I3Module):
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
 
-            self.RequestSuspension()
-            return
+            # self.RequestSuspension()  # TODO - replace with some stopping signal
+            raise NothingToSendException()
+            # return
 
         for nside in self.state_dict["nsides"]:
             for pixel in self.state_dict["nsides"][nside]:
@@ -156,7 +163,7 @@ class SendPixelsToScan(icetray.I3Module):
                 # too many pixels in process. let some of them finish before sending more requests
                 break
             self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
-            self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
+            self.create_then_send_pframe(nside=nside_pix[0], pixel=nside_pix[1])
             something_was_submitted = True
 
         if not something_was_submitted:
@@ -167,9 +174,9 @@ class SendPixelsToScan(icetray.I3Module):
 
             # send a special frame type to I3Distribute in order to flush its
             # output queue
-            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
+            self.send_to_worker( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
 
-    def CreatePFrame(self, nside, pixel):
+    def create_then_send_pframe(self, nside, pixel):
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
 
         dec, ra = healpy.pix2ang(nside, pixel)
@@ -243,7 +250,7 @@ class SendPixelsToScan(icetray.I3Module):
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
-            self.PushFrame(p_frame)
+            self.send_to_worker(p_frame)
 
 
 def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
@@ -257,9 +264,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
     # print "base_GCD_filename: {0}".format(base_GCD_filename)
 
-    tray = I3Tray()
-
-    tray.AddModule(SendPixelsToScan, "SendPixelsToScan",
+    sender = SendPixelsToScan(
         state_dict=state_dict,
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
@@ -270,28 +275,11 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         finish_function=finish_function,
     )
 
-    # #### do the scan
-    # def FakeScan(frame):
-    #     fp = millipede.MillipedeFitParams()
-    #     fp.logl = random.uniform(100.,200.)
-    #     frame["MillipedeStarting2ndPass_millipedellh"] = fp
-    #
-    #     p = dataclasses.I3Particle(frame["MillipedeSeedParticle"])
-    #     frame["MillipedeStarting2ndPass"] = p
-    #
-    #     time.sleep(0.002)
-    # tray.AddModule(FakeScan)
-
-    #### do the scan
-
-
-    #### collect the results
-
-
-    tray.AddModule("TrashCan")
-    tray.Execute()
-    tray.Finish()
-    del tray
+    while True:
+        try:
+            sender.process_and_send()
+        except NothingToSendException:
+            break
 
     return state_dict
 
