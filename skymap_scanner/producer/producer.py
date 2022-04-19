@@ -7,14 +7,14 @@
 import time
 from optparse import OptionParser
 
-import healpy
-import numpy
-from I3Tray import I3Units
-from icecube import astro, dataclasses, dataio, icetray
+import healpy  # type: ignore[import]
+import numpy  # type: ignore[import]
+from I3Tray import I3Units  # type: ignore[import]
+from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
+from ..utils import get_event_mjd
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
-from .utils import get_event_mjd
 
 
 def simple_print_logger(text):
