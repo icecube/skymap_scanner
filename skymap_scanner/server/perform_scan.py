@@ -7,72 +7,65 @@ Based on python/perform_scan.py
 # pylint: skip-file
 
 import os
+import random
 import time
-from optparse import OptionParser
-from typing import Iterator
 
-import healpy  # type: ignore[import]
+import healpy
 import numpy
-from I3Tray import I3Units  # type: ignore[import]
-from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
+from I3Tray import *
+from icecube import astro, dataclasses, gulliver, icetray, millipede
 
+from . import config
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from .load_scan_state import load_cache_state
-from .utils import get_event_mjd, save_GCD_frame_packet_to_file
 
-
-class NothingToSendException(Exception):
-    """Raise this when there is nothing (more) to send."""
-
-
-class WaitingForAllScansException(Exception):
-    """Raise this when not all scans for a pixel have been received."""
+#from icecube.skymap_scanner import scan_pixel_distributed
+from .traysegments import scan_pixel_distributed
+from .utils import get_event_mjd, parse_event_id, save_GCD_frame_packet_to_file
 
 
 def simple_print_logger(text):
     print(text)
 
-
-class PixelsToScan:  # formerly: `SendPixelsToScan`
-    """Manage getting pixels for processing."""
-
-    def __init__(
-        self,
-        state_dict=None,  # The state_dict
-        InputTimeName="HESE_VHESelfVetoVertexTime",  # Name of an I3Double to use as the vertex time for the coarsest scan
-        InputPosName="HESE_VHESelfVetoVertexPos",  # Name of an I3Position to use as the vertex position for the coarsest scan
-        OutputParticleName="MillipedeSeedParticle",  # Name of the output I3Particle
-        MaxPixelsInProcess=1000,  # Do not submit more pixels than this to the downstream module
-        logger=simple_print_logger,  # a callback function for semi-verbose logging
-        logging_interval_in_seconds=5*60,  # call the logger callback with this interval
-        skymap_plotting_callback=None,  # a callback function the receives the full current state of the map
-        skymap_plotting_callback_interval_in_seconds=30*60,
-        finish_function=None  # function to be run once scan is finished. handles final plotting
-    ):
-        self.state_dict = state_dict
-        self.input_pos_name = InputPosName
-        self.input_time_name = InputTimeName
-        self.output_particle_name = OutputParticleName
-        self.max_pixels_in_process = MaxPixelsInProcess
-        self.logger = logger
-        self.logging_interval_in_seconds = logging_interval_in_seconds
-        self.skymap_plotting_callback = skymap_plotting_callback
-        self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
-        self.finish_function = finish_function
-
+class SendPixelsToScan(icetray.I3Module):
+    def __init__(self, ctx):
+        super(SendPixelsToScan, self).__init__(ctx)
+        self.AddParameter("state_dict", "The state_dict", None)
+        self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
+        self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
+        self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
+        self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
+        self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
+        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 5*60)
+        self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
+        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 30*60)
+        self.AddParameter("finish_function", "function to be run once scan is finished. handles final plotting.", None)
+        self.AddOutBox("OutBox")
+        
+    def Configure(self):
+        self.state_dict = self.GetParameter("state_dict")
+        self.input_pos_name = self.GetParameter("InputPosName")
+        self.input_time_name = self.GetParameter("InputTimeName")
+        self.output_particle_name = self.GetParameter("OutputParticleName")
+        self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
+        self.logger = self.GetParameter("logger")
+        self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
+        self.skymap_plotting_callback = self.GetParameter("skymap_plotting_callback")
+        self.skymap_plotting_callback_interval_in_seconds = self.GetParameter("skymap_plotting_callback_interval_in_seconds")
+        self.finish_function = self.GetParameter("finish_function")
+        
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
-
+        
         self.GCDQpFrames = self.state_dict["GCDQp_packet"]
-
+        
         if "baseline_GCD_file" not in self.state_dict:
             raise RuntimeError("\"baseline_GCD_file\" not in state_dict.")
         self.baseline_GCD_file = self.state_dict["baseline_GCD_file"]
-
+        
         if "nsides" not in self.state_dict:
             self.state_dict["nsides"] = {}
         self.nsides = self.state_dict["nsides"]
-
+        
         p_frame = self.GCDQpFrames[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
@@ -80,7 +73,7 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
         self.fallback_position = p_frame[self.input_pos_name]
         self.fallback_time = p_frame[self.input_time_name].value
         self.fallback_energy = numpy.nan
-
+        
         self.event_header = p_frame["I3EventHeader"]
         self.event_mjd = get_event_mjd(self.state_dict)
 
@@ -92,7 +85,7 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
     def send_status_report(self):
         num_pixels_in_process = len(self.pixels_in_process)
         message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
-
+        
         if len(self.state_dict["nsides"])==0:
             message += " - no pixels are done yet\n"
         else:
@@ -104,14 +97,17 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
 
         self.logger(message)
 
-    def do_process(self) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames (including initial GCDQpFrames)."""
+    def Process(self):
+        # driving module - we will be called repeatedly by IceTray with no input frames
+        if self.PopFrame():
+            raise RuntimeError("SendPixelsToScan needs to be used as a driving module")
 
         # push GCDQp packet if not done so already
         if self.GCDQpFrames:
             for frame in self.GCDQpFrames:
-                yield frame
+                self.PushFrame(frame)
             self.GCDQpFrames = None
+            self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
             return
 
         # check if we need to send a report to the logger
@@ -137,46 +133,48 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(self.state_dict)
-
+        
         if len(pixels_to_refine) == 0:
             print("** there are no pixels left to refine. stopping.")
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
-            raise NothingToSendException()
+
+            self.RequestSuspension()
+            return
 
         for nside in self.state_dict["nsides"]:
             for pixel in self.state_dict["nsides"][nside]:
                 if (nside,pixel) in pixels_to_refine:
                     raise RuntimeError("pixel to refine is already done processing")
-
+        
         pixels_to_submit = []
         for pixel in pixels_to_refine:
             if pixel not in self.pixels_in_process:
                 pixels_to_submit.append(pixel)
-
+        
         something_was_submitted = False
-
+            
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
             if len(self.pixels_in_process) > self.max_pixels_in_process:
                 # too many pixels in process. let some of them finish before sending more requests
                 break
             self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
-            yield from self.create_pframe(nside=nside_pix[0], pixel=nside_pix[1])
+            self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
             something_was_submitted = True
-
+        
         if not something_was_submitted:
             # there are submitted pixels left that haven't yet arrived
-
+            
             # print "** all pixels are processing. waiting one second..."
             time.sleep(1)
-
+            
             # send a special frame type to I3Distribute in order to flush its
             # output queue
-            # TODO - would analogous logic be needed?
-            yield icetray.I3Frame( icetray.I3Frame.Stream('\x05') )
-
-    def create_pframe(self, nside, pixel) -> Iterator[icetray.I3Frame]:
+            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
+        
+        
+    def CreatePFrame(self, nside, pixel):
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
 
         dec, ra = healpy.pix2ang(nside, pixel)
@@ -195,7 +193,7 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
             while True:
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
-
+                
                 if coarser_nside < 8:
                     raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
@@ -203,7 +201,7 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
                     if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
                         # coarser pixel found
                         break
-
+            
             if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
                 # coarser reconstruction failed
                 position = self.fallback_position
@@ -225,6 +223,7 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
                          dataclasses.I3Position(0.,0.,-variationDistance),
                          dataclasses.I3Position(0.,0., variationDistance)]
 
+        
         for i in range(0,len(posVariations)):
             posVariation = posVariations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
@@ -244,35 +243,27 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
             # generate a new event header
             eventHeader = dataclasses.I3EventHeader(self.event_header)
             eventHeader.sub_event_stream = "SCAN_nside%04u_pixel%04u_posvar%04u" % (nside, pixel, i)
-            eventHeader.sub_event_id = int(pixel)
+            eventHeader.sub_event_id = int(pixel) 
             p_frame["I3EventHeader"] = eventHeader
             p_frame["SCAN_HealpixPixel"] = icetray.I3Int(int(pixel))
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
-            yield p_frame
+            self.PushFrame(p_frame)
+        
+        
+class FindBestRecoResultForPixel(icetray.I3Module):
+    def __init__(self, ctx):
+        super(FindBestRecoResultForPixel, self).__init__(ctx)
+        self.AddOutBox("OutBox")
+        self.AddParameter("NPosVar", "Number of position variations to collect", 7)
 
-
-class FindBestRecoResultForPixel:
-    """Manage finding the best reco result for a pixel for multiple scans.
-
-    Cache necessary info for successive calls to `do_physics()`.
-    """
-
-    def __init__(
-        self,
-        NPosVar=7,  # Number of position variations to collect
-    ):
-        self.NPosVar = NPosVar
+    def Configure(self):
+        self.NPosVar = self.GetParameter("NPosVar")
 
         self.pixelNumToFramesMap = {}
 
-    def do_physics(self, frame) -> icetray.I3Frame:
-        """Once `NPosVar`-number of scans have arrived for a pixel, return best result.
-
-        If all the scans for a pixel have not been received (yet), cache
-        internally, and raise `NothingToSendException`.
-        """
+    def Physics(self, frame):
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
         if "SCAN_HealpixPixel" not in frame:
@@ -307,47 +298,38 @@ class FindBestRecoResultForPixel:
 
             if bestFrame is None:
                 # just push the first frame if all of them are nan
-                bestFrame = self.pixelNumToFramesMap[index][0]
+                self.PushFrame(self.pixelNumToFramesMap[index][0])
+            else:
+                self.PushFrame(bestFrame)
 
             del self.pixelNumToFramesMap[index]
-            return bestFrame
 
-        # not all results have been received yet for pixel
-        raise WaitingForAllScansException()
-
-    def do_finish(self) -> None:
+    def Finish(self):
         if len(self.pixelNumToFramesMap) == 0:
             return
 
         print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
         print((self.pixelNumToFramesMap))
         print("**** WARN ****  --  END")
-        raise RuntimeError("pixels left in cache, not all of the packets seem to be complete")
 
 
-class SaveRecoResults:  # formerly: 'CollectRecoResults'
-    """Manage saving reco results for multiple scans.
-
-    Cache necessary info for successive calls to `do_physics()`.
-    """
-
-    def __init__(
-        self,
-        state_dict=None,  # The state_dict
-        event_id=None,  # The event_id
-        cache_dir=None,  # The cache_dir
-    ):
-        self.state_dict = state_dict
-        self.event_id = event_id
-        self.cache_dir = cache_dir
-
+        
+class CollectRecoResults(icetray.I3Module):
+    def __init__(self, ctx):
+        super(CollectRecoResults, self).__init__(ctx)
+        self.AddParameter("state_dict", "The state_dict", None)
+        self.AddParameter("event_id", "The event_id", None)
+        self.AddParameter("cache_dir", "The cache_dir", None)
+        self.AddOutBox("OutBox")
+    
+    def Configure(self):
+        self.state_dict = self.GetParameter("state_dict")
+        self.event_id = self.GetParameter("event_id")
+        self.cache_dir = self.GetParameter("cache_dir")
+        
         self.this_event_cache_dir = os.path.join(self.cache_dir, self.event_id)
 
-    def do_physics(self, frame) -> icetray.I3Frame:
-        """Save the frame to file at `self.cache_dir`.
-
-        Record the file-saving in `self.state_dict` so it can't happen again.
-        """
+    def Physics(self, frame):
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
         if "SCAN_HealpixPixel" not in frame:
@@ -364,12 +346,12 @@ class SaveRecoResults:  # formerly: 'CollectRecoResults'
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
             llh = numpy.nan
             # raise RuntimeError("\"MillipedeStarting2ndPass_millipedellh\" not found in reconstructed frame")
-        else:
+        else:    
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
         if nside not in self.state_dict["nsides"]:
             self.state_dict["nsides"][nside] = {}
-
+            
         if pixel in self.state_dict["nsides"][nside]:
             raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
         self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh)
@@ -383,8 +365,8 @@ class SaveRecoResults:  # formerly: 'CollectRecoResults'
 
         # print " - saving pixel file {0}...".format(pixel_file_name)
         save_GCD_frame_packet_to_file([frame], pixel_file_name)
-
-        return frame
+            
+        self.PushFrame(frame)
 
 
 def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
@@ -392,13 +374,24 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
-    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} clients".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
+    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
 
     base_GCD_filename = state_dict['baseline_GCD_file']
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
     # print "base_GCD_filename: {0}".format(base_GCD_filename)
+    
+    ExcludedDOMs = [
+        'CalibrationErrata',
+        'BadDomsList',
+        'DeepCoreDOMs',
+        'SaturatedDOMs',
+        'BrightDOMs',
+        'SplitUncleanedInIcePulsesLatePulseCleanedTimeWindows',
+        ]
+    
+    tray = I3Tray()
 
-    pixels_to_scan = PixelsToScan(
+    tray.AddModule(SendPixelsToScan, "SendPixelsToScan",
         state_dict=state_dict,
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
@@ -408,47 +401,52 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         skymap_plotting_callback=skymap_plotting_callback,
         finish_function=finish_function,
     )
-    find_best_reco_for_pixel = FindBestRecoResultForPixel()
-    save_reco_results = SaveRecoResults(
-        state_dict=state_dict,
-        event_id=event_id_string,
-        cache_dir=cache_dir
+
+    # #### do the scan
+    # def FakeScan(frame):
+    #     fp = millipede.MillipedeFitParams()
+    #     fp.logl = random.uniform(100.,200.)
+    #     frame["MillipedeStarting2ndPass_millipedellh"] = fp
+    #     
+    #     p = dataclasses.I3Particle(frame["MillipedeSeedParticle"])
+    #     frame["MillipedeStarting2ndPass"] = p
+    #     
+    #     time.sleep(0.002)
+    # tray.AddModule(FakeScan)
+
+    #### do the scan
+    tray.AddSegment(scan_pixel_distributed, "scan_pixel_distributed",
+        port=port,
+        ExcludedDOMs=ExcludedDOMs,
+        NumClients=numclients,
+        base_GCD_paths=config.GCD_base_dirs,
+        base_GCD_filename=base_GCD_filename,
+        RemoteSubmitPrefix=RemoteSubmitPrefix,
+    )
+        
+    #### collect the results
+    tray.AddModule(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
+    tray.AddModule(CollectRecoResults, "CollectRecoResults",
+        state_dict = state_dict,
+        event_id = event_id_string,
+        cache_dir = cache_dir
     )
 
-    # TODO - be smarter about switching between send logic & recv logic (multi-thread?)
-
-    # send pixels to client(s)
-    while True:
-        try:
-            for frame in pixels_to_scan.do_process():
-                print(f"<MOCK SEND FRAME TO CLIENT>: {frame}")  # TODO
-        except NothingToSendException:
-            break
-
-    # receive back from client, collect & save
-    for frame in [icetray.I3Frame()]*100:  # TODO - this will be the MQ stream
-        print(f"<MOCK RECV FRAME FROM CLIENTS>: {frame}")  # TODO
-
-        try:
-            best_frame = find_best_reco_for_pixel.do_physics(frame)
-        except WaitingForAllScansException:
-            # this is okay, just waiting until we get everything
-            print("We haven't received *all* the scans (frames) for a pixel yet...")
-            continue
-
-        out_frame = save_reco_results.do_physics(best_frame)
-        # TODO - do we want to do anything with `out_frame`?
-
-    # if this raises:
-    #  then the MQ timeout is either too short or
-    #  something catastrophic happened to a client
-    find_best_reco_for_pixel.do_finish()
-
+    tray.AddModule("TrashCan")
+    tray.Execute()
+    tray.Finish()
+    del tray
+    
     return state_dict
 
 
-def main() -> None:
-    """Start up Server."""
+if __name__ == "__main__":
+    from optparse import OptionParser
+
+    from icecube import dataclasses, dataio, icetray
+
+    from .load_scan_state import load_cache_state
+
     #import config
     #config.GCD_base_dirs = ["http://icecube:skua@convey.icecube.wisc.edu/data/exp/IceCube/2016/internal-system/PoleBaseGCDs"]
 
@@ -479,7 +477,3 @@ def main() -> None:
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
     perform_scan(event_id_string=eventID, state_dict=state_dict, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS, RemoteSubmitPrefix=RemoteSubmitPrefix)
-
-
-if __name__ == "__main__":
-    main()
