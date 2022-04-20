@@ -34,20 +34,9 @@ jobs:
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Launch Containers
         run: |
-          # From the README.md
-          # You can run the producer to send a scan like this.
-          # Notice that you are submitting the event with a specific name that you
-          # can use later in order to save all data:
+          # Based on cloud_tools README.md (with collector+saver merged into producer)
           ./skymap_scanner/tests/docker_scripts/launch_producer.sh $SKYSCAN_CONTAINER
-          # Then you can then start some workers to scan the jobs in the queue:
           ./skymap_scanner/tests/docker_scripts/launch_worker.sh $SKYSCAN_CONTAINER
-          # Finally, since there are 7 jobs per pixel (different reconstruction
-          # seeds in absolute position in the detector), they need to be collected
-          # # for each pixel. You have to run one (or several) of these:
-          ./skymap_scanner/tests/docker_scripts/launch_collector.sh $SKYSCAN_CONTAINER
-          # Now, you can save the output queue into an .i3 file and have a look at
-          # it: (Note that saver will block until all frames have been processed.)
-          ./skymap_scanner/tests/docker_scripts/launch_saver.sh $SKYSCAN_CONTAINER
           docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
   test-run-producer:
@@ -83,37 +72,3 @@ jobs:
       - name: Run Test(s)
         run: |
           ./skymap_scanner/tests/docker_scripts/launch_worker.sh $SKYSCAN_CONTAINER
-
-  test-run-collector:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
-      - name: Build Skymap Scanner Docker Image
-        run: |
-          ./skymap_scanner/tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
-      - name: Configure Pulsar Server
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run Test(s)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/launch_collector.sh $SKYSCAN_CONTAINER
-
-  test-run-saver:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
-      - name: Build Skymap Scanner Docker Image
-        run: |
-          ./skymap_scanner/tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
-      - name: Configure Pulsar Server
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run Test(s)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/launch_saver.sh $SKYSCAN_CONTAINER
