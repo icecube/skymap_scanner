@@ -1,4 +1,4 @@
-"""The Producer service.
+"""The Server.
 
 Based on python/perform_scan.py
 """
@@ -440,7 +440,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
 
 
 def main() -> None:
-    """Start up Producer service."""
+    """Start up Server."""
     #import config
     #config.GCD_base_dirs = ["http://icecube:skua@convey.icecube.wisc.edu/data/exp/IceCube/2016/internal-system/PoleBaseGCDs"]
 

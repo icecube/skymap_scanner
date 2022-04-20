@@ -34,12 +34,12 @@ jobs:
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Launch Containers
         run: |
-          # Based on cloud_tools README.md (with collector+saver merged into producer)
-          ./skymap_scanner/tests/docker_scripts/launch_producer.sh $SKYSCAN_CONTAINER
+          # Based on cloud_tools README.md (with collector+saver merged into server)
+          ./skymap_scanner/tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
           ./skymap_scanner/tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
           docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
-  test-run-producer:
+  test-run-server:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -54,7 +54,7 @@ jobs:
           ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./skymap_scanner/tests/docker_scripts/launch_producer.sh $SKYSCAN_CONTAINER
+          ./skymap_scanner/tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
 
   test-run-client:
     runs-on: ubuntu-latest
