@@ -431,7 +431,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
                 print("We haven't received all the frames (scans) yet...")
                 continue
 
-            out_frame = save_reco_results.do_physics(frame)
+            out_frame = save_reco_results.do_physics(best_frame)
             # TODO - do we want to do anything with `out_frame`?
 
     find_best_reco_for_pixel.do_finish()
