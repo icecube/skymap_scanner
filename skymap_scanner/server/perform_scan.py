@@ -365,7 +365,7 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def perform_scan(
+def send_scan(
     event_id_string,
     state_dict,
     cache_dir,
@@ -381,6 +381,8 @@ def perform_scan(
     finish_function=None,
     # RemoteSubmitPrefix="",
 ):
+    """Based on python/perform_scan.py and cloud_tools/send_scan.py"""
+
     npos_per_pixel = 7
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
@@ -493,6 +495,24 @@ def main():
         default=10, dest="NUMCLIENTS", help="The number of clients to start")
     # parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
     #     default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
+    parser.add_option("-t", "--topic_in", action="store", type="string",
+        default="persistent://icecube/skymap/to_be_scanned",
+        dest="TOPICIN", help="The Pulsar topic name for pixels to be scanned")
+    parser.add_option("-m", "--topic_meta", action="store", type="string",
+        default="persistent://icecube/skymap_metadata/mf_",
+        dest="TOPICMETA", help="The Pulsar topic name for metadata frames such as G,C,D,Q,p")
+    parser.add_option("-s", "--topic_out", action="store", type="string",
+        default="persistent://icecube/skymap/scanned",
+        dest="TOPICOUT", help="The Pulsar topic name for pixels that have been scanned")
+    parser.add_option("-c", "--topic_col", action="store", type="string",
+        default="persistent://icecube/skymap/collected_",
+        dest="TOPICCOL", help="The Pulsar topic name for pixels that have been collected (each pixel is scanned several times with different seeds, this has the \"best\" result only)")
+    parser.add_option("-b", "--broker", action="store", type="string",
+        default="pulsar://localhost:6650",
+        dest="BROKER", help="The Pulsar broker URL to connect to")
+    parser.add_option("-a", "--auth-token", action="store", type="string",
+        default=None,
+        dest="AUTH_TOKEN", help="The Pulsar authentication token to use")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -508,15 +528,15 @@ def main():
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
-    perform_scan(
+    send_scan(
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
         numclients=options.NUMCLIENTS,
-        broker="TEST-BROKER_ADDRESS",  # TODO
-        auth_token="TEST-AUTH_TOKEN-123",  # TODO
-        topic="TEST-TOPIC",  # TODO
-        metadata_topic_base="TEST-METADATA_TOPIC_BASE",  # TODO
+        broker=options.BROKER,
+        auth_token=options.AUTH_TOKEN,
+        topic=options.TOPICIN,
+        metadata_topic_base=options.TOPICMETA,
         producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name
     )
 
