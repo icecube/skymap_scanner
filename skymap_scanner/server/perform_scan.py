@@ -471,15 +471,13 @@ def send_scan(
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
     )
 
-    # TODO - start another tray that starts with scans received from client(s)
-
     #### collect the results
     # tray.AddModule(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
-    tray.AddModule(CollectRecoResults, "CollectRecoResults",
-        state_dict = state_dict,
-        event_id = event_id_string,
-        cache_dir = cache_dir
-    )
+    # tray.AddModule(CollectRecoResults, "CollectRecoResults",
+    #     state_dict = state_dict,
+    #     event_id = event_id_string,
+    #     cache_dir = cache_dir
+    # )
 
     tray.AddModule("TrashCan")
     tray.Execute()
@@ -490,8 +488,22 @@ def send_scan(
     return state_dict
 
 
-def collect_pixels(broker, auth_token, topic_in, topic_base_out):
-    """Based on python/perform_scan.py and cloud_tools/collect_pixels.py"""
+def collect_and_save_pixels(
+    broker,
+    auth_token,
+    topic_in,
+    topic_base_out,
+    event_id_string,
+    state_dict,
+    cache_dir,
+):
+    """Collect pixel scans from MQ and save to disk.
+
+    Based on:
+        python/perform_scan.py
+        cloud_tools/collect_pixels.py
+        cloud_tools/save_pixels.py (only nominally)
+    """
 
     # connect to pulsar
     client_service = PulsarClientService(
@@ -514,19 +526,29 @@ def collect_pixels(broker, auth_token, topic_in, topic_base_out):
         MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
         )
 
+    # NOTE - we're not actually using the metadata topic downstream,
+    # NOTE - instead we're using local state (state_dict and cache_dir)
+    # TODO - remove all uses of metadata topic? need to look at client code first
+
     tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
 
-    #### Note: for memory optimization purposes, there are only empty metadata frames here.
-    #### So it is probably not a good idea to add any non queuing-related modules after
-    #### "FindBestRecoResultForPixel".
+    # #### Note: for memory optimization purposes, there are only empty metadata frames here.
+    # #### So it is probably not a good idea to add any non queuing-related modules after
+    # #### "FindBestRecoResultForPixel".
 
-    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
-        ClientService=client_service,
-        Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
-        ProducerCacheSize=100,
-        MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags - do NOT change this as we mess with the metadata frames
-        ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
-        )
+    # tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+    #     ClientService=client_service,
+    #     Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
+    #     ProducerCacheSize=100,
+    #     MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags - do NOT change this as we mess with the metadata frames
+    #     ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
+    #     )
+
+    tray.AddModule(CollectRecoResults, "CollectRecoResults",
+        state_dict = state_dict,
+        event_id = event_id_string,
+        cache_dir = cache_dir
+    )
 
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
         ReceiverService=receiver_service
@@ -587,7 +609,7 @@ def main():
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
-    send_scan(
+    state_dict = send_scan(
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
@@ -598,11 +620,14 @@ def main():
         metadata_topic_base=options.TOPICMETA,
         producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name
     )
-    collect_pixels(
+    collect_and_save_pixels(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_in=options.TOPICOUT,
-        topic_base_out=options.TOPICCOL
+        topic_base_out=options.TOPICCOL,
+        event_id_string=eventID,
+        state_dict=state_dict,
+        cache_dir=options.CACHEDIR,
     )
 
 
