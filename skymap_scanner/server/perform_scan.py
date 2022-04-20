@@ -375,7 +375,7 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def send_scan(
+def send_scan_icetray(
     event_id_string,
     state_dict,
     cache_dir,
@@ -391,8 +391,12 @@ def send_scan(
     finish_function=None,
     # RemoteSubmitPrefix="",
 ):
-    """Based on python/perform_scan.py and cloud_tools/send_scan.py"""
+    """Send Pixels to be scanned by client(s)
 
+    Based on:
+        python/perform_scan.py
+        cloud_tools/send_scan.py
+    """
     npos_per_pixel = 7
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
@@ -488,7 +492,7 @@ def send_scan(
     return state_dict
 
 
-def collect_and_save_pixels(
+def collect_and_save_pixels_icetray(
     broker,
     auth_token,
     topic_in,
@@ -504,7 +508,6 @@ def collect_and_save_pixels(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
-
     # connect to pulsar
     client_service = PulsarClientService(
         BrokerURL=broker,
@@ -609,7 +612,7 @@ def main():
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
-    state_dict = send_scan(
+    state_dict = send_scan_icetray(
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
@@ -620,7 +623,7 @@ def main():
         metadata_topic_base=options.TOPICMETA,
         producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name
     )
-    collect_and_save_pixels(
+    collect_and_save_pixels_icetray(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_in=options.TOPICOUT,
