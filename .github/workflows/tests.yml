@@ -7,7 +7,7 @@ env:
   SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
   PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CONTAINER: skyscan-cloud
-  SKYSCAN_EVENT_URL: http://icecube:skua@convey.icecube.wisc.edu/data/user/ckopper/event_HESE_2017-11-28.json
+  SKYSCAN_EVENT: ./skymap_scanner/tests/docker_scripts/event_HESE_2017-11-28.json
 
 jobs:
 
