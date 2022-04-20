@@ -1,8 +1,7 @@
 """The Worker service.
 
-Based on python/perform_scan.py
+Based on python/perform_scan.py & python/traysegments/scan_pixel_distributed.py
 """
-
 
 # fmt: off
 # mypy: ignore-errors
