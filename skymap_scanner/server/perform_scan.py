@@ -1,6 +1,6 @@
 """The Server.
 
-Based on python/perform_scan.py
+Based on python/perform_scan.py and cloud_tools/send_scan.py
 """
 
 # fmt: off
@@ -15,10 +15,9 @@ import numpy
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from . import config
+from ..mq_tools.pulsar_icetray import PulsarClientService, SendPFrameWithMetadata
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
-from .traysegments import scan_pixel_distributed
 from .utils import get_event_mjd, save_GCD_frame_packet_to_file
 
 
@@ -366,25 +365,40 @@ class CollectRecoResults(icetray.I3Module):
         self.PushFrame(frame)
 
 
-def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
+def perform_scan(
+    event_id_string,
+    state_dict,
+    cache_dir,
+    broker,  # for pulsar
+    auth_token,  # for pulsar
+    topic,  # for pulsar
+    metadata_topic_base,  # for pulsar
+    producer_name,  # for pulsar
+    # port=5555,
+    numclients=10,
+    logger=simple_print_logger,
+    skymap_plotting_callback=None,
+    finish_function=None,
+    # RemoteSubmitPrefix="",
+):
     npos_per_pixel = 7
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
     logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
 
-    base_GCD_filename = state_dict['baseline_GCD_file']
+    # base_GCD_filename = state_dict['baseline_GCD_file']
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
     # print "base_GCD_filename: {0}".format(base_GCD_filename)
 
-    ExcludedDOMs = [
-        'CalibrationErrata',
-        'BadDomsList',
-        'DeepCoreDOMs',
-        'SaturatedDOMs',
-        'BrightDOMs',
-        'SplitUncleanedInIcePulsesLatePulseCleanedTimeWindows',
-        ]
+    # ExcludedDOMs = [
+    #     'CalibrationErrata',
+    #     'BadDomsList',
+    #     'DeepCoreDOMs',
+    #     'SaturatedDOMs',
+    #     'BrightDOMs',
+    #     'SplitUncleanedInIcePulsesLatePulseCleanedTimeWindows',
+    #     ]
 
     tray = I3Tray()
 
@@ -411,15 +425,41 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     #     time.sleep(0.002)
     # tray.AddModule(FakeScan)
 
-    #### do the scan
-    tray.AddSegment(scan_pixel_distributed, "scan_pixel_distributed",
-        port=port,
-        ExcludedDOMs=ExcludedDOMs,
-        NumClients=numclients,
-        base_GCD_paths=config.GCD_base_dirs,
-        base_GCD_filename=base_GCD_filename,
-        RemoteSubmitPrefix=RemoteSubmitPrefix,
+    # #### do the scan
+    # tray.AddSegment(scan_pixel_distributed, "scan_pixel_distributed",
+    #     port=port,
+    #     ExcludedDOMs=ExcludedDOMs,
+    #     NumClients=numclients,
+    #     base_GCD_paths=config.GCD_base_dirs,
+    #     base_GCD_filename=base_GCD_filename,
+    #     RemoteSubmitPrefix=RemoteSubmitPrefix,
+    # )
+
+    def makeSurePulsesExist(frame, pulsesName):
+        if pulsesName not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName))
+        if pulsesName+"TimeWindows" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
+        if pulsesName+"TimeRange" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
+    tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist", pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned")
+
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token
     )
+
+    # now send all P-frames as pulsar messages
+    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+        ClientService=client_service,
+        Topic=topic,
+        MetadataTopicBase=metadata_topic_base,
+        ProducerName=producer_name,
+        I3IntForSequenceID="SCAN_EventOverallIndex",
+        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
+    )
+
+    # TODO - start another tray that starts with scans received from client(s)
 
     #### collect the results
     tray.AddModule(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
@@ -433,6 +473,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     tray.Execute()
     tray.Finish()
     del tray
+    del client_service
 
     return state_dict
 
@@ -446,12 +487,12 @@ def main():
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-p", "--port", action="store", type="int",
-        default=5555, dest="PORT", help="The tcp port to use")
-    parser.add_option("-n", "--numclients", action="store", type="int",
+    # parser.add_option("-p", "--port", action="store", type="int",
+    #     default=5555, dest="PORT", help="The tcp port to use")
+    parser.add_option("-n", "--numclients", action="store", type="int",  # TODO - remove
         default=10, dest="NUMCLIENTS", help="The number of clients to start")
-    parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
-        default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
+    # parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
+    #     default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -460,14 +501,24 @@ def main():
         raise RuntimeError("You need to specify exactly one event ID")
     eventID = args[0]
 
-    RemoteSubmitPrefix = options.REMOTESUBMITPREFIX
-    if RemoteSubmitPrefix is None: RemoteSubmitPrefix=""
+    # RemoteSubmitPrefix = options.REMOTESUBMITPREFIX
+    # if RemoteSubmitPrefix is None: RemoteSubmitPrefix=""
 
     # get a file stager
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
-    perform_scan(event_id_string=eventID, state_dict=state_dict, cache_dir=options.CACHEDIR, port=options.PORT, numclients=options.NUMCLIENTS, RemoteSubmitPrefix=RemoteSubmitPrefix)
+    perform_scan(
+        event_id_string=eventID,
+        state_dict=state_dict,
+        cache_dir=options.CACHEDIR,
+        numclients=options.NUMCLIENTS,
+        broker="TEST-BROKER_ADDRESS",  # TODO
+        auth_token="TEST-AUTH_TOKEN-123",  # TODO
+        topic="TEST-TOPIC",  # TODO
+        metadata_topic_base="TEST-METADATA_TOPIC_BASE",  # TODO
+        producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name
+    )
 
 
 if __name__ == "__main__":
