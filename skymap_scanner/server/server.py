@@ -29,8 +29,8 @@ def simple_print_logger(text):
     print(text)
 
 
-class SendPixelsToScan:
-    """Manage sending pixels to clients for processing."""
+class PixelsToScan:  # formerly: `SendPixelsToScan`
+    """Manage getting pixels for processing."""
 
     def __init__(
         self,
@@ -393,7 +393,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
     # print "base_GCD_filename: {0}".format(base_GCD_filename)
 
-    sender = SendPixelsToScan(
+    pixels_to_scan = PixelsToScan(
         state_dict=state_dict,
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
@@ -413,7 +413,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     while True:
         # send to client
         try:
-            for frame in sender.do_process():
+            for frame in pixels_to_scan.do_process():
                 print(f"<MOCK SEND FRAME TO CLIENT>: {frame}")  # TODO
         except NothingToSendException:
             break
