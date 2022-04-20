@@ -25,6 +25,10 @@ class NothingToSendException(Exception):
     """Raise this when there is nothing (more) to send."""
 
 
+class WaitingForAllScansException(Exception):
+    """Raise this when not all scans for a pixel have been received."""
+
+
 def simple_print_logger(text):
     print(text)
 
@@ -101,7 +105,7 @@ class PixelsToScan:  # formerly: `SendPixelsToScan`
         self.logger(message)
 
     def do_process(self) -> Iterator[icetray.I3Frame]:
-        """Process the GCDQpFrames & PFrames, and send each to client(s)."""
+        """Yield PFrames (including initial GCDQpFrames)."""
 
         # push GCDQp packet if not done so already
         if self.GCDQpFrames:
@@ -309,7 +313,7 @@ class FindBestRecoResultForPixel:
             return bestFrame
 
         # not all results have been received yet for pixel
-        raise NothingToSendException()
+        raise WaitingForAllScansException()
 
     def do_finish(self) -> None:
         if len(self.pixelNumToFramesMap) == 0:
@@ -318,6 +322,7 @@ class FindBestRecoResultForPixel:
         print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
         print((self.pixelNumToFramesMap))
         print("**** WARN ****  --  END")
+        raise RuntimeError("pixels left in cache, not all of the packets seem to be complete")
 
 
 class SaveRecoResults:  # formerly: 'CollectRecoResults'
@@ -410,30 +415,33 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         cache_dir=cache_dir
     )
 
+    # TODO - be smarter about switching between send logic & recv logic (multi-thread?)
+
+    # send pixels to client(s)
     while True:
-        # send to client
         try:
             for frame in pixels_to_scan.do_process():
                 print(f"<MOCK SEND FRAME TO CLIENT>: {frame}")  # TODO
         except NothingToSendException:
             break
 
-        # TODO - multi-thread send logic & recv logic (or be smarter about switching between)
+    # receive back from client, collect & save
+    for frame in [icetray.I3Frame()]*100:  # TODO - this will be the MQ stream
+        print(f"<MOCK RECV FRAME FROM CLIENTS>: {frame}")  # TODO
 
-        # receive back from client, collect & save
-        for frame in [icetray.I3Frame()]*100:  # TODO - this will be the MQ stream
-            print(f"<MOCK RECV FRAME FROM CLIENTS>: {frame}")  # TODO
+        try:
+            best_frame = find_best_reco_for_pixel.do_physics(frame)
+        except WaitingForAllScansException:
+            # this is okay, just waiting until we get everything
+            print("We haven't received *all* the scans (frames) for a pixel yet...")
+            continue
 
-            try:
-                best_frame = find_best_reco_for_pixel.do_physics(frame)
-            except NothingToSendException:
-                # this is okay, just waiting until we get everything
-                print("We haven't received all the frames (scans) yet...")
-                continue
+        out_frame = save_reco_results.do_physics(best_frame)
+        # TODO - do we want to do anything with `out_frame`?
 
-            out_frame = save_reco_results.do_physics(best_frame)
-            # TODO - do we want to do anything with `out_frame`?
-
+    # if this raises:
+    #  then the MQ timeout is either too short or
+    #  something catastrophic happened to a client
     find_best_reco_for_pixel.do_finish()
 
     return state_dict
