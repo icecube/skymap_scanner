@@ -6,27 +6,27 @@ Based on python/perform_scan.py
 # fmt: off
 # pylint: skip-file
 
-
+import os
 import time
 from optparse import OptionParser
 from typing import Iterator
 
 import healpy  # type: ignore[import]
-import numpy  # type: ignore[import]
+import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from ..utils import get_event_mjd
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
-
-
-def simple_print_logger(text):
-    print(text)
+from .utils import get_event_mjd, save_GCD_frame_packet_to_file
 
 
 class NothingToSendException(Exception):
     """Raise this when there is nothing (more) to send."""
+
+
+def simple_print_logger(text):
+    print(text)
 
 
 class SendPixelsToScan:
@@ -249,6 +249,139 @@ class SendPixelsToScan:
             yield p_frame
 
 
+class FindBestRecoResultForPixel:
+    """Manage finding the best reco result for a pixel for multiple scans.
+
+    Cache necessary info for successive calls to `do_physics()`.
+    """
+
+    def __init__(
+        self,
+        NPosVar=7,  # Number of position variations to collect
+    ):
+        self.NPosVar = NPosVar
+
+        self.pixelNumToFramesMap = {}
+
+    def do_physics(self, frame) -> icetray.I3Frame:
+        """Once `NPosVar`-number of scans have arrived for a pixel, return best result.
+
+        If all the scans for a pixel have not been received (yet), cache
+        internally, and raise `NothingToSendException`.
+        """
+        if "SCAN_HealpixNSide" not in frame:
+            raise RuntimeError("SCAN_HealpixNSide not in frame")
+        if "SCAN_HealpixPixel" not in frame:
+            raise RuntimeError("SCAN_HealpixPixel not in frame")
+        if "SCAN_PositionVariationIndex" not in frame:
+            raise RuntimeError("SCAN_PositionVariationIndex not in frame")
+
+        nside = frame["SCAN_HealpixNSide"].value
+        pixel = frame["SCAN_HealpixPixel"].value
+        index = (nside,pixel)
+        posVarIndex = frame["SCAN_PositionVariationIndex"].value
+
+        if index not in self.pixelNumToFramesMap:
+            self.pixelNumToFramesMap[index] = []
+        self.pixelNumToFramesMap[index].append(frame)
+
+        if len(self.pixelNumToFramesMap[index]) >= self.NPosVar:
+            # print "all scans arrived for pixel", index
+            bestFrame = None
+            bestFrameLLH = None
+            for frame in self.pixelNumToFramesMap[index]:
+                if "MillipedeStarting2ndPass_millipedellh" in frame:
+                    thisLLH = frame["MillipedeStarting2ndPass_millipedellh"].logl
+                else:
+                    thisLLH = numpy.nan
+                # print "  * llh =", thisLLH
+                if (bestFrame is None) or ((thisLLH < bestFrameLLH) and (not numpy.isnan(thisLLH))):
+                    bestFrame=frame
+                    bestFrameLLH=thisLLH
+
+            # print "all scans arrived for pixel", index, "best LLH is", bestFrameLLH
+
+            if bestFrame is None:
+                # just push the first frame if all of them are nan
+                bestFrame = self.pixelNumToFramesMap[index][0]
+
+            del self.pixelNumToFramesMap[index]
+            return bestFrame
+
+        # not all results have been received yet for pixel
+        raise NothingToSendException()
+
+    def do_finish(self) -> None:
+        if len(self.pixelNumToFramesMap) == 0:
+            return
+
+        print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
+        print((self.pixelNumToFramesMap))
+        print("**** WARN ****  --  END")
+
+
+class SaveRecoResults:  # formerly: 'CollectRecoResults'
+    """Manage saving reco results for multiple scans.
+
+    Cache necessary info for successive calls to `do_physics()`.
+    """
+
+    def __init__(
+        self,
+        state_dict=None,  # The state_dict
+        event_id=None,  # The event_id
+        cache_dir=None,  # The cache_dir
+    ):
+        self.state_dict = state_dict
+        self.event_id = event_id
+        self.cache_dir = cache_dir
+
+        self.this_event_cache_dir = os.path.join(self.cache_dir, self.event_id)
+
+    def do_physics(self, frame) -> icetray.I3Frame:
+        """Save the frame to file at `self.cache_dir`.
+
+        Record the file-saving in `self.state_dict` so it can't happen again.
+        """
+        if "SCAN_HealpixNSide" not in frame:
+            raise RuntimeError("SCAN_HealpixNSide not in frame")
+        if "SCAN_HealpixPixel" not in frame:
+            raise RuntimeError("SCAN_HealpixPixel not in frame")
+        if "SCAN_PositionVariationIndex" not in frame:
+            raise RuntimeError("SCAN_PositionVariationIndex not in frame")
+
+        nside = frame["SCAN_HealpixNSide"].value
+        pixel = frame["SCAN_HealpixPixel"].value
+        index = (nside,pixel)
+
+        if "MillipedeStarting2ndPass" not in frame:
+            raise RuntimeError("\"MillipedeStarting2ndPass\" not found in reconstructed frame")
+        if "MillipedeStarting2ndPass_millipedellh" not in frame:
+            llh = numpy.nan
+            # raise RuntimeError("\"MillipedeStarting2ndPass_millipedellh\" not found in reconstructed frame")
+        else:
+            llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
+
+        if nside not in self.state_dict["nsides"]:
+            self.state_dict["nsides"][nside] = {}
+
+        if pixel in self.state_dict["nsides"][nside]:
+            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
+        self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh)
+
+        # save this frame to the disk cache
+
+        nside_dir = os.path.join(self.this_event_cache_dir, "nside{0:06d}".format(nside))
+        if not os.path.exists(nside_dir):
+            os.mkdir(nside_dir)
+        pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
+
+        # print " - saving pixel file {0}...".format(pixel_file_name)
+        save_GCD_frame_packet_to_file([frame], pixel_file_name)
+
+        return frame
+
+
 def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=10, logger=simple_print_logger, skymap_plotting_callback=None, finish_function=None, RemoteSubmitPrefix=""):
     npos_per_pixel = 7
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
@@ -270,13 +403,38 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
         skymap_plotting_callback=skymap_plotting_callback,
         finish_function=finish_function,
     )
+    find_best_reco_for_pixel = FindBestRecoResultForPixel()
+    save_reco_results = SaveRecoResults(
+        state_dict=state_dict,
+        event_id=event_id_string,
+        cache_dir=cache_dir
+    )
 
     while True:
+        # send to worker
         try:
             for frame in sender.do_process():
-                print(f"<MOCK SEND TO WORKER>: {frame}")
+                print(f"<MOCK SEND FRAME TO WORKER>: {frame}")  # TODO
         except NothingToSendException:
             break
+
+        # TODO - multi-thread send logic & recv logic (or be smarter about switching between)
+
+        # receive back from worker, collect & save
+        for frame in [icetray.I3Frame()]*100:  # TODO - this will be the MQ stream
+            print(f"<MOCK RECV FRAME FROM WORKERS>: {frame}")  # TODO
+
+            try:
+                best_frame = find_best_reco_for_pixel.do_physics(frame)
+            except NothingToSendException:
+                # this is okay, just waiting until we get everything
+                print("We haven't received all the frames (scans) yet...")
+                continue
+
+            out_frame = save_reco_results.do_physics(frame)
+            # TODO - do we want to do anything with `out_frame`?
+
+    find_best_reco_for_pixel.do_finish()
 
     return state_dict
 
