@@ -59,9 +59,8 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
         /usr/local/icetray/realtime_tools --username=icecube --password=skua --no-auth-cache && \
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
-# copy all .py files from the repository into the container image
-COPY * /local/
 WORKDIR /local
+COPY . .
 
 RUN ls /local
 
@@ -82,5 +81,5 @@ RUN pip install -r /local/requirements.txt
 #
 
 # set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
-ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "python3", "/local/entrypoint.py"]
+ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "/local/common_entrypoint.sh"]
 CMD []
