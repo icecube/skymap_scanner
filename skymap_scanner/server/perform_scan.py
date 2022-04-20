@@ -1,6 +1,10 @@
 """The Server.
 
-Based on python/perform_scan.py and cloud_tools/send_scan.py
+Based on:
+    python/perform_scan.py
+    cloud_tools/send_scan.py
+    cloud_tools/collect_pixels.py
+    cloud_tools/.py
 """
 
 # fmt: off
@@ -15,7 +19,13 @@ import numpy
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from ..mq_tools.pulsar_icetray import PulsarClientService, SendPFrameWithMetadata
+from ..mq_tools.pulsar_icetray import (
+    AcknowledgeReceivedPFrame,
+    PulsarClientService,
+    ReceivePFrameWithMetadata,
+    ReceiverService,
+    SendPFrameWithMetadata,
+)
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
 from .utils import get_event_mjd, save_GCD_frame_packet_to_file
@@ -464,7 +474,7 @@ def send_scan(
     # TODO - start another tray that starts with scans received from client(s)
 
     #### collect the results
-    tray.AddModule(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
+    # tray.AddModule(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
     tray.AddModule(CollectRecoResults, "CollectRecoResults",
         state_dict = state_dict,
         event_id = event_id_string,
@@ -478,6 +488,55 @@ def send_scan(
     del client_service
 
     return state_dict
+
+
+def collect_pixels(broker, auth_token, topic_in, topic_base_out):
+    """Based on python/perform_scan.py and cloud_tools/collect_pixels.py"""
+
+    # connect to pulsar
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token,
+    )
+
+    receiver_service = ReceiverService(
+        client_service=client_service,
+        topic=topic_in,
+        subscription_name='skymap-collector-sub',
+        force_single_consumer=True,
+    )
+
+    ########## the tray
+    tray = I3Tray()
+
+    tray.Add(ReceivePFrameWithMetadata, "ReceivePFrameWithMetadata",
+        ReceiverService=receiver_service,
+        MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
+        )
+
+    tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
+
+    #### Note: for memory optimization purposes, there are only empty metadata frames here.
+    #### So it is probably not a good idea to add any non queuing-related modules after
+    #### "FindBestRecoResultForPixel".
+
+    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+        ClientService=client_service,
+        Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
+        ProducerCacheSize=100,
+        MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags - do NOT change this as we mess with the metadata frames
+        ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
+        )
+
+    tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
+        ReceiverService=receiver_service
+        )
+
+    tray.Execute()
+    del tray
+
+    del receiver_service
+    del client_service
 
 
 def main():
@@ -538,6 +597,12 @@ def main():
         topic=options.TOPICIN,
         metadata_topic_base=options.TOPICMETA,
         producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name
+    )
+    collect_pixels(
+        broker=options.BROKER,
+        auth_token=options.AUTH_TOKEN,
+        topic_in=options.TOPICOUT,
+        topic_base_out=options.TOPICCOL
     )
 
 
