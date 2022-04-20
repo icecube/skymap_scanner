@@ -1,4 +1,4 @@
-"""The Worker service.
+"""The Client service.
 
 Based on python/perform_scan.py & python/traysegments/scan_pixel_distributed.py
 """
@@ -198,7 +198,7 @@ def scan_pixel_distributed(
 
 # fmt: on
 def main(port, pulsesName, config, base_GCD_filename):
-    """Start up Worker service."""
+    """Start up Client service."""
     ExcludedDOMs = [
         "CalibrationErrata",
         "BadDomsList",

@@ -30,7 +30,7 @@ def simple_print_logger(text):
 
 
 class SendPixelsToScan:
-    """Manage sending pixels to worker clients for processing."""
+    """Manage sending pixels to clients for processing."""
 
     def __init__(
         self,
@@ -101,7 +101,7 @@ class SendPixelsToScan:
         self.logger(message)
 
     def do_process(self) -> Iterator[icetray.I3Frame]:
-        """Process the GCDQpFrames & PFrames, and send each to worker client(s)."""
+        """Process the GCDQpFrames & PFrames, and send each to client(s)."""
 
         # push GCDQp packet if not done so already
         if self.GCDQpFrames:
@@ -387,7 +387,7 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
     parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
     if parallel_pixels <= 0: parallel_pixels = 1
-    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
+    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} clients".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
 
     base_GCD_filename = state_dict['baseline_GCD_file']
     # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
@@ -411,18 +411,18 @@ def perform_scan(event_id_string, state_dict, cache_dir, port=5555, numclients=1
     )
 
     while True:
-        # send to worker
+        # send to client
         try:
             for frame in sender.do_process():
-                print(f"<MOCK SEND FRAME TO WORKER>: {frame}")  # TODO
+                print(f"<MOCK SEND FRAME TO CLIENT>: {frame}")  # TODO
         except NothingToSendException:
             break
 
         # TODO - multi-thread send logic & recv logic (or be smarter about switching between)
 
-        # receive back from worker, collect & save
+        # receive back from client, collect & save
         for frame in [icetray.I3Frame()]*100:  # TODO - this will be the MQ stream
-            print(f"<MOCK RECV FRAME FROM WORKERS>: {frame}")  # TODO
+            print(f"<MOCK RECV FRAME FROM CLIENTS>: {frame}")  # TODO
 
             try:
                 best_frame = find_best_reco_for_pixel.do_physics(frame)
