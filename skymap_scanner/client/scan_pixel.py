@@ -13,6 +13,7 @@ import platform
 
 from I3Tray import I3Tray, I3Units
 from icecube import dataio, distribute, icetray, photonics_service
+from .. import config
 
 
 def scan_pixel_distributed(

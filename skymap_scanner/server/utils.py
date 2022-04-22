@@ -8,7 +8,7 @@ import os
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from . import config
+from .. import config
 
 
 def get_event_mjd(state_dict):
