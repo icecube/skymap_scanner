@@ -384,12 +384,10 @@ def send_scan_icetray(
     topic,  # for pulsar
     metadata_topic_base,  # for pulsar
     producer_name,  # for pulsar
-    # port=5555,
     numclients=10,
     logger=simple_print_logger,
     skymap_plotting_callback=None,
     finish_function=None,
-    # RemoteSubmitPrefix="",
 ):
     """Send Pixels to be scanned by client(s)
 
@@ -496,7 +494,6 @@ def collect_and_save_pixels_icetray(
     broker,
     auth_token,
     topic_in,
-    topic_base_out,
     event_id_string,
     state_dict,
     cache_dir,
@@ -573,12 +570,8 @@ def main():
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    # parser.add_option("-p", "--port", action="store", type="int",
-    #     default=5555, dest="PORT", help="The tcp port to use")
     parser.add_option("-n", "--numclients", action="store", type="int",  # TODO - remove
         default=10, dest="NUMCLIENTS", help="The number of clients to start")
-    # parser.add_option("-r", "--remote-submit-prefix", action="store", type="string",
-    #     default="", dest="REMOTESUBMITPREFIX", help="The prefix to use in front of all condor commands")
     parser.add_option("-t", "--topic_in", action="store", type="string",
         default="persistent://icecube/skymap/to_be_scanned",
         dest="TOPICIN", help="The Pulsar topic name for pixels to be scanned")
@@ -588,9 +581,6 @@ def main():
     parser.add_option("-s", "--topic_out", action="store", type="string",
         default="persistent://icecube/skymap/scanned",
         dest="TOPICOUT", help="The Pulsar topic name for pixels that have been scanned")
-    parser.add_option("-c", "--topic_col", action="store", type="string",
-        default="persistent://icecube/skymap/collected_",
-        dest="TOPICCOL", help="The Pulsar topic name for pixels that have been collected (each pixel is scanned several times with different seeds, this has the \"best\" result only)")
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
@@ -621,13 +611,12 @@ def main():
         auth_token=options.AUTH_TOKEN,
         topic=options.TOPICIN,
         metadata_topic_base=options.TOPICMETA,
-        producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name
+        producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name (nside? area_center_nside? area_center_pixel?)
     )
     collect_and_save_pixels_icetray(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_in=options.TOPICOUT,
-        topic_base_out=options.TOPICCOL,
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
