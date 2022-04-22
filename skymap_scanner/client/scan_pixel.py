@@ -27,8 +27,8 @@ from ..mq_tools.pulsar_icetray import (
 def scan_pixel_distributed(
     broker,  # for pulsar
     auth_token,  # for pulsar
-    topic_in,  # for pulsar
-    topic_out,  # for pulsar
+    topic_to_clients,  # for pulsar
+    topic_from_clients,  # for pulsar
     all_partitions,  # for pulsar
     ExcludedDOMs,
     pulsesName,
@@ -90,7 +90,7 @@ def scan_pixel_distributed(
 
     receiver_service = ReceiverService(
         client_service=client_service,
-        topic=topic_in,
+        topic=topic_to_clients,
         subscription_name="skymap-worker-sub",
         subscribe_to_single_random_partition=not all_partitions # if the input is a partitioned topic, subscribe to only *one* partition
     )
@@ -211,7 +211,7 @@ def scan_pixel_distributed(
     # now send the topic!
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         ClientService=client_service,
-        Topic=topic_out,
+        Topic=topic_from_clients,
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
@@ -239,12 +239,12 @@ def main():
     parser = OptionParser()
     usage = """%prog [options]"""
     parser.set_usage(usage)
-    parser.add_option("-t", "--topic_in", action="store", type="string",
+    parser.add_option("-t", "--topic_to_clients", action="store", type="string",
         default="persistent://icecube/skymap/to_be_scanned",
-        dest="TOPICIN", help="The Pulsar topic name for pixels to be scanned")
-    parser.add_option("-s", "--topic_out", action="store", type="string",
+        dest="TOPIC_TO_CLIENTS", help="The Pulsar topic name for pixels to be scanned")
+    parser.add_option("-s", "--topic_from_clients", action="store", type="string",
         default="persistent://icecube/skymap/scanned",
-        dest="TOPICOUT", help="The Pulsar topic name for pixels that have been scanned")
+        dest="TOPIC_FROM_CLIENTS", help="The Pulsar topic name for pixels that have been scanned")
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
@@ -270,8 +270,8 @@ def main():
     scan_pixel_distributed(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
-        topic_in=options.TOPICIN,
-        topic_out=options.TOPICOUT,  # for pulsar
+        topic_to_clients=options.TOPIC_TO_CLIENTS,
+        topic_from_clients=options.TOPIC_FROM_CLIENTS,
         all_partitions=options.CONNECT_WORKER_TO_ALL_PARTITIONS,
         ExcludedDOMs=ExcludedDOMs,
         pulsesName=pulsesName,

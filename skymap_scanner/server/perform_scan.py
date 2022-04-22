@@ -381,7 +381,7 @@ def send_scan_icetray(
     cache_dir,
     broker,  # for pulsar
     auth_token,  # for pulsar
-    topic,  # for pulsar
+    topic_to_clients,  # for pulsar
     metadata_topic_base,  # for pulsar
     producer_name,  # for pulsar
     numclients=10,
@@ -466,7 +466,7 @@ def send_scan_icetray(
     # now send all P-frames as pulsar messages
     tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
         ClientService=client_service,
-        Topic=topic,
+        Topic=topic_to_clients,
         MetadataTopicBase=metadata_topic_base,
         ProducerName=producer_name,
         I3IntForSequenceID="SCAN_EventOverallIndex",
@@ -493,7 +493,7 @@ def send_scan_icetray(
 def collect_and_save_pixels_icetray(
     broker,
     auth_token,
-    topic_in,
+    topic_from_clients,
     event_id_string,
     state_dict,
     cache_dir,
@@ -513,7 +513,7 @@ def collect_and_save_pixels_icetray(
 
     receiver_service = ReceiverService(
         client_service=client_service,
-        topic=topic_in,
+        topic=topic_from_clients,
         subscription_name='skymap-collector-sub',
         force_single_consumer=True,
     )
@@ -572,15 +572,15 @@ def main():
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
     parser.add_option("-n", "--numclients", action="store", type="int",  # TODO - remove
         default=10, dest="NUMCLIENTS", help="The number of clients to start")
-    parser.add_option("-t", "--topic_in", action="store", type="string",
+    parser.add_option("-t", "--topic_to_clients", action="store", type="string",
         default="persistent://icecube/skymap/to_be_scanned",
-        dest="TOPICIN", help="The Pulsar topic name for pixels to be scanned")
+        dest="TOPIC_TO_CLIENTS", help="The Pulsar topic name for pixels to be scanned")
     parser.add_option("-m", "--topic_meta", action="store", type="string",
         default="persistent://icecube/skymap_metadata/mf_",
         dest="TOPICMETA", help="The Pulsar topic name for metadata frames such as G,C,D,Q,p")
-    parser.add_option("-s", "--topic_out", action="store", type="string",
+    parser.add_option("-s", "--topic_from_clients", action="store", type="string",
         default="persistent://icecube/skymap/scanned",
-        dest="TOPICOUT", help="The Pulsar topic name for pixels that have been scanned")
+        dest="TOPIC_FROM_CLIENTS", help="The Pulsar topic name for pixels that have been scanned")
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
@@ -609,14 +609,14 @@ def main():
         numclients=options.NUMCLIENTS,
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
-        topic=options.TOPICIN,
+        topic_to_clients=options.TOPIC_TO_CLIENTS,
         metadata_topic_base=options.TOPICMETA,
         producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name (nside? area_center_nside? area_center_pixel?)
     )
     collect_and_save_pixels_icetray(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
-        topic_in=options.TOPICOUT,
+        topic_from_clients=options.TOPIC_FROM_CLIENTS,
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
