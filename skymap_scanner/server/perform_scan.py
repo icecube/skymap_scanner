@@ -2,9 +2,15 @@
 
 Based on:
     python/perform_scan.py
-    cloud_tools/send_scan.py
+        - a lot of similar code
+    cloud_tools/send_scan.py (just the Pulsar logic)
+        - send_scan_icetray() vs send_scan()
+        - Pulsar logic
     cloud_tools/collect_pixels.py
-    cloud_tools/.py
+        - collect_and_save_pixels_icetray() vs collect_and_save_pixels()
+        - Pulsar logic
+    cloud_tools/save_pixels.py
+        - not much in common
 """
 
 # fmt: off

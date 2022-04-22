@@ -1,6 +1,12 @@
 """The Client service.
 
-Based on python/perform_scan.py & python/traysegments/scan_pixel_distributed.py
+Based on:
+    python/perform_scan.py
+        - only 8 lines starting with `tray.AddSegment(, "scan_pixel_distributed",`
+    python/traysegments/scan_pixel_distributed.py
+        - a lot of similar code
+    cloud_tools/scan_pixel.py
+        - Pulsar logic
 """
 
 # fmt: off
