@@ -9,16 +9,27 @@ Based on python/perform_scan.py & python/traysegments/scan_pixel_distributed.py
 
 import datetime
 import os
-import platform
+from optparse import OptionParser
 
 from I3Tray import I3Tray, I3Units
-from icecube import dataio, distribute, icetray, photonics_service
+from icecube import dataio, icetray, photonics_service
+
 from .. import config
+from ..mq_tools.pulsar_icetray import (
+    AcknowledgeReceivedPFrame,
+    PulsarClientService,
+    ReceivePFrameWithMetadata,
+    ReceiverService,
+    SendPFrameWithMetadata,
+)
 
 
 def scan_pixel_distributed(
-    host,
-    port,
+    broker,  # for pulsar
+    auth_token,  # for pulsar
+    topic_in,  # for pulsar
+    topic_out,  # for pulsar
+    all_partitions,  # for pulsar
     ExcludedDOMs,
     pulsesName,
     base_GCD_paths,
@@ -71,17 +82,36 @@ def scan_pixel_distributed(
             raise RuntimeError("Could not read the input GCD file '{0}' from any pre-configured location".format(base_GCD_filename))
 
     # connect to a server
-    c = distribute.I3DistributeClient(
-        WorkerScriptHash=distribute.sha1_of_main_script(),      # this is to ensure only the correct script is sending replies to the server
-        ServerURL=f"tcp://{host}:{port}",
-        DoNotPreRequestWork=True, # only request work once the current item has been returned
-        )
+    # connect to pulsar
+    client_service = PulsarClientService(
+        BrokerURL=broker,
+        AuthToken=auth_token,
+    )
+
+    receiver_service = ReceiverService(
+        client_service=client_service,
+        topic=topic_in,
+        subscription_name="skymap-worker-sub",
+        subscribe_to_single_random_partition=not all_partitions # if the input is a partitioned topic, subscribe to only *one* partition
+    )
+
+    if all_partitions:
+        receiving_from_partition = None
+        receiving_from_partition_index = None
+        print("This worker is receiving from all partitions")
+    else:
+        receiving_from_partition = receiver_service.chosen_partition()
+        receiving_from_partition_index = receiver_service.chosen_partition_index()
+        print("This worker is receiving from partition number {} [\"{}\"]".format(receiving_from_partition_index, receiving_from_partition))
 
     ########## the tray
     tray = I3Tray()
     # tray.context["I3FileStager"] = stagers
 
-    tray.Add("I3DistributeSource", Client=c)
+    tray.Add(ReceivePFrameWithMetadata, "ReceivePFrameWithMetadata",
+        ReceiverService=receiver_service,
+        MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
+        )
 
     ########## perform the fit
 
@@ -178,7 +208,20 @@ def scan_pixel_distributed(
         print("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
     tray.AddModule(notify2, "notify2")
 
-    tray.Add("I3DistributeSink", Client=c)
+    # now send the topic!
+    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+        ClientService=client_service,
+        Topic=topic_out,
+        MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
+        ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
+        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
+        SendToSinglePartitionIndex=receiving_from_partition_index # send to a specific partition only (the same index we are receiving from)
+        # IMPORTANT: this assumes the input and the output topic have the same number of partitions!
+        )
+
+    tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
+        ReceiverService=receiver_service
+        )
 
     tray.AddModule('TrashCan', 'thecan')
 
@@ -186,34 +229,54 @@ def scan_pixel_distributed(
     tray.Finish()
     del tray
 
+    del receiver_service
+    del client_service
 
-# fmt: on
+
 def main():
     """Start up Client service."""
-    default_port = 5555
-    default_excludeddoms = []
-    default_numclients = 10
-    default_pulsesname = "SplitUncleanedInIcePulsesLatePulseCleaned"
-    default_base_gcd_paths = [os.path.join(os.environ["I3_DATA"], "GCD")]
-    default_base_gcd_filename = "GeoCalibDetectorStatus_2015.57161_V0.i3.gz"
-    default_remotesubmitprefix = ""
 
+    parser = OptionParser()
+    usage = """%prog [options]"""
+    parser.set_usage(usage)
+    parser.add_option("-t", "--topic_in", action="store", type="string",
+        default="persistent://icecube/skymap/to_be_scanned",
+        dest="TOPICIN", help="The Pulsar topic name for pixels to be scanned")
+    parser.add_option("-s", "--topic_out", action="store", type="string",
+        default="persistent://icecube/skymap/scanned",
+        dest="TOPICOUT", help="The Pulsar topic name for pixels that have been scanned")
+    parser.add_option("-b", "--broker", action="store", type="string",
+        default="pulsar://localhost:6650",
+        dest="BROKER", help="The Pulsar broker URL to connect to")
+    parser.add_option("-a", "--auth-token", action="store", type="string",
+        default=None,
+        dest="AUTH_TOKEN", help="The Pulsar authentication token to use")
+    parser.add_option("--connect-worker-to-all-partitions", action="store_true",
+        dest="CONNECT_WORKER_TO_ALL_PARTITIONS", help="In normal operation the worker will choose a random input partition and only receive from it (and only send to the matching output partition). If you set this, it will read from all partitions. Bad for performance, but should be used if you only have very few workers.")
+
+    # get parsed args
+    (options,args) = parser.parse_args()
+
+    pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
     ExcludedDOMs = [
-        "CalibrationErrata",
-        "BadDomsList",
-        "DeepCoreDOMs",
-        "SaturatedDOMs",
-        "BrightDOMs",
-        "SplitUncleanedInIcePulsesLatePulseCleanedTimeWindows",
+        'CalibrationErrata',
+        'BadDomsList',
+        'DeepCoreDOMs',
+        'SaturatedDOMs',
+        'BrightDOMs',
+        pulsesName+'TimeWindows',
     ]
 
     scan_pixel_distributed(
-        platform.node(),
-        port,
-        ExcludedDOMs,
-        pulsesName,
-        config.GCD_base_dirs,
-        base_GCD_filename,
+        broker=options.BROKER,
+        auth_token=options.AUTH_TOKEN,
+        topic_in=options.TOPICIN,
+        topic_out=options.TOPICOUT,  # for pulsar
+        all_partitions=options.CONNECT_WORKER_TO_ALL_PARTITIONS,
+        ExcludedDOMs=ExcludedDOMs,
+        pulsesName=pulsesName,
+        base_GCD_paths=config.GCD_base_dirs,
+        base_GCD_filename='TEST_GCD_FILENAME',  # TODO
     )
 
 
