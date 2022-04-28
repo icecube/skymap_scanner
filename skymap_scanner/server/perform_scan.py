@@ -406,19 +406,6 @@ def send_scan_icetray(
     if parallel_pixels <= 0: parallel_pixels = 1
     logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
 
-    # base_GCD_filename = state_dict['baseline_GCD_file']
-    # print "base_GCD_path: {0}".format(config.GCD_base_dirs)
-    # print "base_GCD_filename: {0}".format(base_GCD_filename)
-
-    # ExcludedDOMs = [
-    #     'CalibrationErrata',
-    #     'BadDomsList',
-    #     'DeepCoreDOMs',
-    #     'SaturatedDOMs',
-    #     'BrightDOMs',
-    #     'SplitUncleanedInIcePulsesLatePulseCleanedTimeWindows',
-    #     ]
-
     tray = I3Tray()
 
     tray.AddModule(SendPixelsToScan, "SendPixelsToScan",
@@ -431,28 +418,6 @@ def send_scan_icetray(
         skymap_plotting_callback=skymap_plotting_callback,
         finish_function=finish_function,
     )
-
-    # #### do the scan
-    # def FakeScan(frame):
-    #     fp = millipede.MillipedeFitParams()
-    #     fp.logl = random.uniform(100.,200.)
-    #     frame["MillipedeStarting2ndPass_millipedellh"] = fp
-    #
-    #     p = dataclasses.I3Particle(frame["MillipedeSeedParticle"])
-    #     frame["MillipedeStarting2ndPass"] = p
-    #
-    #     time.sleep(0.002)
-    # tray.AddModule(FakeScan)
-
-    # #### do the scan
-    # tray.AddSegment(scan_pixel_distributed, "scan_pixel_distributed",
-    #     port=port,
-    #     ExcludedDOMs=ExcludedDOMs,
-    #     NumClients=numclients,
-    #     base_GCD_paths=config.GCD_base_dirs,
-    #     base_GCD_filename=base_GCD_filename,
-    #     RemoteSubmitPrefix=RemoteSubmitPrefix,
-    # )
 
     def makeSurePulsesExist(frame, pulsesName):
         if pulsesName not in frame:
@@ -476,14 +441,6 @@ def send_scan_icetray(
         I3IntForSequenceID="SCAN_EventOverallIndex",
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
     )
-
-    #### collect the results
-    # tray.AddModule(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
-    # tray.AddModule(CollectRecoResults, "CollectRecoResults",
-    #     state_dict = state_dict,
-    #     event_id = event_id_string,
-    #     cache_dir = cache_dir
-    # )
 
     tray.AddModule("TrashCan")
     tray.Execute()
@@ -532,14 +489,6 @@ def collect_and_save_pixels_icetray(
 
     tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
 
-    # tray.Add(SendPFrame, "SendPFrame",
-    #     ClientService=client_service,
-    #     Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
-    #     ProducerCacheSize=100,
-    #     MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags - do NOT change this as we mess with the metadata frames
-    #     ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
-    #     )
-
     tray.AddModule(CollectRecoResults, "CollectRecoResults",
         state_dict = state_dict,
         event_id = event_id_string,
@@ -558,8 +507,6 @@ def collect_and_save_pixels_icetray(
 
 
 def main():
-    #import config
-    #config.GCD_base_dirs = ["http://icecube:skua@convey.icecube.wisc.edu/data/exp/IceCube/2016/internal-system/PoleBaseGCDs"]
 
     parser = OptionParser()
     usage = """%prog [options]"""
@@ -587,9 +534,6 @@ def main():
     if len(args) != 1:
         raise RuntimeError("You need to specify exactly one event ID")
     eventID = args[0]
-
-    # RemoteSubmitPrefix = options.REMOTESUBMITPREFIX
-    # if RemoteSubmitPrefix is None: RemoteSubmitPrefix=""
 
     # get a file stager
     stagers = dataio.get_stagers()

@@ -43,7 +43,6 @@ def scan_pixel_distributed(
 ):
     """Actually do the scan."""
 
-    # pulsesName = "{5}"
     ########## load data
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
@@ -60,12 +59,8 @@ def scan_pixel_distributed(
 
     SPEScale = 0.99
 
-    # ExcludedDOMs = {4}
-
     # find an available GCD base path
     stagers = dataio.get_stagers()
-    # base_GCD_paths = {6}
-    # base_GCD_filename = "{7}"
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
