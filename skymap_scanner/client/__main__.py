@@ -1,4 +1,6 @@
 """Entry-point to start up client service."""
 
+from . import scan_pixel
+
 if __name__ == "__main__":
-    print("Hello World, I'm a Client.")
+    scan_pixel.main()
