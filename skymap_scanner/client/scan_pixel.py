@@ -24,9 +24,9 @@ from .. import config
 from ..mq_tools.pulsar_icetray import (
     AcknowledgeReceivedPFrame,
     PulsarClientService,
-    ReceivePFrameWithMetadata,
+    ReceivePFrame,
     ReceiverService,
-    SendPFrameWithMetadata,
+    SendPFrame,
 )
 
 
@@ -114,7 +114,7 @@ def scan_pixel_distributed(
     tray = I3Tray()
     # tray.context["I3FileStager"] = stagers
 
-    tray.Add(ReceivePFrameWithMetadata, "ReceivePFrameWithMetadata",
+    tray.Add(ReceivePFrame, "ReceivePFrame",
         ReceiverService=receiver_service,
         MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
         )
@@ -215,7 +215,7 @@ def scan_pixel_distributed(
     tray.AddModule(notify2, "notify2")
 
     # now send the topic!
-    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+    tray.Add(SendPFrame, "SendPFrame",
         ClientService=client_service,
         Topic=topic_from_clients,
         MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags

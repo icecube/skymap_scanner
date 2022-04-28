@@ -28,9 +28,9 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from ..mq_tools.pulsar_icetray import (
     AcknowledgeReceivedPFrame,
     PulsarClientService,
-    ReceivePFrameWithMetadata,
+    ReceivePFrame,
     ReceiverService,
-    SendPFrameWithMetadata,
+    SendPFrame,
 )
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
@@ -470,7 +470,7 @@ def send_scan_icetray(
     )
 
     # now send all P-frames as pulsar messages
-    tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+    tray.Add(SendPFrame, "SendPFrame",
         ClientService=client_service,
         Topic=topic_to_clients,
         MetadataTopicBase=metadata_topic_base,
@@ -527,7 +527,7 @@ def collect_and_save_pixels_icetray(
     ########## the tray
     tray = I3Tray()
 
-    tray.Add(ReceivePFrameWithMetadata, "ReceivePFrameWithMetadata",
+    tray.Add(ReceivePFrame, "ReceivePFrame",
         ReceiverService=receiver_service,
         MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
         )
@@ -542,7 +542,7 @@ def collect_and_save_pixels_icetray(
     # #### So it is probably not a good idea to add any non queuing-related modules after
     # #### "FindBestRecoResultForPixel".
 
-    # tray.Add(SendPFrameWithMetadata, "SendPFrameWithMetadata",
+    # tray.Add(SendPFrame, "SendPFrame",
     #     ClientService=client_service,
     #     Topic=lambda frame: topic_base_out+frame["SCAN_EventName"].value, # send to the (dynamic) topic specified in the frame
     #     ProducerCacheSize=100,

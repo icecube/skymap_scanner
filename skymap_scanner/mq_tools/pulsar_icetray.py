@@ -70,9 +70,9 @@ class PulsarClientService():
     def __repr__(self):
         return "<PulsarClientService instance>"
 
-class SendPFrameWithMetadata(icetray.I3Module):
+class SendPFrame(icetray.I3Module):
     def __init__(self, ctx):
-        super(SendPFrameWithMetadata, self).__init__(ctx)
+        super(SendPFrame, self).__init__(ctx)
         self.AddParameter("ClientService", "A PulsarClientService instance encapsulating the Apache Pulsar connection", None)
 
         self.AddParameter("Topic", "The Apache Pulsar topic to send to (can be either a string or a function converting an input topic name to an output name)", None)
@@ -111,7 +111,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
         self.sent_metadata_cache = {}
 
         if self.client_service is None:
-            raise RuntimeError("You have to provide a ClientService parameter to SendPFrameWithMetadata")
+            raise RuntimeError("You have to provide a ClientService parameter to SendPFrame")
 
         # first, connect to the broker
         self.client = self.client_service.get()
@@ -214,7 +214,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
                 continue
 
             if self.metadata_topic_base is None:
-                raise RuntimeError("SendPFrameWithMetadata is not configured with the MetadataTopicBase option. All metadata frames need to have been received from a queue already if you want this to work.")
+                raise RuntimeError("SendPFrame is not configured with the MetadataTopicBase option. All metadata frames need to have been received from a queue already if you want this to work.")
 
             frame_copy = copy.copy(entry['frame'])
             frame_copy.purge() # remove non-native stops
@@ -383,7 +383,7 @@ class SendPFrameWithMetadata(icetray.I3Module):
             del self.producer
 
 # Instantiate this service and use the same instance for
-# ReceivePFrameWithMetadata and AcknowledgeReceivedPFrame.
+# ReceivePFrame and AcknowledgeReceivedPFrame.
 class ReceiverService():
     def __init__(self,
         topic, # The Apache Pulsar topic name to receive frames from
@@ -482,9 +482,9 @@ class ReceiverService():
     def __repr__(self):
         return "<ReceiverService instance>"
 
-class ReceivePFrameWithMetadata(icetray.I3Module):
+class ReceivePFrame(icetray.I3Module):
     def __init__(self, ctx):
-        super(ReceivePFrameWithMetadata, self).__init__(ctx)
+        super(ReceivePFrame, self).__init__(ctx)
         self.AddParameter("ReceiverService", "An instance of ReceiverService owning the broker connection", None)
         self.AddParameter("MaxCacheEntriesPerFrameStop", "The number of entries this service can cache per frame stop", 10)
 
@@ -493,7 +493,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
     def Configure(self):
         self.receiver_service = self.GetParameter("ReceiverService")
         if self.receiver_service is None:
-            raise RuntimeError("Have to provide a `ReceiverService` to ReceivePFrameWithMetadata")
+            raise RuntimeError("Have to provide a `ReceiverService` to ReceivePFrame")
 
         self.metadata_cache = {}
         self.pushed_metadata_topics = []
@@ -606,7 +606,7 @@ class ReceivePFrameWithMetadata(icetray.I3Module):
     def Process(self):
         # driving module - we will be called repeatedly by IceTray with no input frames
         if self.PopFrame():
-            raise RuntimeError("ReceivePFrameWithMetadata needs to be used as a driving module")
+            raise RuntimeError("ReceivePFrame needs to be used as a driving module")
 
         # icetray.logging.log_debug("Waiting for message...", unit=__name__)
 
