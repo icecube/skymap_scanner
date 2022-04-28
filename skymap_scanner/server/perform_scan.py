@@ -388,7 +388,6 @@ def send_scan_icetray(
     broker,  # for pulsar
     auth_token,  # for pulsar
     topic_to_clients,  # for pulsar
-    metadata_topic_base,  # for pulsar
     producer_name,  # for pulsar
     numclients=10,
     logger=simple_print_logger,
@@ -473,7 +472,6 @@ def send_scan_icetray(
     tray.Add(SendPFrame, "SendPFrame",
         ClientService=client_service,
         Topic=topic_to_clients,
-        MetadataTopicBase=metadata_topic_base,
         ProducerName=producer_name,
         I3IntForSequenceID="SCAN_EventOverallIndex",
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
@@ -532,15 +530,7 @@ def collect_and_save_pixels_icetray(
         MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
         )
 
-    # NOTE - we're not actually using the metadata topic downstream,
-    # NOTE - instead we're using local state (state_dict and cache_dir)
-    # TODO - remove all uses of metadata topic? need to look at client code first
-
     tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
-
-    # #### Note: for memory optimization purposes, there are only empty metadata frames here.
-    # #### So it is probably not a good idea to add any non queuing-related modules after
-    # #### "FindBestRecoResultForPixel".
 
     # tray.Add(SendPFrame, "SendPFrame",
     #     ClientService=client_service,
@@ -581,9 +571,6 @@ def main():
     parser.add_option("-t", "--topic_to_clients", action="store", type="string",
         default="persistent://icecube/skymap/to_be_scanned",
         dest="TOPIC_TO_CLIENTS", help="The Pulsar topic name for pixels to be scanned")
-    parser.add_option("-m", "--topic_meta", action="store", type="string",
-        default="persistent://icecube/skymap_metadata/mf_",
-        dest="TOPICMETA", help="The Pulsar topic name for metadata frames such as G,C,D,Q,p")
     parser.add_option("-s", "--topic_from_clients", action="store", type="string",
         default="persistent://icecube/skymap/scanned",
         dest="TOPIC_FROM_CLIENTS", help="The Pulsar topic name for pixels that have been scanned")
@@ -616,7 +603,6 @@ def main():
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_to_clients=options.TOPIC_TO_CLIENTS,
-        metadata_topic_base=options.TOPICMETA,
         producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name (nside? area_center_nside? area_center_pixel?)
     )
     collect_and_save_pixels_icetray(

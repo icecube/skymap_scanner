@@ -218,7 +218,6 @@ def scan_pixel_distributed(
     tray.Add(SendPFrame, "SendPFrame",
         ClientService=client_service,
         Topic=topic_from_clients,
-        MetadataTopicBase=None, # no specific metadata topic, will be dynamic according to incoming frame tags
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
         PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
         SendToSinglePartitionIndex=receiving_from_partition_index # send to a specific partition only (the same index we are receiving from)
