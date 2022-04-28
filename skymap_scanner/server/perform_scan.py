@@ -48,7 +48,6 @@ class SendPixelsToScan(icetray.I3Module):
         self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
         self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
         self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
-        self.AddParameter("MaxPixelsInProcess", "Do not submit more pixels than this to the downstream module", 1000)
         self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
         self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 5*60)
         self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
@@ -61,7 +60,6 @@ class SendPixelsToScan(icetray.I3Module):
         self.input_pos_name = self.GetParameter("InputPosName")
         self.input_time_name = self.GetParameter("InputTimeName")
         self.output_particle_name = self.GetParameter("OutputParticleName")
-        self.max_pixels_in_process = self.GetParameter("MaxPixelsInProcess")
         self.logger = self.GetParameter("logger")
         self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
         self.skymap_plotting_callback = self.GetParameter("skymap_plotting_callback")
@@ -167,26 +165,10 @@ class SendPixelsToScan(icetray.I3Module):
             if pixel not in self.pixels_in_process:
                 pixels_to_submit.append(pixel)
 
-        something_was_submitted = False
-
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
-            if len(self.pixels_in_process) > self.max_pixels_in_process:
-                # too many pixels in process. let some of them finish before sending more requests
-                break
             self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
             self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
-            something_was_submitted = True
-
-        if not something_was_submitted:
-            # there are submitted pixels left that haven't yet arrived
-
-            # print "** all pixels are processing. waiting one second..."
-            time.sleep(1)
-
-            # send a special frame type to I3Distribute in order to flush its
-            # output queue
-            self.PushFrame( icetray.I3Frame( icetray.I3Frame.Stream('\x05') ) )
 
     def CreatePFrame(self, nside, pixel):
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
@@ -389,7 +371,6 @@ def send_scan_icetray(
     auth_token,  # for pulsar
     topic_to_clients,  # for pulsar
     producer_name,  # for pulsar
-    numclients=10,
     logger=simple_print_logger,
     skymap_plotting_callback=None,
     finish_function=None,
@@ -400,12 +381,6 @@ def send_scan_icetray(
         python/perform_scan.py
         cloud_tools/send_scan.py
     """
-    npos_per_pixel = 7
-    pixel_overhead_percent = 100 # send 100% more pixels than we have actual capacity for
-    parallel_pixels = int((float(numclients)/float(npos_per_pixel))*(1.+float(pixel_overhead_percent)/100.))
-    if parallel_pixels <= 0: parallel_pixels = 1
-    logger("The number of pixels to send out in parallel is {0} -> {1} jobs ({2}% more with {3} sub-scans per pixel) on {4} workers".format(parallel_pixels, parallel_pixels*npos_per_pixel, pixel_overhead_percent, npos_per_pixel, numclients))
-
     tray = I3Tray()
 
     tray.AddModule(SendPixelsToScan, "SendPixelsToScan",
@@ -413,7 +388,6 @@ def send_scan_icetray(
         InputTimeName="HESE_VHESelfVetoVertexTime",
         InputPosName="HESE_VHESelfVetoVertexPos",
         OutputParticleName="MillipedeSeedParticle",
-        MaxPixelsInProcess=parallel_pixels,
         logger=logger,
         skymap_plotting_callback=skymap_plotting_callback,
         finish_function=finish_function,
@@ -513,8 +487,6 @@ def main():
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-n", "--numclients", action="store", type="int",  # TODO - remove
-        default=10, dest="NUMCLIENTS", help="The number of clients to start")
     parser.add_option("-t", "--topic_to_clients", action="store", type="string",
         default="persistent://icecube/skymap/to_be_scanned",
         dest="TOPIC_TO_CLIENTS", help="The Pulsar topic name for pixels to be scanned")
@@ -543,7 +515,6 @@ def main():
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
-        numclients=options.NUMCLIENTS,
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_to_clients=options.TOPIC_TO_CLIENTS,
