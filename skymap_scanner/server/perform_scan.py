@@ -413,7 +413,6 @@ def send_scan_icetray(
         Topic=topic_to_clients,
         ProducerName=producer_name,
         I3IntForSequenceID="SCAN_EventOverallIndex",
-        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value)
     )
 
     tray.AddModule("TrashCan")

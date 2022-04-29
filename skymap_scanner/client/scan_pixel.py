@@ -35,7 +35,6 @@ def scan_pixel_distributed(
     auth_token,  # for pulsar
     topic_to_clients,  # for pulsar
     topic_from_clients,  # for pulsar
-    all_partitions,  # for pulsar
     ExcludedDOMs,
     pulsesName,
     base_GCD_paths,
@@ -93,17 +92,7 @@ def scan_pixel_distributed(
         client_service=client_service,
         topic=topic_to_clients,
         subscription_name="skymap-worker-sub",
-        subscribe_to_single_random_partition=not all_partitions # if the input is a partitioned topic, subscribe to only *one* partition
     )
-
-    if all_partitions:
-        receiving_from_partition = None
-        receiving_from_partition_index = None
-        print("This worker is receiving from all partitions")
-    else:
-        receiving_from_partition = receiver_service.chosen_partition()
-        receiving_from_partition_index = receiver_service.chosen_partition_index()
-        print("This worker is receiving from partition number {} [\"{}\"]".format(receiving_from_partition_index, receiving_from_partition))
 
     ########## the tray
     tray = I3Tray()
@@ -214,9 +203,6 @@ def scan_pixel_distributed(
         ClientService=client_service,
         Topic=topic_from_clients,
         ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
-        PartitionKey=lambda frame: frame["SCAN_EventName"].value + '_' + str(frame["SCAN_HealpixNSide"].value) + '_' + str(frame["SCAN_HealpixPixel"].value),
-        SendToSinglePartitionIndex=receiving_from_partition_index # send to a specific partition only (the same index we are receiving from)
-        # IMPORTANT: this assumes the input and the output topic have the same number of partitions!
         )
 
     tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
@@ -251,8 +237,6 @@ def main():
     parser.add_option("-a", "--auth-token", action="store", type="string",
         default=None,
         dest="AUTH_TOKEN", help="The Pulsar authentication token to use")
-    parser.add_option("--connect-worker-to-all-partitions", action="store_true",
-        dest="CONNECT_WORKER_TO_ALL_PARTITIONS", help="In normal operation the worker will choose a random input partition and only receive from it (and only send to the matching output partition). If you set this, it will read from all partitions. Bad for performance, but should be used if you only have very few workers.")
 
     # get parsed args
     (options,args) = parser.parse_args()
@@ -272,7 +256,6 @@ def main():
         auth_token=options.AUTH_TOKEN,
         topic_to_clients=options.TOPIC_TO_CLIENTS,
         topic_from_clients=options.TOPIC_FROM_CLIENTS,
-        all_partitions=options.CONNECT_WORKER_TO_ALL_PARTITIONS,
         ExcludedDOMs=ExcludedDOMs,
         pulsesName=pulsesName,
         base_GCD_paths=config.GCD_base_dirs,
