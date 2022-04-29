@@ -21,13 +21,6 @@ from I3Tray import I3Tray, I3Units
 from icecube import dataio, icetray, photonics_service
 
 from .. import config
-from ..mq_tools.pulsar_icetray import (
-    AcknowledgeReceivedPFrame,
-    PulsarClientService,
-    ReceivePFrame,
-    ReceiverService,
-    SendPFrame,
-)
 
 
 def scan_pixel_distributed(
@@ -37,8 +30,6 @@ def scan_pixel_distributed(
     topic_from_clients,  # for pulsar
     ExcludedDOMs,
     pulsesName,
-    base_GCD_paths,
-    base_GCD_filename,
 ):
     """Actually do the scan."""
 
@@ -58,13 +49,17 @@ def scan_pixel_distributed(
 
     SPEScale = 0.99
 
+    # TODO - MQClient: receive needed state_dict info: GCDQp Frames & base_GCD_filename
+    # TODO - -> payload={'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
+    # TODO - -> cache
+
     # find an available GCD base path
     stagers = dataio.get_stagers()
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
     if base_GCD_filename is not None and base_GCD_filename != "None":
-        for GCD_base_dir in base_GCD_paths:
+        for GCD_base_dir in config.GCD_base_dirs:
             try:
                 read_url = os.path.join(GCD_base_dir, base_GCD_filename)
                 print("reading baseline GCD from {0}".format( read_url ))
@@ -83,25 +78,29 @@ def scan_pixel_distributed(
 
     # connect to a server
     # connect to pulsar
-    client_service = PulsarClientService(
-        BrokerURL=broker,
-        AuthToken=auth_token,
-    )
+    # client_service = PulsarClientService(
+    #     BrokerURL=broker,
+    #     AuthToken=auth_token,
+    # )
 
-    receiver_service = ReceiverService(
-        client_service=client_service,
-        topic=topic_to_clients,
-        subscription_name="skymap-worker-sub",
-    )
+    # receiver_service = ReceiverService(
+    #     client_service=client_service,
+    #     topic=topic_to_clients,
+    #     subscription_name="skymap-worker-sub",
+    # )
 
     ########## the tray
     tray = I3Tray()
     # tray.context["I3FileStager"] = stagers
 
-    tray.Add(ReceivePFrame, "ReceivePFrame",
-        ReceiverService=receiver_service,
-        MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
-        )
+    # tray.Add(ReceivePFrame, "ReceivePFrame",
+    #     ReceiverService=receiver_service,
+    #     MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
+    #     )
+
+    # TODO - MQClient: receive each msg: payload={'frame':frame}
+    # TODO - -> push gcd frames from cache (above)
+    # TODO - -> push frame
 
     ########## perform the fit
 
@@ -199,15 +198,18 @@ def scan_pixel_distributed(
     tray.AddModule(notify2, "notify2")
 
     # now send the topic!
-    tray.Add(SendPFrame, "SendPFrame",
-        ClientService=client_service,
-        Topic=topic_from_clients,
-        ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
-        )
+    # tray.Add(SendPFrame, "SendPFrame",
+    #     ClientService=client_service,
+    #     Topic=topic_from_clients,
+    #     ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
+    #     )
 
-    tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
-        ReceiverService=receiver_service
-        )
+    # tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
+    #     ReceiverService=receiver_service
+    #     )
+
+    # TODO - MQClient: send frame
+    # TODO - MQClient: ack? or do we ack up top then there's server-side logic that detects dropped clients?
 
     tray.AddModule('TrashCan', 'thecan')
 
@@ -258,8 +260,6 @@ def main():
         topic_from_clients=options.TOPIC_FROM_CLIENTS,
         ExcludedDOMs=ExcludedDOMs,
         pulsesName=pulsesName,
-        base_GCD_paths=config.GCD_base_dirs,
-        base_GCD_filename='TEST_GCD_FILENAME',  # TODO
     )
 
 

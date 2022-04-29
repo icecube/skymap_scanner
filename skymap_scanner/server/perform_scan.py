@@ -25,13 +25,6 @@ import numpy
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from ..mq_tools.pulsar_icetray import (
-    AcknowledgeReceivedPFrame,
-    PulsarClientService,
-    ReceivePFrame,
-    ReceiverService,
-    SendPFrame,
-)
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
 from .utils import get_event_mjd, save_GCD_frame_packet_to_file
@@ -69,17 +62,17 @@ class SendPixelsToScan(icetray.I3Module):
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
 
-        self.GCDQpFrames = self.state_dict["GCDQp_packet"]
+        # self.GCDQpFrames = self.state_dict["GCDQp_packet"]
 
         if "baseline_GCD_file" not in self.state_dict:
             raise RuntimeError("\"baseline_GCD_file\" not in state_dict.")
-        self.baseline_GCD_file = self.state_dict["baseline_GCD_file"]
+        # self.baseline_GCD_file = self.state_dict["baseline_GCD_file"]
 
         if "nsides" not in self.state_dict:
             self.state_dict["nsides"] = {}
         self.nsides = self.state_dict["nsides"]
 
-        p_frame = self.GCDQpFrames[-1]
+        p_frame = self.state_dict["GCDQp_packet"][-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
 
@@ -116,12 +109,12 @@ class SendPixelsToScan(icetray.I3Module):
             raise RuntimeError("SendPixelsToScan needs to be used as a driving module")
 
         # push GCDQp packet if not done so already
-        if self.GCDQpFrames:
-            for frame in self.GCDQpFrames:
-                self.PushFrame(frame)
-            self.GCDQpFrames = None
-            self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
-            return
+        # if self.GCDQpFrames:
+        #     for frame in self.GCDQpFrames:
+        #         self.PushFrame(frame)
+        #     self.GCDQpFrames = None
+        #     self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
+        #     return
 
         # check if we need to send a report to the logger
         current_time = time.time()
@@ -402,24 +395,30 @@ def send_scan_icetray(
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
     tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist", pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned")
 
-    client_service = PulsarClientService(
-        BrokerURL=broker,
-        AuthToken=auth_token
-    )
+    # client_service = PulsarClientService(
+    #     BrokerURL=broker,
+    #     AuthToken=auth_token
+    # )
 
     # now send all P-frames as pulsar messages
-    tray.Add(SendPFrame, "SendPFrame",
-        ClientService=client_service,
-        Topic=topic_to_clients,
-        ProducerName=producer_name,
-        I3IntForSequenceID="SCAN_EventOverallIndex",
-    )
+    # tray.Add(SendPFrame, "SendPFrame",
+    #     ClientService=client_service,
+    #     Topic=topic_to_clients,
+    #     ProducerName=producer_name,
+    #     I3IntForSequenceID="SCAN_EventOverallIndex",
+    # )
+
+    # TODO - MQClient: send needed state_dict info: GCDQp Frames & base_GCD_filename
+    # TODO - -> payload={'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
+
+    # TODO - MQClient: send PFrames, payload={'frame':frame}
+    # TODO - -> only PFrames should be in the tray b/c we are no longer pushing GCDQp Frames
 
     tray.AddModule("TrashCan")
     tray.Execute()
     tray.Finish()
     del tray
-    del client_service
+    # del client_service
 
     return state_dict
 
@@ -440,25 +439,28 @@ def collect_and_save_pixels_icetray(
         cloud_tools/save_pixels.py (only nominally)
     """
     # connect to pulsar
-    client_service = PulsarClientService(
-        BrokerURL=broker,
-        AuthToken=auth_token,
-    )
+    # client_service = PulsarClientService(
+    #     BrokerURL=broker,
+    #     AuthToken=auth_token,
+    # )
 
-    receiver_service = ReceiverService(
-        client_service=client_service,
-        topic=topic_from_clients,
-        subscription_name='skymap-collector-sub',
-        force_single_consumer=True,
-    )
+    # receiver_service = ReceiverService(
+    #     client_service=client_service,
+    #     topic=topic_from_clients,
+    #     subscription_name='skymap-collector-sub',
+    #     force_single_consumer=True,
+    # )
 
     ########## the tray
     tray = I3Tray()
 
-    tray.Add(ReceivePFrame, "ReceivePFrame",
-        ReceiverService=receiver_service,
-        MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
-        )
+    # tray.Add(ReceivePFrame, "ReceivePFrame",
+    #     ReceiverService=receiver_service,
+    #     MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
+    #     )
+
+    # TODO - MQClient: receive each msg: payload={'frame':frame}
+    # TODO - -> push frame
 
     tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
 
@@ -468,15 +470,17 @@ def collect_and_save_pixels_icetray(
         cache_dir = cache_dir
     )
 
-    tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
-        ReceiverService=receiver_service
-        )
+    # tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
+    #     ReceiverService=receiver_service
+    #     )
+
+    # TODO - MQClient: ack? or do we ack up top then there's logic that detects dropped clients?
 
     tray.Execute()
     del tray
 
-    del receiver_service
-    del client_service
+    # del receiver_service
+    # del client_service
 
 
 def main():
@@ -517,7 +521,7 @@ def main():
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_to_clients=options.TOPIC_TO_CLIENTS,
-        producer_name="TEST-PRODUCER_NAME",  # TODO - probably includes event name (nside? area_center_nside? area_center_pixel?)
+        producer_name="SKYSCAN-PRODUCER-"+str(eventID),
     )
     collect_and_save_pixels_icetray(
         broker=options.BROKER,
