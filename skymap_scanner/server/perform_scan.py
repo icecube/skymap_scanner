@@ -19,10 +19,11 @@ Based on:
 import os
 import time
 from optparse import OptionParser
+from typing import Any, Dict, Iterator, Optional
 
 import healpy  # type: ignore[import]
 import numpy
-from I3Tray import I3Tray, I3Units  # type: ignore[import]
+from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
@@ -34,30 +35,30 @@ def simple_print_logger(text):
     print(text)
 
 
-class SendPixelsToScan(icetray.I3Module):
-    def __init__(self, ctx):
-        super(SendPixelsToScan, self).__init__(ctx)
-        self.AddParameter("state_dict", "The state_dict", None)
-        self.AddParameter("InputTimeName", "Name of an I3Double to use as the vertex time for the coarsest scan", "HESE_VHESelfVetoVertexTime")
-        self.AddParameter("InputPosName", "Name of an I3Position to use as the vertex position for the coarsest scan", "HESE_VHESelfVetoVertexPos")
-        self.AddParameter("OutputParticleName", "Name of the output I3Particle", "MillipedeSeedParticle")
-        self.AddParameter("logger", "a callback function for semi-verbose logging", simple_print_logger)
-        self.AddParameter("logging_interval_in_seconds", "call the logger callback with this interval", 5*60)
-        self.AddParameter("skymap_plotting_callback", "a callback function the receives the full current state of the map", None)
-        self.AddParameter("skymap_plotting_callback_interval_in_seconds", "a callback function the receives the full ", 30*60)
-        self.AddParameter("finish_function", "function to be run once scan is finished. handles final plotting.", None)
-        self.AddOutBox("OutBox")
+class PixelsToScan:
+    """Manage providing pixels to scan."""
 
-    def Configure(self):
-        self.state_dict = self.GetParameter("state_dict")
-        self.input_pos_name = self.GetParameter("InputPosName")
-        self.input_time_name = self.GetParameter("InputTimeName")
-        self.output_particle_name = self.GetParameter("OutputParticleName")
-        self.logger = self.GetParameter("logger")
-        self.logging_interval_in_seconds = self.GetParameter("logging_interval_in_seconds")
-        self.skymap_plotting_callback = self.GetParameter("skymap_plotting_callback")
-        self.skymap_plotting_callback_interval_in_seconds = self.GetParameter("skymap_plotting_callback_interval_in_seconds")
-        self.finish_function = self.GetParameter("finish_function")
+    def __init__(
+        self,
+        state_dict: Dict[str, Any],  # The state_dict
+        input_time_name="HESE_VHESelfVetoVertexTime",  # Name of an I3Double to use as the vertex time for the coarsest scan
+        input_pos_name="HESE_VHESelfVetoVertexPos",  # Name of an I3Position to use as the vertex position for the coarsest scan
+        output_particle_name="MillipedeSeedParticle",  # Name of the output I3Particle
+        logger=simple_print_logger,  # a callback function for semi-verbose logging
+        logging_interval_in_seconds=5*60,  # call the logger callback with this interval
+        skymap_plotting_callback=None,  # a callback function the receives the full current state of the map
+        skymap_plotting_callback_interval_in_seconds=30*60,  # a callback function the receives the full
+        finish_function=None,  # function to be run once scan is finished. handles final plotting
+    ) -> None:
+        self.state_dict = state_dict
+        self.input_pos_name = input_pos_name
+        self.input_time_name = input_time_name
+        self.output_particle_name = output_particle_name
+        self.logger = logger
+        self.logging_interval_in_seconds = logging_interval_in_seconds
+        self.skymap_plotting_callback = skymap_plotting_callback
+        self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
+        self.finish_function = finish_function
 
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -88,7 +89,7 @@ class SendPixelsToScan(icetray.I3Module):
         self.last_time_reported = time.time()
         self.last_time_reported_skymap = time.time()
 
-    def send_status_report(self):
+    def send_status_report(self) -> None:
         num_pixels_in_process = len(self.pixels_in_process)
         message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
 
@@ -103,10 +104,8 @@ class SendPixelsToScan(icetray.I3Module):
 
         self.logger(message)
 
-    def Process(self):
-        # driving module - we will be called repeatedly by IceTray with no input frames
-        if self.PopFrame():
-            raise RuntimeError("SendPixelsToScan needs to be used as a driving module")
+    def generate_pframes(self) -> Iterator[icetray.I3Frame]:
+        """Yield PFrames to be scanned."""
 
         # push GCDQp packet if not done so already
         # if self.GCDQpFrames:
@@ -160,10 +159,12 @@ class SendPixelsToScan(icetray.I3Module):
 
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
-            self.pixels_in_process.add(nside_pix) # record the fact that we are processing this pixel
-            self.CreatePFrame(nside=nside_pix[0], pixel=nside_pix[1])
+            self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
+            yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
 
-    def CreatePFrame(self, nside, pixel):
+    def _gen_for_nside_pixel(self, nside, pixel) -> Iterator[icetray.I3Frame]:
+        """Yield PFrames to be scanned for a given `nside` and `pixel`."""
+
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
 
         dec, ra = healpy.pix2ang(nside, pixel)
@@ -237,21 +238,26 @@ class SendPixelsToScan(icetray.I3Module):
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
-            self.PushFrame(p_frame)
+            yield p_frame
 
 
-class FindBestRecoResultForPixel(icetray.I3Module):
-    def __init__(self, ctx):
-        super(FindBestRecoResultForPixel, self).__init__(ctx)
-        self.AddOutBox("OutBox")
-        self.AddParameter("NPosVar", "Number of position variations to collect", 7)
+class FindBestRecoResultForPixel:
+    """Facilitate finding the best reco scan result."""
 
-    def Configure(self):
-        self.NPosVar = self.GetParameter("NPosVar")
+    def __init__(
+        self,
+        NPosVar: int = 7,  # Number of position variations to collect
+    ) -> None:
+        self.NPosVar = NPosVar
 
         self.pixelNumToFramesMap = {}
 
-    def Physics(self, frame):
+    def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
+        """Add frame to internal cache and possibly return the best scan for pixel.
+
+        If all the scans for the embedded pixel have be received,
+        return the best one. Otherwise, return None.
+        """
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
         if "SCAN_HealpixPixel" not in frame:
@@ -286,13 +292,20 @@ class FindBestRecoResultForPixel(icetray.I3Module):
 
             if bestFrame is None:
                 # just push the first frame if all of them are nan
-                self.PushFrame(self.pixelNumToFramesMap[index][0])
+                return self.pixelNumToFramesMap[index][0]
             else:
-                self.PushFrame(bestFrame)
+                return bestFrame
 
             del self.pixelNumToFramesMap[index]
 
-    def Finish(self):
+        return None
+
+    def finish(self) -> None:
+        """Check if all the scans were received.
+
+        If an entire pixel (and all its scans) was dropped by client(s),
+        this will not catch it.
+        """
         if len(self.pixelNumToFramesMap) == 0:
             return
 
@@ -301,22 +314,25 @@ class FindBestRecoResultForPixel(icetray.I3Module):
         print("**** WARN ****  --  END")
 
 
-class CollectRecoResults(icetray.I3Module):
-    def __init__(self, ctx):
-        super(CollectRecoResults, self).__init__(ctx)
-        self.AddParameter("state_dict", "The state_dict", None)
-        self.AddParameter("event_id", "The event_id", None)
-        self.AddParameter("cache_dir", "The cache_dir", None)
-        self.AddOutBox("OutBox")
+class SaveRecoResults:
+    """Facilitate saving reco scan results to disk."""
 
-    def Configure(self):
-        self.state_dict = self.GetParameter("state_dict")
-        self.event_id = self.GetParameter("event_id")
-        self.cache_dir = self.GetParameter("cache_dir")
+    def __init__(
+        self,
+        state_dict: Dict[str, Any],
+        event_id: str,
+        cache_dir: str,
+    ) -> None:
+        self.state_dict = state_dict
+        self.this_event_cache_dir = os.path.join(cache_dir, event_id)
 
-        self.this_event_cache_dir = os.path.join(self.cache_dir, self.event_id)
+    def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
+        """Save scan to disk as .i3 file at `self.this_event_cache_dir`.
 
-    def Physics(self, frame):
+        Raise errors for invalid frame or already saved scan.
+
+        Makes dirs as needed.
+        """
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
         if "SCAN_HealpixPixel" not in frame:
@@ -353,138 +369,84 @@ class CollectRecoResults(icetray.I3Module):
         # print " - saving pixel file {0}...".format(pixel_file_name)
         save_GCD_frame_packet_to_file([frame], pixel_file_name)
 
-        self.PushFrame(frame)
+        return frame
 
 
-def send_scan_icetray(
-    event_id_string,
-    state_dict,
-    cache_dir,
-    broker,  # for pulsar
-    auth_token,  # for pulsar
-    topic_to_clients,  # for pulsar
-    producer_name,  # for pulsar
+def serve_pixel_scans(
+    event_id_string: str,
+    state_dict: Dict[str, Any],
+    cache_dir: str,
+    broker: str,  # for pulsar
+    auth_token: str,  # for pulsar
+    topic_to_clients: str,  # for pulsar
+    producer_name: str,  # for pulsar
+    topic_from_clients: str,  # for pulsar
     logger=simple_print_logger,
     skymap_plotting_callback=None,
     finish_function=None,
-):
-    """Send Pixels to be scanned by client(s)
+) -> None:
+    """Send pixels to be scanned by client(s), then collect scans and save to disk
 
     Based on:
         python/perform_scan.py
         cloud_tools/send_scan.py
-    """
-    tray = I3Tray()
-
-    tray.AddModule(SendPixelsToScan, "SendPixelsToScan",
-        state_dict=state_dict,
-        InputTimeName="HESE_VHESelfVetoVertexTime",
-        InputPosName="HESE_VHESelfVetoVertexPos",
-        OutputParticleName="MillipedeSeedParticle",
-        logger=logger,
-        skymap_plotting_callback=skymap_plotting_callback,
-        finish_function=finish_function,
-    )
-
-    def makeSurePulsesExist(frame, pulsesName):
-        if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
-        if pulsesName+"TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
-        if pulsesName+"TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
-    tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist", pulsesName="SplitUncleanedInIcePulsesLatePulseCleaned")
-
-    # client_service = PulsarClientService(
-    #     BrokerURL=broker,
-    #     AuthToken=auth_token
-    # )
-
-    # now send all P-frames as pulsar messages
-    # tray.Add(SendPFrame, "SendPFrame",
-    #     ClientService=client_service,
-    #     Topic=topic_to_clients,
-    #     ProducerName=producer_name,
-    #     I3IntForSequenceID="SCAN_EventOverallIndex",
-    # )
-
-    # TODO - MQClient: send needed state_dict info: GCDQp Frames & base_GCD_filename
-    # TODO - -> payload={'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
-
-    # TODO - MQClient: send PFrames, payload={'frame':frame}
-    # TODO - -> only PFrames should be in the tray b/c we are no longer pushing GCDQp Frames
-
-    tray.AddModule("TrashCan")
-    tray.Execute()
-    tray.Finish()
-    del tray
-    # del client_service
-
-    return state_dict
-
-
-def collect_and_save_pixels_icetray(
-    broker,
-    auth_token,
-    topic_from_clients,
-    event_id_string,
-    state_dict,
-    cache_dir,
-):
-    """Collect pixel scans from MQ and save to disk.
 
     Based on:
         python/perform_scan.py
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
-    # connect to pulsar
-    # client_service = PulsarClientService(
-    #     BrokerURL=broker,
-    #     AuthToken=auth_token,
-    # )
 
-    # receiver_service = ReceiverService(
-    #     client_service=client_service,
-    #     topic=topic_from_clients,
-    #     subscription_name='skymap-collector-sub',
-    #     force_single_consumer=True,
-    # )
+    # TODO - MQClient: send needed state_dict info: GCDQp Frames & base_GCD_filename
+    # TODO - -> payload{'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
 
-    ########## the tray
-    tray = I3Tray()
-
-    # tray.Add(ReceivePFrame, "ReceivePFrame",
-    #     ReceiverService=receiver_service,
-    #     MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
-    #     )
-
-    # TODO - MQClient: receive each msg: payload={'frame':frame}
-    # TODO - -> push frame
-
-    tray.Add(FindBestRecoResultForPixel, "FindBestRecoResultForPixel")
-
-    tray.AddModule(CollectRecoResults, "CollectRecoResults",
-        state_dict = state_dict,
-        event_id = event_id_string,
-        cache_dir = cache_dir
+    pixeler = PixelsToScan(
+        state_dict=state_dict,
+        input_time_name="HESE_VHESelfVetoVertexTime",
+        input_pos_name="HESE_VHESelfVetoVertexPos",
+        output_particle_name="MillipedeSeedParticle",
+        logger=logger,
+        skymap_plotting_callback=skymap_plotting_callback,
+        finish_function=finish_function,
     )
 
-    # tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
-    #     ReceiverService=receiver_service
-    #     )
+    def makeSurePulsesExist(frame: icetray.I3Frame) -> None:
+        pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
+        if pulsesName not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName))
+        if pulsesName+"TimeWindows" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
+        if pulsesName+"TimeRange" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
+
+    # get pixels & send to client(s)
+    for pframe in pixeler.generate_pframes():  # topic_to_clients
+        makeSurePulsesExist(pframe)
+        # TODO - MQClient: send PFrames, payload={'frame':frame}
+        # TODO - -> only PFrames should be in the tray b/c we are no longer pushing GCDQp Frames
+
+    finder = FindBestRecoResultForPixel()
+    saver = SaveRecoResults(
+        state_dict=state_dict,
+        event_id=event_id_string,
+        cache_dir=cache_dir
+    )
+
+    # get scans from client(s), collect and save
+    # TODO - MQClient: receive each msg: payload={'frame':frame}
+    for scan in [icetray.I3Frame()]*100:  # topic_from_clients
+        best_scan = finder.cache_and_get_best(scan)
+        if not best_scan:
+            continue
+        saver.save(best_scan)
+
+    finder.finish()
 
     # TODO - MQClient: ack? or do we ack up top then there's logic that detects dropped clients?
 
-    tray.Execute()
-    del tray
 
-    # del receiver_service
-    # del client_service
-
-
-def main():
-
+def main() -> None:
+    """Get command-line arguments and serve pixel-scans to clients."""
     parser = OptionParser()
     usage = """%prog [options]"""
     parser.set_usage(usage)
@@ -514,7 +476,7 @@ def main():
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
-    state_dict = send_scan_icetray(
+    serve_pixel_scans(
         event_id_string=eventID,
         state_dict=state_dict,
         cache_dir=options.CACHEDIR,
@@ -522,14 +484,7 @@ def main():
         auth_token=options.AUTH_TOKEN,
         topic_to_clients=options.TOPIC_TO_CLIENTS,
         producer_name="SKYSCAN-PRODUCER-"+str(eventID),
-    )
-    collect_and_save_pixels_icetray(
-        broker=options.BROKER,
-        auth_token=options.AUTH_TOKEN,
         topic_from_clients=options.TOPIC_FROM_CLIENTS,
-        event_id_string=eventID,
-        state_dict=state_dict,
-        cache_dir=options.CACHEDIR,
     )
 
 
