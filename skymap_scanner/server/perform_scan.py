@@ -19,7 +19,7 @@ Based on:
 import os
 import time
 from optparse import OptionParser
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import numpy
@@ -28,11 +28,9 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .load_scan_state import load_cache_state
-from .utils import get_event_mjd, save_GCD_frame_packet_to_file
+from .utils import StateDict, get_event_mjd, save_GCD_frame_packet_to_file
 
-
-def simple_print_logger(text):
-    print(text)
+NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
 
 class PixelsToScan:
@@ -40,16 +38,37 @@ class PixelsToScan:
 
     def __init__(
         self,
-        state_dict: Dict[str, Any],  # The state_dict
-        input_time_name="HESE_VHESelfVetoVertexTime",  # Name of an I3Double to use as the vertex time for the coarsest scan
-        input_pos_name="HESE_VHESelfVetoVertexPos",  # Name of an I3Position to use as the vertex position for the coarsest scan
-        output_particle_name="MillipedeSeedParticle",  # Name of the output I3Particle
-        logger=simple_print_logger,  # a callback function for semi-verbose logging
-        logging_interval_in_seconds=5*60,  # call the logger callback with this interval
-        skymap_plotting_callback=None,  # a callback function the receives the full current state of the map
-        skymap_plotting_callback_interval_in_seconds=30*60,  # a callback function the receives the full
-        finish_function=None,  # function to be run once scan is finished. handles final plotting
+        state_dict: StateDict,
+        input_time_name: str = "HESE_VHESelfVetoVertexTime",
+        input_pos_name: str = "HESE_VHESelfVetoVertexPos",
+        output_particle_name: str = "MillipedeSeedParticle",
+        logger: Callable[[Any], None] = print,
+        logging_interval_in_seconds: int = 5*60,
+        skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
+        skymap_plotting_callback_interval_in_seconds: int = 30*60,
+        finish_function: Optional[Callable[[StateDict], None]] = None,
     ) -> None:
+        """
+        Arguments:
+            `state_dict`
+                - the state_dict
+            `input_time_name`
+                - name of an I3Double to use as the vertex time for the coarsest scan
+            `input_pos_name`
+                - name of an I3Position to use as the vertex position for the coarsest scan
+            `output_particle_name`
+                - name of the output I3Particle
+            `logger`
+                - a callback function for semi-verbose logging
+            `logging_interval_in_seconds`
+                - call the logger callback with this interval
+            `skymap_plotting_callback`
+                - a callback function the receives the full current state of the map
+            `skymap_plotting_callback_interval_in_seconds`
+                - a callback function the receives the full
+            `finish_function`
+                - function to be run once scan is finished. handles final plotting
+        """
         self.state_dict = state_dict
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
@@ -82,9 +101,9 @@ class PixelsToScan:
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(self.state_dict)
+        self.event_mjd = get_event_mjd(self.state_dict)  # type: ignore[no-untyped-call]
 
-        self.pixels_in_process = set()
+        self.pixels_in_process: Set[NSidePixelPair] = set()
 
         self.last_time_reported = time.time()
         self.last_time_reported_skymap = time.time()
@@ -137,14 +156,14 @@ class PixelsToScan:
                     self.pixels_in_process.remove( (nside,pixel) )
 
         # find pixels to refine
-        pixels_to_refine = choose_new_pixels_to_scan(self.state_dict)
+        pixels_to_refine: List[NSidePixelPair] = choose_new_pixels_to_scan(self.state_dict)  # type: ignore[no-untyped-call]
 
         if len(pixels_to_refine) == 0:
             print("** there are no pixels left to refine. stopping.")
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
 
-            self.RequestSuspension()
+            self.RequestSuspension()  # TODO - what's the non-icetray equivalent?
             return
 
         for nside in self.state_dict["nsides"]:
@@ -162,7 +181,11 @@ class PixelsToScan:
             self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
             yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
 
-    def _gen_for_nside_pixel(self, nside, pixel) -> Iterator[icetray.I3Frame]:
+    def _gen_for_nside_pixel(
+        self,
+        nside: icetray.I3Int,
+        pixel: icetray.I3Int,
+    ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned for a given `nside` and `pixel`."""
 
         # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
@@ -249,8 +272,7 @@ class FindBestRecoResultForPixel:
         NPosVar: int = 7,  # Number of position variations to collect
     ) -> None:
         self.NPosVar = NPosVar
-
-        self.pixelNumToFramesMap = {}
+        self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
 
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
         """Add frame to internal cache and possibly return the best scan for pixel.
@@ -319,7 +341,7 @@ class SaveRecoResults:
 
     def __init__(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: StateDict,
         event_id: str,
         cache_dir: str,
     ) -> None:
@@ -374,16 +396,13 @@ class SaveRecoResults:
 
 def serve_pixel_scans(
     event_id_string: str,
-    state_dict: Dict[str, Any],
+    state_dict: StateDict,
     cache_dir: str,
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     producer_name: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
-    logger=simple_print_logger,
-    skymap_plotting_callback=None,
-    finish_function=None,
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -400,15 +419,7 @@ def serve_pixel_scans(
     # TODO - MQClient: send needed state_dict info: GCDQp Frames & base_GCD_filename
     # TODO - -> payload{'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
 
-    pixeler = PixelsToScan(
-        state_dict=state_dict,
-        input_time_name="HESE_VHESelfVetoVertexTime",
-        input_pos_name="HESE_VHESelfVetoVertexPos",
-        output_particle_name="MillipedeSeedParticle",
-        logger=logger,
-        skymap_plotting_callback=skymap_plotting_callback,
-        finish_function=finish_function,
-    )
+    pixeler = PixelsToScan(state_dict=state_dict)
 
     def makeSurePulsesExist(frame: icetray.I3Frame) -> None:
         pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"

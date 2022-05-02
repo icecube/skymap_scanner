@@ -5,10 +5,13 @@
 
 import hashlib
 import os
+from typing import Any, Dict, List
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
 from .. import config
+
+StateDict = Dict[str, Any]
 
 
 def get_event_mjd(state_dict):
@@ -70,7 +73,10 @@ def load_GCD_frame_packet_from_file(filename, filestager=None):
     del read_url_handle
 
 
-def save_GCD_frame_packet_to_file(frame_packet, filename):
+def save_GCD_frame_packet_to_file(
+    frame_packet: List[icetray.I3Frame],
+    filename: str
+) -> None:
     i3f = dataio.I3File(filename,'w')
     for frame in frame_packet:
         i3f.push(frame)
