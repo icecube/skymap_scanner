@@ -17,6 +17,7 @@ Based on:
 # pylint: skip-file
 
 import argparse
+import asyncio
 import logging
 import os
 import time
@@ -24,6 +25,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
 import coloredlogs  # type: ignore[import]
 import healpy  # type: ignore[import]
+import mqclient_pulsar as mq
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
@@ -396,7 +398,26 @@ class SaveRecoResults:
         return frame
 
 
-def serve_pixel_scans(
+async def send_event_metadata(
+    event_id_string: str,
+    broker: str,  # for pulsar
+    auth_token: str,  # for pulsar
+    base_GCD_filename: str,
+    gcdqp_frames: List[icetray.I3Frame],
+) -> None:
+    """Send metadata for event to client(s): GCDQp Frames & base_GCD_filename."""
+    queue = mq.Queue(
+        address=broker,
+        name=f"event-metadata-{event_id_string}",
+        auth_token=auth_token
+    )
+    async with queue.open_pub() as p:
+        await p.send(
+            {"base_GCD_filename_url": base_GCD_filename, "GCDQp_Frames": gcdqp_frames}
+        )
+
+
+async def serve_pixel_scans(
     event_id_string: str,
     state_dict: StateDict,
     cache_dir: str,
@@ -417,9 +438,13 @@ def serve_pixel_scans(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
-
-    # TODO - MQClient: send needed state_dict info: GCDQp Frames & base_GCD_filename
-    # TODO - -> payload{'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
+    await send_event_metadata(
+        event_id_string,
+        broker,
+        auth_token,
+        state_dict["baseline_GCD_file"],
+        state_dict["GCDQp_packet"],
+    )
 
     pixeler = PixelsToScan(state_dict=state_dict)
 
@@ -518,15 +543,19 @@ def main() -> None:
         filestager=dataio.get_stagers(),
     )
 
-    serve_pixel_scans(
-        event_id_string=args.event_id,
-        state_dict=state_dict,
-        cache_dir=args.cachedir,
-        broker=args.broker,
-        auth_token=args.auth_token,
-        producer_name="SKYSCAN-PRODUCER-" + args.event_id,
-        topic_to_clients=os.path.join(args.topics_root, "to-client", args.event_id),
-        topic_from_clients=os.path.join(args.topics_root, "from-client", args.event_id),
+    asyncio.get_event_loop().run_until_complete(
+        serve_pixel_scans(
+            event_id_string=args.event_id,
+            state_dict=state_dict,
+            cache_dir=args.cachedir,
+            broker=args.broker,
+            auth_token=args.auth_token,
+            producer_name="SKYSCAN-PRODUCER-" + args.event_id,
+            topic_to_clients=os.path.join(args.topics_root, "to-client", args.event_id),
+            topic_from_clients=os.path.join(
+                args.topics_root, "from-client", args.event_id
+            ),
+        )
     )
 
 

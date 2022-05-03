@@ -13,11 +13,14 @@ Based on:
 # pylint: skip-file
 
 import argparse
+import asyncio
 import datetime
 import logging
 import os
+from typing import List, Tuple
 
 import coloredlogs  # type: ignore[import]
+import mqclient_pulsar as mq
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import dataio, icetray, photonics_service  # type: ignore[import]
 
@@ -94,18 +97,45 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
                 break
 
         if GCD_diff_base_handle is None:
-            raise RuntimeError("Could not read the input GCD file '{0}' from any pre-configured location".format(event_metadata['base_GCD_filename_url']))
+            raise RuntimeError("Could not read the input GCD file '{0}' from any pre-configured location".format(base_GCD_filename_url))
 
     return GCD_diff_base_handle
 
 
-def scan_pixel_distributed(
+async def get_event_metadata(
+    event_id_string: str,
+    broker: str,  # for pulsar
+    auth_token: str,  # for pulsar
+) -> Tuple[str, List[icetray.I3Frame]]:
+    """Send metadata for event to client(s): GCDQp Frames & base_GCD_filename."""
+    queue = mq.Queue(
+        address=broker, name=f"event-metadata-{event_id_string}", auth_token=auth_token
+    )
+    async with queue.open_sub_one() as msg:
+        return (
+            get_GCD_diff_base_handle(msg["base_GCD_filename_url"]),
+            msg["GCDQp_Frames"],
+        )
+
+    raise RuntimeError("Metadata not received")
+
+
+async def scan_pixel_distributed(
+    event_id_string: str,
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
-):
+) -> None:
     """Actually do the scan."""
+    GCD_diff_base_handle, gcdqp_frames = await get_event_metadata(
+        event_id_string, broker, auth_token
+    )
+
+    # connect to queues
+    from_server_queue = object()  # TODO
+    to_server_queue = object()  # TODO
+
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
     ExcludedDOMs = [
         'CalibrationErrata',
@@ -132,19 +162,6 @@ def scan_pixel_distributed(
 
     SPEScale = 0.99
 
-    # TODO - MQClient: receive needed state_dict info: GCDQp Frames & base_GCD_filename
-    event_metadata_queue = object()  # TODO
-    event_metadata = {
-        'base_GCD_filename_url': 'base_GCD_filename',
-        'GCDQp_Frames': [],
-    }
-
-    GCD_diff_base_handle = get_GCD_diff_base_handle(event_metadata['base_GCD_filename_url'])
-
-    # connect to queues
-    from_server_queue = object()  # TODO
-    to_server_queue = object()  # TODO
-
     tray = I3Tray()
 
     # Get Pixels/Frames/Messages
@@ -152,7 +169,7 @@ def scan_pixel_distributed(
         MessagesToFrames,
         "MessagesToFrames",
         MQClient=from_server_queue,
-        GCDQpFrames=event_metadata['GCDQp_Frames'],
+        GCDQpFrames=gcdqp_frames,
     )
 
     ########## perform the fit
@@ -267,7 +284,7 @@ def scan_pixel_distributed(
 
 
 # fmt: on
-def main():
+def main() -> None:
     """Start up Client service."""
     parser = argparse.ArgumentParser(
         description=(
@@ -313,11 +330,16 @@ def main():
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    scan_pixel_distributed(
-        broker=args.broker,
-        auth_token=args.auth_token,
-        topic_to_clients=os.path.join(args.topics_root, "to-client", args.event_id),
-        topic_from_clients=os.path.join(args.topics_root, "from-client", args.event_id),
+    asyncio.get_event_loop().run_until_complete(
+        scan_pixel_distributed(
+            event_id_string=args.event_id,
+            broker=args.broker,
+            auth_token=args.auth_token,
+            topic_to_clients=os.path.join(args.topics_root, "to-client", args.event_id),
+            topic_from_clients=os.path.join(
+                args.topics_root, "from-client", args.event_id
+            ),
+        )
     )
 
 
