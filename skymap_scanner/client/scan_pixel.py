@@ -243,23 +243,11 @@ def main():
     # get parsed args
     (options,args) = parser.parse_args()
 
-    pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
-    ExcludedDOMs = [
-        'CalibrationErrata',
-        'BadDomsList',
-        'DeepCoreDOMs',
-        'SaturatedDOMs',
-        'BrightDOMs',
-        pulsesName+'TimeWindows',
-    ]
-
     scan_pixel_distributed(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
         topic_to_clients=options.TOPIC_TO_CLIENTS,
         topic_from_clients=options.TOPIC_FROM_CLIENTS,
-        ExcludedDOMs=ExcludedDOMs,
-        pulsesName=pulsesName,
     )
 
 
