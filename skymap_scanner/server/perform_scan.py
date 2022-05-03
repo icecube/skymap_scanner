@@ -398,21 +398,6 @@ class SaveRecoResults:
         return frame
 
 
-async def send_event_metadata(
-    topic_event_metadata: str,
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    base_GCD_filename: str,
-    gcdqp_frames: List[icetray.I3Frame],
-) -> None:
-    """Send metadata for event to client(s): GCDQp Frames & base_GCD_filename."""
-    queue = mq.Queue(address=broker, name=topic_event_metadata, auth_token=auth_token)
-    async with queue.open_pub() as p:
-        await p.send(
-            {"base_GCD_filename_url": base_GCD_filename, "GCDQp_Frames": gcdqp_frames}
-        )
-
-
 async def serve_pixel_scans(
     event_id_string: str,
     state_dict: StateDict,
@@ -422,7 +407,6 @@ async def serve_pixel_scans(
     producer_name: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
-    topic_event_metadata: str,  # for pulsar
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -435,13 +419,8 @@ async def serve_pixel_scans(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
-    await send_event_metadata(
-        topic_event_metadata,
-        broker,
-        auth_token,
-        state_dict["baseline_GCD_file"],
-        state_dict["GCDQp_packet"],
-    )
+    to_clients_queue = mq.Queue(address=broker, name=topic_to_clients, auth_token=auth_token)
+    from_clients_queue = mq.Queue(address=broker, name=topic_from_clients, auth_token=auth_token)
 
     pixeler = PixelsToScan(state_dict=state_dict)
 
@@ -455,10 +434,16 @@ async def serve_pixel_scans(
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
 
     # get pixels & send to client(s)
-    for pframe in pixeler.generate_pframes():  # topic_to_clients
-        makeSurePulsesExist(pframe)
-        # TODO - MQClient: send PFrames, payload={'frame':frame}
-        # TODO - -> only PFrames should be in the tray b/c we are no longer pushing GCDQp Frames
+    async with to_clients_queue.open_pub() as pub:
+        for pframe in pixeler.generate_pframes():  # topic_to_clients
+            makeSurePulsesExist(pframe)
+            pub.send(
+                {
+                    "Pixel_PFrame": pframe,
+                    "GCDQp_Frames": state_dict["GCDQp_packet"],
+                    "base_GCD_filename_url": state_dict["baseline_GCD_file"],
+                }
+            )
 
     finder = FindBestRecoResultForPixel()
     saver = SaveRecoResults(
@@ -468,16 +453,14 @@ async def serve_pixel_scans(
     )
 
     # get scans from client(s), collect and save
-    # TODO - MQClient: receive each msg: payload={'frame':frame}
-    for scan in [icetray.I3Frame()]*100:  # topic_from_clients
-        best_scan = finder.cache_and_get_best(scan)
-        if not best_scan:
-            continue
-        saver.save(best_scan)
+    async with from_clients_queue.open_sub() as sub:
+        async for scan in sub:
+            best_scan = finder.cache_and_get_best(scan)
+            if not best_scan:
+                continue
+            saver.save(best_scan)
 
     finder.finish()
-
-    # TODO - MQClient: ack? or do we ack up top then there's logic that detects dropped clients?
 
 
 # fmt: on
@@ -553,9 +536,6 @@ def main() -> None:
             ),
             topic_from_clients=os.path.join(
                 args.topics_root, "from-clients", args.event_id
-            ),
-            topic_event_metadata=os.path.join(
-                args.topics_root, "event-metadata", args.event_id
             ),
         )
     )
