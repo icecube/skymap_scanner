@@ -23,15 +23,97 @@ from icecube import dataio, icetray, photonics_service
 from .. import config
 
 
+class MessagesToFrames(icetray.I3Module):
+    """Consume message queue and push frames into tray along with GCDQp frames."""
+
+    def __init__(self, ctx):
+        super().__init__(ctx)
+        self.AddParameter("MQClient", "MQClient client", None)
+        self.AddParameter("GCDQpFrames", "MQClient client", [])
+
+    def Configure(self):
+        self.mqclient = self.GetParameter("MQClient")
+        if not self.mqclient:
+            raise RuntimeError("self.mqclient is not set")
+
+        self.gcdqp_frames = self.GetParameter("GCDQpFrames")
+        if not self.gcdqp_frames:
+            raise RuntimeError("self.gcdqp_frames is empty")
+
+    def Process(self):
+        if self.PopFrame():
+            raise RuntimeError("FrameArrayReader needs to be used as a driving module")
+
+        # TODO - MQClient: receive each msg: payload={'frame':frame}
+        for msg in [object()]*100:
+            # Push GCD Frames
+            # TODO - -> push gcd frames from cache (above)
+            # Push Pixel
+            frame = msg  # TODO
+            self.PushFrame(frame)
+
+
+class FramesToMessages(icetray.I3Module):
+    """Grab each PFrame and send as a message to queue."""
+
+    def __init__(self, ctx):
+        super().__init__(ctx)
+        self.AddParameter("MQClient", "MQClient client", None)
+
+    def Configure(self):
+        self.mqclient = self.GetParameter("MQClient")
+        if not self.mqclient:
+            raise RuntimeError("self.mqclient is not set")
+
+    def Physics(self, frame):
+        msg = frame  # TODO
+        self.mqclient.send(msg)  # TODO
+        self.PushFrame(frame)
+
+
+def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
+    # find an available GCD base path
+    stagers = dataio.get_stagers()
+
+    # try to load the base file from the various possible input directories
+    GCD_diff_base_handle = None
+    if base_GCD_filename_url not in [None, 'None']:
+        for GCD_base_dir in config.GCD_base_dirs:
+            try:
+                read_url = os.path.join(GCD_base_dir, base_GCD_filename_url)
+                print("reading baseline GCD from {0}".format( read_url ))
+                GCD_diff_base_handle = stagers.GetReadablePath( read_url )
+                if not os.path.isfile( str(GCD_diff_base_handle) ):
+                    raise RuntimeError("file does not exist (or is not a file)")
+            except:
+                print(" -> failed")
+                GCD_diff_base_handle=None
+            if GCD_diff_base_handle is not None:
+                print(" -> success")
+                break
+
+        if GCD_diff_base_handle is None:
+            raise RuntimeError("Could not read the input GCD file '{0}' from any pre-configured location".format(event_metadata['base_GCD_filename_url']))
+
+    return GCD_diff_base_handle
+
+
 def scan_pixel_distributed(
-    broker,  # for pulsar
-    auth_token,  # for pulsar
-    topic_to_clients,  # for pulsar
-    topic_from_clients,  # for pulsar
-    ExcludedDOMs,
-    pulsesName,
+    broker: str,  # for pulsar
+    auth_token: str,  # for pulsar
+    topic_to_clients: str,  # for pulsar
+    topic_from_clients: str,  # for pulsar
 ):
     """Actually do the scan."""
+    pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
+    ExcludedDOMs = [
+        'CalibrationErrata',
+        'BadDomsList',
+        'DeepCoreDOMs',
+        'SaturatedDOMs',
+        'BrightDOMs',
+        pulsesName+'TimeWindows',
+    ]
 
     ########## load data
     # At HESE energies, deposited light is dominated by the stochastic losses
@@ -50,57 +132,27 @@ def scan_pixel_distributed(
     SPEScale = 0.99
 
     # TODO - MQClient: receive needed state_dict info: GCDQp Frames & base_GCD_filename
-    # TODO - -> payload={'event_id':id, 'gcd_data':{'GCDQp_Frames':[...], 'base_GCD_filename_url':base_GCD_filename}}
-    # TODO - -> cache
+    event_metadata_queue = object()  # TODO
+    event_metadata = {
+        'base_GCD_filename_url': 'base_GCD_filename',
+        'GCDQp_Frames': [],
+    }
 
-    # find an available GCD base path
-    stagers = dataio.get_stagers()
+    GCD_diff_base_handle = get_GCD_diff_base_handle(event_metadata['base_GCD_filename_url'])
 
-    # try to load the base file from the various possible input directories
-    GCD_diff_base_handle = None
-    if base_GCD_filename is not None and base_GCD_filename != "None":
-        for GCD_base_dir in config.GCD_base_dirs:
-            try:
-                read_url = os.path.join(GCD_base_dir, base_GCD_filename)
-                print("reading baseline GCD from {0}".format( read_url ))
-                GCD_diff_base_handle = stagers.GetReadablePath( read_url )
-                if not os.path.isfile( str(GCD_diff_base_handle) ):
-                    raise RuntimeError("file does not exist (or is not a file)")
-            except:
-                print(" -> failed")
-                GCD_diff_base_handle=None
-            if GCD_diff_base_handle is not None:
-                print(" -> success")
-                break
+    # connect to queues
+    from_server_queue = object()  # TODO
+    to_server_queue = object()  # TODO
 
-        if GCD_diff_base_handle is None:
-            raise RuntimeError("Could not read the input GCD file '{0}' from any pre-configured location".format(base_GCD_filename))
-
-    # connect to a server
-    # connect to pulsar
-    # client_service = PulsarClientService(
-    #     BrokerURL=broker,
-    #     AuthToken=auth_token,
-    # )
-
-    # receiver_service = ReceiverService(
-    #     client_service=client_service,
-    #     topic=topic_to_clients,
-    #     subscription_name="skymap-worker-sub",
-    # )
-
-    ########## the tray
     tray = I3Tray()
-    # tray.context["I3FileStager"] = stagers
 
-    # tray.Add(ReceivePFrame, "ReceivePFrame",
-    #     ReceiverService=receiver_service,
-    #     MaxCacheEntriesPerFrameStop=100, # cache more (so we do not have to re-connect in case we are collecting many different events)
-    #     )
-
-    # TODO - MQClient: receive each msg: payload={'frame':frame}
-    # TODO - -> push gcd frames from cache (above)
-    # TODO - -> push frame
+    # Get Pixels/Frames/Messages
+    tray.AddModule(
+        MessagesToFrames,
+        "MessagesToFrames",
+        MQClient=from_server_queue,
+        GCDQpFrames=event_metadata['GCDQp_Frames'],
+    )
 
     ########## perform the fit
 
@@ -197,18 +249,13 @@ def scan_pixel_distributed(
         print("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
     tray.AddModule(notify2, "notify2")
 
-    # now send the topic!
-    # tray.Add(SendPFrame, "SendPFrame",
-    #     ClientService=client_service,
-    #     Topic=topic_from_clients,
-    #     ProducerName=None, # each worker is on its own, there are no specific producer names (otherwise deduplication would mess things up)
-    #     )
+    # Send Scans/Frames/Messages
+    tray.AddModule(
+        FramesToMessages,
+        "FramestoMessages",
+        MQClient=to_server_queue,
+    )
 
-    # tray.Add(AcknowledgeReceivedPFrame, "AcknowledgeReceivedPFrame",
-    #     ReceiverService=receiver_service
-    #     )
-
-    # TODO - MQClient: send frame
     # TODO - MQClient: ack? or do we ack up top then there's server-side logic that detects dropped clients?
 
     tray.AddModule('TrashCan', 'thecan')
