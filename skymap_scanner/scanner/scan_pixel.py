@@ -48,9 +48,9 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
         if self.PopFrame():
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
-        self.PushFrame(self.pixel)
         for frame in self.gcdqp_frames:
             self.PushFrame(frame)
+        self.PushFrame(self.pixel)
 
 
 def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
