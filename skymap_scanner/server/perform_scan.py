@@ -16,11 +16,13 @@ Based on:
 # fmt: off
 # pylint: skip-file
 
+import argparse
+import logging
 import os
 import time
-from optparse import OptionParser
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
+import coloredlogs  # type: ignore[import]
 import healpy  # type: ignore[import]
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
@@ -456,43 +458,75 @@ def serve_pixel_scans(
     # TODO - MQClient: ack? or do we ack up top then there's logic that detects dropped clients?
 
 
+# fmt: on
 def main() -> None:
     """Get command-line arguments and serve pixel-scans to clients."""
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-t", "--topics-root", action="store", type="string",
+    parser = argparse.ArgumentParser(
+        description=(
+            "Start up server to serve up pixels to and save millipede scans "
+            "from n clients for a given event."
+        ),
+        epilog="",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-e",
+        "--event-id",
+        required=True,
+        help="The ID of the event to scan",
+    )
+    parser.add_argument(
+        "-c",
+        "--cache-dir",
+        default="./cache/",
+        help="The cache directory to use",
+    )
+    parser.add_argument(
+        "-t",
+        "--topics-root",
         default="persistent://icecube/skymap/",
-        dest="TOPICS_ROOT", help="A root/prefix to base topic names for communicating to/from client(s)")
-    parser.add_option("-b", "--broker", action="store", type="string",
+        help="A root/prefix to base topic names for communicating to/from client(s)",
+    )
+    parser.add_argument(
+        "-b",
+        "--broker",
         default="pulsar://localhost:6650",
-        dest="BROKER", help="The Pulsar broker URL to connect to")
-    parser.add_option("-a", "--auth-token", action="store", type="string",
+        help="The Pulsar broker URL to connect to",
+    )
+    parser.add_argument(
+        "-a",
+        "--auth-token",
         default=None,
-        dest="AUTH_TOKEN", help="The Pulsar authentication token to use")
+        help="The Pulsar authentication token to use",
+    )
+    parser.add_argument(
+        "-l",
+        "--log",
+        default="INFO",
+        help="the output logging level",
+    )
 
-    # get parsed args
-    (options,args) = parser.parse_args()
+    args = parser.parse_args()
+    coloredlogs.install(level=args.log)
+    for arg, val in vars(args).items():
+        logging.warning(f"{arg}: {val}")
 
-    if len(args) != 1:
-        raise RuntimeError("You need to specify exactly one event ID")
-    eventID = args[0]
+    # load state_dict cache
+    _, state_dict = load_cache_state(
+        args.event_id,
+        cache_dir=args.cache_dir,
+        filestager=dataio.get_stagers(),
+    )
 
-    # get a file stager
-    stagers = dataio.get_stagers()
-
-    eventID, state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR, filestager=stagers)
     serve_pixel_scans(
-        event_id_string=eventID,
+        event_id_string=args.event_id,
         state_dict=state_dict,
-        cache_dir=options.CACHEDIR,
-        broker=options.BROKER,
-        auth_token=options.AUTH_TOKEN,
-        producer_name="SKYSCAN-PRODUCER-"+str(eventID),
-        topic_to_clients=f"{options.TOPICS_ROOT}-to-clients-{eventID}",
-        topic_from_clients=f"{options.TOPICS_ROOT}-from-clients-{eventID}",
+        cache_dir=args.cachedir,
+        broker=args.broker,
+        auth_token=args.auth_token,
+        producer_name="SKYSCAN-PRODUCER-" + args.event_id,
+        topic_to_clients=f"{args.topics_root}-to-clients-{args.event_id}",
+        topic_from_clients=f"{args.topics_root}-from-clients-{args.event_id}",
     )
 
 

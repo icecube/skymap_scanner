@@ -10,15 +10,16 @@ Based on:
 """
 
 # fmt: off
-# mypy: ignore-errors
 # pylint: skip-file
 
+import argparse
 import datetime
+import logging
 import os
-from optparse import OptionParser
 
-from I3Tray import I3Tray, I3Units
-from icecube import dataio, icetray, photonics_service
+import coloredlogs  # type: ignore[import]
+from I3Tray import I3Tray, I3Units  # type: ignore[import]
+from icecube import dataio, icetray, photonics_service  # type: ignore[import]
 
 from .. import config
 
@@ -265,34 +266,58 @@ def scan_pixel_distributed(
     del tray
 
 
+# fmt: on
 def main():
     """Start up Client service."""
-
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-t", "--topics-root", action="store", type="string",
+    parser = argparse.ArgumentParser(
+        description=(
+            "Start up client daemon to perform millipede scans on pixels "
+            "received from the server for a given event."
+        ),
+        epilog="",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-e",
+        "--event-id",
+        required=True,
+        help="The ID of the event to scan",
+    )
+    parser.add_argument(
+        "-t",
+        "--topics-root",
         default="persistent://icecube/skymap/",
-        dest="TOPICS_ROOT", help="A root/prefix to base topic names for communicating to/from client(s)")
-    parser.add_option("-b", "--broker", action="store", type="string",
+        help="A root/prefix to base topic names for communicating to/from client(s)",
+    )
+    parser.add_argument(
+        "-b",
+        "--broker",
         default="pulsar://localhost:6650",
-        dest="BROKER", help="The Pulsar broker URL to connect to")
-    parser.add_option("-a", "--auth-token", action="store", type="string",
+        help="The Pulsar broker URL to connect to",
+    )
+    parser.add_argument(
+        "-a",
+        "--auth-token",
         default=None,
-        dest="AUTH_TOKEN", help="The Pulsar authentication token to use")
+        help="The Pulsar authentication token to use",
+    )
+    parser.add_argument(
+        "-l",
+        "--log",
+        default="INFO",
+        help="the output logging level",
+    )
 
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    if len(args) != 1:
-        raise RuntimeError("You need to specify exactly one event ID")
-    eventID = args[0]
+    args = parser.parse_args()
+    coloredlogs.install(level=args.log)
+    for arg, val in vars(args).items():
+        logging.warning(f"{arg}: {val}")
 
     scan_pixel_distributed(
-        broker=options.BROKER,
-        auth_token=options.AUTH_TOKEN,
-        topic_to_clients=f"{options.TOPICS_ROOT}-to-clients-{eventID}",
-        topic_from_clients=f"{options.TOPICS_ROOT}-from-clients-{eventID}",
+        broker=args.broker,
+        auth_token=args.auth_token,
+        topic_to_clients=f"{args.topics_root}-to-clients-{args.event_id}",
+        topic_from_clients=f"{args.topics_root}-from-clients-{args.event_id}",
     )
 
 
