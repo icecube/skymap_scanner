@@ -399,18 +399,14 @@ class SaveRecoResults:
 
 
 async def send_event_metadata(
-    event_id_string: str,
+    topic_event_metadata: str,
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
     base_GCD_filename: str,
     gcdqp_frames: List[icetray.I3Frame],
 ) -> None:
     """Send metadata for event to client(s): GCDQp Frames & base_GCD_filename."""
-    queue = mq.Queue(
-        address=broker,
-        name=f"event-metadata-{event_id_string}",
-        auth_token=auth_token
-    )
+    queue = mq.Queue(address=broker, name=topic_event_metadata, auth_token=auth_token)
     async with queue.open_pub() as p:
         await p.send(
             {"base_GCD_filename_url": base_GCD_filename, "GCDQp_Frames": gcdqp_frames}
@@ -426,6 +422,7 @@ async def serve_pixel_scans(
     producer_name: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
+    topic_event_metadata: str,  # for pulsar
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -439,7 +436,7 @@ async def serve_pixel_scans(
         cloud_tools/save_pixels.py (only nominally)
     """
     await send_event_metadata(
-        event_id_string,
+        topic_event_metadata,
         broker,
         auth_token,
         state_dict["baseline_GCD_file"],
@@ -551,9 +548,14 @@ def main() -> None:
             broker=args.broker,
             auth_token=args.auth_token,
             producer_name="SKYSCAN-PRODUCER-" + args.event_id,
-            topic_to_clients=os.path.join(args.topics_root, "to-client", args.event_id),
+            topic_to_clients=os.path.join(
+                args.topics_root, "to-clients", args.event_id
+            ),
             topic_from_clients=os.path.join(
-                args.topics_root, "from-client", args.event_id
+                args.topics_root, "from-clients", args.event_id
+            ),
+            topic_event_metadata=os.path.join(
+                args.topics_root, "event-metadata", args.event_id
             ),
         )
     )
