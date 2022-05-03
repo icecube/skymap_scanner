@@ -1,4 +1,4 @@
-"""The Client service.
+"""Scan a single pixel.
 
 Based on:
     python/perform_scan.py
@@ -13,66 +13,44 @@ Based on:
 # pylint: skip-file
 
 import argparse
-import asyncio
 import datetime
+import json
 import logging
 import os
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import coloredlogs  # type: ignore[import]
-import mqclient_pulsar as mq
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import dataio, icetray, photonics_service  # type: ignore[import]
 
 from .. import config
 
 
-class MessagesToFrames(icetray.I3Module):
-    """Consume message queue and push frames into tray along with GCDQp frames."""
+class InjectFrames(icetray.I3Module):  # type: ignore[misc]
+    """Push Pixel PFrame into tray along with GCDQp frames."""
 
-    def __init__(self, ctx):
+    def __init__(self, ctx: Any) -> None:
         super().__init__(ctx)
-        self.AddParameter("MQClient", "MQClient client", None)
-        self.AddParameter("GCDQpFrames", "MQClient client", [])
+        self.AddParameter("Pixel", "Pixel PFrame", None)
+        self.AddParameter("GCDQpFrames", "GCDQp packet (list of frames)", [])
 
-    def Configure(self):
-        self.mqclient = self.GetParameter("MQClient")
-        if not self.mqclient:
-            raise RuntimeError("self.mqclient is not set")
+    def Configure(self) -> None:
+        self.pixel = self.GetParameter("Pixel")
+        if not self.pixel:
+            raise RuntimeError("self.pixel is not set")
 
         self.gcdqp_frames = self.GetParameter("GCDQpFrames")
         if not self.gcdqp_frames:
             raise RuntimeError("self.gcdqp_frames is empty")
 
-    def Process(self):
+    def Process(self) -> None:
+        """Push the given frames."""
         if self.PopFrame():
-            raise RuntimeError("FrameArrayReader needs to be used as a driving module")
+            raise RuntimeError("InjectFrames needs to be used as a driving module")
 
-        # TODO - MQClient: receive each msg: payload={'frame':frame}
-        for msg in [object()]*100:
-            # Push GCD Frames
-            # TODO - -> push gcd frames from cache (above)
-            # Push Pixel
-            frame = msg  # TODO
+        self.PushFrame(self.pixel)
+        for frame in self.gcdqp_frames:
             self.PushFrame(frame)
-
-
-class FramesToMessages(icetray.I3Module):
-    """Grab each PFrame and send as a message to queue."""
-
-    def __init__(self, ctx):
-        super().__init__(ctx)
-        self.AddParameter("MQClient", "MQClient client", None)
-
-    def Configure(self):
-        self.mqclient = self.GetParameter("MQClient")
-        if not self.mqclient:
-            raise RuntimeError("self.mqclient is not set")
-
-    def Physics(self, frame):
-        msg = frame  # TODO
-        self.mqclient.send(msg)  # TODO
-        self.PushFrame(frame)
 
 
 def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
@@ -102,37 +80,25 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
     return GCD_diff_base_handle
 
 
-async def get_event_metadata(
-    topic_event_metadata: str,  # for pulsar
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-) -> Tuple[str, List[icetray.I3Frame]]:
-    """Get metadata for event: GCDQp Frames & base_GCD_filename."""
-    queue = mq.Queue(address=broker, name=topic_event_metadata, auth_token=auth_token)
-    async with queue.open_sub_one() as msg:
-        return (
-            get_GCD_diff_base_handle(msg["base_GCD_filename_url"]),
-            msg["GCDQp_Frames"],
-        )
+def read_in_file(in_file: str) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
+    """Get event info and pixel from reading the in-file."""
+    # TODO - decide on file & serialization types
+    payload = json.loads(in_file)
 
-    raise RuntimeError("Metadata not received")
+    pframe = payload['Pixel_PFrame']
+    gcdqp_frames = payload['GCDQp_Frames']
+    base_GCD_filename_url = payload['base_GCD_filename_url']
+
+    return pframe, gcdqp_frames, get_GCD_diff_base_handle(base_GCD_filename_url)
 
 
-async def scan_pixel_distributed(
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    topic_to_clients: str,  # for pulsar
-    topic_from_clients: str,  # for pulsar
-    topic_event_metadata: str,  # for pulsar
-) -> None:
+def scan_pixel(
+    pframe: icetray.I3Frame,
+    gcdqp_frames: List[icetray.I3Frame],
+    GCD_diff_base_handle: str,
+    out_file: str,
+) -> str:
     """Actually do the scan."""
-    GCD_diff_base_handle, gcdqp_frames = await get_event_metadata(
-        topic_event_metadata, broker, auth_token
-    )
-
-    # connect to queues
-    from_server_queue = object()  # TODO
-    to_server_queue = object()  # TODO
 
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
     ExcludedDOMs = [
@@ -162,11 +128,11 @@ async def scan_pixel_distributed(
 
     tray = I3Tray()
 
-    # Get Pixels/Frames/Messages
+    # Inject the frames
     tray.AddModule(
-        MessagesToFrames,
-        "MessagesToFrames",
-        MQClient=from_server_queue,
+        InjectFrames,
+        "InjectFrames",
+        Pixel=pframe,
         GCDQpFrames=gcdqp_frames,
     )
 
@@ -231,7 +197,6 @@ async def scan_pixel_distributed(
         LogLikelihood='millipedellh',
         Minimizer='simplex')
 
-
     def notify1(frame):
         print("1st pass done!", datetime.datetime.now())
         print("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
@@ -259,20 +224,20 @@ async def scan_pixel_distributed(
         LogLikelihood='millipedellh',
         Minimizer='simplex')
 
-
     def notify2(frame):
         print("2nd pass done!", datetime.datetime.now())
         print("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
     tray.AddModule(notify2, "notify2")
 
-    # Send Scans/Frames/Messages
-    tray.AddModule(
-        FramesToMessages,
-        "FramestoMessages",
-        MQClient=to_server_queue,
-    )
-
-    # TODO - MQClient: ack? or do we ack up top then there's server-side logic that detects dropped clients?
+    # Write scan out
+    def write_scan(frame: icetray.I3Frame) -> None:
+        if frame.Stop != icetray.I3Frame.Physics:
+            return
+        if os.path.exists(out_file):  # will guarantee only one PFrame is written
+            raise FileExistsError(out_file)
+        with open(out_file, 'w') as f:
+            json.dump(frame, f)
+    tray.AddModule(write_scan, "write_scan")
 
     tray.AddModule('TrashCan', 'thecan')
 
@@ -280,41 +245,29 @@ async def scan_pixel_distributed(
     tray.Finish()
     del tray
 
+    return out_file
+
 
 # fmt: on
 def main() -> None:
-    """Start up Client service."""
+    """Scan a single pixel."""
     parser = argparse.ArgumentParser(
         description=(
-            "Start up client daemon to perform millipede scans on pixels "
-            "received from the server for a given event."
+            "Perform millipede reconstruction scans on a pixel "
+            "by reading `--in file` and writing result to `--out file`."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-e",
-        "--event-id",
+        "--in-file",
         required=True,
-        help="The ID of the event to scan",
+        help="a file containing the pixel to scan",
     )
     parser.add_argument(
-        "-t",
-        "--topics-root",
-        default="persistent://icecube/skymap/",
-        help="A root/prefix to base topic names for communicating to/from client(s)",
-    )
-    parser.add_argument(
-        "-b",
-        "--broker",
-        default="pulsar://localhost:6650",
-        help="The Pulsar broker URL to connect to",
-    )
-    parser.add_argument(
-        "-a",
-        "--auth-token",
-        default=None,
-        help="The Pulsar authentication token to use",
+        "--out-file",
+        required=True,
+        help="a file to write the reco scan to",
     )
     parser.add_argument(
         "-l",
@@ -328,21 +281,8 @@ def main() -> None:
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    asyncio.get_event_loop().run_until_complete(
-        scan_pixel_distributed(
-            broker=args.broker,
-            auth_token=args.auth_token,
-            topic_to_clients=os.path.join(
-                args.topics_root, "to-clients", args.event_id
-            ),
-            topic_from_clients=os.path.join(
-                args.topics_root, "from-clients", args.event_id
-            ),
-            topic_event_metadata=os.path.join(
-                args.topics_root, "event-metadata", args.event_id
-            ),
-        )
-    )
+    pframe, gcdqp_frames, GCD_diff_base_handle = read_in_file(args.in_file)
+    scan_pixel(pframe, gcdqp_frames, GCD_diff_base_handle, args.out_file)
 
 
 if __name__ == "__main__":
