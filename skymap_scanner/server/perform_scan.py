@@ -525,8 +525,8 @@ def main() -> None:
         broker=args.broker,
         auth_token=args.auth_token,
         producer_name="SKYSCAN-PRODUCER-" + args.event_id,
-        topic_to_clients=f"{args.topics_root}-to-clients-{args.event_id}",
-        topic_from_clients=f"{args.topics_root}-from-clients-{args.event_id}",
+        topic_to_clients=os.path.join(args.topics_root, "to-client", args.event_id),
+        topic_from_clients=os.path.join(args.topics_root, "from-client", args.event_id),
     )
 
 
