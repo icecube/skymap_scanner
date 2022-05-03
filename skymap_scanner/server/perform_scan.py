@@ -400,8 +400,8 @@ def serve_pixel_scans(
     cache_dir: str,
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
-    topic_to_clients: str,  # for pulsar
     producer_name: str,  # for pulsar
+    topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
@@ -463,12 +463,9 @@ def main() -> None:
     parser.set_usage(usage)
     parser.add_option("-c", "--cache-dir", action="store", type="string",
         default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-t", "--topic_to_clients", action="store", type="string",
-        default="persistent://icecube/skymap/to_be_scanned",
-        dest="TOPIC_TO_CLIENTS", help="The Pulsar topic name for pixels to be scanned")
-    parser.add_option("-s", "--topic_from_clients", action="store", type="string",
-        default="persistent://icecube/skymap/scanned",
-        dest="TOPIC_FROM_CLIENTS", help="The Pulsar topic name for pixels that have been scanned")
+    parser.add_option("-t", "--topics-root", action="store", type="string",
+        default="persistent://icecube/skymap/",
+        dest="TOPICS_ROOT", help="A root/prefix to base topic names for communicating to/from client(s)")
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
@@ -493,9 +490,9 @@ def main() -> None:
         cache_dir=options.CACHEDIR,
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
-        topic_to_clients=options.TOPIC_TO_CLIENTS,
         producer_name="SKYSCAN-PRODUCER-"+str(eventID),
-        topic_from_clients=options.TOPIC_FROM_CLIENTS,
+        topic_to_clients=f"{options.TOPICS_ROOT}-to-clients-{eventID}",
+        topic_from_clients=f"{options.TOPICS_ROOT}-from-clients-{eventID}",
     )
 
 

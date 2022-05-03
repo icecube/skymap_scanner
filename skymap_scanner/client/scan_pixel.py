@@ -264,9 +264,6 @@ def scan_pixel_distributed(
     tray.Finish()
     del tray
 
-    del receiver_service
-    del client_service
-
 
 def main():
     """Start up Client service."""
@@ -274,12 +271,9 @@ def main():
     parser = OptionParser()
     usage = """%prog [options]"""
     parser.set_usage(usage)
-    parser.add_option("-t", "--topic_to_clients", action="store", type="string",
-        default="persistent://icecube/skymap/to_be_scanned",
-        dest="TOPIC_TO_CLIENTS", help="The Pulsar topic name for pixels to be scanned")
-    parser.add_option("-s", "--topic_from_clients", action="store", type="string",
-        default="persistent://icecube/skymap/scanned",
-        dest="TOPIC_FROM_CLIENTS", help="The Pulsar topic name for pixels that have been scanned")
+    parser.add_option("-t", "--topics-root", action="store", type="string",
+        default="persistent://icecube/skymap/",
+        dest="TOPICS_ROOT", help="A root/prefix to base topic names for communicating to/from client(s)")
     parser.add_option("-b", "--broker", action="store", type="string",
         default="pulsar://localhost:6650",
         dest="BROKER", help="The Pulsar broker URL to connect to")
@@ -290,11 +284,15 @@ def main():
     # get parsed args
     (options,args) = parser.parse_args()
 
+    if len(args) != 1:
+        raise RuntimeError("You need to specify exactly one event ID")
+    eventID = args[0]
+
     scan_pixel_distributed(
         broker=options.BROKER,
         auth_token=options.AUTH_TOKEN,
-        topic_to_clients=options.TOPIC_TO_CLIENTS,
-        topic_from_clients=options.TOPIC_FROM_CLIENTS,
+        topic_to_clients=f"{options.TOPICS_ROOT}-to-clients-{eventID}",
+        topic_from_clients=f"{options.TOPICS_ROOT}-from-clients-{eventID}",
     )
 
 
