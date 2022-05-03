@@ -245,6 +245,9 @@ def scan_pixel(
     tray.Finish()
     del tray
 
+    if not os.path.exists(out_file):
+        raise FileNotFoundError(f"Out file was not written: {out_file}")
+
     return out_file
 
 
