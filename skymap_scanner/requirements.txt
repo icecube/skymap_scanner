@@ -1,7 +1,8 @@
 backports.tempfile
+coloredlogs
 healpy
 psutil
-pulsar-client==2.6.0
 pygcn
 pyzmq
 tqdm
+wipac-mqclient-pulsar
