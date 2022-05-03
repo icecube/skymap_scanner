@@ -103,11 +103,11 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
 
 
 async def get_event_metadata(
-    topic_event_metadata: str,
+    topic_event_metadata: str,  # for pulsar
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
 ) -> Tuple[str, List[icetray.I3Frame]]:
-    """Send metadata for event to client(s): GCDQp Frames & base_GCD_filename."""
+    """Get metadata for event: GCDQp Frames & base_GCD_filename."""
     queue = mq.Queue(address=broker, name=topic_event_metadata, auth_token=auth_token)
     async with queue.open_sub_one() as msg:
         return (
