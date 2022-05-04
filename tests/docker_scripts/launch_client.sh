@@ -4,7 +4,7 @@
 
 set -x
 
-docker run --rm -i $1 server \
+docker run --rm -i $1 skymap_scanner.client \
     --event-id $SKYSCAN_EVENT \
     --broker pulsar://localhost:6650 \
     --log DEBUG
