@@ -3,11 +3,12 @@ name: tests
 on: [push]
 
 env:
-  SKYSCAN_TEST_EVENT: test_event_01
-  SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
+  # SKYSCAN_TEST_EVENT: test_event_01
+  # SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
   PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CONTAINER: skyscan-cloud
-  SKYSCAN_EVENT: ./skymap_scanner/tests/docker_scripts/event_HESE_2017-11-28.json
+  # SKYSCAN_EVENT: ./skymap_scanner/tests/docker_scripts/event_HESE_2017-11-28.json
+  SKYSCAN_EVENT: ./skymap_scanner/tests/data/ic191001a_sim.i3
 
 jobs:
 

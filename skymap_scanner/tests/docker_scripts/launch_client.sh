@@ -4,4 +4,7 @@
 
 set -x
 
-docker run --rm -i $1 client --broker pulsar://localhost:6650
+docker run --rm -i $1 client \
+    --event-id $SKYSCAN_EVENT \
+    --broker pulsar://localhost:6650 \
+    --log DEBUG
