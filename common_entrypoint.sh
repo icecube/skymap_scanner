@@ -7,4 +7,4 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-python -m $1
+python -m $@
