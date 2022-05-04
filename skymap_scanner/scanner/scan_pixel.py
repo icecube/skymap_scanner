@@ -257,7 +257,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Perform millipede reconstruction scans on a pixel "
-            "by reading `--in file` and writing result to `--out file`."
+            "by reading `--in-file FILE` and writing result to "
+            "`--out-file FILE`."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
