@@ -57,7 +57,7 @@ def main() -> None:
     parser.add_argument(
         "-t",
         "--topics-root",
-        default="skymap_scanner/",
+        default="",
         help="A root/prefix to base topic names for communicating to/from client(s)",
     )
     parser.add_argument(
@@ -89,10 +89,10 @@ def main() -> None:
             broker=args.broker,
             auth_token=args.auth_token,
             topic_to_clients=os.path.join(
-                args.topics_root, "to-clients", args.event_id
+                args.topics_root, f"to-clients-{args.event_id.replace('/', '-')}"
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, "from-clients", args.event_id
+                args.topics_root, f"from-clients-{args.event_id.replace('/', '-')}"
             ),
         )
     )
