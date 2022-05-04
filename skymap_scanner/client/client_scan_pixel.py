@@ -57,13 +57,13 @@ def main() -> None:
     parser.add_argument(
         "-t",
         "--topics-root",
-        default="persistent://icecube/skymap/",
+        default="skymap_scanner/",
         help="A root/prefix to base topic names for communicating to/from client(s)",
     )
     parser.add_argument(
         "-b",
         "--broker",
-        default="pulsar://localhost:6650",
+        required=True,
         help="The Pulsar broker URL to connect to",
     )
     parser.add_argument(
