@@ -6,5 +6,5 @@ set -x
 
 docker run --network="host" --rm -i $1 skymap_scanner.server \
     --event-id $SKYSCAN_EVENT \
-    --broker localhost \
+    --broker $PULSAR_ADDRESS \
     --log DEBUG
