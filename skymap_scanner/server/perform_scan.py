@@ -475,12 +475,12 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    def _validate_event_arg(val: str) -> None:
+    def _validate_event_arg(val: str) -> str:
         if "/" in val:
-            raise ValueError(
-                f"Invalid Event: {val} (-e/--event-id). "
-                "Event needs to be a directory-less filename."
+            raise argparse.ArgumentTypeError(
+                f"Invalid Event: {val}. Event needs to be a directory-less filename."
             )
+        return val
 
     parser.add_argument(
         "-e",
