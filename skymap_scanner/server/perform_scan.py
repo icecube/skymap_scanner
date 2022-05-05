@@ -476,9 +476,10 @@ def main() -> None:
     )
 
     def _validate_arg(val: str, test: bool, exc: Exception) -> str:
-        if not test:
-            raise exc
-        return val
+        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
+        if test:
+            return val
+        raise exc
 
     parser.add_argument(
         "-e",
