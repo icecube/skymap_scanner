@@ -475,16 +475,9 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    def _validate_event_arg(val: str) -> str:
-        if "/" in val:
-            raise argparse.ArgumentTypeError(
-                f"Invalid Event: {val}. Event needs to be a directory-less filename."
-            )
-        return val
-
-    def _validate_dir(val: str) -> str:
-        if not os.path.isdir(val):
-            raise argparse.ArgumentTypeError(f"NotADirectoryError: {val}")
+    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+        if not test:
+            raise exc
         return val
 
     parser.add_argument(
@@ -492,14 +485,24 @@ def main() -> None:
         "--event-id",
         required=True,
         help="The ID of the event to scan",
-        type=_validate_event_arg,
+        type=lambda x: _validate_arg(
+            x,
+            "/" in x,
+            argparse.ArgumentTypeError(
+                f"Invalid Event: {x}. Event needs to be a directory-less filename."
+            ),
+        ),
     )
     parser.add_argument(
         "-c",
         "--cache-dir",
         default="./cache/",
         help="The cache directory to use",
-        type=_validate_dir,
+        type=lambda x: _validate_arg(
+            x,
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
     )
     parser.add_argument(
         "-t",
