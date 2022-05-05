@@ -487,7 +487,7 @@ def main() -> None:
         help="The ID of the event to scan",
         type=lambda x: _validate_arg(
             x,
-            "/" in x,
+            "/" not in x,
             argparse.ArgumentTypeError(
                 f"Invalid Event: {x}. Event needs to be a directory-less filename."
             ),
