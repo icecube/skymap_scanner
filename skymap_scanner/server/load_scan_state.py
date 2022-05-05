@@ -22,7 +22,7 @@ def load_cache_state(
 ) -> Tuple[str, StateDict]:
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
-        raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
+        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
 
     # load GCDQp state first
     state_dict = load_GCDQp_state(event_id, filestager=filestager, cache_dir=cache_dir)[1]
@@ -117,7 +117,7 @@ def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/")
     
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
-        raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
+        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
 
     # get all directories
     nsides = [(int(d[5:]), os.path.join(this_event_cache_dir, d)) for d in os.listdir(this_event_cache_dir) if os.path.isdir(os.path.join(this_event_cache_dir, d)) and d.startswith("nside")]
