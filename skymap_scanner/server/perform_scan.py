@@ -482,6 +482,11 @@ def main() -> None:
             )
         return val
 
+    def _validate_dir(val: str) -> str:
+        if not os.path.isdir(val):
+            raise argparse.ArgumentTypeError() from NotADirectoryError(val)
+        return val
+
     parser.add_argument(
         "-e",
         "--event-id",
@@ -494,6 +499,7 @@ def main() -> None:
         "--cache-dir",
         default="./cache/",
         help="The cache directory to use",
+        type=_validate_dir,
     )
     parser.add_argument(
         "-t",
