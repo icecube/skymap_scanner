@@ -474,11 +474,20 @@ def main() -> None:
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    def _validate_event_arg(val: str) -> None:
+        if "/" in val:
+            raise ValueError(
+                f"Invalid Event: {val} (-e/--event-id). "
+                "Event needs to be a directory-less filename."
+            )
+
     parser.add_argument(
         "-e",
         "--event-id",
         required=True,
         help="The ID of the event to scan",
+        type=_validate_event_arg,
     )
     parser.add_argument(
         "-c",
