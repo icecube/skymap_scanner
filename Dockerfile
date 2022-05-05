@@ -62,7 +62,8 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
 WORKDIR /local
 COPY . .
 
-RUN ls /local
+RUN apt-get install tree
+RUN tree /local
 
 
 #
