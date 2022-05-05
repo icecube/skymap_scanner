@@ -484,7 +484,7 @@ def main() -> None:
 
     def _validate_dir(val: str) -> str:
         if not os.path.isdir(val):
-            raise argparse.ArgumentTypeError() from NotADirectoryError(val)
+            raise argparse.ArgumentTypeError(f"NotADirectoryError: {val}")
         return val
 
     parser.add_argument(
