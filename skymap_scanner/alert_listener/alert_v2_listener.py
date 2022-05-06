@@ -350,7 +350,7 @@ def main():
     parser.add_option("-n", "--nworkers",
                       dest="nworkers", default=1000,
                       help="Number of workers to send out")
-    parser.add_option( "--event", dest="event_pkl", default=None,
+    parser.add_option( "--event-pkl", dest="event_pkl", default=None,
                       help="Send scans to cluster")
 
     # Server args to pass along

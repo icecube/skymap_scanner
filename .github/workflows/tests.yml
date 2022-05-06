@@ -8,9 +8,11 @@ env:
   PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CONTAINER: skyscan-cloud
   # SKYSCAN_EVENT: ./tests/docker_scripts/event_HESE_2017-11-28.json
-  SKYSCAN_CACHE_DIR: ./tests/data/
-  SKYSCAN_EVENT: ic191001a_sim.i3
+  # SKYSCAN_CACHE_DIR: ./tests/data/
+  # SKYSCAN_EVENT: ic191001a_sim.i3
+  SKYSCAN_EVENT_PKL: ./tests/data/skyscan_data/realtime_events/2890414988286888508.pkl
   PULSAR_ADDRESS: localhost:6650
+  PULSAR_AUTH: ""
 
 jobs:
 
