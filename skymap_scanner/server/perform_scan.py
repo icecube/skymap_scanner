@@ -30,9 +30,9 @@ import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
+from ..load_scan_state import load_cache_state
+from ..utils import StateDict, get_event_mjd, save_GCD_frame_packet_to_file
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
-from .load_scan_state import load_cache_state
-from .utils import StateDict, get_event_mjd, save_GCD_frame_packet_to_file
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 

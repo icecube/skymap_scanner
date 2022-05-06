@@ -9,7 +9,7 @@ from optparse import OptionParser
 import healpy  # type: ignore[import]
 import numpy  # type: ignore[import]
 
-from .load_scan_state import load_cache_state
+from ..load_scan_state import load_cache_state
 
 
 def __healpix_pixel_upgrade(nside, pix):
