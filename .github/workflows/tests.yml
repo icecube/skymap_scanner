@@ -39,12 +39,10 @@ jobs:
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Launch Containers
         run: |
-          # Based on cloud_tools README.md (with collector+saver merged into server)
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/launch_alert_listener.sh $SKYSCAN_CONTAINER
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
-          docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
-  test-run-server:
+  test-run-alert-listener:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -59,7 +57,7 @@ jobs:
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/launch_alert_listener.sh $SKYSCAN_CONTAINER
 
   test-run-client:
     runs-on: ubuntu-latest
