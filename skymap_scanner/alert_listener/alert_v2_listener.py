@@ -9,20 +9,14 @@ import os
 import pickle as Pickle
 import random
 import shutil
+import subprocess
 import sys
 
 import numpy as np
 from icecube import dataio, realtime_tools
 
-from .. import config
-from . import (
-    create_plot,
-    extract_json_message,
-    get_best_fit_v2,
-    loop_over_plots,
-    perform_scan,
-    slack_tools,
-)
+from .. import config, extract_json_message
+from . import create_plot, get_best_fit_v2, loop_over_plots, slack_tools
 from .scan_logic import extract_short_message, stream_logic_map, whether_to_scan
 
 # ==============================================================================
@@ -131,7 +125,23 @@ def skymap_plotting_callback(event_id, state_dict):
                             "Skymap of {0}".format(event_id))
 
 
-def spawn_scan(post_to_slack, short_message=None, **kwargs):
+def spawn_scan(
+    event_pkl,
+    # post_to_slack,
+    # event_id_string,
+    # state_dict,
+    cache_dir,
+    # port,
+    # numclients,
+    # logger,  # logging callback
+    # skymap_plotting_callback,
+    # RemoteSubmitPrefix,  # Actually send jobs
+    # short_message,
+    gcd_dir,
+    skymap_scanner_server_broker,  # for pulsar
+    skymap_scanner_server_broker_auth,  # for pulsar
+    skymap_scanner_server_log_level,  # for server
+):
 
     def finish_function(state_dict):
         try:
@@ -169,7 +179,18 @@ def spawn_scan(post_to_slack, short_message=None, **kwargs):
             "Okay, that's it. I'm finished with this `{0}`. Look for the cache in `{1}`".format(event_id, event_cache_dir))
 
     # # now perform the actual scan
-    state_dict = perform_scan(finish_function=finish_function, **kwargs)
+    # state_dict = perform_scan(finish_function=finish_function, **kwargs)
+    subprocess.check_call(
+        (
+            f"python -m server "
+            f"--cache-dir {event_cache_dir} "
+            f"--event-pkl {event_pkl} "
+            f"--broker {skymap_scanner_server_broker} "
+            f"--auth-token {skymap_scanner_server_broker_auth} "
+            f"--log {skymap_scanner_server_log_level} "
+        ).split()
+    )
+
 
 # ==============================================================================
 # Function to run on each incoming alert
@@ -177,7 +198,13 @@ def spawn_scan(post_to_slack, short_message=None, **kwargs):
 def incoming_event(varname, topics, event):
     individual_event(event)
 
-def individual_event(event):
+def individual_event(
+    event,
+    event_pkl,
+    skymap_scanner_server_broker,  # for pulsar
+    skymap_scanner_server_broker_auth,  # for pulsar
+    skymap_scanner_server_log_level,  # for server
+):
 
     try:
 
@@ -203,7 +230,9 @@ def individual_event(event):
         stagers = dataio.get_stagers()
 
         # extract the JSON message
-        event_id, state_dict = extract_json_message(
+        # NOTE - JSON extraction logic is duplicated in skymap_scanner.server
+        # FIXME - decide if we can live without extracting this here as well (okay either way)
+        event_id, state_dict = extract_json_message.extract_json_message(
             event, filestager=stagers,
             cache_dir=event_cache_dir,
             override_GCD_filename=gcd_dir
@@ -274,17 +303,22 @@ def individual_event(event):
             pass
 
         spawn_scan(
-            post_to_slack,
-            event_id_string=event_id,
-            state_dict=state_dict,
+            event_pkl=event_pkl,
+            # post_to_slack,
+            # event_id_string=event_id,
+            # state_dict=state_dict,
             cache_dir=event_cache_dir,
-            port=port_number(),
-            numclients=distribute_numclients,
-            logger=post_to_slack,  # logging callback
-            skymap_plotting_callback=lambda d: skymap_plotting_callback(
-                event_id, d),
-            RemoteSubmitPrefix=submit_prefix, # Actually send jobs
-            short_message=short_message
+            # port=port_number(),
+            # numclients=distribute_numclients,
+            # logger=post_to_slack,  # logging callback
+            # skymap_plotting_callback=lambda d: skymap_plotting_callback(
+            #     event_id, d),
+            # RemoteSubmitPrefix=submit_prefix, # Actually send jobs
+            # short_message=short_message
+            gcd_dir=gcd_dir,
+            skymap_scanner_server_broker=skymap_scanner_server_broker,
+            skymap_scanner_server_broker_auth=skymap_scanner_server_broker_auth,
+            skymap_scanner_server_log_level=skymap_scanner_server_log_level,
         )
 
     except:
@@ -316,8 +350,20 @@ def main():
     parser.add_option("-n", "--nworkers",
                       dest="nworkers", default=1000,
                       help="Number of workers to send out")
-    parser.add_option( "--event", dest="event", default=None,
+    parser.add_option( "--event", dest="event_pkl", default=None,
                       help="Send scans to cluster")
+
+    # Server args to pass along
+    parser.add_option("--server-broker",
+                      dest="skymap_scanner_server_broker",
+                      help="Server's Pulsar broker address")
+    parser.add_option("--server-broker-auth",
+                      dest="skymap_scanner_server_broker_auth",
+                      help="Server's Pulsar broker auth token")
+    parser.add_option("--server-log-level",
+                      dest="skymap_scanner_server_log_level",
+                      help="Server's logging level")
+
     # get parsed args
     (options, args) = parser.parse_args()
 
@@ -347,11 +393,17 @@ def main():
 
     # The alert listener can spawn new alert listeners. If a specific path is given, the listener 
     # will open that pickle file and read the message inside. Otherwise will proceed as normal. 
-    if options.event is not None:
-        with open(options.event, "rb") as f:
+    if options.event_pkl is not None:
+        with open(options.event_pkl, "rb") as f:
             event = Pickle.load(f)
-        individual_event(event)
-        os.remove(options.event)
+        individual_event(
+            event,
+            options.event_pkl,
+            options.skymap_scanner_server_broker,
+            options.skymap_scanner_server_broker_auth,
+            options.skymap_scanner_server_log_level,
+        )
+        os.remove(options.event_pkl)
 
     else:
 
