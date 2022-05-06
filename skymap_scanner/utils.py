@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from .. import config
+from . import config
 
 StateDict = Dict[str, Any]
 

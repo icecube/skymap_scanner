@@ -9,16 +9,16 @@ import os
 import numpy as np
 from icecube import dataio, full_event_followup, icetray
 
-from .. import config
-from ..load_scan_state import load_scan_state
-from ..utils import (
+from . import config
+from .load_scan_state import load_scan_state
+from .prepare_frames import prepare_frames
+from .utils import (
     create_event_id,
     hash_frame_packet,
     load_GCD_frame_packet_from_file,
     rewrite_frame_stop,
     save_GCD_frame_packet_to_file,
 )
-from .prepare_frames import prepare_frames
 
 
 def extract_GCD_diff_base_filename(frame_packet):
