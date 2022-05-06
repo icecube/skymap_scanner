@@ -20,6 +20,7 @@ import argparse
 import asyncio
 import logging
 import os
+import pickle
 import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
@@ -30,6 +31,7 @@ import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
+from .. import extract_json_message
 from ..load_scan_state import load_cache_state
 from ..utils import StateDict, get_event_mjd, save_GCD_frame_packet_to_file
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
@@ -483,22 +485,33 @@ def main() -> None:
 
     parser.add_argument(
         "-e",
-        "--event-id",
+        "--event-pkl",
         required=True,
-        help="The ID of the event to scan",
+        help="The pickle (.pkl) file containing the event to scan",
         type=lambda x: _validate_arg(
             x,
-            "/" not in x,
+            "/" not in x and x.endswith(".pkl"),
             argparse.ArgumentTypeError(
-                f"Invalid Event: {x}. Event needs to be a directory-less filename."
+                f"Invalid Event: {x}. Event needs to be a directory-less .pkl filename."
             ),
         ),
     )
     parser.add_argument(
         "-c",
         "--cache-dir",
-        default="./cache/",
+        required=True,
         help="The cache directory to use",
+        type=lambda x: _validate_arg(
+            x,
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+    parser.add_argument(
+        "-g",
+        "--gcd-dir",
+        required=True,
+        help="The GCD directory to use",
         type=lambda x: _validate_arg(
             x,
             os.path.isdir(x),
@@ -535,26 +548,30 @@ def main() -> None:
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    # load state_dict cache
-    _, state_dict = load_cache_state(
-        args.event_id,
-        cache_dir=args.cache_dir,
+    with open(arg.event_pkl, "rb") as f:
+        event_contents = pickle.load(f)
+
+    # load event_id + state_dict cache
+    event_id, state_dict = extract_json_message.extract_json_message(
+        event_contents,
         filestager=dataio.get_stagers(),
+        cache_dir=args.cache_dir,
+        override_GCD_filename=args.gcd_dir,
     )
 
     asyncio.get_event_loop().run_until_complete(
         serve_pixel_scans(
-            event_id_string=args.event_id,
+            event_id_string=event_id,
             state_dict=state_dict,
-            cache_dir=args.cachedir,
+            cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            producer_name="SKYSCAN-PRODUCER-" + args.event_id,
+            producer_name="SKYSCAN-PRODUCER-" + event_id,
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{args.event_id.replace('/', '-')}"
+                args.topics_root, f"to-clients-{event_id.replace('/', '-')}"
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{args.event_id.replace('/', '-')}"
+                args.topics_root, f"from-clients-{event_id.replace('/', '-')}"
             ),
         )
     )
