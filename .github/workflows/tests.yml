@@ -8,7 +8,7 @@ env:
   PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CONTAINER: skyscan-cloud
   # SKYSCAN_EVENT: ./tests/docker_scripts/event_HESE_2017-11-28.json
-  # SKYSCAN_CACHE_DIR: ./tests/data/
+  SKYSCAN_CACHE_DIR: ./tests/data/cache-dir
   # SKYSCAN_EVENT: ic191001a_sim.i3
   SKYSCAN_EVENT_PKL: ./tests/data/skyscan_data/realtime_events/2890414988286888508.pkl
   PULSAR_ADDRESS: localhost:6650
@@ -39,10 +39,12 @@ jobs:
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Launch Containers
         run: |
-          ./tests/docker_scripts/launch_alert_listener.sh $SKYSCAN_CONTAINER
+          # Based on cloud_tools README.md (with collector+saver merged into server)
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
+          docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
-  test-run-alert-listener:
+  test-run-server:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -57,7 +59,7 @@ jobs:
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
       - name: Run Test(s)
         run: |
-          ./tests/docker_scripts/launch_alert_listener.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
 
   test-run-client:
     runs-on: ubuntu-latest
