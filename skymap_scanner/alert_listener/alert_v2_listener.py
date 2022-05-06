@@ -297,7 +297,7 @@ def individual_event(event):
         raise  # re-raise exceptions
 
 
-if __name__ == "__main__":
+def main():
     from optparse import OptionParser
 
     parser = OptionParser()
@@ -401,3 +401,7 @@ if __name__ == "__main__":
                 'listener (python caught an exception): ```{0}``` *I blame human error*'.format(
                     exception_message))
             raise
+
+
+if __name__ == "__main__":
+    main()
