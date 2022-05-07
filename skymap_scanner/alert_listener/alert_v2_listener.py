@@ -393,10 +393,7 @@ def main():
     # If execute is not toggled on, then replace perform_scan with dummy
     # function
 
-    try:
-        os.makedirs(options.cache_dir)
-    except OSError:
-        pass
+    os.makedirs(options.cache_dir)
 
     if not options.execute:
 

@@ -551,6 +551,8 @@ def main() -> None:
     with open(args.event_pkl, "rb") as f:
         event_contents = pickle.load(f)
 
+    os.makedirs(args.cache_dir)
+
     # load event_id + state_dict cache
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
