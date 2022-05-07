@@ -490,9 +490,9 @@ def main() -> None:
         help="The pickle (.pkl) file containing the event to scan",
         type=lambda x: _validate_arg(
             x,
-            "/" not in x and x.endswith(".pkl"),
+            x.endswith(".pkl"),
             argparse.ArgumentTypeError(
-                f"Invalid Event: {x}. Event needs to be a directory-less .pkl filename."
+                f"Invalid Event: {x}. Event needs to be a .pkl file."
             ),
         ),
     )
@@ -548,7 +548,7 @@ def main() -> None:
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    with open(arg.event_pkl, "rb") as f:
+    with open(args.event_pkl, "rb") as f:
         event_contents = pickle.load(f)
 
     # load event_id + state_dict cache

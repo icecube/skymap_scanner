@@ -50,9 +50,9 @@ def main() -> None:
     )
     parser.add_argument(
         "-e",
-        "--event-id",
+        "--event-name",
         required=True,
-        help="The ID of the event to scan",
+        help="Some identifier to correspond to an event for MQ connections",
     )
     parser.add_argument(
         "-t",
@@ -89,7 +89,7 @@ def main() -> None:
             broker=args.broker,
             auth_token=args.auth_token,
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{args.event_id.replace('/', '-')}"
+                args.topics_root, f"to-clients-{args.event_name.replace('/', '-')}"
             ),
             topic_from_clients=os.path.join(
                 args.topics_root, f"from-clients-{args.event_id.replace('/', '-')}"
