@@ -75,17 +75,17 @@ else:
 # Configure paths and ports for downloading/scanning
 # ==============================================================================
 
-event_cache_dir = os.path.join(realtime_tools.config.SCRATCH, "skymap_scanner_cache/")
+# event_cache_dir = os.path.join(realtime_tools.config.SCRATCH, "skymap_scanner_cache/")
 
-try:
-    os.makedirs(event_cache_dir)
-except OSError:
-    pass
+# try:
+#     os.makedirs(event_cache_dir)
+# except OSError:
+#     pass
 
 # Hardcode path to GCD file on cvmfs
 
 #gcd_dir = os.path.join("/cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/baseline_gcd_131577.i3")
-gcd_dir = "/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/"
+# gcd_dir = "/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/"
 # distribute_port = "21339"
 distribute_numclients = 1000.
 
@@ -118,7 +118,7 @@ def skymap_plotting_callback(event_id, state_dict):
             event_id))
 
     # create a plot when done and upload it to slack
-    plot_png_buffer = create_plot(event_id, state_dict)
+    plot_png_buffer = create_plot.create_plot(event_id, state_dict)
 
     # we have a buffer containing a valid png file now, post it to Slack
     slack_tools.upload_file(plot_png_buffer, "skymap_{0}.png".format(event_id),
@@ -171,25 +171,27 @@ def spawn_scan(
         loop_over_plots(event_id, state_dict=state_dict, cache_dir=event_cache_dir, ra=ra, dec=dec, radius=rad, log_func=log_func, upload_func=upload_func, final_channels=final_channels)
         
         try:
-            get_best_fit_v2(event_id, cache_dir=event_cache_dir, log_func=log_func)
+            get_best_fit_v2.get_best_fit_v2(event_id, cache_dir=cache_dir, log_func=log_func)
         except:
             pass
 
         post_to_slack(
-            "Okay, that's it. I'm finished with this `{0}`. Look for the cache in `{1}`".format(event_id, event_cache_dir))
+            "Okay, that's it. I'm finished with this `{0}`. Look for the cache in `{1}`".format(event_id, cache_dir))
 
     # # now perform the actual scan
     # state_dict = perform_scan(finish_function=finish_function, **kwargs)
     subprocess.check_call(
         (
             f"python -m server "
-            f"--cache-dir {event_cache_dir} "
+            f"--cache-dir {cache_dir} "
             f"--event-pkl {event_pkl} "
             f"--broker {skymap_scanner_server_broker} "
             f"--auth-token {skymap_scanner_server_broker_auth} "
             f"--log {skymap_scanner_server_log_level} "
         ).split()
     )
+
+    # TODO - spawn client(s)
 
 
 # ==============================================================================
@@ -199,8 +201,11 @@ def incoming_event(varname, topics, event):
     individual_event(event)
 
 def individual_event(
+    gcd_dir,
+    cache_dir,
     event,
     event_pkl,
+    final_channels,
     skymap_scanner_server_broker,  # for pulsar
     skymap_scanner_server_broker_auth,  # for pulsar
     skymap_scanner_server_log_level,  # for server
@@ -234,7 +239,7 @@ def individual_event(
         # FIXME - decide if we can live without extracting this here as well (okay either way)
         event_id, state_dict = extract_json_message.extract_json_message(
             event, filestager=stagers,
-            cache_dir=event_cache_dir,
+            cache_dir=cache_dir,
             override_GCD_filename=gcd_dir
         )
 
@@ -291,7 +296,7 @@ def individual_event(
 
             # Delete file (which can be ~40Mb each!!!)
 
-            shutil.rmtree(os.path.join(event_cache_dir, event_id))
+            shutil.rmtree(os.path.join(cache_dir, event_id))
 
             return # do not scan
 
@@ -307,7 +312,7 @@ def individual_event(
             # post_to_slack,
             # event_id_string=event_id,
             # state_dict=state_dict,
-            cache_dir=event_cache_dir,
+            cache_dir=cache_dir,
             # port=port_number(),
             # numclients=distribute_numclients,
             # logger=post_to_slack,  # logging callback
@@ -353,6 +358,22 @@ def main():
     parser.add_option( "--event-pkl", dest="event_pkl", default=None,
                       help="Send scans to cluster")
 
+    # Directory args
+    parser.add_option(
+        "-c",
+        "--cache-dir",
+        dest="cache_dir",
+        default=os.path.join(realtime_tools.config.SCRATCH, "skymap_scanner_cache/"),
+        help="The cache directory to use",
+    )
+    parser.add_option(
+        "-g",
+        "--gcd-dir",
+        dest="gcd_dir",
+        default="/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/",
+        help="The GCD directory to use",
+    )
+
     # Server args to pass along
     parser.add_option("--server-broker",
                       dest="skymap_scanner_server_broker",
@@ -371,6 +392,11 @@ def main():
     distribute_numclients = options.nworkers
     # If execute is not toggled on, then replace perform_scan with dummy
     # function
+
+    try:
+        os.makedirs(options.cache_dir)
+    except OSError:
+        pass
 
     if not options.execute:
 
@@ -397,8 +423,11 @@ def main():
         with open(options.event_pkl, "rb") as f:
             event = Pickle.load(f)
         individual_event(
+            options.gcd_dir,
+            options.cache_dir,
             event,
             options.event_pkl,
+            final_channels,
             options.skymap_scanner_server_broker,
             options.skymap_scanner_server_broker_auth,
             options.skymap_scanner_server_log_level,
@@ -421,7 +450,7 @@ def main():
                 Handle incoming events and perform a full scan.
                 """
                 uid = str(hash(event["time"]))
-                event_path = event_cache_dir + uid + ".pkl"
+                event_path = options.cache_dir + uid + ".pkl"
                 env_path = os.getenv('I3_BUILD')
                 with open(event_path, "wb") as f:
                     Pickle.dump(event, f)
