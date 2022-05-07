@@ -4,6 +4,7 @@
 
 set -x
 
+mkdir $SKYSCAN_CACHE_DIR
 docker run --network="host" --rm -i $1 skymap_scanner.server \
     --event-pkl $SKYSCAN_EVENT_PKL \
     --cache-dir $SKYSCAN_CACHE_DIR \
