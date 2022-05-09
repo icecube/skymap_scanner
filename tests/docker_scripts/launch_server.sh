@@ -10,5 +10,6 @@ docker run --network="host" --rm \
     -i $1 skymap_scanner.server \
     --event-pkl $SKYSCAN_EVENT_PKL \
     --cache-dir /local/$SKYSCAN_CACHE_DIR \
+    --gcd-dir $SKYSCAN_GCD_DIR \
     --broker $PULSAR_ADDRESS \
     --log DEBUG

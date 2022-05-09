@@ -11,6 +11,7 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   # SKYSCAN_EVENT: ic191001a_sim.i3
   SKYSCAN_EVENT_PKL: ./tests/data/skyscan_data/realtime_events/2890414988286888508.pkl
+  SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
   PULSAR_ADDRESS: localhost:6650
   PULSAR_AUTH: ""
 
