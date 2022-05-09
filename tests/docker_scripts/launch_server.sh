@@ -4,12 +4,12 @@
 
 set -x
 
-mkdir $SKYSCAN_CACHE_DIR
+mkdir "$(pwd)"/$SKYSCAN_CACHE_DIR
 docker run --network="host" --rm \
-    --mount type=bind,source=$SKYSCAN_CACHE_DIR,target=/local/cache-dir \
+    --mount type=bind,source="$(pwd)"/$SKYSCAN_CACHE_DIR,target=/local/$SKYSCAN_CACHE_DIR \
     -i $1 skymap_scanner.server \
     --event-pkl $SKYSCAN_EVENT_PKL \
-    --cache-dir /local/cache-dir \
+    --cache-dir /local/$SKYSCAN_CACHE_DIR \
     --broker $PULSAR_ADDRESS \
     --auth-token $PULSAR_AUTH \
     --log DEBUG
