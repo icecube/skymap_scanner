@@ -11,5 +11,4 @@ docker run --network="host" --rm \
     --event-pkl $SKYSCAN_EVENT_PKL \
     --cache-dir /local/$SKYSCAN_CACHE_DIR \
     --broker $PULSAR_ADDRESS \
-    --auth-token $PULSAR_AUTH \
     --log DEBUG
