@@ -490,7 +490,7 @@ def main() -> None:
         help="The pickle (.pkl) file containing the event to scan",
         type=lambda x: _validate_arg(
             x,
-            x.endswith(".pkl"),
+            x.endswith(".pkl") and os.path.isfile(x),
             argparse.ArgumentTypeError(
                 f"Invalid Event: {x}. Event needs to be a .pkl file."
             ),
