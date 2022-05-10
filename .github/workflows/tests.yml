@@ -3,6 +3,7 @@ name: tests
 on: [push]
 
 env:
+  PY_COLORS: "1"
   # SKYSCAN_TEST_EVENT: test_event_01
   # SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
   PULSAR_CONTAINER: pulsar_local

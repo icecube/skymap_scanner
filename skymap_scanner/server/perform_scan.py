@@ -165,7 +165,7 @@ class PixelsToScan:
         pixels_to_refine: List[NSidePixelPair] = choose_new_pixels_to_scan(self.state_dict)  # type: ignore[no-untyped-call]
 
         if len(pixels_to_refine) == 0:
-            print("** there are no pixels left to refine. stopping.")
+            logging.debug("** there are no pixels left to refine. stopping.")
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
 
@@ -337,9 +337,9 @@ class FindBestRecoResultForPixel:
         if len(self.pixelNumToFramesMap) == 0:
             return
 
-        print("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
-        print((self.pixelNumToFramesMap))
-        print("**** WARN ****  --  END")
+        logging.warning("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
+        logging.warning(self.pixelNumToFramesMap)
+        logging.warning("**** WARN ****  --  END")
 
 
 class SaveRecoResults:
@@ -421,6 +421,7 @@ async def serve_pixel_scans(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
+    logging.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(address=broker, name=topic_to_clients, auth_token=auth_token)
     from_clients_queue = mq.Queue(address=broker, name=topic_from_clients, auth_token=auth_token)
 
@@ -436,8 +437,10 @@ async def serve_pixel_scans(
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
 
     # get pixels & send to client(s)
+    logging.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
         for pframe in pixeler.generate_pframes():  # topic_to_clients
+            logging.info(f"Got a pixel to send: {str(pframe)}")
             makeSurePulsesExist(pframe)
             pub.send(
                 {
@@ -446,6 +449,7 @@ async def serve_pixel_scans(
                     "base_GCD_filename_url": state_dict["baseline_GCD_file"],
                 }
             )
+    logging.info("Done serving pixels to clients.")
 
     finder = FindBestRecoResultForPixel()
     saver = SaveRecoResults(
@@ -455,13 +459,17 @@ async def serve_pixel_scans(
     )
 
     # get scans from client(s), collect and save
+    logging.info("Receiving scans from clients...")
     async with from_clients_queue.open_sub() as sub:
         async for scan in sub:
+            logging.info(f"Got a scan: {str(scan)}")
             best_scan = finder.cache_and_get_best(scan)
             if not best_scan:
                 continue
+            logging.info(f"Saving a BEST scan: {str(best_scan)}")
             saver.save(best_scan)
 
+    logging.info("Done receiving/saving scans from clients.")
     finder.finish()
 
 
@@ -578,6 +586,7 @@ def main() -> None:
             ),
         )
     )
+    logging.info("Done.")
 
 
 if __name__ == "__main__":

@@ -20,12 +20,16 @@ async def scan_pixel_distributed(
     topic_from_clients: str,  # for pulsar
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
+    logging.info("Making MQClient queue connections...")
     in_queue = mq.Queue(address=broker, name=topic_to_clients, auth_token=auth_token)
     out_queue = mq.Queue(address=broker, name=topic_from_clients, auth_token=auth_token)
 
+    logging.info("Getting pixels from server to scan then send back...")
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
         async for in_msg in sub:
+            logging.info(f"Got a pixel to scan: {str(in_msg)}")
             with open(IN, "w") as f:
+                logging.info(f"Writing pixel to file: {str(in_msg)} @ {IN}")
                 f.write(in_msg)
             subprocess.check_call(
                 f"python -m scanner.scan_pixel --in-file {IN} --out-file {OUT}".split()
@@ -34,8 +38,12 @@ async def scan_pixel_distributed(
                 logging.error("Out file was not written for pixel")
             with open(OUT, "r") as f:
                 out_msg = f.read()
+                logging.info(f"Reading scan from file: {str(out_msg)} @ {OUT}")
             os.remove(OUT)
+            logging.info("Sending scan to server...")
             await pub.send(out_msg)
+
+    logging.info("Done scanning.")
 
 
 def main() -> None:
@@ -96,6 +104,7 @@ def main() -> None:
             ),
         )
     )
+    logging.info("Done.")
 
 
 if __name__ == "__main__":

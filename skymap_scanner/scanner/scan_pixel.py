@@ -63,15 +63,15 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
         for GCD_base_dir in config.GCD_base_dirs:
             try:
                 read_url = os.path.join(GCD_base_dir, base_GCD_filename_url)
-                print("reading baseline GCD from {0}".format( read_url ))
+                logging.debug("reading baseline GCD from {0}".format( read_url ))
                 GCD_diff_base_handle = stagers.GetReadablePath( read_url )
                 if not os.path.isfile( str(GCD_diff_base_handle) ):
                     raise RuntimeError("file does not exist (or is not a file)")
             except:
-                print(" -> failed")
+                logging.debug(" -> failed")
                 GCD_diff_base_handle=None
             if GCD_diff_base_handle is not None:
-                print(" -> success")
+                logging.debug(" -> success")
                 break
 
         if GCD_diff_base_handle is None:
@@ -99,6 +99,9 @@ def scan_pixel(
     out_file: str,
 ) -> str:
     """Actually do the scan."""
+    logging.info(
+        f"Scanning pixel {str(pframe)=}, {str(gcdqp_frames)=}, {str(GCD_diff_base_handle)=}"
+    )
 
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
     ExcludedDOMs = [
@@ -139,7 +142,7 @@ def scan_pixel(
     ########## perform the fit
 
     def notifyStart(frame):
-        print("got data - uncompressing GCD", datetime.datetime.now())
+        logging.debug("got data - uncompressing GCD", datetime.datetime.now())
     tray.AddModule(notifyStart, "notifyStart")
 
     @icetray.traysegment
@@ -157,7 +160,7 @@ def scan_pixel(
                  base_GCD_filename=str(GCD_diff_base_handle))
 
     def notify0(frame):
-        print("starting a new fit!", datetime.datetime.now())
+        logging.debug("starting a new fit!", datetime.datetime.now())
     tray.AddModule(notify0, "notify0")
 
     tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
@@ -198,8 +201,8 @@ def scan_pixel(
         Minimizer='simplex')
 
     def notify1(frame):
-        print("1st pass done!", datetime.datetime.now())
-        print("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
+        logging.debug("1st pass done!", datetime.datetime.now())
+        logging.debug("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
     tray.AddModule(notify1, "notify1")
 
     tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
@@ -225,8 +228,8 @@ def scan_pixel(
         Minimizer='simplex')
 
     def notify2(frame):
-        print("2nd pass done!", datetime.datetime.now())
-        print("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
+        logging.debug("2nd pass done!", datetime.datetime.now())
+        logging.debug("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
     tray.AddModule(notify2, "notify2")
 
     # Write scan out
@@ -236,14 +239,17 @@ def scan_pixel(
         if os.path.exists(out_file):  # will guarantee only one PFrame is written
             raise FileExistsError(out_file)
         with open(out_file, 'w') as f:
+            logging.info(f"JSON-dumping scan ({frame=}) to {out_file}.")
             json.dump(frame, f)
     tray.AddModule(write_scan, "write_scan")
 
     tray.AddModule('TrashCan', 'thecan')
 
+    logging.info("Staring IceTray...")
     tray.Execute()
     tray.Finish()
     del tray
+    logging.info("Done with IceTray.")
 
     if not os.path.exists(out_file):
         raise FileNotFoundError(f"Out file was not written: {out_file}")
@@ -286,7 +292,9 @@ def main() -> None:
         logging.warning(f"{arg}: {val}")
 
     pframe, gcdqp_frames, GCD_diff_base_handle = read_in_file(args.in_file)
+
     scan_pixel(pframe, gcdqp_frames, GCD_diff_base_handle, args.out_file)
+    logging.info("Done scanning pixel.")
 
 
 if __name__ == "__main__":
