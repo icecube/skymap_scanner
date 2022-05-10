@@ -487,7 +487,10 @@ def main() -> None:
         "-e",
         "--event-pkl",
         required=True,
-        help="The pickle (.pkl) file containing the event to scan",
+        help=(
+            "The pickle (.pkl) file containing the event to scan. "
+            "The basename is used as a suffix for pulsar topics."
+        ),
         type=lambda x: _validate_arg(
             x,
             x.endswith(".pkl") and os.path.isfile(x),
@@ -566,12 +569,12 @@ def main() -> None:
             cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            producer_name="SKYSCAN-PRODUCER-" + event_id,
+            producer_name=f"SKYSCAN-PRODUCER-{os.path.basename(args.event_pkl)}",
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{event_id.replace('/', '-')}"
+                args.topics_root, f"to-clients-{os.path.basename(args.event_pkl)}"
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{event_id.replace('/', '-')}"
+                args.topics_root, f"from-clients-{os.path.basename(args.event_pkl)}"
             ),
         )
     )

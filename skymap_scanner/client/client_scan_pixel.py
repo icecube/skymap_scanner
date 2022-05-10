@@ -89,10 +89,10 @@ def main() -> None:
             broker=args.broker,
             auth_token=args.auth_token,
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{args.event_name.replace('/', '-')}"
+                args.topics_root, f"to-clients-{os.path.basename(args.event_name)}"
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{args.event_name.replace('/', '-')}"
+                args.topics_root, f"from-clients-{os.path.basename(args.event_name)}"
             ),
         )
     )
