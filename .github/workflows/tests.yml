@@ -29,6 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
           ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
@@ -49,6 +52,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
           ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
@@ -66,6 +72,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
           ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
