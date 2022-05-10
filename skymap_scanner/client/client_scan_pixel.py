@@ -92,7 +92,7 @@ def main() -> None:
                 args.topics_root, f"to-clients-{args.event_name.replace('/', '-')}"
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{args.event_id.replace('/', '-')}"
+                args.topics_root, f"from-clients-{args.event_name.replace('/', '-')}"
             ),
         )
     )
