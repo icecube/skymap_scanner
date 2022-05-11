@@ -6,6 +6,7 @@ import logging
 import os
 import pickle
 import subprocess
+import sys
 
 import coloredlogs  # type: ignore[import]
 import mqclient_pulsar as mq
@@ -37,12 +38,18 @@ async def scan_pixel_distributed(
                 LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {IN}")
                 pickle.dump(in_msg, f)
 
-            # call
-            subprocess.check_call(
+            # call & check outputs
+            cmd = (
                 f"python -m scanner.scan_pixel --in-file {IN} --out-file {OUT}".split()
             )
+            result = subprocess.run(cmd, capture_output=True, check=False)
+            print(result.stdout)
+            print(result.stderr, file=sys.stderr)
+            if result.returncode != 0:
+                raise subprocess.CalledProcessError(result.returncode, cmd)
             if not os.path.exists(OUT):
                 LOGGER.error("Out file was not written for pixel")
+                raise RuntimeError("Out file was not written for pixel")
 
             # get
             with open(OUT, "rb") as f:
