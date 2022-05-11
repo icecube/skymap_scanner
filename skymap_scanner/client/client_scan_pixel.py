@@ -41,7 +41,7 @@ async def scan_pixel_distributed(
             # call & check outputs
             cmd = f"python -m skymap_scanner.scanner.scan_pixel --in-file {IN} --out-file {OUT}".split()
             LOGGER.info(f"Executing: {cmd}")
-            result = subprocess.run(cmd, capture_output=True, check=False)
+            result = subprocess.run(cmd, capture_output=True, check=False, text=True)
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
