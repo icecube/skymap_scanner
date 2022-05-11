@@ -269,6 +269,7 @@ class PixelsToScan:
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
+            logging.debug(f"Yielding PFrame #{i} for {(nside, pixel)} ({posVariation=})...")
             yield p_frame
 
 
@@ -432,8 +433,8 @@ async def serve_pixel_scans(
     # get pixels & send to client(s)
     logging.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
-        for pframe in pixeler.generate_pframes():  # topic_to_clients
-            logging.info(f"Got a pixel to send: {str(pframe)}")
+        for i, pframe in enumerate(pixeler.generate_pframes()):  # topic_to_clients
+            logging.info(f"Sending pixel #{i}...")
             await pub.send(
                 {
                     "Pixel_PFrame": pframe,
