@@ -32,11 +32,12 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
 from .. import extract_json_message
-from ..load_scan_state import load_cache_state
 from ..utils import StateDict, get_event_mjd, save_GCD_frame_packet_to_file
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
+
+LOGGER = logging.getLogger("skymap-scanner-server")
 
 
 class PixelsToScan:
@@ -163,10 +164,10 @@ class PixelsToScan:
 
         # find pixels to refine
         pixels_to_refine: List[NSidePixelPair] = choose_new_pixels_to_scan(self.state_dict)  # type: ignore[no-untyped-call]
-        logging.debug(f"Got pixels to refine: {pixels_to_refine}")
+        LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
         if len(pixels_to_refine) == 0:
-            logging.debug("** there are no pixels left to refine. stopping.")
+            LOGGER.debug("** there are no pixels left to refine. stopping.")
             if self.finish_function is not None:
                 self.finish_function(self.state_dict)
 
@@ -185,7 +186,7 @@ class PixelsToScan:
 
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
-            logging.debug(f"Generating from pixel: {nside_pix}")
+            LOGGER.debug(f"Generating from pixel: {nside_pix}")
             self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
             yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
 
@@ -269,7 +270,7 @@ class PixelsToScan:
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
-            logging.debug(f"Yielding PFrame #{i} for {(nside, pixel)} ({posVariation=})...")
+            LOGGER.debug(f"Yielding PFrame #{i} for {(nside, pixel)} ({posVariation=})...")
             yield p_frame
 
 
@@ -340,9 +341,9 @@ class FindBestRecoResultForPixel:
         if len(self.pixelNumToFramesMap) == 0:
             return
 
-        logging.warning("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
-        logging.warning(self.pixelNumToFramesMap)
-        logging.warning("**** WARN ****  --  END")
+        LOGGER.warning("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
+        LOGGER.warning(self.pixelNumToFramesMap)
+        LOGGER.warning("**** WARN ****  --  END")
 
 
 class SaveRecoResults:
@@ -424,17 +425,17 @@ async def serve_pixel_scans(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
-    logging.info("Making MQClient queue connections...")
+    LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(address=broker, name=topic_to_clients, auth_token=auth_token)
     from_clients_queue = mq.Queue(address=broker, name=topic_from_clients, auth_token=auth_token)
 
     pixeler = PixelsToScan(state_dict=state_dict)
 
     # get pixels & send to client(s)
-    logging.info("Getting pixels to send to clients...")
+    LOGGER.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # topic_to_clients
-            logging.info(f"Sending pixel #{i}...")
+            LOGGER.info(f"Sending pixel #{i}...")
             await pub.send(
                 {
                     "Pixel_PFrame": pframe,
@@ -442,7 +443,7 @@ async def serve_pixel_scans(
                     "base_GCD_filename_url": state_dict["baseline_GCD_file"],
                 }
             )
-    logging.info("Done serving pixels to clients.")
+    LOGGER.info("Done serving pixels to clients.")
 
     finder = FindBestRecoResultForPixel()
     saver = SaveRecoResults(
@@ -452,17 +453,17 @@ async def serve_pixel_scans(
     )
 
     # get scans from client(s), collect and save
-    logging.info("Receiving scans from clients...")
+    LOGGER.info("Receiving scans from clients...")
     async with from_clients_queue.open_sub() as sub:
         async for scan in sub:
-            logging.info(f"Got a scan: {str(scan)}")
+            LOGGER.info(f"Got a scan: {str(scan)}")
             best_scan = finder.cache_and_get_best(scan)
             if not best_scan:
                 continue
-            logging.info(f"Saving a BEST scan: {str(best_scan)}")
+            LOGGER.info(f"Saving a BEST scan: {str(best_scan)}")
             saver.save(best_scan)
 
-    logging.info("Done receiving/saving scans from clients.")
+    LOGGER.info("Done receiving/saving scans from clients.")
     finder.finish()
 
 
@@ -550,7 +551,7 @@ def main() -> None:
     args = parser.parse_args()
     coloredlogs.install(level=args.log)
     for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
+        LOGGER.warning(f"{arg}: {val}")
 
     with open(args.event_pkl, "rb") as f:
         event_contents = pickle.load(f)
@@ -579,7 +580,7 @@ def main() -> None:
             ),
         )
     )
-    logging.info("Done.")
+    LOGGER.info("Done.")
 
 
 if __name__ == "__main__":
