@@ -45,9 +45,10 @@ jobs:
       - name: Launch Containers
         run: |
           # Based on cloud_tools README.md (with collector+saver merged into server)
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
-          docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          wait
+          # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
   test-run-server:
     runs-on: ubuntu-latest
