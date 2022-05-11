@@ -122,12 +122,12 @@ def scan_pixel(
     base = os.path.expandvars('$I3_DATA/photon-tables/splines/ems_mie_z20_a10.%s.fits')
     cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", 0)
 
-    basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
+    # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
     # muon_service = photonics_service.I3PhotoSplineService(basemu % "abs", basemu% "prob", 0)
     muon_service = None
 
-    iceModelBaseNames = {{"SpiceMie": "ems_mie_z20_a10", "Spice1": "ems_spice1_z20_a10"}}
-    iceModelBaseName = iceModelBaseNames["SpiceMie"]
+    # iceModelBaseNames = {"SpiceMie": "ems_mie_z20_a10", "Spice1": "ems_spice1_z20_a10"}
+    # iceModelBaseName = iceModelBaseNames["SpiceMie"]
 
     SPEScale = 0.99
 
