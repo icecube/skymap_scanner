@@ -39,9 +39,8 @@ async def scan_pixel_distributed(
                 pickle.dump(in_msg, f)
 
             # call & check outputs
-            cmd = (
-                f"python -m scanner.scan_pixel --in-file {IN} --out-file {OUT}".split()
-            )
+            cmd = f"python -m skymap_scanner.scanner.scan_pixel --in-file {IN} --out-file {OUT}".split()
+            LOGGER.info(f"Executing: {cmd}")
             result = subprocess.run(cmd, capture_output=True, check=False)
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
