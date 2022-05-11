@@ -429,15 +429,6 @@ async def serve_pixel_scans(
 
     pixeler = PixelsToScan(state_dict=state_dict)
 
-    def makeSurePulsesExist(frame: icetray.I3Frame) -> None:
-        pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
-        if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
-        if pulsesName+"TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
-        if pulsesName+"TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
-
     # get pixels & send to client(s)
     logging.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:

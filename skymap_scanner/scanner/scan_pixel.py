@@ -139,6 +139,18 @@ def scan_pixel(
         GCDQpFrames=gcdqp_frames,
     )
 
+    def makeSurePulsesExist(frame_stream) -> None:
+        print(f"{type(frame_stream)=}")
+        pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
+        if pulsesName not in frame_stream:
+            raise RuntimeError("{0} not in frame".format(pulsesName))
+        if pulsesName+"TimeWindows" not in frame_stream:
+            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
+        if pulsesName+"TimeRange" not in frame_stream:
+            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
+
+    tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist")
+
     ########## perform the fit
 
     def notifyStart(frame):
