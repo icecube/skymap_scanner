@@ -184,6 +184,7 @@ class PixelsToScan:
 
         # submit the pixels we need to submit
         for nside_pix in pixels_to_submit:
+            logging.debug(f"Generating from pixel: {nside_pix}")
             self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
             yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
 
