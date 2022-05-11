@@ -14,9 +14,9 @@ Based on:
 
 import argparse
 import datetime
-import json
 import logging
 import os
+import pickle
 from typing import Any, List, Tuple
 
 import coloredlogs  # type: ignore[import]
@@ -84,8 +84,8 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
 
 def read_in_file(in_file: str) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
     """Get event info and pixel from reading the in-file."""
-    # TODO - decide on file & serialization types
-    payload = json.loads(in_file)
+    with open(in_file, "rb") as f:
+        payload = pickle.load(f)
 
     pframe = payload['Pixel_PFrame']
     gcdqp_frames = payload['GCDQp_Frames']
@@ -252,9 +252,9 @@ def scan_pixel(
             return
         if os.path.exists(out_file):  # will guarantee only one PFrame is written
             raise FileExistsError(out_file)
-        with open(out_file, 'w') as f:
-            LOGGER.info(f"JSON-dumping scan ({frame=}) to {out_file}.")
-            json.dump(frame, f)
+        with open(out_file, 'wb') as f:
+            LOGGER.info(f"Pickle-dumping scan ({frame=}) to {out_file}.")
+            pickle.dump(frame, f)
     tray.AddModule(write_scan, "write_scan")
 
     tray.AddModule('TrashCan', 'thecan')
