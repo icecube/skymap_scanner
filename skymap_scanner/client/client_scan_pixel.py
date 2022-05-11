@@ -4,13 +4,14 @@ import argparse
 import asyncio
 import logging
 import os
+import pickle
 import subprocess
 
 import coloredlogs  # type: ignore[import]
 import mqclient_pulsar as mq
 
-OUT = "out_msg"
-IN = "in_msg"
+OUT = "out_msg.pkl"
+IN = "in_msg.pkl"
 
 
 async def scan_pixel_distributed(
@@ -28,18 +29,26 @@ async def scan_pixel_distributed(
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
         async for in_msg in sub:
             logging.info(f"Got a pixel to scan: {str(in_msg)}")
-            with open(IN, "w") as f:
-                logging.info(f"Writing pixel to file: {str(in_msg)} @ {IN}")
-                f.write(in_msg)
+
+            # write
+            with open(IN, "wb") as f:
+                logging.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {IN}")
+                pickle.dump(in_msg, f)
+
+            # call
             subprocess.check_call(
                 f"python -m scanner.scan_pixel --in-file {IN} --out-file {OUT}".split()
             )
             if not os.path.exists(OUT):
                 logging.error("Out file was not written for pixel")
-            with open(OUT, "r") as f:
-                out_msg = f.read()
-                logging.info(f"Reading scan from file: {str(out_msg)} @ {OUT}")
+
+            # get
+            with open(OUT, "rb") as f:
+                out_msg = pickle.load(f)
+                logging.info(f"Pickle-loaded scan from file: {str(out_msg)} @ {OUT}")
             os.remove(OUT)
+
+            # send
             logging.info("Sending scan to server...")
             await pub.send(out_msg)
 
