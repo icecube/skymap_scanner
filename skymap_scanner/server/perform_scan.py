@@ -434,7 +434,7 @@ async def serve_pixel_scans(
     async with to_clients_queue.open_pub() as pub:
         for pframe in pixeler.generate_pframes():  # topic_to_clients
             logging.info(f"Got a pixel to send: {str(pframe)}")
-            pub.send(
+            await pub.send(
                 {
                     "Pixel_PFrame": pframe,
                     "GCDQp_Frames": state_dict["GCDQp_packet"],
