@@ -163,6 +163,7 @@ class PixelsToScan:
 
         # find pixels to refine
         pixels_to_refine: List[NSidePixelPair] = choose_new_pixels_to_scan(self.state_dict)  # type: ignore[no-untyped-call]
+        logging.debug(f"Got pixels to refine: {pixels_to_refine}")
 
         if len(pixels_to_refine) == 0:
             logging.debug("** there are no pixels left to refine. stopping.")
