@@ -42,7 +42,7 @@ jobs:
       - name: Configure Pulsar Server
         run: |
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Launch Containers
+      - name: Run
         run: |
           # Based on cloud_tools README.md (with collector+saver merged into server)
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
@@ -66,7 +66,7 @@ jobs:
       - name: Configure Pulsar Server
         run: |
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run Test(s)
+      - name: Run
         run: |
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
 
@@ -86,6 +86,6 @@ jobs:
       - name: Configure Pulsar Server
         run: |
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run Test(s)
+      - name: Run
         run: |
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
