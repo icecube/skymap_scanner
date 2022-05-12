@@ -131,7 +131,7 @@ def scan_pixel(
     # (muon part emits so little light in comparison)
     # This is why we can use ems_mie instead of InfBareMu_mie even for tracks
     base = os.path.expandvars('$I3_DATA/photon-tables/splines/ems_mie_z20_a10.%s.fits')
-    cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", 0)
+    cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", timingSigma=0.0)
 
     # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
     # muon_service = photonics_service.I3PhotoSplineService(basemu % "abs", basemu% "prob", 0)
