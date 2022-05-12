@@ -21,7 +21,8 @@ from typing import Any, List, Tuple
 
 import coloredlogs  # type: ignore[import]
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
-from icecube import dataio, icetray, photonics_service  # type: ignore[import]
+from icecube import millipede  # type: ignore[import]  # noqa: F401
+from icecube import dataio, icetray, photonics_service
 
 from .. import config
 
