@@ -64,6 +64,7 @@ COPY . .
 
 RUN apt-get install tree
 RUN tree /local
+RUN tree $I3_TESTDATA
 
 
 #
