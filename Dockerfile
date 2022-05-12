@@ -1,4 +1,4 @@
-FROM icecube/icetray:combo-stable
+FROM icecube/icetray:combo-main-devel
 
 
 #
