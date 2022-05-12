@@ -21,12 +21,18 @@ from typing import Any, List, Tuple
 
 import coloredlogs  # type: ignore[import]
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
-from icecube import gulliver  # type: ignore[import]  # noqa: F401
-from icecube import gulliver_modules  # noqa: F401
-from icecube import millipede  # noqa: F401
-from icecube import recclasses  # noqa: F401
-from icecube import simclasses  # noqa: F401
-from icecube import dataio, icetray, photonics_service
+from icecube import (  # type: ignore[import]  # noqa: F401
+    dataclasses,
+    dataio,
+    frame_object_diff,
+    gulliver,
+    gulliver_modules,
+    icetray,
+    millipede,
+    photonics_service,
+    recclasses,
+    simclasses,
+)
 
 from .. import config
 
