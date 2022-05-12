@@ -469,8 +469,8 @@ async def serve_pixel_scans(
             LOGGER.info(f"Saving a BEST scan: {str(best_scan)}")
             saver.save(best_scan)
 
-    LOGGER.info("Done receiving/saving scans from clients.")
     finder.finish()
+    LOGGER.info("Done receiving/saving scans from clients.")
 
 
 # fmt: on
