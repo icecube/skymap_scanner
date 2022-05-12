@@ -283,6 +283,7 @@ class FindBestRecoResultForPixel:
     ) -> None:
         self.NPosVar = NPosVar
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
+        self.count = 0  # TODO - add smarter count logic, like decrementing from an expected amount
 
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
         """Add frame to internal cache and possibly return the best scan for pixel.
@@ -290,6 +291,8 @@ class FindBestRecoResultForPixel:
         If all the scans for the embedded pixel have be received,
         return the best one. Otherwise, return None.
         """
+        self.count += 1
+
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
         if "SCAN_HealpixPixel" not in frame:
@@ -338,6 +341,9 @@ class FindBestRecoResultForPixel:
         If an entire pixel (and all its scans) was dropped by client(s),
         this will not catch it.
         """
+        if not self.count:
+            raise RuntimeError("No pixels were ever received.")
+
         if len(self.pixelNumToFramesMap) == 0:
             return
 
