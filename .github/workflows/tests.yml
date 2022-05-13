@@ -32,7 +32,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
         with:
+          cvmfs_backoff_init: 2
           cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
       - name: Test CernVM-FS
         run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
@@ -72,7 +74,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
         with:
+          cvmfs_backoff_init: 2
           cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
       - name: Test CernVM-FS
         run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
@@ -96,7 +100,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
         with:
+          cvmfs_backoff_init: 2
           cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
       - name: Test CernVM-FS
         run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
