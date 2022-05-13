@@ -80,7 +80,7 @@ RUN apt-get install tree
 RUN tree -f /local
 RUN tree -f $I3_TESTDATA
 RUN tree -f $I3_DATA
-RUN tree -f /cvmfs
+RUN ls /cvmfs
 
 
 #
