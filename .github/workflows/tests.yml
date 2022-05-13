@@ -47,13 +47,17 @@ jobs:
           # Based on cloud_tools README.md (with collector+saver merged into server)
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          wait -n
+          SERVER_RET=$?
+          wait -n
+          CLIENT_RET=$?
       - name: Check Jobs
         run: |
-          for job in server client ; do
-            wait -n
-            echo "$job: exit code $?"
-            if [ $? -ne 0 ]; then
-              exit $?
+          echo "Server: exit code $SERVER_RET"
+          echo "Client: exit code $CLIENT_RET"
+          for ret in $SERVER_RET $CLIENT_RET ; do
+            if [ $ret -ne 0 ]; then
+              exit $ret
             fi
           done
       # - name: Test Output
