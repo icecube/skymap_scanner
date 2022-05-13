@@ -1,5 +1,15 @@
 FROM icecube/icetray:combo-main-devel
 
+#
+# Get CVMFS
+#
+
+wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
+sudo dpkg -i cvmfs-release-latest_all.deb
+rm -f cvmfs-release-latest_all.deb
+sudo apt-get update
+sudo apt-get install cvmfs
+
 
 #
 # Get Data
@@ -59,6 +69,10 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
         /usr/local/icetray/realtime_tools --username=icecube --password=skua --no-auth-cache && \
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
+#
+# Get directory tree organized
+#
+
 WORKDIR /local
 COPY . .
 
@@ -66,6 +80,7 @@ RUN apt-get install tree
 RUN tree -f /local
 RUN tree -f $I3_TESTDATA
 RUN tree -f $I3_DATA
+RUN ls /cvmfs
 
 
 #
