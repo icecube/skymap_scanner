@@ -4,11 +4,11 @@ FROM icecube/icetray:combo-main-devel
 # Get CVMFS
 #
 
-wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
-sudo dpkg -i cvmfs-release-latest_all.deb
-rm -f cvmfs-release-latest_all.deb
-sudo apt-get update
-sudo apt-get install cvmfs
+RUN wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
+RUN sudo dpkg -i cvmfs-release-latest_all.deb
+RUN rm -f cvmfs-release-latest_all.deb
+RUN  apt-get update
+RUN  apt-get install cvmfs
 
 
 #
