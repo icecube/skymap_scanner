@@ -25,8 +25,19 @@ async def scan_pixel_distributed(
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
-    in_queue = mq.Queue(address=broker, name=topic_to_clients, auth_token=auth_token)
-    out_queue = mq.Queue(address=broker, name=topic_from_clients, auth_token=auth_token)
+    except_errors = False  # TODO - only false during debugging; make fail safe logic (on server end?)
+    in_queue = mq.Queue(
+        address=broker,
+        name=topic_to_clients,
+        auth_token=auth_token,
+        except_errors=except_errors,
+    )
+    out_queue = mq.Queue(
+        address=broker,
+        name=topic_from_clients,
+        auth_token=auth_token,
+        except_errors=except_errors,
+    )
 
     LOGGER.info("Getting pixels from server to scan then send back...")
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
