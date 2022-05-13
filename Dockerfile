@@ -59,6 +59,11 @@ RUN svn co http://code.icecube.wisc.edu/svn/meta-projects/realtime/releases/V21-
         /usr/local/icetray/realtime_tools --username=icecube --password=skua --no-auth-cache && \
     ln -sf /usr/local/icetray/realtime_tools/python /usr/local/icetray/lib/icecube/realtime_tools
 
+
+#
+# Get directory tree organized
+#
+
 WORKDIR /local
 COPY . .
 
