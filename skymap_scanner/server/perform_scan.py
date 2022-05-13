@@ -551,18 +551,32 @@ def main() -> None:
         "-l",
         "--log",
         default="INFO",
-        help="the output logging level",
+        help="the output logging level (for first-party loggers)",
+    )
+    parser.add_argument(
+        "--log-third-party",
+        default="WARNING",
+        help="the output logging level for third-party loggers",
     )
 
     args = parser.parse_args()
-    coloredlogs.install(level=args.log)
+
+    # set loggers
+    first_party_loggers = [logging.getLogger(), LOGGER]  # root + other(s)
+    for logger in first_party_loggers:
+        coloredlogs.install(level=args.log, logger=logger)
+    for logger in [logging.getLogger(name) for name in logging.root.manager.loggerDict]:
+        if logger not in first_party_loggers:
+            coloredlogs.install(level=args.log_third_party, logger=logger)
+
+    # log command-line args
     for arg, val in vars(args).items():
         LOGGER.warning(f"{arg}: {val}")
 
     with open(args.event_pkl, "rb") as f:
         event_contents = pickle.load(f)
 
-    # load event_id + state_dict cache
+    # get inputs (load event_id + state_dict cache)
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
         filestager=dataio.get_stagers(),
@@ -570,6 +584,7 @@ def main() -> None:
         override_GCD_filename=args.gcd_dir,
     )
 
+    # go!
     asyncio.get_event_loop().run_until_complete(
         serve_pixel_scans(
             event_id_string=event_id,
