@@ -47,6 +47,8 @@ jobs:
           # Based on cloud_tools README.md (with collector+saver merged into server)
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+      - name: Check Jobs
+        run: |
           for job in server client ; do
             wait -n
             echo "$job: exit code $?"
@@ -54,7 +56,9 @@ jobs:
               exit $?
             fi
           done
-          # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
+      # - name: Test Output
+      #   run: |
+      #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
   test-run-server:
     runs-on: ubuntu-latest
@@ -75,6 +79,8 @@ jobs:
       - name: Run
         run: |
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+      # - name: Test Output
+      #   run: |
 
   test-run-client:
     runs-on: ubuntu-latest
@@ -95,3 +101,5 @@ jobs:
       - name: Run
         run: |
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
+      # - name: Test Output
+      #   run: |
