@@ -128,12 +128,13 @@ def main() -> None:
     args = parser.parse_args()
 
     # set loggers
-    first_party_loggers = [logging.getLogger(), LOGGER]  # root + other(s)
+    coloredlogs.install(level=args.log)  # root
+    first_party_loggers = [LOGGER]  # first-party
     for logger in first_party_loggers:
-        coloredlogs.install(level=args.log, logger=logger)
+        logger.setLevel(args.log)
     for logger in [logging.getLogger(name) for name in logging.root.manager.loggerDict]:
         if logger not in first_party_loggers:
-            coloredlogs.install(level=args.log_third_party, logger=logger)
+            logger.setLevel(args.log_third_party)  # third-party
 
     # log command-line args
     for arg, val in vars(args).items():
