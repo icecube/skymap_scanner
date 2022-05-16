@@ -129,7 +129,7 @@ def main() -> None:
     logging_tools.set_level(
         args.log,
         first_party_loggers=[LOGGER],
-        third_party_level=args.log_third_party,
+        third_party_level="DEBUG",
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
