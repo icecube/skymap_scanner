@@ -5,4 +5,5 @@ psutil
 pygcn
 pyzmq
 tqdm
+wipac-dev-tools
 wipac-mqclient-pulsar

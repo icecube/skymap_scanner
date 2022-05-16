@@ -24,12 +24,12 @@ import pickle
 import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
-import coloredlogs  # type: ignore[import]
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
+from wipac_dev_tools import logging_tools
 
 from .. import extract_json_message
 from ..utils import StateDict, get_event_mjd, save_GCD_frame_packet_to_file
@@ -560,19 +560,13 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-
-    # set loggers
-    coloredlogs.install(level=args.log)  # root
-    first_party_loggers = [LOGGER]  # first-party
-    for logger in first_party_loggers:
-        logger.setLevel(args.log)
-    for logger in [logging.getLogger(name) for name in logging.root.manager.loggerDict]:
-        if logger not in first_party_loggers:
-            logger.setLevel(args.log_third_party)  # third-party
-
-    # log command-line args
-    for arg, val in vars(args).items():
-        LOGGER.warning(f"{arg}: {val}")
+    logging_tools.set_level(
+        args.log,
+        first_party_loggers=[LOGGER],
+        third_party_level=args.log_third_party,
+        use_coloredlogs=True,
+    )
+    logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     with open(args.event_pkl, "rb") as f:
         event_contents = pickle.load(f)

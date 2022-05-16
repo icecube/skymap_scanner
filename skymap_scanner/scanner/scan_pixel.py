@@ -19,7 +19,6 @@ import os
 import pickle
 from typing import Any, List, Tuple
 
-import coloredlogs  # type: ignore[import]
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
@@ -33,6 +32,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     recclasses,
     simclasses,
 )
+from wipac_dev_tools import logging_tools
 
 from .. import config
 
@@ -319,19 +319,13 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-
-    # set loggers
-    coloredlogs.install(level=args.log)  # root
-    first_party_loggers = [LOGGER]  # first-party
-    for logger in first_party_loggers:
-        logger.setLevel(args.log)
-    for logger in [logging.getLogger(name) for name in logging.root.manager.loggerDict]:
-        if logger not in first_party_loggers:
-            logger.setLevel(args.log_third_party)  # third-party
-
-    # log command-line args
-    for arg, val in vars(args).items():
-        LOGGER.warning(f"{arg}: {val}")
+    logging_tools.set_level(
+        args.log,
+        first_party_loggers=[LOGGER],
+        third_party_level=args.log_third_party,
+        use_coloredlogs=True,
+    )
+    logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get inputs
     pframe, gcdqp_frames, GCD_diff_base_handle = read_in_file(args.in_file)
