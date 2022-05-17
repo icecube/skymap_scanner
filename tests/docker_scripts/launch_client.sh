@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# From the README.md
-
 set -x
 
 docker run --network="host" --rm -i \

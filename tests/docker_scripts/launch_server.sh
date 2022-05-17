@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# From the README.md
-
 set -x
 
 mkdir "$(pwd)"/$SKYSCAN_CACHE_DIR

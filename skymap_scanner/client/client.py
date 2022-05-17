@@ -54,7 +54,7 @@ async def scan_pixel_distributed(
                 f"python -m skymap_scanner.client.scan_pixel "
                 f"--in-file {IN} "
                 f"--out-file {OUT} "
-                f"--log {logging.getLevelName(logging.getLogger().getEffectiveLevel())}"
+                f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
             ).split()
             LOGGER.info(f"Executing: {cmd}")
             result = subprocess.run(cmd, capture_output=True, check=False, text=True)
