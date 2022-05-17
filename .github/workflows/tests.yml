@@ -124,8 +124,9 @@ jobs:
   test-run-client-scanner:
     runs-on: ubuntu-latest
     env:
-      SKYSCAN_CLIENT_SCANNER_IN_FILE: in.pkl  # TODO
-      SKYSCAN_CLIENT_SCANNER_OUT_FILE: out.pkl  # TODO
+      SKYSCAN_CLIENT_SCANNER_FILES_DIR: ./tests/data/client_scanner
+      SKYSCAN_CLIENT_SCANNER_IN_FILENAME: in.pkl
+      SKYSCAN_CLIENT_SCANNER_OUT_FILENAME: out.pkl
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
