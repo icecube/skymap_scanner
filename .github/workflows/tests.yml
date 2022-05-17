@@ -119,3 +119,27 @@ jobs:
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
       # - name: Test Output
       #   run: |
+
+
+  test-run-client-scanner:
+    runs-on: ubuntu-latest
+    env:
+      SKYSCAN_CLIENT_SCANNER_IN_FILE: in.pkl  # TODO
+      SKYSCAN_CLIENT_SCANNER_OUT_FILE: out.pkl  # TODO
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+        with:
+          cvmfs_backoff_init: 2
+          cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
+      - name: Build Skymap Scanner Docker Image
+        run: |
+          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+      - name: Run
+        run: |
+          ./tests/docker_scripts/_launch_client_scanner.sh $SKYSCAN_CONTAINER
+      # - name: Test Output
+      #   run: |
