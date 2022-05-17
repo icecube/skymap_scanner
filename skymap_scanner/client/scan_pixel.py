@@ -134,6 +134,8 @@ def scan_pixel(
     LOGGER.debug("A")
     base = os.path.expandvars('$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits')
     LOGGER.debug("B")
+    assert os.path.exists(base % "abs")
+    assert os.path.exists(base % "prob")
     cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", timingSigma=0.0)
     LOGGER.debug("C")
     # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
