@@ -155,7 +155,7 @@ def scan_pixel(
     )
 
     def makeSurePulsesExist(frame_stream) -> None:
-        print(f"{type(frame_stream)=}")
+        print(f"{type(frame_stream)=}")  # TODO - remove & think
         pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
         if pulsesName not in frame_stream:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -261,6 +261,7 @@ def scan_pixel(
 
     # Write scan out
     def write_scan(frame: icetray.I3Frame) -> None:
+        print(f"{type(frame)=}")  # TODO - remove & think
         if frame.Stop != icetray.I3Frame.Physics:
             return
         if os.path.exists(out_file):  # will guarantee only one PFrame is written

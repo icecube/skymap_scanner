@@ -51,7 +51,7 @@ async def scan_pixel_distributed(
 
             # call & check outputs
             cmd = (
-                f"python -m skymap_scanner.scanner.scan_pixel "
+                f"python -m skymap_scanner.client.scan_pixel "
                 f"--in-file {IN} "
                 f"--out-file {OUT} "
                 f"--log {logging.getLevelName(logging.getLogger().getEffectiveLevel())}"
