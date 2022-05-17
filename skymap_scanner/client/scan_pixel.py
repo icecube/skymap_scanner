@@ -131,10 +131,11 @@ def scan_pixel(
     # (muon part emits so little light in comparison)
     # This is why we can use ems_mie instead of InfBareMu_mie even for tracks
     # base = os.path.expandvars('$I3_DATA/photon-tables/splines/ems_mie_z20_a10.%s.fits')
-
+    LOGGER.debug("A")
     base = os.path.expandvars('$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits')
+    LOGGER.debug("B")
     cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", timingSigma=0.0)
-
+    LOGGER.debug("C")
     # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
     # muon_service = photonics_service.I3PhotoSplineService(basemu % "abs", basemu% "prob", 0)
     muon_service = None
@@ -143,9 +144,9 @@ def scan_pixel(
     # iceModelBaseName = iceModelBaseNames["SpiceMie"]
 
     SPEScale = 0.99
-
+    LOGGER.debug("D")
     tray = I3Tray()
-
+    LOGGER.debug("E")
     # Inject the frames
     tray.AddModule(
         InjectFrames,
@@ -163,13 +164,15 @@ def scan_pixel(
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
         if pulsesName+"TimeRange" not in frame_stream:
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
-
+    LOGGER.debug("F")
     tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist")
 
     ########## perform the fit
 
     def notifyStart(frame):
         LOGGER.debug("got data - uncompressing GCD", datetime.datetime.now())
+
+    LOGGER.debug("G")
     tray.AddModule(notifyStart, "notifyStart")
 
     @icetray.traysegment
@@ -188,8 +191,9 @@ def scan_pixel(
 
     def notify0(frame):
         LOGGER.debug("starting a new fit!", datetime.datetime.now())
+    LOGGER.debug("H")
     tray.AddModule(notify0, "notify0")
-
+    LOGGER.debug("I")
     tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
         MuonPhotonicsService=muon_service,
         CascadePhotonicsService=cascade_service,
@@ -201,11 +205,12 @@ def scan_pixel(
         ReadoutWindow=pulsesName+'TimeRange',
         Pulses=pulsesName,
         BinSigma=3)
-
+    LOGGER.debug("J")
     tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
+    LOGGER.debug("K")
     tray.AddService('I3GSLSimplexFactory', 'simplex',
         MaxIterations=20000)
-
+    LOGGER.debug("L")
     tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
         MuonSpacing=0.*I3Units.m,
         ShowerSpacing=5.*I3Units.m,
@@ -216,10 +221,12 @@ def scan_pixel(
         StepZenith = 0.,
         StepAzimuth = 0.,
         )
+    LOGGER.debug("M")
     tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
         FirstGuesses=['MillipedeSeedParticle'],
         TimeShiftType='TNone',
         PositionShiftType='None')
+    LOGGER.debug("N")
     tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
         OutputName='MillipedeStarting1stPass',
         SeedService='vetoseed',
@@ -230,8 +237,9 @@ def scan_pixel(
     def notify1(frame):
         LOGGER.debug("1st pass done!", datetime.datetime.now())
         LOGGER.debug("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
+    LOGGER.debug("O")
     tray.AddModule(notify1, "notify1")
-
+    LOGGER.debug("P")
     tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
         MuonSpacing=0.*I3Units.m,
         ShowerSpacing=2.5*I3Units.m,
@@ -243,10 +251,12 @@ def scan_pixel(
         StepZenith = 0.,
         StepAzimuth = 0.,
         )
+    LOGGER.debug("Q")
     tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
         FirstGuess='MillipedeStarting1stPass',
         TimeShiftType='TNone',
         PositionShiftType='None')
+    LOGGER.debug("R")
     tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
         OutputName='MillipedeStarting2ndPass',
         SeedService='firstFitSeed',
@@ -257,6 +267,7 @@ def scan_pixel(
     def notify2(frame):
         LOGGER.debug("2nd pass done!", datetime.datetime.now())
         LOGGER.debug("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
+    LOGGER.debug("S")
     tray.AddModule(notify2, "notify2")
 
     # Write scan out
@@ -269,8 +280,9 @@ def scan_pixel(
         with open(out_file, 'wb') as f:
             LOGGER.info(f"Pickle-dumping scan ({frame=}) to {out_file}.")
             pickle.dump(frame, f)
+    LOGGER.debug("T")
     tray.AddModule(write_scan, "write_scan")
-
+    LOGGER.debug("U")
     tray.AddModule('TrashCan', 'thecan')
 
     LOGGER.info("Staring IceTray...")
