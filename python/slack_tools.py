@@ -14,8 +14,10 @@ This file is tentatively linked from `python` to `resources/scripts` so it can b
 The idea is to handle the slack posting and messages through dedicated classes.
 '''
 
+
 class SlackError(Exception):
     pass
+
 
 class SlackResponse(object):
     def __init__(self, body):
@@ -34,7 +36,7 @@ class SlackInterface():
         self.channel = channel
 
     def set_api_key(self, api_keyfile):
-        with open(api_keyfile,"r") as f:
+        with open(api_keyfile, "r") as f:
             key = f.read().rstrip()
             # rstrip() needed to drop trailing newline
         self.api_key = key
@@ -49,7 +51,7 @@ class SlackInterface():
 
     def upload_file(self, file_handle, filename, title):
         api = 'files.upload'
-        
+
         response = requests.post(
             API_BASE_URL.format(api=api),
             timeout=60,
@@ -63,7 +65,7 @@ class SlackInterface():
                 'channels': self.channel
             },
             files={'file': file_handle}
-            )
+        )
 
         response.raise_for_status()
         response = SlackResponse(response.text)
@@ -87,7 +89,7 @@ class SlackInterface():
                 'username': 'Marvin-the-Paranoid-Android',
                 'icon_emoji': ':disappointed:',
             }
-            )
+        )
 
         response.raise_for_status()
 
@@ -102,11 +104,11 @@ class MessageHelper():
     def __init__(self):
         pass
 
-    def intermediate_scan(event_id : str):
+    def intermediate_scan(event_id: str):
         msg = f"I am creating a plot of the current status of the scan of `{event_id}` for you. This should only take a minute."
         return msg
 
-    def finish_message(event_id : str, event_cache_dir : str):
+    def finish_message(event_id: str, event_cache_dir: str):
         msg = f"Okay, that's it. I'm finished with this `{event_id}`. Look for the cache in `{event_cache_dir}`"
         return msg
 
@@ -145,7 +147,7 @@ class MessageHelper():
     def new_gfu(run, evt, frac):
         msg = f"New GFU-only event found, `{run}`, `{evt}`, with Passing Fraction: {frac}. It's probably sub-threshold, but I'll check it anyway. *sigh*"
         return msg
-        
+
     def missing_header(event_id):
         msg = f"Something is wrong with this event (ID `{event_id}`). Its P-frame doesn't have a header... I will try to continue with submitting the scan anyway, but this doesn't look good."
         return msg
@@ -153,6 +155,7 @@ class MessageHelper():
     def scan_disabled():
         msg = "Scanning Mode is disabled! No scan will be performed."
         return msg
+
 
 if __name__ == "__main__":
     from optparse import OptionParser
