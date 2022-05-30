@@ -107,6 +107,6 @@ if __name__ == '__main__':
         realtime_tools.make_receiver(
             varname=stream, topic=topics, callback=handle_event)
     except Exception as err:
-        exception_message = f'Type: {type(err)}\n Message: {err}\n Traceback:\n{err.__traceback__}'
+        exception_message = f'Type: {type(err)} - Message: {err} - Traceback: {err.__traceback__}'
         slack.post(msg.switch_off(shifters_slackid, exception_message))
         raise err
