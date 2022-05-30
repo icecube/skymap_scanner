@@ -31,7 +31,7 @@ def make_cache_dir(cache_name='skymap_scanner_cache'):
 
 def handle_event(varname, topics, event):
 
-    uid = 'evt_' + event["time"]  # no need to hash here
+    uid = 'evt_' + event["time"]  # no need to hash here (?)
 
     event_cache_dir = make_cache_dir()  # not optimal
 
@@ -40,6 +40,10 @@ def handle_event(varname, topics, event):
 
     with open(event_filepath, "wb") as event_file:
         pickle.dump(event, event_file)
+
+    print("Saved event to {}".format(event_filepath))
+
+    print("Event keys are: {}".format(event.keys()))
 
     # ideally here we span a subprocess
 
