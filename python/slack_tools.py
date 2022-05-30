@@ -28,12 +28,11 @@ class SlackResponse(object):
 
 
 class SlackInterface():
-    def __init__(self, whoami=""):
+    def __init__(self, whoami="", channel, api_keyfile):
         self.name = whoami
         self.logger = logging.getLogger(__name__)
-
-    def set_channel(self, channel):
         self.channel = channel
+        self.set_api_key(api_keyfile)
 
     def set_api_key(self, api_keyfile):
         with open(api_keyfile, "r") as f:
