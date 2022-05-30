@@ -83,9 +83,8 @@ if __name__ == '__main__':
     # SLACK INTERFACE
     # ================
 
-    slack = SlackInterface(whoami="New Alert Daemon")
-
-    slack.set_channel(args.slackchannel)
+    slack = SlackInterface(whoami="New Alert Daemon",
+                           channel=args.slackchannel, api_key='slack.key')
 
     # ================
     # MAIN LOGIC
