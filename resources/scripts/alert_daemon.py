@@ -11,6 +11,7 @@ from slack_tools import MessageHelper as msg
 from daemon_conf import shifters_slackid
 
 import tempfile
+import subprocess
 
 
 class CacheManager():
@@ -42,7 +43,7 @@ class CacheManager():
 class EventHandler():
     def __init__(self, cache_manager):
         self.cache = cache_manager
-        self.log = logging.getLogger(__name__)
+        self.log = logging.getLogger(self.__name__)
 
     def __call__(self, varname, topics, event):
         self.handle_event(varname, topics, event)
@@ -78,6 +79,8 @@ class EventHandler():
         with open(event_filepath, 'wb') as event_file:
             pickle.dump(event, event_file)
         self.log.info("Incoming event written to {}".format(event_filepath))
+
+        subprocess.run(['python', 'alert_processor.py', '-e', event_filepath])
 
 
 if __name__ == '__main__':
