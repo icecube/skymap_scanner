@@ -44,10 +44,11 @@ class EventHandler():
         self.cache = cache_manager
 
     def __call__(self, varname, topics, event):
-        self.handle(self, varname, topics, event)
+        self.handle(varname, topics, event)
 
-    def get_uid(self, event):
+    def uid_from_message_time(self, event):
         # provides uid based on timestamp
+        # tentatively superseded
         sep = '-'
         buf = event['time']
         buf = buf.replace('-', '')
@@ -55,6 +56,18 @@ class EventHandler():
         buf = buf.replace(':', '')
         buf = buf.replace('.', sep)
         return buf
+
+    def get_uid(self, event):
+        '''
+            uid based on evt / run information
+            in origin this was based on event['time']
+            to be verified if this approach is robust 
+        '''
+        unique_id = event['value']['data']['unique_id']
+
+        # dashes are preferred to dots in directory names
+        uid = unique_id.replace('.', '-')
+        return uid
 
     def handle(self, varname, topics, event):
         uid = self.get_uid(event)
