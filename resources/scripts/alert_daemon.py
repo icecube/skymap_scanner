@@ -73,10 +73,10 @@ class EventHandler():
         uid = self.get_uid(event)
         cache_dir = self.cache.dir
         event_filename = uid + '.pkl'
-        event_path = os.path.join(cache_dir, event_filename)
-        with open(event_path, 'wb') as event_file:
+        event_filepath = os.path.join(cache_dir, event_filename)
+        with open(event_filepath, 'wb') as event_file:
             pickle.dump(event, event_file)
-            print("Saved event to {}".format(event_filepath))
+        print("Saved event to {}".format(event_filepath))
 
 
 def handle_event(varname, topics, event):
