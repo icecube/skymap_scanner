@@ -32,7 +32,8 @@ class SlackInterface():
         self.name = whoami
         self.logger = logging.getLogger(__name__)
         self.channel = channel
-        self.set_api_key(api_keyfile)
+        if self.channel is not None:
+            self.set_api_key(api_keyfile)
 
     def set_api_key(self, api_keyfile):
         with open(api_keyfile, "r") as f:
@@ -41,12 +42,14 @@ class SlackInterface():
         self.api_key = key
 
     def post(self, msg):
-        # never crash because of Slack
-        try:
-            self.logger.info(msg)
-            return self.post_message(self.name + " " + msg)
-        except Exception as err:
-            self.logger.warning(f"Posting to Slack failed because of: {err}")
+        if self.channel is not None:
+            try:
+                self.logger.info(msg)
+                return self.post_message(self.name + " " + msg)
+            except Exception as err:
+                self.logger.warning(
+                    f"Posting to Slack failed because of: {err}")
+        return
 
     def upload_file(self, file_handle, filename, title):
         api = 'files.upload'
