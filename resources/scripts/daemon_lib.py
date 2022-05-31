@@ -39,41 +39,25 @@ class EventHandler():
     def __call__(self, varname, topics, event):
         self.handle_event(varname, topics, event)
 
-    def uid_from_message_time(self, event):
-        # provides uid based on timestamp
-        # tentatively superseded
-        sep = '-'
-        buf = event['time']
-        buf = buf.replace('-', '')
-        buf = buf.replace(' ', sep)
-        buf = buf.replace(':', '')
-        buf = buf.replace('.', sep)
-        return buf
-
-    def get_uid(self, event):
-        '''
-            uid based on evt / run information
-            in origin this was based on event['time']
-            to be verified if this new approach is robust 
-        '''
-        unique_id = event['value']['data']['unique_id']
-
-        # dashes are preferred to dots in directory names
-        uid = unique_id.replace('.', '-')
-        return uid
-
     def handle_event(self, varname, topics, event):
-        uid = self.get_uid(event)
+        evt = RealtimeEvent(event)
+
         cache_dir = self.cache.dir
-        event_filepath = os.path.join(cache_dir, uid + '.pkl')
-        log_filepath = os.path.join(cache_dir, uid + '.log')
+
+        stem = evt.get_stem()
+        # TODO: replace with pathlib Path for readability?
+        event_filepath = os.path.join(cache_dir, stem + '.pkl')
+        log_filepath = os.path.join(cache_dir, stem + '.log')
+
+        self.log.info(f"Writing incoming event to {event_filepath}")
         with open(event_filepath, 'wb') as event_file:
             pickle.dump(event, event_file)
-        self.log.info("Incoming event written to {}".format(event_filepath))
 
         alert_processor = os.path.dirname(
             os.path.abspath(__file__)) + "/alert_processor.py"
 
+        self.log.info(
+            f"Processing event with subprocess, check {log_filepath}")
         with open(log_filepath, 'w') as logfile:
             subprocess.run(['python', alert_processor, '-e',
                            event_filepath], stdout=logfile, stderr=logfile)
@@ -87,5 +71,30 @@ class RealtimeEvent():
     def get_message_time(self):
         return self.event['time']
 
-    def get_unique_id(self):
+    def get_uid(self):
         return self.event['value']['data']['unique_id']
+
+    def get_stem(self):
+        '''
+            filename stem based on evt and run number
+            in origin this was based on a hash of event['time']
+            to be verified if this new approach is equally robust 
+        '''
+        uid = self.get_uid()
+        # dashes are preferred to dots in directory names
+        stem = uid.replace('.', '-')
+        return stem
+
+    '''
+    # backup in case `get_stem()` fails
+    def stem_from_message_time(self):
+        # provides uid based on timestamp
+        # tentatively superseded
+        sep = '-'
+        buf = self.event['time']
+        buf = buf.replace('-', '')
+        buf = buf.replace(' ', sep)
+        buf = buf.replace(':', '')
+        buf = buf.replace('.', sep)
+        return buf
+    '''
