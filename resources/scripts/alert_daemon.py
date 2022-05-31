@@ -43,7 +43,7 @@ class CacheManager():
 class EventHandler():
     def __init__(self, cache_manager):
         self.cache = cache_manager
-        self.log = logging.getLogger(self.__name__)
+        self.log = logging.getLogger(__name__)
 
     def __call__(self, varname, topics, event):
         self.handle_event(varname, topics, event)
