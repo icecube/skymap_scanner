@@ -39,6 +39,33 @@ class CacheManager():
         return self.cache_dir
 
 
+class EventHandler():
+    def __init__(self, cache_manager):
+        self.cache = cache_manager
+
+    def __call__(self, varname, topics, event):
+        self.handle(self, varname, topics, event)
+
+    def get_uid(self, event):
+        # provides uid based on timestamp
+        sep = '-'
+        buf = event['time']
+        buf = buf.replace('-', '')
+        buf = buf.replace(' ', sep)
+        buf = buf.replace(':', '')
+        buf = buf.replace('.', sep)
+        return buf
+
+    def handle(self, varname, topics, event):
+        uid = self.get_uid(event)
+        cache_dir = self.cache.dir
+        event_filename = uid + '.pkl'
+        event_path = os.path.join(cache_dir, event_filename)
+        with open(event_path, 'wb') as event_file:
+            pickle.dump(event, event_file)
+            print("Saved event to {}".format(event_filepath))
+
+
 def handle_event(varname, topics, event):
 
     uid = 'evt_' + event["time"]  # no need to hash here (?)
@@ -95,7 +122,7 @@ if __name__ == '__main__':
     # SLACK INTERFACE
     # ================
 
-    # still reqruies a slack key even if args.slackchannel is None
+    # TODO: better handling of args.slackchannel = None
     slack = SlackInterface(whoami="New Alert Daemon",
                            channel=args.slackchannel, api_keyfile='slack.key')
 
@@ -116,9 +143,13 @@ if __name__ == '__main__':
     stream = 'realtimeEventData'
     topics = ['HESE', 'EHE', 'ESTRES', 'realtimeEventData', 'neutrino']
 
+    cache_manager = CacheManager()
+
+    event_handler = EventHandler(cache_manager=cache_manager)
+
     try:
         realtime_tools.make_receiver(
-            varname=stream, topic=topics, callback=handle_event)
+            varname=stream, topic=topics, callback=event_handler)
     except Exception as err:
         exception_message = f'Type: {type(err)} - Message: {err} -  Traceback: {err.__traceback__}'
         slack.post(msg.switch_off(shifters_slackid, exception_message))
