@@ -13,11 +13,11 @@ from daemon_conf import shifters_slackid
 
 def get_cache_path():
     # logic copied from realtime_tools/python/config.py
-    path = os.path.expandvars('/scratch/$USER')
-    if not os.path.isdir(SCRATCH):
+    tmp_path = os.path.expandvars('/scratch/$USER')
+    if not os.path.isdir(tmp_path):
         # use system temp directory when scratch is not available
-        path = tempfile.gettempdir()
-    return path
+        tmp_path = tempfile.gettempdir()
+    return tmp_path
 
 
 def make_cache_dir(cache_name='skymap_scanner_cache'):
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                         action="store_true", dest="localhost", default=False,
                         help="Listen to localhost for alerts")
     parser.add_argument("-s", "--slackchannel",
-                        dest="slackchannel", default="#test_messaging",
+                        dest="slackchannel", default=None,
                         help="Slack channel")
     parser.add_argument("-n", "--nworkers",
                         dest="nworkers", default=1000,
@@ -83,6 +83,7 @@ if __name__ == '__main__':
     # SLACK INTERFACE
     # ================
 
+    # still reqruies a slack key even if args.slackchannel is None
     slack = SlackInterface(whoami="New Alert Daemon",
                            channel=args.slackchannel, api_keyfile='slack.key')
 
