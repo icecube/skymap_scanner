@@ -8,6 +8,8 @@ from daemon_lib import RealtimeEvent
 if __name__ == '__main__':
     log = logging.getLogger(__name__)
 
+    log.setLevel(logging.INFO)
+
     parser = argparse.ArgumentParser(description='Millipede Scanner')
     parser.add_argument('-e', '--event', help='Event file to process')
     args = parser.parse_args()
