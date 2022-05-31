@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # ARGUMENT PARSER
     # ================
 
-    parser = argparse.ArgumentParser(description='Alert Listener v3')
+    parser = argparse.ArgumentParser(description='New Alert Daemon')
 
     parser.add_argument("-x", "--execute",
                         action="store_true", dest="execute", default=False,
