@@ -63,7 +63,7 @@ class EventHandler():
         '''
             uid based on evt / run information
             in origin this was based on event['time']
-            to be verified if this approach is robust 
+            to be verified if this new approach is robust 
         '''
         unique_id = event['value']['data']['unique_id']
 
@@ -80,7 +80,10 @@ class EventHandler():
             pickle.dump(event, event_file)
         self.log.info("Incoming event written to {}".format(event_filepath))
 
-        subprocess.run(['python', 'alert_processor.py', '-e', event_filepath])
+        processor = os.path.dirname(
+            os.path.abspath(__file__)) + "/alert_processor.py"
+
+        subprocess.run(['python', processor, '-e', event_filepath])
 
 
 if __name__ == '__main__':
