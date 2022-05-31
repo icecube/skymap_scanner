@@ -42,9 +42,10 @@ class CacheManager():
 class EventHandler():
     def __init__(self, cache_manager):
         self.cache = cache_manager
+        self.log = logging.getLogger(__name__)
 
     def __call__(self, varname, topics, event):
-        self.handle(varname, topics, event)
+        self.handle_event(varname, topics, event)
 
     def uid_from_message_time(self, event):
         # provides uid based on timestamp
@@ -69,35 +70,14 @@ class EventHandler():
         uid = unique_id.replace('.', '-')
         return uid
 
-    def handle(self, varname, topics, event):
+    def handle_event(self, varname, topics, event):
         uid = self.get_uid(event)
         cache_dir = self.cache.dir
         event_filename = uid + '.pkl'
         event_filepath = os.path.join(cache_dir, event_filename)
         with open(event_filepath, 'wb') as event_file:
             pickle.dump(event, event_file)
-        print("Saved event to {}".format(event_filepath))
-
-
-def handle_event(varname, topics, event):
-
-    uid = 'evt_' + event["time"]  # no need to hash here (?)
-
-    cache_manager = CacheManager()
-
-    event_cache_dir = cache_manager.dir  # not optimal
-
-    event_filename = uid + '.pkl'
-    event_filepath = os.path.join(event_cache_dir, event_filename)
-
-    with open(event_filepath, "wb") as event_file:
-        pickle.dump(event, event_file)
-
-    print("Saved event to {}".format(event_filepath))
-
-    print("Event keys are: {}".format(event.keys()))
-
-    # ideally here we span a subprocess
+        self.log.info("Incoming event written to {}".format(event_filepath))
 
 
 if __name__ == '__main__':
