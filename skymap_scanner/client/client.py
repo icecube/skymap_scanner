@@ -8,6 +8,7 @@ import pickle
 import subprocess
 import sys
 import time
+from typing import Any
 
 import mqclient_pulsar as mq
 from wipac_dev_tools import logging_tools
@@ -16,6 +17,39 @@ OUT = "out_msg.pkl"
 IN = "in_msg.pkl"
 
 LOGGER = logging.getLogger("skymap-scanner-client")
+
+
+def inmsg_to_infile(in_msg: Any, debug_infile: str) -> str:
+    """Write the msg to the `IN` file.
+
+    Also, dump to a file for debugging (if not "").
+    """
+    with open(IN, "wb") as f:
+        LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {IN}")
+        pickle.dump(in_msg, f)
+    if debug_infile:  # for debugging
+        with open(debug_infile, "wb") as f:
+            LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {debug_infile}")
+            pickle.dump(in_msg, f)
+    return IN
+
+
+def outfile_to_outmsg(debug_outfile: str) -> Any:
+    """Read the msg from the `OUT` file.
+
+    Also, dump to a file for debugging (if not "").
+    """
+    with open(OUT, "rb") as f:
+        out_msg = pickle.load(f)
+        LOGGER.info(f"Pickle-loaded scan from file: {str(out_msg)} @ {OUT}")
+    os.remove(OUT)
+    if debug_outfile:  # for debugging
+        with open(debug_outfile, "wb") as f:
+            LOGGER.info(
+                f"Pickle-dumping scan to file: {str(out_msg)} @ {debug_outfile}"
+            )
+            pickle.dump(out_msg, f)
+    return out_msg
 
 
 async def scan_pixel_distributed(
@@ -49,22 +83,14 @@ async def scan_pixel_distributed(
             # debugging logic
             if debug_directory:
                 debug_time = time.time()
-                debug_in_pkl = os.path.join(debug_directory, f"{debug_time}.in.pkl")
-                debug_out_pkl = os.path.join(debug_directory, f"{debug_time}.out.pkl")
+                debug_infile = os.path.join(debug_directory, f"{debug_time}.in.pkl")
+                debug_outfile = os.path.join(debug_directory, f"{debug_time}.out.pkl")
             else:
-                debug_in_pkl = ""
-                debug_out_pkl = ""
+                debug_infile = ""
+                debug_outfile = ""
 
             # write
-            with open(IN, "wb") as f:
-                LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {IN}")
-                pickle.dump(in_msg, f)
-            if debug_in_pkl:  # for debugging
-                with open(debug_in_pkl, "wb") as f:
-                    LOGGER.info(
-                        f"Pickle-dumping pixel to file: {str(in_msg)} @ {debug_in_pkl}"
-                    )
-                    pickle.dump(in_msg, f)
+            inmsg_to_infile(in_msg, debug_infile)
 
             # call & check outputs
             cmd = (
@@ -84,16 +110,7 @@ async def scan_pixel_distributed(
                 raise RuntimeError("Out file was not written for pixel")
 
             # get
-            with open(OUT, "rb") as f:
-                out_msg = pickle.load(f)
-                LOGGER.info(f"Pickle-loaded scan from file: {str(out_msg)} @ {OUT}")
-            os.remove(OUT)
-            if debug_out_pkl:  # for debugging
-                with open(debug_out_pkl, "wb") as f:
-                    LOGGER.info(
-                        f"Pickle-dumping scan to file: {str(out_msg)} @ {debug_out_pkl}"
-                    )
-                    pickle.dump(out_msg, f)
+            out_msg = outfile_to_outmsg(debug_outfile)
 
             # send
             LOGGER.info("Sending scan to server...")
