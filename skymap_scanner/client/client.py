@@ -121,6 +121,12 @@ async def scan_pixel_distributed(
 
 def main() -> None:
     """Start up Client service."""
+
+    def _create_dir(val: str) -> str:
+        if val:
+            os.makedirs(val, exist_ok=True)
+        return val
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform millipede scans on pixels "
@@ -167,6 +173,7 @@ def main() -> None:
     parser.add_argument(
         "--debug-directory",
         default="",
+        type=_create_dir,
         help="a directory to write all the incoming/outgoing .pkl files "
         "(useful for debugging)",
     )
