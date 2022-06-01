@@ -7,6 +7,7 @@ import os
 import pickle
 import subprocess
 import sys
+import time
 
 import mqclient_pulsar as mq
 from wipac_dev_tools import logging_tools
@@ -22,6 +23,7 @@ async def scan_pixel_distributed(
     auth_token: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
+    debug_directory: str = "",
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
@@ -44,10 +46,25 @@ async def scan_pixel_distributed(
         async for in_msg in sub:
             LOGGER.info(f"Got a pixel to scan: {str(in_msg)}")
 
+            # debugging logic
+            if debug_directory:
+                debug_time = time.time()
+                debug_in_pkl = os.path.join(debug_directory, f"{debug_time}.in.pkl")
+                debug_out_pkl = os.path.join(debug_directory, f"{debug_time}.out.pkl")
+            else:
+                debug_in_pkl = ""
+                debug_out_pkl = ""
+
             # write
             with open(IN, "wb") as f:
                 LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {IN}")
                 pickle.dump(in_msg, f)
+            if debug_in_pkl:  # for debugging
+                with open(debug_in_pkl, "wb") as f:
+                    LOGGER.info(
+                        f"Pickle-dumping pixel to file: {str(in_msg)} @ {debug_in_pkl}"
+                    )
+                    pickle.dump(in_msg, f)
 
             # call & check outputs
             cmd = (
@@ -71,6 +88,12 @@ async def scan_pixel_distributed(
                 out_msg = pickle.load(f)
                 LOGGER.info(f"Pickle-loaded scan from file: {str(out_msg)} @ {OUT}")
             os.remove(OUT)
+            if debug_out_pkl:  # for debugging
+                with open(debug_out_pkl, "wb") as f:
+                    LOGGER.info(
+                        f"Pickle-dumping scan to file: {str(out_msg)} @ {debug_out_pkl}"
+                    )
+                    pickle.dump(out_msg, f)
 
             # send
             LOGGER.info("Sending scan to server...")
@@ -81,6 +104,11 @@ async def scan_pixel_distributed(
 
 def main() -> None:
     """Start up Client service."""
+
+    def _create_dir(val: str) -> str:
+        os.makedirs(val)
+        return val
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform millipede scans on pixels "
@@ -124,6 +152,13 @@ def main() -> None:
         default="WARNING",
         help="the output logging level for third-party loggers",
     )
+    parser.add_argument(
+        "--debug-directory",
+        default="",
+        type=_create_dir,
+        help="a directory to write all the incoming/outgoing .pkl files "
+        "(useful for debugging)",
+    )
 
     args = parser.parse_args()
     logging_tools.set_level(
@@ -145,6 +180,7 @@ def main() -> None:
             topic_from_clients=os.path.join(
                 args.topics_root, f"from-clients-{os.path.basename(args.event_name)}"
             ),
+            debug_directory=args.debug_directory,
         )
     )
     LOGGER.info("Done.")
