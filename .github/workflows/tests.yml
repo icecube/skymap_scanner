@@ -15,6 +15,7 @@ env:
   SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
   PULSAR_ADDRESS: localhost:6650
   PULSAR_AUTH: ""
+  SKYSCAN_DEBUG_DIR: debug-pkl-dir
 
 jobs:
 
