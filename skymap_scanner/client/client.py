@@ -123,7 +123,8 @@ def main() -> None:
     """Start up Client service."""
 
     def _create_dir(val: str) -> str:
-        os.makedirs(val)
+        if val:
+            os.makedirs(val)
         return val
 
     parser = argparse.ArgumentParser(
