@@ -60,7 +60,7 @@ class EventHandler():
             f"Processing event with subprocess, check {log_filepath}")
         with open(log_filepath, 'w') as logfile:
             subprocess.run(['python', alert_processor, '-e',
-                           event_filepath], stdout=logfile, stderr=logfile)
+                           event_filepath], stdout=logfile, stderr=subprocess.STDOUT)
 
 
 class RealtimeEvent():
