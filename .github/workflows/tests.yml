@@ -142,6 +142,6 @@ jobs:
           ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
       - name: Run
         run: |
-          ./tests/docker_scripts/_launch_client_scanner.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/_launch_scan_pixel.sh $SKYSCAN_CONTAINER
       # - name: Test Output
       #   run: |
