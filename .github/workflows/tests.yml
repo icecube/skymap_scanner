@@ -128,7 +128,7 @@ jobs:
   test-run-client-scanner:
     runs-on: ubuntu-latest
     env:
-      SKYSCAN_CLIENT_SCANNER_FILES_DIR: ./tests/data/client_scanner
+      SKYSCAN_CLIENT_SCANNER_FILES_DIR: tests/data/client_scanner
       SKYSCAN_CLIENT_SCANNER_IN_FILENAME: in.pkl
       SKYSCAN_CLIENT_SCANNER_OUT_FILENAME: out.pkl
     steps:
