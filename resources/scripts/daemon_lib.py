@@ -4,6 +4,14 @@ import tempfile
 import subprocess
 import pickle
 
+'''
+Could be useful to have a logger that can optionally post to slack.
+class HybridLogger():
+    def __init__(self, SlackInterface):
+        self.slack = SlackInterface
+        self.log = logging.getLogger(__name__)
+'''
+
 
 class CacheManager():
     def __init__(self, name='skymap_scanner_cache'):
@@ -49,6 +57,13 @@ class EventHandler():
         event_filepath = os.path.join(cache_dir, stem + '.pkl')
         log_filepath = os.path.join(cache_dir, stem + '.log')
 
+        if event.is_valid():
+            log.info(f"Pending event is valid")
+        else:
+            msg = f"Pending event is invalid, keys: {event.keys()}"
+            log.info(msg)
+            slack.post(msg)
+
         self.log.info(f"Writing incoming event to {event_filepath}")
         with open(event_filepath, 'wb') as event_file:
             pickle.dump(event, event_file)
@@ -83,10 +98,19 @@ class RealtimeEvent():
         uid = self.get_uid()
         # dashes are preferred to dots in directory names
         stem = uid.replace('.', '-')
+
         return stem
 
+    def is_valid(self):
+        if 'value' is in self.event:
+            if 'data' in self.event['value']:
+                return True
+            else:
+                return False
+        else:
+            return False
+
     '''
-    # backup in case `get_stem()` fails
     def stem_from_message_time(self):
         # provides uid based on timestamp
         # tentatively superseded
