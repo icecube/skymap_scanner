@@ -5,11 +5,22 @@ import subprocess
 import pickle
 
 '''
-Could be useful to have a logger that can optionally post to slack.
-class HybridLogger():
+Could be useful to have a logger that can optionally post to slack?
+
+from logging import Logger
+
+class FlexiLogger(Logger):
+    # not sure this works because of how super() is resolved
+    log_func = { 'info':super().info, 'debug':super().debug, 'warning':super().warning, 'error':super().error }
+
     def __init__(self, SlackInterface):
         self.slack = SlackInterface
         self.log = logging.getLogger(__name__)
+
+    def log(level='info', slack=False, message=None):
+        if slack:
+            self.slack.post(message)
+        self.log_func[level](message)
 '''
 
 
@@ -52,17 +63,16 @@ class EventHandler():
 
         cache_dir = self.cache.dir
 
-        stem = evt.get_stem()
+        try:
+            stem = evt.get_stem()
+        except KeyError as err:
+            self.log.error(
+                f'Pending event payload is missing or incomplete. Error: {err}')
+            return
+
         # TODO: replace with pathlib Path for readability?
         event_filepath = os.path.join(cache_dir, stem + '.pkl')
         log_filepath = os.path.join(cache_dir, stem + '.log')
-
-        if event.is_valid():
-            log.info(f"Pending event is valid")
-        else:
-            msg = f"Pending event is invalid, keys: {event.keys()}"
-            log.info(msg)
-            slack.post(msg)
 
         self.log.info(f"Writing incoming event to {event_filepath}")
         with open(event_filepath, 'wb') as event_file:
@@ -89,6 +99,12 @@ class RealtimeEvent():
     def get_uid(self):
         return self.event['value']['data']['unique_id']
 
+    def get_run(self):
+        return self.event['value']['data']['run_id']
+
+    def get_event_number(self):
+        return self.event['value']['data']['event_id']
+
     def get_stem(self):
         '''
             filename stem based on evt and run number
@@ -101,14 +117,10 @@ class RealtimeEvent():
 
         return stem
 
-    def is_valid(self):
-        if 'value' is in self.event:
-            if 'data' in self.event['value']:
-                return True
-            else:
-                return False
-        else:
-            return False
+    def get_alert_streams():
+        # previous code used this for no apparent good reason:
+        # [str(x) for x in event["value"]["streams"]]
+        return event['value']['streams']
 
     '''
     def stem_from_message_time(self):

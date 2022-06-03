@@ -6,6 +6,8 @@ from slack_tools import SlackInterface
 
 from daemon_lib import RealtimeEvent
 
+from icecube import dataio
+
 if __name__ == '__main__':
     log = logging.getLogger(__name__)
 
@@ -17,6 +19,10 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--event', help='Event file to process')
     args = parser.parse_args()
 
+    """
+    Load event.
+    """
+
     event_filepath = Path(args.event)
 
     with open(event_filepath, 'rb') as event_file:
@@ -27,6 +33,35 @@ if __name__ == '__main__':
     log.info(
         f'Read {args.event} corresponding to f{event_object.get_unique_id()}')
 
-    log.info('Nothing to be done (at the moment), cleaning up the event file')
+    run = event.get_run()
+    evt = event.get_event_number()
+
+    """
+    Allocate filestagers.
+    """
+
+    stagers = dataio.get_stagers()
+
+    """
+    Preprocessing the event.
+    """
+
+    '''
+    Code from original listener to be converted.
+        event_id, state_dict = extract_json_message(
+            event, filestager=stagers,
+            cache_dir=event_cache_dir,
+            override_GCD_filename=gcd_dir
+        )
+        [run, evt, _] = event_id.split(".")
+    '''
+    # event_id can be already retrieved from the event dictionary
+    frame_packet =
+
+    """
+    Cleanup.
+    """
+
+    log.info('Cleaning up the event file')
 
     event_filepath.unlink()
