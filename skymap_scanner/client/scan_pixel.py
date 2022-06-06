@@ -68,6 +68,7 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
         if not self._frames_injected:
+            self.RequestSuspension()
             return
 
         for frame in self.gcdqp_frames:
