@@ -410,6 +410,7 @@ class SaveRecoResults:
         return frame
 
 
+# fmt: on
 async def serve_pixel_scans(
     event_id_string: str,
     state_dict: StateDict,
@@ -419,6 +420,8 @@ async def serve_pixel_scans(
     producer_name: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
+    timeout_s_to_clients: int,  # for pulsar
+    timeout_s_from_clients: int,  # for pulsar
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -432,8 +435,18 @@ async def serve_pixel_scans(
         cloud_tools/save_pixels.py (only nominally)
     """
     LOGGER.info("Making MQClient queue connections...")
-    to_clients_queue = mq.Queue(address=broker, name=topic_to_clients, auth_token=auth_token)
-    from_clients_queue = mq.Queue(address=broker, name=topic_from_clients, auth_token=auth_token)
+    to_clients_queue = mq.Queue(
+        address=broker,
+        name=topic_to_clients,
+        auth_token=auth_token,
+        timeout=timeout_s_to_clients,
+    )
+    from_clients_queue = mq.Queue(
+        address=broker,
+        name=topic_from_clients,
+        auth_token=auth_token,
+        timeout=timeout_s_from_clients,
+    )
 
     pixeler = PixelsToScan(state_dict=state_dict)
 
@@ -455,7 +468,7 @@ async def serve_pixel_scans(
     saver = SaveRecoResults(
         state_dict=state_dict,
         event_id=event_id_string,
-        cache_dir=cache_dir
+        cache_dir=cache_dir,
     )
 
     # get scans from client(s), collect and save
@@ -491,6 +504,7 @@ def main() -> None:
             return val
         raise exc
 
+    # "physics" args
     parser.add_argument(
         "-e",
         "--event-pkl",
@@ -529,6 +543,8 @@ def main() -> None:
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
+
+    # pulsar args
     parser.add_argument(
         "-t",
         "--topics-root",
@@ -547,6 +563,20 @@ def main() -> None:
         default=None,
         help="The Pulsar authentication token to use",
     )
+    parser.add_argument(
+        "--timeout-pub",
+        dest="timeout_s_to_clients",
+        default=60 * 1,
+        help="timeout (seconds) for sending messages TO client(s)",
+    )
+    parser.add_argument(
+        "--timeout-sub",
+        dest="timeout_s_from_clients",
+        default=60 * 30,
+        help="timeout (seconds) for receiving messages FROM client(s)",
+    )
+
+    # logging args
     parser.add_argument(
         "-l",
         "--log",
@@ -594,6 +624,8 @@ def main() -> None:
             topic_from_clients=os.path.join(
                 args.topics_root, f"from-clients-{os.path.basename(args.event_pkl)}"
             ),
+            timeout_s_to_clients=args.timeout_s_to_clients,
+            timeout_s_from_clients=args.timeout_s_from_clients,
         )
     )
     LOGGER.info("Done.")
