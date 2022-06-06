@@ -126,6 +126,8 @@ def scan_pixel(
         pulsesName+'TimeWindows',
     ]
 
+    SPEScale = 0.99
+
     ########## load data
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
@@ -137,6 +139,8 @@ def scan_pixel(
     assert os.path.exists(base % "abs")
     assert os.path.exists(base % "prob")
     cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", timingSigma=0.0)
+    LOGGER.debug("BB")
+    cascade_service.SetEfficiencies(SPEScale)
     LOGGER.debug("C")
     # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
     # muon_service = photonics_service.I3PhotoSplineService(basemu % "abs", basemu% "prob", 0)
@@ -145,7 +149,6 @@ def scan_pixel(
     # iceModelBaseNames = {"SpiceMie": "ems_mie_z20_a10", "Spice1": "ems_spice1_z20_a10"}
     # iceModelBaseName = iceModelBaseNames["SpiceMie"]
 
-    SPEScale = 0.99
     LOGGER.debug("D")
     tray = I3Tray()
     LOGGER.debug("E")
@@ -201,7 +204,7 @@ def scan_pixel(
         CascadePhotonicsService=cascade_service,
         ShowerRegularization=0,
         PhotonsPerBin=15,
-        DOMEfficiency=SPEScale,
+        # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
         ExcludedDOMs=ExcludedDOMs,
         PartialExclusion=True,
         ReadoutWindow=pulsesName+'TimeRange',
