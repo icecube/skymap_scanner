@@ -51,6 +51,8 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
         self.AddParameter("Pixel", "Pixel PFrame", None)
         self.AddParameter("GCDQpFrames", "GCDQp packet (list of frames)", [])
 
+        self._frames_injected = False
+
     def Configure(self) -> None:
         self.pixel = self.GetParameter("Pixel")
         if not self.pixel:
@@ -65,12 +67,17 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
         if self.PopFrame():
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
+        if not self._frames_injected:
+            return
+
         for frame in self.gcdqp_frames:
             LOGGER.debug(f"Pushing GCDQP Frame: {frame_for_logging(frame)}")
             self.PushFrame(frame)
 
         LOGGER.debug(f"Pushing Pixel Frame: {frame_for_logging(self.pixel)}")
         self.PushFrame(self.pixel)
+
+        self._frames_injected = True
 
 
 def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
