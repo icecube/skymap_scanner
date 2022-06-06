@@ -62,7 +62,10 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
         for frame in self.gcdqp_frames:
+            LOGGER.debug(f"Pushing GCDQP Frame: {frame}/{dict(frame)=}")
             self.PushFrame(frame)
+
+        LOGGER.debug(f"Pushing Pixel Frame: {self.pixel}/{dict(self.pixel)=}")
         self.PushFrame(self.pixel)
 
 
@@ -115,6 +118,9 @@ def scan_pixel(
     LOGGER.info(
         f"Scanning pixel {str(pframe)=}, {str(gcdqp_frames)=}, {str(GCD_diff_base_handle)=}"
     )
+    LOGGER.info(f"{pframe}/{dict(pframe)=}")
+    LOGGER.info(f"{gcdqp_frames}/{dict(gcdqp_frames)=}")
+    LOGGER.info(f"{str(GCD_diff_base_handle)=}")
 
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
     ExcludedDOMs = [
@@ -160,14 +166,13 @@ def scan_pixel(
         GCDQpFrames=gcdqp_frames,
     )
 
-    def makeSurePulsesExist(frame_stream) -> None:
-        print(f"{type(frame_stream)=}")  # TODO - remove & think
+    def makeSurePulsesExist(frame) -> None:
         pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
-        if pulsesName not in frame_stream:
+        if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
-        if pulsesName+"TimeWindows" not in frame_stream:
+        if pulsesName+"TimeWindows" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
-        if pulsesName+"TimeRange" not in frame_stream:
+        if pulsesName+"TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
     LOGGER.debug("F")
     tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist")
@@ -277,10 +282,11 @@ def scan_pixel(
 
     # Write scan out
     def write_scan(frame: icetray.I3Frame) -> None:
-        print(f"{type(frame)=}")  # TODO - remove & think
+        LOGGER.debug(f"write_scan: {frame}/{dict(frame)}")
         if frame.Stop != icetray.I3Frame.Physics:
+            LOGGER.debug("frame.Stop is not Physics")
             return
-        if os.path.exists(out_file):  # will guarantee only one PFrame is written
+        if os.path.exists(out_file):  # will guarantee only one PFrame is written # TODO is this realistic?
             raise FileExistsError(out_file)
         with open(out_file, 'wb') as f:
             LOGGER.info(f"Pickle-dumping scan ({frame=}) to {out_file}.")
