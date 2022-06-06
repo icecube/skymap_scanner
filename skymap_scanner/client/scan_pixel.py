@@ -43,7 +43,7 @@ def frame_for_logging(frame: icetray.I3Frame) -> str:
     return f"{repr(frame)}/{frame}"
 
 
-class InjectFrames(icetray.I3Module):  # type: ignore[misc]
+class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
     """Push Pixel PFrame into tray along with GCDQp frames."""
 
     def __init__(self, ctx: Any) -> None:
@@ -51,7 +51,7 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
         self.AddParameter("Pixel", "Pixel PFrame", None)
         self.AddParameter("GCDQpFrames", "GCDQp packet (list of frames)", [])
 
-        self._frames_injected = False
+        self._frames_loaded = False
 
     def Configure(self) -> None:
         self.pixel = self.GetParameter("Pixel")
@@ -65,9 +65,9 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
     def Process(self) -> None:
         """Push the given frames."""
         if self.PopFrame():
-            raise RuntimeError("InjectFrames needs to be used as a driving module")
+            raise RuntimeError("LoadInitialFrames needs to be used as a driving module")
 
-        if self._frames_injected:  # are we done yet?
+        if self._frames_loaded:  # are we done yet?
             self.RequestSuspension()
             return
 
@@ -78,7 +78,7 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
         LOGGER.debug(f"Pushing Pixel Frame: {frame_for_logging(self.pixel)}")
         self.PushFrame(self.pixel)
 
-        self._frames_injected = True
+        self._frames_loaded = True
 
 
 def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
@@ -164,8 +164,8 @@ def scan_pixel(
 
     tray = I3Tray()
     tray.AddModule(
-        InjectFrames,
-        "InjectFrames",
+        LoadInitialFrames,
+        "LoadInitialFrames",
         Pixel=pframe,
         GCDQpFrames=gcdqp_frames,
     )
