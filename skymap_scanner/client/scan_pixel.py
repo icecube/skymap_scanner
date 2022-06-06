@@ -67,7 +67,7 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
         if self.PopFrame():
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
-        if not self._frames_injected:
+        if self._frames_injected:  # are we done yet?
             self.RequestSuspension()
             return
 
