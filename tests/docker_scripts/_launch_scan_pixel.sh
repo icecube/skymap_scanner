@@ -3,6 +3,7 @@
 set -x
 
 docker run --network="host" --rm -i \
+    --shm-size=6gb \
     --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd-dir \
     --mount type=bind,source="$(pwd)"/$SKYSCAN_CLIENT_SCANNER_FILES_DIR,target=/local/$SKYSCAN_CLIENT_SCANNER_FILES_DIR \
     --env PY_COLORS=1 \
