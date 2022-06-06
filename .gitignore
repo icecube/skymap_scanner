@@ -159,3 +159,6 @@ env*/
 !ic191001a_sim.i3
 *.HESE/
 debug-pkl-dir/
+*.rpm
+*.deb
+*.sif
