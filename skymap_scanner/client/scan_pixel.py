@@ -62,10 +62,10 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
         for frame in self.gcdqp_frames:
-            LOGGER.debug(f"Pushing GCDQP Frame: {frame}/{dict(frame)=}")
+            LOGGER.debug(f"Pushing GCDQP Frame: {frame=}")
             self.PushFrame(frame)
 
-        LOGGER.debug(f"Pushing Pixel Frame: {self.pixel}/{dict(self.pixel)=}")
+        LOGGER.debug(f"Pushing Pixel Frame: {self.pixel=}")
         self.PushFrame(self.pixel)
 
 
@@ -115,11 +115,9 @@ def scan_pixel(
     out_file: str,
 ) -> str:
     """Actually do the scan."""
-    LOGGER.info(
-        f"Scanning pixel {str(pframe)=}, {str(gcdqp_frames)=}, {str(GCD_diff_base_handle)=}"
-    )
-    LOGGER.info(f"{pframe}/{dict(pframe)=}")
-    LOGGER.info(f"{gcdqp_frames}/{dict(gcdqp_frames)=}")
+    LOGGER.info("Scanning pixel...")
+    LOGGER.info(f"({repr(pframe)})/{pframe=}")
+    LOGGER.info(f"{gcdqp_frames=}")
     LOGGER.info(f"{str(GCD_diff_base_handle)=}")
 
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
@@ -282,7 +280,7 @@ def scan_pixel(
 
     # Write scan out
     def write_scan(frame: icetray.I3Frame) -> None:
-        LOGGER.debug(f"write_scan: {frame}/{dict(frame)}")
+        LOGGER.debug(f"write_scan: {frame=}")
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
