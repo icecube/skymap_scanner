@@ -39,6 +39,10 @@ from .. import config
 LOGGER = logging.getLogger("skymap-scanner-client-scanner")
 
 
+def frame_for_logging(frame: icetray.I3Frame) -> str:
+    return f"{repr(frame)}/{frame}"
+
+
 class InjectFrames(icetray.I3Module):  # type: ignore[misc]
     """Push Pixel PFrame into tray along with GCDQp frames."""
 
@@ -62,10 +66,10 @@ class InjectFrames(icetray.I3Module):  # type: ignore[misc]
             raise RuntimeError("InjectFrames needs to be used as a driving module")
 
         for frame in self.gcdqp_frames:
-            LOGGER.debug(f"Pushing GCDQP Frame: {frame=}")
+            LOGGER.debug(f"Pushing GCDQP Frame: {frame_for_logging(frame)}")
             self.PushFrame(frame)
 
-        LOGGER.debug(f"Pushing Pixel Frame: {self.pixel=}")
+        LOGGER.debug(f"Pushing Pixel Frame: {frame_for_logging(self.pixel)}")
         self.PushFrame(self.pixel)
 
 
@@ -116,8 +120,9 @@ def scan_pixel(
 ) -> str:
     """Actually do the scan."""
     LOGGER.info("Scanning pixel...")
-    LOGGER.info(f"({repr(pframe)})/{pframe=}")
-    LOGGER.info(f"{gcdqp_frames=}")
+    LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
+    for frame in gcdqp_frames:
+        LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{str(GCD_diff_base_handle)=}")
 
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
@@ -280,14 +285,14 @@ def scan_pixel(
 
     # Write scan out
     def write_scan(frame: icetray.I3Frame) -> None:
-        LOGGER.debug(f"write_scan: {frame=}")
+        LOGGER.debug(f"write_scan: {frame_for_logging(frame)}")
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
         if os.path.exists(out_file):  # will guarantee only one PFrame is written # TODO is this realistic?
             raise FileExistsError(out_file)
         with open(out_file, 'wb') as f:
-            LOGGER.info(f"Pickle-dumping scan ({frame=}) to {out_file}.")
+            LOGGER.info(f"Pickle-dumping scan ({frame_for_logging(frame)}) to {out_file}.")
             pickle.dump(frame, f)
     LOGGER.debug("T")
     tray.AddModule(write_scan, "write_scan")
