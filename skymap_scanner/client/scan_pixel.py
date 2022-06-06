@@ -175,7 +175,7 @@ def scan_pixel(
     ########## perform the fit
 
     def notifyStart(frame):
-        LOGGER.debug("got data - uncompressing GCD", datetime.datetime.now())
+        LOGGER.debug(f"got data - uncompressing GCD {datetime.datetime.now()}")
 
     LOGGER.debug("G")
     tray.AddModule(notifyStart, "notifyStart")
@@ -195,7 +195,7 @@ def scan_pixel(
                  base_GCD_filename=str(GCD_diff_base_handle))
 
     def notify0(frame):
-        LOGGER.debug("starting a new fit!", datetime.datetime.now())
+        LOGGER.debug(f"starting a new fit! {datetime.datetime.now()}")
     LOGGER.debug("H")
     tray.AddModule(notify0, "notify0")
     LOGGER.debug("I")
@@ -240,8 +240,8 @@ def scan_pixel(
         Minimizer='simplex')
 
     def notify1(frame):
-        LOGGER.debug("1st pass done!", datetime.datetime.now())
-        LOGGER.debug("MillipedeStarting1stPass", frame["MillipedeStarting1stPass"])
+        LOGGER.debug(f"1st pass done! {datetime.datetime.now()}")
+        LOGGER.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
     LOGGER.debug("O")
     tray.AddModule(notify1, "notify1")
     LOGGER.debug("P")
@@ -270,8 +270,8 @@ def scan_pixel(
         Minimizer='simplex')
 
     def notify2(frame):
-        LOGGER.debug("2nd pass done!", datetime.datetime.now())
-        LOGGER.debug("MillipedeStarting2ndPass", frame["MillipedeStarting2ndPass"])
+        LOGGER.debug(f"2nd pass done! {datetime.datetime.now()}")
+        LOGGER.debug(f"MillipedeStarting2ndPass: {frame['MillipedeStarting2ndPass']}")
     LOGGER.debug("S")
     tray.AddModule(notify2, "notify2")
 
