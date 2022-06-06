@@ -133,6 +133,8 @@ def scan_pixel(
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{str(GCD_diff_base_handle)=}")
 
+    # Constants ########################################################
+
     pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
     ExcludedDOMs = [
         'CalibrationErrata',
@@ -142,34 +144,25 @@ def scan_pixel(
         'BrightDOMs',
         pulsesName+'TimeWindows',
     ]
-
     SPEScale = 0.99
 
-    ########## load data
+    # Load Data ########################################################
+
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use ems_mie instead of InfBareMu_mie even for tracks
-    # base = os.path.expandvars('$I3_DATA/photon-tables/splines/ems_mie_z20_a10.%s.fits')
-    LOGGER.debug("A")
     base = os.path.expandvars('$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits')
-    LOGGER.debug("B")
-    assert os.path.exists(base % "abs")
-    assert os.path.exists(base % "prob")
+    for fname in [base % "abs", base % "prob"]:
+        if not os.path.exists(fname):
+            raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", timingSigma=0.0)
-    LOGGER.debug("BB")
     cascade_service.SetEfficiencies(SPEScale)
-    LOGGER.debug("C")
-    # basemu = os.path.expandvars('$I3_DATA/photon-tables/splines/InfBareMu_mie_%s_z20a10_V2.fits')
-    # muon_service = photonics_service.I3PhotoSplineService(basemu % "abs", basemu% "prob", 0)
+
     muon_service = None
 
-    # iceModelBaseNames = {"SpiceMie": "ems_mie_z20_a10", "Spice1": "ems_spice1_z20_a10"}
-    # iceModelBaseName = iceModelBaseNames["SpiceMie"]
+    # Build Tray #######################################################
 
-    LOGGER.debug("D")
     tray = I3Tray()
-    LOGGER.debug("E")
-    # Inject the frames
     tray.AddModule(
         InjectFrames,
         "InjectFrames",
@@ -185,7 +178,7 @@ def scan_pixel(
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
         if pulsesName+"TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
-    LOGGER.debug("F")
+
     tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist")
 
     ########## perform the fit
@@ -193,7 +186,6 @@ def scan_pixel(
     def notifyStart(frame):
         LOGGER.debug(f"got data - uncompressing GCD {datetime.datetime.now()}")
 
-    LOGGER.debug("G")
     tray.AddModule(notifyStart, "notifyStart")
 
     @icetray.traysegment
@@ -212,9 +204,9 @@ def scan_pixel(
 
     def notify0(frame):
         LOGGER.debug(f"starting a new fit! {datetime.datetime.now()}")
-    LOGGER.debug("H")
+
     tray.AddModule(notify0, "notify0")
-    LOGGER.debug("I")
+
     tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
         MuonPhotonicsService=muon_service,
         CascadePhotonicsService=cascade_service,
@@ -226,12 +218,12 @@ def scan_pixel(
         ReadoutWindow=pulsesName+'TimeRange',
         Pulses=pulsesName,
         BinSigma=3)
-    LOGGER.debug("J")
+
     tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
-    LOGGER.debug("K")
+
     tray.AddService('I3GSLSimplexFactory', 'simplex',
         MaxIterations=20000)
-    LOGGER.debug("L")
+
     tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
         MuonSpacing=0.*I3Units.m,
         ShowerSpacing=5.*I3Units.m,
@@ -242,12 +234,12 @@ def scan_pixel(
         StepZenith = 0.,
         StepAzimuth = 0.,
         )
-    LOGGER.debug("M")
+
     tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
         FirstGuesses=['MillipedeSeedParticle'],
         TimeShiftType='TNone',
         PositionShiftType='None')
-    LOGGER.debug("N")
+
     tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
         OutputName='MillipedeStarting1stPass',
         SeedService='vetoseed',
@@ -258,9 +250,9 @@ def scan_pixel(
     def notify1(frame):
         LOGGER.debug(f"1st pass done! {datetime.datetime.now()}")
         LOGGER.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
-    LOGGER.debug("O")
+
     tray.AddModule(notify1, "notify1")
-    LOGGER.debug("P")
+
     tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
         MuonSpacing=0.*I3Units.m,
         ShowerSpacing=2.5*I3Units.m,
@@ -272,12 +264,12 @@ def scan_pixel(
         StepZenith = 0.,
         StepAzimuth = 0.,
         )
-    LOGGER.debug("Q")
+
     tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
         FirstGuess='MillipedeStarting1stPass',
         TimeShiftType='TNone',
         PositionShiftType='None')
-    LOGGER.debug("R")
+
     tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
         OutputName='MillipedeStarting2ndPass',
         SeedService='firstFitSeed',
@@ -288,7 +280,7 @@ def scan_pixel(
     def notify2(frame):
         LOGGER.debug(f"2nd pass done! {datetime.datetime.now()}")
         LOGGER.debug(f"MillipedeStarting2ndPass: {frame['MillipedeStarting2ndPass']}")
-    LOGGER.debug("S")
+
     tray.AddModule(notify2, "notify2")
 
     # Write scan out
@@ -297,15 +289,17 @@ def scan_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if os.path.exists(out_file):  # will guarantee only one PFrame is written # TODO is this realistic?
+        if os.path.exists(out_file):
             raise FileExistsError(out_file)
         with open(out_file, 'wb') as f:
             LOGGER.info(f"Pickle-dumping scan ({frame_for_logging(frame)}) to {out_file}.")
             pickle.dump(frame, f)
-    LOGGER.debug("T")
+
     tray.AddModule(write_scan, "write_scan")
-    LOGGER.debug("U")
+
     tray.AddModule('TrashCan', 'thecan')
+
+    # Start Tray #######################################################
 
     LOGGER.info("Staring IceTray...")
     tray.Execute()
@@ -313,9 +307,10 @@ def scan_pixel(
     del tray
     LOGGER.info("Done with IceTray.")
 
+    # Check Output #####################################################
+
     if not os.path.exists(out_file):
         raise FileNotFoundError(f"Out file was not written: {out_file}")
-
     return out_file
 
 
