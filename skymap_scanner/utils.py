@@ -5,7 +5,7 @@
 
 import hashlib
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
@@ -146,3 +146,16 @@ def extract_MC_truth(state_dict):
     state_dict['MCradec'] = (ra, dec)
 
     return state_dict
+
+
+# fmt: on
+def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
+    """Get a tuple representing a pixel PFrame for logging."""
+    return (
+        pixel["SCAN_HealpixPixel"],
+        pixel["SCAN_HealpixNSide"],
+        pixel["SCAN_PositionVariationIndex"],
+    )
+
+
+# fmt: off

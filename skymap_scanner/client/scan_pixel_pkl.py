@@ -35,6 +35,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from wipac_dev_tools import logging_tools
 
 from .. import config
+from ..utils import pixel_to_tuple
 
 LOGGER = logging.getLogger("skyscan-client-scanner")
 
@@ -127,10 +128,7 @@ def scan_pixel(
     out_file: str,
 ) -> str:
     """Actually do the scan."""
-    LOGGER.info(
-        f"Scanning pixel: "
-        f"({(pframe['SCAN_HealpixNSide'].value, pframe['SCAN_HealpixPixel'].value)})..."
-    )
+    LOGGER.info(f"Scanning pixel: {pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in gcdqp_frames:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
@@ -288,14 +286,19 @@ def scan_pixel(
 
     # Write scan out
     def write_scan(frame: icetray.I3Frame) -> None:
-        LOGGER.debug(f"write_scan: {frame_for_logging(frame)}")
+        LOGGER.debug(
+            f"write_scan {pixel_to_tuple(frame)}: {frame_for_logging(frame)}"
+        )
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
         if os.path.exists(out_file):
             raise FileExistsError(out_file)
         with open(out_file, 'wb') as f:
-            LOGGER.info(f"Pickle-dumping scan ({frame_for_logging(frame)}) to {out_file}.")
+            LOGGER.info(
+                f"Pickle-dumping scan {pixel_to_tuple(frame)}: "
+                f"{frame_for_logging(frame)} to {out_file}."
+            )
             pickle.dump(frame, f)
 
     tray.AddModule(write_scan, "write_scan")
@@ -313,7 +316,9 @@ def scan_pixel(
     # Check Output #####################################################
 
     if not os.path.exists(out_file):
-        raise FileNotFoundError(f"Out file was not written: {out_file}")
+        raise FileNotFoundError(
+            f"Out file was not written {pixel_to_tuple(pframe)}: {out_file}"
+        )
     return out_file
 
 
