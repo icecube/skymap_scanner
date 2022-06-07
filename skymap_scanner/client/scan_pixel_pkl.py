@@ -127,7 +127,10 @@ def scan_pixel(
     out_file: str,
 ) -> str:
     """Actually do the scan."""
-    LOGGER.info("Scanning pixel...")
+    LOGGER.info(
+        f"Scanning pixel: "
+        f"({(pframe['SCAN_HealpixNSide'].value, pframe['SCAN_HealpixPixel'].value)})..."
+    )
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in gcdqp_frames:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
