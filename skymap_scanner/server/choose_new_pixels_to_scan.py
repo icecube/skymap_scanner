@@ -5,9 +5,11 @@
 
 import random
 from optparse import OptionParser
+from typing import Tuple
 
 import healpy  # type: ignore[import]
-import numpy  # type: ignore[import]
+import numpy
+from icecube import icetray  # type: ignore[import]
 
 from ..load_scan_state import load_cache_state
 
@@ -161,7 +163,7 @@ def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*
     return scan_pixels
 
 
-def choose_new_pixels_to_scan(state_dict, max_nside=512, ang_dist=2.):
+def choose_new_pixels_to_scan(state_dict, max_nside=512, ang_dist=2.) -> Tuple[icetray.I3Int, icetray.I3Int]:
     # special case if we have MC truth
     if "MCradec" in state_dict:
         # scan only at max_nside around the true minimum

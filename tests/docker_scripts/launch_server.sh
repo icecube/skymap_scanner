@@ -12,4 +12,5 @@ docker run --network="host" --rm -i \
     --cache-dir /local/$SKYSCAN_CACHE_DIR \
     --gcd-dir /local/gcd-dir \
     --broker $PULSAR_ADDRESS \
-    --log DEBUG
+    --log DEBUG \
+    --mini-test-scan

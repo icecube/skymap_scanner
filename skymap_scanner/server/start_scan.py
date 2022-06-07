@@ -59,6 +59,7 @@ class PixelsToScan:
         skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
         skymap_plotting_callback_interval_in_seconds: int = 30*60,
         finish_function: Optional[Callable[[StateDict], None]] = None,
+        mini_test_scan: bool = False,
     ) -> None:
         """
         Arguments:
@@ -80,6 +81,8 @@ class PixelsToScan:
                 - a callback function the receives the full
             `finish_function`
                 - function to be run once scan is finished. handles final plotting
+            `mini_test_scan`
+                - whether this is a mini test scan (fewer variations)
         """
         self.state_dict = state_dict
         self.input_pos_name = input_pos_name
@@ -90,6 +93,7 @@ class PixelsToScan:
         self.skymap_plotting_callback = skymap_plotting_callback
         self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
         self.finish_function = finish_function
+        self.mini_test_scan = mini_test_scan
 
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -168,7 +172,11 @@ class PixelsToScan:
                     self.pixels_in_process.remove( (nside,pixel) )
 
         # find pixels to refine
-        pixels_to_refine: List[NSidePixelPair] = choose_new_pixels_to_scan(self.state_dict)  # type: ignore[no-untyped-call]
+        if self.mini_test_scan:  # Use Just 1 NSide for Mini-Test Scan
+            pixels_to_refine = choose_new_pixels_to_scan(self.state_dict, max_nside=1)
+        else:
+            pixels_to_refine = choose_new_pixels_to_scan(self.state_dict)
+
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
         if len(pixels_to_refine) == 0:
@@ -430,6 +438,7 @@ async def serve_pixel_scans(
     topic_from_clients: str,  # for pulsar
     timeout_s_to_clients: int,  # for pulsar
     timeout_s_from_clients: int,  # for pulsar
+    mini_test_scan: bool,
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -562,6 +571,14 @@ def main() -> None:
         ),
     )
 
+    # testing/debugging args
+    parser.add_argument(
+        "--mini-test-scan",
+        default=False,
+        action="store_true",
+        help="run a mini scan for testing (fewer pixels, variations, etc.)",
+    )
+
     # pulsar args
     parser.add_argument(
         "-t",
@@ -644,6 +661,7 @@ def main() -> None:
             ),
             timeout_s_to_clients=args.timeout_s_to_clients,
             timeout_s_from_clients=args.timeout_s_from_clients,
+            mini_test_scan=args.mini_test_scan,
         )
     )
     LOGGER.info("Done.")
