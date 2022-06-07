@@ -93,6 +93,24 @@ class PixelsToScan:
         self.skymap_plotting_callback = skymap_plotting_callback
         self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
         self.finish_function = finish_function
+
+        variationDistance = 20.*I3Units.m
+        if mini_test_scan:  # Use Just 2 Variations for Mini-Test Scan
+            self.posVariations = [
+                dataclasses.I3Position(0.,0.,0.),
+                dataclasses.I3Position(-variationDistance,0.,0.)
+            ]
+        else:
+            self.posVariations = [
+                dataclasses.I3Position(0.,0.,0.),
+                dataclasses.I3Position(-variationDistance,0.,0.),
+                dataclasses.I3Position( variationDistance,0.,0.),
+                dataclasses.I3Position(0.,-variationDistance,0.),
+                dataclasses.I3Position(0., variationDistance,0.),
+                dataclasses.I3Position(0.,0.,-variationDistance),
+                dataclasses.I3Position(0.,0., variationDistance)
+            ]
+
         # Production Scan or Mini-Test Scan?
         if mini_test_scan:
             self.min_nside = 1
@@ -265,17 +283,8 @@ class PixelsToScan:
                     time = coarser_particle.time
                     energy = coarser_particle.energy
 
-        variationDistance = 20.*I3Units.m
-        posVariations = [dataclasses.I3Position(0.,0.,0.),
-                         dataclasses.I3Position(-variationDistance,0.,0.),
-                         dataclasses.I3Position( variationDistance,0.,0.),
-                         dataclasses.I3Position(0.,-variationDistance,0.),
-                         dataclasses.I3Position(0., variationDistance,0.),
-                         dataclasses.I3Position(0.,0.,-variationDistance),
-                         dataclasses.I3Position(0.,0., variationDistance)]
-
-        for i in range(0,len(posVariations)):
-            posVariation = posVariations[i]
+        for i in range(0,len(self.posVariations)):
+            posVariation = self.posVariations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
             thisPosition = dataclasses.I3Position(position.x + posVariation.x,position.y + posVariation.y,position.z + posVariation.z)
@@ -311,8 +320,10 @@ class FindBestRecoResultForPixel:
 
     def __init__(
         self,
-        NPosVar: int = 7,  # Number of position variations to collect
+        NPosVar: int,  # Number of position variations to collect
     ) -> None:
+        if NPosVar <= 0:
+            raise ValueError(f"NPosVar is not positive: {NPosVar}")
         self.NPosVar = NPosVar
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
         self.count = 0  # TODO - add smarter count logic, like decrementing from an expected amount
@@ -497,7 +508,7 @@ async def serve_pixel_scans(
             )
     LOGGER.info("Done serving pixels to clients.")
 
-    finder = FindBestRecoResultForPixel()
+    finder = FindBestRecoResultForPixel(NPosVar=len(pixeler.posVariations))
     saver = SaveRecoResults(
         state_dict=state_dict,
         event_id=event_id_string,
