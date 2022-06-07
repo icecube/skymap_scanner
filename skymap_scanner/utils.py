@@ -152,9 +152,9 @@ def extract_MC_truth(state_dict):
 def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
     """Get a tuple representing a pixel PFrame for logging."""
     return (
-        int(pixel["SCAN_HealpixNSide"]),
-        int(pixel["SCAN_HealpixPixel"]),
-        int(pixel["SCAN_PositionVariationIndex"]),
+        pixel["SCAN_HealpixNSide"].value,
+        pixel["SCAN_HealpixPixel"].value,
+        pixel["SCAN_PositionVariationIndex"].value,
     )
 
 

@@ -22,7 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterator, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
