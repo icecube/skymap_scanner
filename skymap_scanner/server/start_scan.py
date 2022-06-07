@@ -37,7 +37,7 @@ from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
-LOGGER = logging.getLogger("skymap-scanner-server")
+LOGGER = logging.getLogger("skyscan-server")
 
 
 class PixelsToScan:

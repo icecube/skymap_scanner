@@ -36,7 +36,7 @@ from wipac_dev_tools import logging_tools
 
 from .. import config
 
-LOGGER = logging.getLogger("skymap-scanner-client-scanner")
+LOGGER = logging.getLogger("skyscan-client-scanner")
 
 
 def frame_for_logging(frame: icetray.I3Frame) -> str:

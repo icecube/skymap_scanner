@@ -16,7 +16,7 @@ from wipac_dev_tools import logging_tools
 OUT = "out_msg.pkl"
 IN = "in_msg.pkl"
 
-LOGGER = logging.getLogger("skymap-scanner-client")
+LOGGER = logging.getLogger("skyscan-client")
 
 
 def inmsg_to_infile(in_msg: Any, debug_infile: str) -> str:
