@@ -173,9 +173,13 @@ class PixelsToScan:
 
         # find pixels to refine
         if self.mini_test_scan:  # Use Just 1 NSide for Mini-Test Scan
-            pixels_to_refine = choose_new_pixels_to_scan(self.state_dict, max_nside=1)
+            min_nside = 1
+            pixels_to_refine = choose_new_pixels_to_scan(
+                self.state_dict, max_nside=1, min_nside=min_nside
+            )
         else:
             pixels_to_refine = choose_new_pixels_to_scan(self.state_dict)
+            min_nside = 8
 
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
@@ -201,12 +205,15 @@ class PixelsToScan:
         for i, nside_pix in enumerate(pixels_to_submit):
             LOGGER.debug(f"Generating position-variations from pixel P#{i}: {nside_pix}")
             self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
-            yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
+            yield from self._gen_for_nside_pixel(
+                nside=nside_pix[0], pixel=nside_pix[1], min_nside=min_nside
+            )
 
     def _gen_for_nside_pixel(
         self,
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
+        min_nside: int,
     ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned for a given `nside` and `pixel`."""
 
@@ -219,7 +226,8 @@ class PixelsToScan:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        if nside == 8:
+        # test-case-scan: this whole part is different
+        if nside == min_nside:
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
@@ -229,25 +237,32 @@ class PixelsToScan:
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
 
-                if coarser_nside < 8:
-                    raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
+                if coarser_nside < min_nside:
+                    break # no coarser pixel is available (probably we are just scanning finely around MC truth)
+                    #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
                 if coarser_nside in self.state_dict["nsides"]:
                     if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
                         # coarser pixel found
                         break
 
-            if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
-                # coarser reconstruction failed
+            if coarser_nside < min_nside:
+                # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
                 time = self.fallback_time
                 energy = self.fallback_energy
             else:
-                coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
-                coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
-                position = coarser_particle.pos
-                time = coarser_particle.time
-                energy = coarser_particle.energy
+                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
+                    # coarser reconstruction failed
+                    position = self.fallback_position
+                    time = self.fallback_time
+                    energy = self.fallback_energy
+                else:
+                    coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
+                    coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
+                    position = coarser_particle.pos
+                    time = coarser_particle.time
+                    energy = coarser_particle.energy
 
         variationDistance = 20.*I3Units.m
         posVariations = [dataclasses.I3Position(0.,0.,0.),
@@ -465,7 +480,7 @@ async def serve_pixel_scans(
         timeout=timeout_s_from_clients,
     )
 
-    pixeler = PixelsToScan(state_dict=state_dict)
+    pixeler = PixelsToScan(state_dict=state_dict, mini_test_scan=mini_test_scan)
 
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
