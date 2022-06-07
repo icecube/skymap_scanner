@@ -321,12 +321,18 @@ class FindBestRecoResultForPixel:
     def __init__(
         self,
         NPosVar: int,  # Number of position variations to collect
+        npixels: int,  # Number of expected pixels
     ) -> None:
         if NPosVar <= 0:
             raise ValueError(f"NPosVar is not positive: {NPosVar}")
         self.NPosVar = NPosVar
+
+        if npixels <= 0:
+            raise ValueError(f"npixels is not positive: {npixels}")
+        self.npixels = npixels
+
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
-        self.count = 0  # TODO - add smarter count logic, like decrementing from an expected amount
+        self.count = 0
 
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
         """Add frame to internal cache and possibly return the best scan for pixel.
@@ -335,6 +341,7 @@ class FindBestRecoResultForPixel:
         return the best one. Otherwise, return None.
         """
         self.count += 1
+        LOGGER.info(f"Cache: {self.count}/{self.npixels} ({self.count/self.npixels})")
 
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
@@ -387,12 +394,17 @@ class FindBestRecoResultForPixel:
         if not self.count:
             raise RuntimeError("No pixels were ever received.")
 
-        if len(self.pixelNumToFramesMap) == 0:
-            return
+        if self.count != self.npixels:
+            raise RuntimeError(
+                f"Not all pixels were received: "
+                f"{self.count}/{self.npixels} ({self.count/self.npixels})"
+            )
 
-        LOGGER.warning("**** WARN ****  --  pixels left in cache, not all of the packets seem to be complete")
-        LOGGER.warning(self.pixelNumToFramesMap)
-        LOGGER.warning("**** WARN ****  --  END")
+        if len(self.pixelNumToFramesMap) != 0:  # this check really shouldn't trigger
+            raise RuntimeError(
+                f"Pixels left in cache, not all of the packets seem to be complete: "
+                f"{self.count}/{self.npixels} ({self.count/self.npixels})"
+            )
 
 
 class SaveRecoResults:
@@ -506,9 +518,13 @@ async def serve_pixel_scans(
                     "base_GCD_filename_url": state_dict["baseline_GCD_file"],
                 }
             )
-    LOGGER.info("Done serving pixels to clients.")
+        npixels = i + 1  # 0-indexing :)
+    LOGGER.info(f"Done serving pixels to clients: {npixels}.")
 
-    finder = FindBestRecoResultForPixel(NPosVar=len(pixeler.posVariations))
+    finder = FindBestRecoResultForPixel(
+        NPosVar=len(pixeler.posVariations),
+        npixels=npixels,
+    )
     saver = SaveRecoResults(
         state_dict=state_dict,
         event_id=event_id_string,
