@@ -185,8 +185,8 @@ class PixelsToScan:
                 pixels_to_submit.append(pixel)
 
         # submit the pixels we need to submit
-        for nside_pix in pixels_to_submit:
-            LOGGER.debug(f"Generating from pixel: {nside_pix}")
+        for i, nside_pix in enumerate(pixels_to_submit):
+            LOGGER.debug(f"Generating position-variations from pixel P#{i}: {nside_pix}")
             self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
             yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
 
@@ -270,7 +270,10 @@ class PixelsToScan:
             p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
             p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
 
-            LOGGER.debug(f"Yielding PFrame #{i} for {(nside, pixel)} ({posVariation=})...")
+            LOGGER.debug(
+                f"Yielding PFrame (pixel position-variation) PV#{i} "
+                f"for {(nside, pixel)} ({posVariation=})..."
+            )
             yield p_frame
 
 
@@ -285,8 +288,12 @@ class FindBestRecoResultForPixel:
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
         self.count = 0  # TODO - add smarter count logic, like decrementing from an expected amount
 
-    def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
+    def cache_and_get_best(
+        self, frame: icetray.I3Frame
+    ) -> Tuple[Tuple[int,int], Optional[icetray.I3Frame]]:
         """Add frame to internal cache and possibly return the best scan for pixel.
+
+        Return the index and scan.
 
         If all the scans for the embedded pixel have be received,
         return the best one. Otherwise, return None.
@@ -327,13 +334,13 @@ class FindBestRecoResultForPixel:
 
             if bestFrame is None:
                 # just push the first frame if all of them are nan
-                return self.pixelNumToFramesMap[index][0]
+                return index, self.pixelNumToFramesMap[index][0]
             else:
-                return bestFrame
+                return index, bestFrame
 
             del self.pixelNumToFramesMap[index]
 
-        return None
+        return index, None
 
     def finish(self) -> None:
         """Check if all the scans were received.
@@ -454,7 +461,7 @@ async def serve_pixel_scans(
     LOGGER.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # topic_to_clients
-            LOGGER.info(f"Sending pixel #{i}...")
+            LOGGER.info(f"Sending message M#{i}...")
             await pub.send(
                 {
                     "Pixel_PFrame": pframe,
@@ -474,13 +481,20 @@ async def serve_pixel_scans(
     # get scans from client(s), collect and save
     LOGGER.info("Receiving scans from clients...")
     async with from_clients_queue.open_sub() as sub:
+        i = -1
         async for scan in sub:
-            LOGGER.info(f"Got a scan: {str(scan)}")
-            best_scan = finder.cache_and_get_best(scan)
+            i += 1
+            LOGGER.info(f"Got a scan S#{i}: {scan}")
+            index, best_scan = finder.cache_and_get_best(scan)
+            LOGGER.info(f"Cached scan S#{i} ({index})")
             if not best_scan:
+                LOGGER.debug(f"Best scan yet to be found (S#{i}) ({index})")
                 continue
-            LOGGER.info(f"Saving a BEST scan: {str(best_scan)}")
+            LOGGER.info(
+                f"Saving a BEST scan (found during S#{i}) ({index}): {best_scan}"
+            )
             saver.save(best_scan)
+            LOGGER.debug(f"Saved (found during S#{i}) ({index}).")
 
     finder.finish()
     LOGGER.info("Done receiving/saving scans from clients.")
