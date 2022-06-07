@@ -93,7 +93,11 @@ class PixelsToScan:
         self.skymap_plotting_callback = skymap_plotting_callback
         self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
         self.finish_function = finish_function
-        self.mini_test_scan = mini_test_scan
+        # Production Scan or Mini-Test Scan?
+        if mini_test_scan:
+            self.min_nside = 1
+        else:
+            self.min_nside = 8
 
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -172,14 +176,14 @@ class PixelsToScan:
                     self.pixels_in_process.remove( (nside,pixel) )
 
         # find pixels to refine
-        if self.mini_test_scan:  # Use Just 1 NSide for Mini-Test Scan
-            min_nside = 1
+        if self.min_nside == 1:  # (mini test scan)
             pixels_to_refine = choose_new_pixels_to_scan(
-                self.state_dict, max_nside=1, min_nside=min_nside
+                self.state_dict, min_nside=self.min_nside, max_nside=1
             )
         else:
-            pixels_to_refine = choose_new_pixels_to_scan(self.state_dict)
-            min_nside = 8
+            pixels_to_refine = choose_new_pixels_to_scan(
+                self.state_dict, min_nside=self.min_nside
+            )
 
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
@@ -205,15 +209,12 @@ class PixelsToScan:
         for i, nside_pix in enumerate(pixels_to_submit):
             LOGGER.debug(f"Generating position-variations from pixel P#{i}: {nside_pix}")
             self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
-            yield from self._gen_for_nside_pixel(
-                nside=nside_pix[0], pixel=nside_pix[1], min_nside=min_nside
-            )
+            yield from self._gen_for_nside_pixel(nside=nside_pix[0], pixel=nside_pix[1])
 
     def _gen_for_nside_pixel(
         self,
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
-        min_nside: int,
     ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned for a given `nside` and `pixel`."""
 
@@ -227,7 +228,7 @@ class PixelsToScan:
         direction = dataclasses.I3Direction(zenith,azimuth)
 
         # test-case-scan: this whole part is different
-        if nside == min_nside:
+        if nside == self.min_nside:
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
@@ -237,7 +238,7 @@ class PixelsToScan:
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
 
-                if coarser_nside < min_nside:
+                if coarser_nside < self.min_nside:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
@@ -246,7 +247,7 @@ class PixelsToScan:
                         # coarser pixel found
                         break
 
-            if coarser_nside < min_nside:
+            if coarser_nside < self.min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
                 time = self.fallback_time
