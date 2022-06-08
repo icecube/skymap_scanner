@@ -48,6 +48,12 @@ jobs:
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
           wait
       # - name: Test Output
       #   run: |
