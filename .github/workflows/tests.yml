@@ -108,65 +108,65 @@ jobs:
       #   run: |
       #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
-  test-run-server:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: cvmfs-contrib/github-action-cvmfs@v2
-        with:
-          cvmfs_backoff_init: 2
-          cvmfs_max_retries: 3
-          cvmfs_dns_retries: 3
-      - name: Test CernVM-FS
-        run: ls $SKYSCAN_GCD_DIR
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
-      - name: Build Skymap Scanner Docker Image
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
-      - name: Configure Pulsar Server
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
-      # - name: Test Output
-      #   run: |
+  # test-run-server:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: cvmfs-contrib/github-action-cvmfs@v2
+  #       with:
+  #         cvmfs_backoff_init: 2
+  #         cvmfs_max_retries: 3
+  #         cvmfs_dns_retries: 3
+  #     - name: Test CernVM-FS
+  #       run: ls $SKYSCAN_GCD_DIR
+  #     - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
+  #     - name: Build Skymap Scanner Docker Image
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+  #     - name: Configure Pulsar Server
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+  #     - name: Run
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+  #     # - name: Test Output
+  #     #   run: |
 
-  test-run-client:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: cvmfs-contrib/github-action-cvmfs@v2
-        with:
-          cvmfs_backoff_init: 2
-          cvmfs_max_retries: 3
-          cvmfs_dns_retries: 3
-      - name: Test CernVM-FS
-        run: ls $SKYSCAN_GCD_DIR
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
-      - name: Build Skymap Scanner Docker Image
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
-      - name: Configure Pulsar Server
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run
-        run: |
-          . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
-      # - name: Test Output
-      #   run: |
+  # test-run-client:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: cvmfs-contrib/github-action-cvmfs@v2
+  #       with:
+  #         cvmfs_backoff_init: 2
+  #         cvmfs_max_retries: 3
+  #         cvmfs_dns_retries: 3
+  #     - name: Test CernVM-FS
+  #       run: ls $SKYSCAN_GCD_DIR
+  #     - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
+  #     - name: Build Skymap Scanner Docker Image
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+  #     - name: Configure Pulsar Server
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+  #     - name: Run
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
+  #     # - name: Test Output
+  #     #   run: |
 
 
   test-run-client-scanner:
