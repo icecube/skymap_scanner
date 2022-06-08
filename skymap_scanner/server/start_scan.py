@@ -403,7 +403,8 @@ class FindBestRecoResultForPixel:
         if len(self.pixelNumToFramesMap) != 0:  # this check really shouldn't trigger
             raise RuntimeError(
                 f"Pixels left in cache, not all of the packets seem to be complete: "
-                f"{self.count}/{self.npixels} ({self.count/self.npixels})"
+                f"{self.count}/{self.npixels} ({self.count/self.npixels}): "
+                f"{self.pixelNumToFramesMap}"
             )
 
 
