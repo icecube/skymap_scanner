@@ -6,7 +6,6 @@ env:
   # NOTE: only put env vars here that make sense only for CI-purposes (see tests/docker_scripts/set_env.sh)
   PY_COLORS: "1"
   SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
-  CLIENTS_PER_CPU: 2
 
 jobs:
 
@@ -19,8 +18,10 @@ jobs:
           . ./tests/docker_scripts/set_env.sh
           ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
 
-  test-run-all:
+  test-run-all-1-client-per-cpu:
     runs-on: ubuntu-latest
+    env:
+      CLIENTS_PER_CPU: 1
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
@@ -62,7 +63,7 @@ jobs:
       #   run: |
       #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
-  test-run-server-2-clients-per-cpu:
+  test-run-all-2-clients-per-cpu:
     runs-on: ubuntu-latest
     env:
       CLIENTS_PER_CPU: 2
@@ -107,10 +108,8 @@ jobs:
       #   run: |
       #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
 
-  test-run-server-1-client-per-cpu:
+  test-run-server:
     runs-on: ubuntu-latest
-    env:
-      CLIENTS_PER_CPU: 1
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
