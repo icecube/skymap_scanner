@@ -6,6 +6,7 @@ env:
   # NOTE: only put env vars here that make sense only for CI-purposes (see tests/docker_scripts/set_env.sh)
   PY_COLORS: "1"
   SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
+  CLIENTS_PER_CPU: 2
 
 jobs:
 
@@ -45,9 +46,9 @@ jobs:
         run: |
           . ./tests/docker_scripts/set_env.sh
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
-          NPROC=$(nproc)
-          echo "Launching $NPROC clients"
-          for i in $( seq 1 $NPROC ); do
+          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          echo "Launching $nclients clients"
+          for i in $( seq 1 $nclients ); do
             ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
             echo -e "\t$i clients launched"
           done
