@@ -377,11 +377,10 @@ class FindBestRecoResultForPixel:
 
             if bestFrame is None:
                 # just push the first frame if all of them are nan
-                return self.pixelNumToFramesMap[index][0]
-            else:
-                return bestFrame
+                bestFrame = self.pixelNumToFramesMap[index][0]
 
             del self.pixelNumToFramesMap[index]
+            return bestFrame
 
         return None
 
