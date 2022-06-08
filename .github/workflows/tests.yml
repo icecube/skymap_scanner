@@ -44,16 +44,13 @@ jobs:
       - name: Run
         run: |
           . ./tests/docker_scripts/set_env.sh
-          # Based on cloud_tools README.md (with collector+saver merged into server)
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
-          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          NPROC=$(nproc)
+          echo "Launching $NPROC clients"
+          for i in $( seq 1 $NPROC ); do
+            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+            echo -e "\t$i clients launched"
+          done
           wait
       # - name: Test Output
       #   run: |
