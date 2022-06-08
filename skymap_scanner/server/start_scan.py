@@ -553,6 +553,10 @@ async def serve_pixel_scans(
             saver.save(best_scan)
             LOGGER.debug(f"Saved (found during S#{i}): {pixel_to_tuple(best_scan)}")
 
+            # if we've got all the scans, no need to wait for queue's timeout
+            if i == npixels - 1:
+                break
+
     finder.finish()
     LOGGER.info("Done receiving/saving scans from clients.")
 
