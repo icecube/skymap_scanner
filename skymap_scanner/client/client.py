@@ -75,9 +75,8 @@ async def scan_pixel_distributed(
         except_errors=except_errors,
     )
 
-    n_pixels = 0
-
     LOGGER.info("Getting pixels from server to scan then send back...")
+    n_pixels = -1
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
         async for in_msg in sub:
             n_pixels += 1
@@ -121,8 +120,8 @@ async def scan_pixel_distributed(
 
     LOGGER.info("Done scanning.")
 
-    if n_pixels > 0:
-        LOGGER.info(f"Handled {n_pixels} pixels/scans.")
+    if n_pixels > -1:
+        LOGGER.info(f"Handled {n_pixels+1} pixels/scans.")
     else:
         raise RuntimeError("No Pixels Were Received")
 
