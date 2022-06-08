@@ -47,6 +47,7 @@ jobs:
           # Based on cloud_tools README.md (with collector+saver merged into server)
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
           ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
           wait
       # - name: Test Output
       #   run: |
