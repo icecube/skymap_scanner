@@ -46,13 +46,18 @@ jobs:
         run: |
           . ./tests/docker_scripts/set_env.sh
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
+
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           for i in $( seq 1 $nclients ); do
             ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
             echo -e "\t$i clients launched"
           done
-          wait
+
+          wait -n  # for server
+          for i in $( seq 1 $nclients ); do
+            wait -n  # for client
+          done
       # - name: Test Output
       #   run: |
       #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
