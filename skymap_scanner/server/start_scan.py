@@ -541,9 +541,7 @@ async def serve_pixel_scans(
             best_scan = finder.cache_and_get_best(scan)
             LOGGER.info(f"Cached scan S#{i} {pixel_to_tuple(scan)}")
             if not best_scan:
-                LOGGER.debug(
-                    f"Best scan yet to be found (S#{i}) {pixel_to_tuple(scan)}"
-                )
+                LOGGER.debug(f"Best scan not yet found (S#{i}) {pixel_to_tuple(scan)}")
                 continue
             LOGGER.info(
                 f"Saving a BEST scan (found during S#{i}): "
@@ -560,7 +558,6 @@ async def serve_pixel_scans(
     LOGGER.info("Done receiving/saving scans from clients.")
 
 
-# fmt: on
 def main() -> None:
     """Get command-line arguments and serve pixel-scans to clients."""
     parser = argparse.ArgumentParser(
