@@ -164,13 +164,6 @@ class PixelsToScan:
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned."""
 
-        # push GCDQp packet if not done so already
-        # if self.GCDQpFrames:
-        #     for frame in self.GCDQpFrames:
-        #         self.PushFrame(frame)
-        #     self.GCDQpFrames = None
-        #     self.logger("Commencing full-sky scan. I will first need to start up the condor jobs, this might take a while...".format())
-        #     return
 
         # check if we need to send a report to the logger
         current_time = time.time()
