@@ -51,6 +51,7 @@ class ProgressReporter:
     def __init__(
         self,
         state_dict: StateDict,
+        npixels: int,
         logger: Callable[[Any], None] = print,
         logging_interval_in_seconds: int = 5*60,
         skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
@@ -60,6 +61,8 @@ class ProgressReporter:
         Arguments:
             `state_dict`
                 - the state_dict
+            `npixels`
+                - number of expected pixels
             `logger`
                 - a callback function for semi-verbose logging
             `logging_interval_in_seconds`
@@ -71,27 +74,45 @@ class ProgressReporter:
         """
         self.state_dict = state_dict
         self.logger = logger
+
+        if logging_interval_in_seconds <= 0:
+            raise ValueError(
+                f"logging_interval_in_seconds is not positive: {logging_interval_in_seconds}"
+            )
         self.logging_interval_in_seconds = logging_interval_in_seconds
+
         self.skymap_plotting_callback = skymap_plotting_callback
+
+        if skymap_plotting_callback_interval_in_seconds <= 0:
+            raise ValueError(
+                f"skymap_plotting_callback_interval_in_seconds is not positive: {skymap_plotting_callback_interval_in_seconds}"
+            )
         self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
 
+        if npixels <= 0:
+            raise ValueError(f"npixels is not positive: {npixels}")
+        self.npixels = npixels
+
+        self.count = 0
         self.last_time_reported = time.time()
         self.last_time_reported_skymap = time.time()
 
-    def report(self) -> None:
+    def report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
+        self.count += 1
+        LOGGER.info(f"Collected: {self.count}/{self.npixels} ({self.count/self.npixels})")
 
         # check if we need to send a report to the logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported
-        if elapsed_seconds > self.logging_interval_in_seconds:
+        if override_timestamp or elapsed_seconds > self.logging_interval_in_seconds:
             self.last_time_reported = current_time
             self.send_status_report()
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported_skymap
-        if elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds:
+        if override_timestamp or elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds:
             self.last_time_reported_skymap = current_time
             if self.skymap_plotting_callback is not None:
                 self.skymap_plotting_callback(self.state_dict)
@@ -112,6 +133,19 @@ class ProgressReporter:
         message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
 
         self.logger(message)
+
+    def finish(self) -> None:
+        """Check if all the scans were received & make a final report."""
+        if not self.count:
+            raise RuntimeError("No scans were ever received.")
+
+        if self.count != self.npixels:
+            raise RuntimeError(
+                f"Not all scans were received: "
+                f"{self.count}/{self.npixels} ({self.count/self.npixels})"
+            )
+
+        self.report(override_timestamp=True)
 
 
 class PixelsToScan:
@@ -310,18 +344,12 @@ class FindBestRecoResultForPixel:
     def __init__(
         self,
         NPosVar: int,  # Number of position variations to collect
-        npixels: int,  # Number of expected pixels
     ) -> None:
         if NPosVar <= 0:
             raise ValueError(f"NPosVar is not positive: {NPosVar}")
         self.NPosVar = NPosVar
 
-        if npixels <= 0:
-            raise ValueError(f"npixels is not positive: {npixels}")
-        self.npixels = npixels
-
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
-        self.count = 0
 
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
         """Add frame to internal cache and possibly return the best scan for pixel.
@@ -329,9 +357,6 @@ class FindBestRecoResultForPixel:
         If all the scans for the embedded pixel have be received,
         return the best one. Otherwise, return None.
         """
-        self.count += 1
-        LOGGER.info(f"Cache: {self.count}/{self.npixels} ({self.count/self.npixels})")
-
         if "SCAN_HealpixNSide" not in frame:
             raise RuntimeError("SCAN_HealpixNSide not in frame")
         if "SCAN_HealpixPixel" not in frame:
@@ -379,16 +404,7 @@ class FindBestRecoResultForPixel:
         If an entire pixel (and all its scans) was dropped by client(s),
         this will not catch it.
         """
-        if not self.count:
-            raise RuntimeError("No pixels were ever received.")
-
-        if self.count != self.npixels:
-            raise RuntimeError(
-                f"Not all pixels were received: "
-                f"{self.count}/{self.npixels} ({self.count/self.npixels})"
-            )
-
-        if len(self.pixelNumToFramesMap) != 0:  # this check really shouldn't trigger
+        if len(self.pixelNumToFramesMap) != 0:
             raise RuntimeError(
                 f"Pixels left in cache, not all of the packets seem to be complete: "
                 f"{self.count}/{self.npixels} ({self.count/self.npixels}): "
@@ -466,7 +482,6 @@ class ScanCollector:
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
             NPosVar=NPosVar,
-            npixels=npixels,
         )
         self.saver = SaveRecoResults(
             state_dict=state_dict,
@@ -475,6 +490,7 @@ class ScanCollector:
         )
         self.progress_reporter = ProgressReporter(
             state_dict,
+            npixels,
             logger=print,
             logging_interval_in_seconds=5 * 60,
             skymap_plotting_callback=None,
@@ -486,7 +502,7 @@ class ScanCollector:
         return self
 
     def __exit__(self, *args: Any) -> None:
-        self.progress_reporter.report()
+        self.progress_reporter.finish()
         self.finder.finish()
 
     def collect(self, scan: icetray.I3Frame) -> None:
