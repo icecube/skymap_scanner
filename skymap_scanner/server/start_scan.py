@@ -599,13 +599,8 @@ async def serve_pixel_scans(
     LOGGER.info("Receiving scans from clients...")
     async with from_clients_queue.open_sub() as sub:
         with collector as col:
-            i = -1
             async for scan in sub:
-                i += 1
                 col.collect(scan)
-                # if we've got all the scans, no need to wait for queue's timeout
-                if i == npixels - 1:
-                    break
 
     LOGGER.info("Done receiving/saving scans from clients.")
 
