@@ -22,7 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
@@ -190,23 +190,8 @@ class PixelsToScan:
         self.event_header = p_frame["I3EventHeader"]
         self.event_mjd = get_event_mjd(self.state_dict)  # type: ignore[no-untyped-call]
 
-        self.pixels_in_process: Set[NSidePixelPair] = set()
-
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned."""
-
-        #######################################################################
-        #######################################################################
-        # TODO: Remove unneeded cache logic b/c sending all pixels at once to pulsar
-        #
-        # see if we think we are processing pixels but they have finished since
-        for nside in self.state_dict["nsides"]:
-            for pixel in self.state_dict["nsides"][nside]:
-                if (nside,pixel) in self.pixels_in_process:
-                    self.pixels_in_process.remove( (nside,pixel) )
-        #######################################################################
-        #######################################################################
-
         # find pixels to refine
         if self.min_nside == 1:  # (mini test scan)
             pixels_to_refine = choose_new_pixels_to_scan(
@@ -220,28 +205,18 @@ class PixelsToScan:
             raise RuntimeError("There are no pixels to refine.")
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
-        #######################################################################
-        #######################################################################
-        # TODO: Remove unneeded cache logic b/c sending all pixels at once to pulsar
-        #
-        # check state_dict
+        # sanity check state_dict
         for nside in self.state_dict["nsides"]:
             for pixel in self.state_dict["nsides"][nside]:
                 if (nside,pixel) in pixels_to_refine:
                     raise RuntimeError("pixel to refine is already done processing")
-        # gather pixels to submit
-        pixels_to_submit = []
-        for pixel in pixels_to_refine:
-            if pixel not in self.pixels_in_process:
-                pixels_to_submit.append(pixel)
-        #######################################################################
-        #######################################################################
 
         # submit the pixels we need to submit
-        for i, nside_pix in enumerate(pixels_to_submit):
-            LOGGER.debug(f"Generating position-variations from pixel P#{i}: {nside_pix}")
-            self.pixels_in_process.add(nside_pix)  # record the fact that we are processing this pixel
-            yield from self._gen_pixel_variations(nside=nside_pix[0], pixel=nside_pix[1])
+        for i, (nside, pix) in enumerate(pixels_to_refine):
+            LOGGER.debug(
+                f"Generating position-variations from pixel P#{i}: {(nside, pix)}"
+            )
+            yield from self._gen_pixel_variations(nside=nside, pixel=pix)
 
     def _gen_pixel_variations(
         self,
@@ -459,16 +434,12 @@ class SaveRecoResults:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
-        #######################################################################
-        #######################################################################
-        # TODO: Remove unneeded cache logic b/c sending all pixels at once to pulsar
+        # insert scan into state_dict
         if nside not in self.state_dict["nsides"]:
             self.state_dict["nsides"][nside] = {}
         if pixel in self.state_dict["nsides"][nside]:
             raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
         self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh)
-        #######################################################################
-        #######################################################################
 
         # save this frame to the disk cache
 
