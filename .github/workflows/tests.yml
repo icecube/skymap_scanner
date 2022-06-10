@@ -31,7 +31,7 @@ jobs:
   #         echo ::set-output name=matrix::{\"eventfile\":[$(find $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR -type f)]}\"
 
   test-run-all:
-    needs: gather-test-events
+    # needs: gather-test-events
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 10
