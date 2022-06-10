@@ -34,7 +34,6 @@ jobs:
     # needs: gather-test-events
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 10
       fail-fast: false
       # matrix: ${{fromJSON(needs.gather-test-events.outputs.matrix)}}
       matrix:
