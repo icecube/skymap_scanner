@@ -29,6 +29,7 @@ jobs:
       - id: set-matrix
         run: |
           . ./tests/docker_scripts/set_env.sh
+          ls $GITHUB_WORKSPACE
           echo "::set-output name=matrix::$(find $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR -type f)"
 
   test-run-all:
