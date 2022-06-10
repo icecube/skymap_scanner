@@ -5,7 +5,7 @@ set -x
 mkdir "$(pwd)"/$SKYSCAN_CACHE_DIR
 docker run --network="host" --rm -i \
     --mount type=bind,source="$(pwd)"/$SKYSCAN_CACHE_DIR,target=/local/$SKYSCAN_CACHE_DIR \
-    --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd-dir \
+    --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd-dir,readonly \
     --mount type=bind,source="$(dirname $2)",target=/local/event,readonly \
     --env PY_COLORS=1 \
     $1 skymap_scanner.server \
