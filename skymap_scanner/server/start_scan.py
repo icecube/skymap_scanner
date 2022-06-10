@@ -148,18 +148,20 @@ class ProgressReporter:
         """Log a status report."""
 
         def time_stat() -> str:
-            diff = int(time.time() - self.scan_start_time)
-            runtime_msg = f"Elapsed Runtime: {dt.timedelta(seconds=diff+self.time_before_scan)}"
+            elapsed = int(time.time() - self.scan_start_time)
+            runtime_msg = (
+                f"Elapsed Runtime: {dt.timedelta(seconds=elapsed+self.time_before_scan)} "
+                f"({dt.timedelta(seconds=elapsed)} spent scanning)"
+            )
             if not self.count:
                 return runtime_msg
-            secs_per_scan = diff / self.count
-            secs_left = secs_per_scan * (1.0 - (self.count/self.nscans))
-            secs_predicted = diff / (self.count/self.nscans)
+            secs_per_scan = elapsed / self.count
+            secs_predicted = elapsed / (self.count/self.nscans)
             return (
                 f"{runtime_msg} "
                 f"({secs_per_scan/60:.2f} mins/scan, "
-                f"{secs_per_scan/60/self.nposvar:.2f} mins/pixel)\n"
-                f"Predicted Finish: {dt.timedelta(seconds=int(secs_left))} from now "
+                f"{secs_per_scan/60*self.nposvar:.2f} mins/pixel)\n"
+                f"Predicted Finish: {dt.timedelta(seconds=int(secs_predicted-elapsed))} from now "
                 f"(predicted total runtime: "
                 f"{dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))})"
             )
@@ -173,9 +175,9 @@ class ProgressReporter:
         else:
             message = (
                 f"I am busy scanning pixels. "
-                f"~{self.count/self.nposvar} out of {self.nscans/self.nposvar} pixels are finished. "
                 "\n"
-                f"~{((self.count/self.nscans)*100):.2f}% ({self.count}/{self.nscans} scans)"
+                f"~{self.count/self.nposvar} out of {self.nscans/self.nposvar} pixels are finished. "
+                f"~{int((self.count/self.nscans)*100)}% ({self.count}/{self.nscans} scans)"
                 "\n"
             )
 
