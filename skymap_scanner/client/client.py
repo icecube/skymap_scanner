@@ -10,6 +10,7 @@ import sys
 import time
 from typing import Any
 
+import asyncstdlib as asl
 import mqclient_pulsar as mq
 from wipac_dev_tools import logging_tools
 
@@ -76,11 +77,9 @@ async def scan_pixel_distributed(
     )
 
     LOGGER.info("Getting pixels from server to scan then send back...")
-    n_pixels = -1
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
-        async for in_msg in sub:
-            n_pixels += 1
-            LOGGER.info(f"Got a pixel to scan (#{n_pixels}): {str(in_msg)}")
+        async for i, in_msg in asl.enumerate(sub):
+            LOGGER.info(f"Got a pixel to scan (#{i}): {str(in_msg)}")
 
             # debugging logic
             if debug_directory:
@@ -118,12 +117,12 @@ async def scan_pixel_distributed(
             LOGGER.info("Sending scan to server...")
             await pub.send(out_msg)
 
-    LOGGER.info("Done scanning.")
-
-    if n_pixels > -1:
-        LOGGER.info(f"Handled {n_pixels+1} pixels/scans.")
-    else:
-        raise RuntimeError("No Pixels Were Received")
+    # check if anything was actually processed
+    try:
+        npixels = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
+    except NameError as e:
+        raise RuntimeError("No Pixels Were Received.") from e
+    LOGGER.info(f"Done scanning: handled {npixels} pixels/scans.")
 
 
 def main() -> None:

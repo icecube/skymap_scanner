@@ -14,7 +14,6 @@ Based on:
 """
 
 # fmt: off
-# pylint: skip-file
 
 import argparse
 import asyncio
@@ -24,6 +23,7 @@ import pickle
 import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
+import asyncstdlib as asl
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
 import numpy
@@ -570,6 +570,10 @@ async def serve_pixel_scans(
         timeout=timeout_s_from_clients,
     )
 
+    #
+    # SEND PIXELS
+    #
+
     pixeler = PixelsToScan(state_dict=state_dict, mini_test_scan=mini_test_scan)
 
     # get pixels & send to client(s)
@@ -584,8 +588,17 @@ async def serve_pixel_scans(
                     "base_GCD_filename_url": state_dict["baseline_GCD_file"],
                 }
             )
-        npixels = i + 1  # 0-indexing :)
+
+    # check if anything was actually processed
+    try:
+        npixels = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
+    except NameError as e:
+        raise RuntimeError("No pixels were sent.") from e
     LOGGER.info(f"Done serving pixels to clients: {npixels}.")
+
+    #
+    # COLLECT SCANS
+    #
 
     collector = ScanCollector(
         NPosVar=len(pixeler.posVariations),
@@ -599,9 +612,7 @@ async def serve_pixel_scans(
     LOGGER.info("Receiving scans from clients...")
     async with from_clients_queue.open_sub() as sub:
         with collector as col:
-            i = -1
-            async for scan in sub:
-                i += 1
+            async for i, scan in asl.enumerate(sub):
                 col.collect(scan)
                 # if we've got all the scans, no need to wait for queue's timeout
                 if i == npixels - 1:
