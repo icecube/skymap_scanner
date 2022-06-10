@@ -4,9 +4,12 @@ import argparse
 
 from icecube import realtime_tools
 
-from slack_tools import SlackInterface, MessageHelper as msg
-from daemon_conf import shifters_slackid
-from daemon_lib import CacheManager, EventHandler
+from alert_listener.config import shifters_slackid
+from cache_manager import CacheManager
+from event_handling import EventHandler
+
+from slack_tools import SlackInterface
+from slack_tools import MessageHelper as msg
 
 if __name__ == '__main__':
 
