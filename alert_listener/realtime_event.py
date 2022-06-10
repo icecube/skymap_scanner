@@ -16,13 +16,19 @@ class RealtimeEvent():
         self.event = event
         #
         self.frame_packet = self.extract_frame_packet()
+
         self.frame_packet_control = full_event_followup.i3live_json_to_frame_packet(
-            json.dumps(json_data), pnf_framing=True)
+            json.dumps(self.get_frame_list()), pnf_framing=True)
+
         # TODO: delete self.event['value']['data']['frames']
+
         pass
 
+    def get_frame_list(self):
+        self.event['value']['data']['frames']
+
     def extract_frame_packet(self):
-        frame_list = self.event['value']['data']['frames']
+        frame_list = self.get_frame_list()
         return FramePacket(frame_list)
 
     def get_message_time(self):
