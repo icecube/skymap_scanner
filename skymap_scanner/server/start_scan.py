@@ -538,7 +538,6 @@ async def serve_pixel_scans(
     cache_dir: str,
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
-    producer_name: str,  # for pulsar
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
     timeout_s_to_clients: int,  # for pulsar
@@ -759,7 +758,6 @@ def main() -> None:
             cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            producer_name=f"SKYSCAN-PRODUCER-{os.path.basename(args.event_pkl)}",
             topic_to_clients=os.path.join(
                 args.topics_root, f"to-clients-{os.path.basename(args.event_pkl)}"
             ),
