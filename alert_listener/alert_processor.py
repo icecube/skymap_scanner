@@ -60,7 +60,8 @@ if __name__ == '__main__':
         [run, evt, _] = event_id.split(".")
     """
 
-    output_filepath = Path(cache.dir) / Path(evt.get_stem() + '.unpacked.pkl')
+    output_filepath = Path(cache.dir) / \
+        Path(event.get_stem() + '.unpacked.pkl')
 
     with output_filepath.open(mode='rb') as output_file:
         pickle.dump(event_dict, output_file)
