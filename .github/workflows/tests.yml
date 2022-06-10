@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v3
       - id: set-matrix
         run: |
-          echo "::set-output name=matrix::$(find $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR -type f)"
+          echo ::set-output name=matrix::{\"eventfile\":[$(find $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR -type f)]}\"
 
   test-run-all:
     needs: gather-test-events
@@ -36,8 +36,7 @@ jobs:
     strategy:
       max-parallel: 10
       fail-fast: false
-      matrix:
-        event-file: ${{fromJSON(needs.gather-test-events.outputs.matrix)}}
+      matrix: ${{fromJSON(needs.gather-test-events.outputs.matrix)}}
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
@@ -64,12 +63,12 @@ jobs:
       - name: Run
         run: |
           . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER ${{ matrix.event-file }} &
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER ${{ matrix.eventfile }} &
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           for i in $( seq 1 $nclients ); do
-            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER ${{ matrix.event-file }} &
+            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER ${{ matrix.eventfile }} &
             echo -e "\t$i clients launched"
           done
 
