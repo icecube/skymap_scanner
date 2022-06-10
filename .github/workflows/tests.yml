@@ -32,8 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        event-file: ${{fromJSON(needs.job1.outputs.matrix)}}
-    runs-on: ubuntu-latest
+        event-file: ${{fromJSON(needs.gather-test-events.outputs.matrix)}}
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
