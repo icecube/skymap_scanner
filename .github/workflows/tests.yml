@@ -25,7 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(find $REALTIME_EVENTS_DIR -type f)"
+        run: |
+          . ./tests/docker_scripts/set_env.sh
+          echo "::set-output name=matrix::$(find $REALTIME_EVENTS_DIR -type f)"
 
   test-run-all:
     needs: gather-test-events
