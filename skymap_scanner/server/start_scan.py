@@ -524,6 +524,8 @@ class SaveRecoResults:
 
 # fmt: on
 class ScanCollector:
+    """Manage the collecting, filtering, reporting, and saving of scan results."""
+
     def __init__(
         self,
         nposvar: int,  # Number of position variations to collect
