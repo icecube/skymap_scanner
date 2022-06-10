@@ -11,8 +11,8 @@ from alert_listener.event_handling import EventHandler
 from alert_listener.slack_tools import SlackInterface
 from alert_listener.slack_tools import MessageHelper as msg
 
-if __name__ == "__main__":
 
+def main():
     # ========
     # LOGGING
     # ========
@@ -25,23 +25,7 @@ if __name__ == "__main__":
     # ARGUMENT PARSER
     # ================
 
-    parser = argparse.ArgumentParser(description='New Alert Daemon')
-
-    parser.add_argument("-x", "--execute",
-                        action="store_true", dest="execute", default=False,
-                        help="Send scans to cluster")
-    parser.add_argument("-l", "--localhost",
-                        action="store_true", dest="localhost", default=False,
-                        help="Listen to localhost for alerts")
-    parser.add_argument("-s", "--slackchannel",
-                        dest="slackchannel", default=None,
-                        help="Slack channel")
-    parser.add_argument("-k", "--slack_key",
-                        dest="slack_key", default=None,
-                        help="Slack key file")
-    parser.add_argument("-n", "--nworkers",
-                        dest="nworkers", default=1000,
-                        help="Number of workers to send out")
+    parser = init_parser()
 
     args = parser.parse_args()
 
@@ -50,14 +34,9 @@ if __name__ == "__main__":
     # ================
 
     # TODO: better handling of case args.slackchannel = None
-<<<<<<< HEAD
     slack = SlackInterface(
-        whoami="New Alert Daemon", channel=args.slackchannel, api_keyfile=args.slackkey
+        whoami="New Alert Daemon", channel=args.slackchannel, api_keyfile=args.slack_key
     )
-=======
-    slack = SlackInterface(whoami="New Alert Daemon",
-                           channel=args.slackchannel, api_keyfile=args.slack_key)
->>>>>>> 2a255d49c3043c7bd1c609ea4114eabfb3ceb1b9
 
     # ================
     # MAIN LOGIC
@@ -86,3 +65,42 @@ if __name__ == "__main__":
         )
         slack.post(msg.switch_off(shifters_slackid, exception_message))
         raise err
+
+
+def init_parser(description="New Alert Daemon"):
+
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument(
+        "-x",
+        "--execute",
+        action="store_true",
+        dest="execute",
+        default=False,
+        help="Send scans to cluster",
+    )
+    parser.add_argument(
+        "-l",
+        "--localhost",
+        action="store_true",
+        dest="localhost",
+        default=False,
+        help="Listen to localhost for alerts",
+    )
+    parser.add_argument(
+        "-s", "--slackchannel", dest="slackchannel", default=None, help="Slack channel"
+    )
+    parser.add_argument(
+        "-k", "--slack_key", dest="slack_key", default=None, help="Slack key file"
+    )
+    parser.add_argument(
+        "-n",
+        "--nworkers",
+        dest="nworkers",
+        default=1000,
+        help="Number of workers to send out",
+    )
+
+
+if __name__ == "__main__":
+    main()
