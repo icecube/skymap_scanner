@@ -36,7 +36,7 @@ if __name__ == '__main__':
     event = RealtimeEvent(event_dict)
 
     log.info(
-        f'Read {args.event} corresponding to f{event.get_unique_id()}')
+        f'Read {args.event} corresponding to f{event.get_uid()}')
 
     run = event.get_run()
     evt = event.get_event_number()
