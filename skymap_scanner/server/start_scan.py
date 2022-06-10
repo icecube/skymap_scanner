@@ -609,8 +609,8 @@ async def serve_pixel_scans(
 
     # get scans from client(s), collect and save
     LOGGER.info("Receiving scans from clients...")
-    async with from_clients_queue.open_sub() as sub:
-        with collector as col:
+    with collector as col:  # enter collector 1st for detecting when no scans received
+        async with from_clients_queue.open_sub() as sub:
             async for i, scan in asl.enumerate(sub):
                 col.collect(scan)
                 # if we've got all the scans, no need to wait for queue's timeout
