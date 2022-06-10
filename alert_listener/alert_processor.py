@@ -63,7 +63,7 @@ if __name__ == '__main__':
     output_filepath = Path(cache.dir) / \
         Path(event.get_stem() + '.unpacked.pkl')
 
-    with output_filepath.open(mode='rb') as output_file:
+    with output_filepath.open(mode='wb') as output_file:
         pickle.dump(event_dict, output_file)
 
     """
