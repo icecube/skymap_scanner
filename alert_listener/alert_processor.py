@@ -11,7 +11,7 @@ from cache_manager import CacheManager
 
 from icecube import dataio
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     log = logging.getLogger(__name__)
 
     log.setLevel(logging.INFO)
@@ -20,8 +20,8 @@ if __name__ == '__main__':
 
     cache = CacheManager()
 
-    parser = argparse.ArgumentParser(description='Millipede Scanner')
-    parser.add_argument('-e', '--event', help='Event file to process')
+    parser = argparse.ArgumentParser(description="Millipede Scanner")
+    parser.add_argument("-e", "--event", help="Event file to process")
     args = parser.parse_args()
 
     """
@@ -30,13 +30,12 @@ if __name__ == '__main__':
 
     event_filepath = Path(args.event)
 
-    with event_filepath.open(mode='rb') as event_file:
+    with event_filepath.open(mode="rb") as event_file:
         event_dict = pickle.load(event_file)
 
     event = RealtimeEvent(event_dict)
 
-    log.info(
-        f'Read {args.event} corresponding to f{event.get_uid()}')
+    log.info(f"Read {args.event} corresponding to f{event.get_uid()}")
 
     run = event.get_run()
     evt = event.get_event_number()
@@ -60,16 +59,15 @@ if __name__ == '__main__':
         [run, evt, _] = event_id.split(".")
     """
 
-    output_filepath = Path(cache.dir) / \
-        Path(event.get_stem() + '.unpacked.pkl')
+    output_filepath = Path(cache.dir) / Path(event.get_stem() + ".unpacked.pkl")
 
-    with output_filepath.open(mode='wb') as output_file:
+    with output_filepath.open(mode="wb") as output_file:
         pickle.dump(event, output_file)
 
     """
     Cleanup.
     """
 
-    log.info('Cleaning up the event file')
+    log.info("Cleaning up the event file")
 
     event_filepath.unlink()

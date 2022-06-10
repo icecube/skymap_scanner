@@ -2,17 +2,17 @@ import json
 import requests
 import logging
 
-API_BASE_URL = 'https://slack.com/api/{api}'
+API_BASE_URL = "https://slack.com/api/{api}"
 
 # ========
 # NEW CODE
 # ========
 
-'''
+"""
 This file is tentatively linked from `python` to `resources/scripts` so it can be directly imported in `alert_v2_listener.py`. Waiting for the conversion into a python package.
 
 The idea is to handle the slack posting and messages through dedicated classes.
-'''
+"""
 
 
 class SlackError(Exception):
@@ -23,11 +23,11 @@ class SlackResponse(object):
     def __init__(self, body):
         self.raw = body
         self.body = json.loads(body)
-        self.successful = self.body['ok']
-        self.error = self.body.get('error')
+        self.successful = self.body["ok"]
+        self.error = self.body.get("error")
 
 
-class SlackInterface():
+class SlackInterface:
     def __init__(self, whoami="", channel=None, api_keyfile=None):
         self.name = whoami
         self.logger = logging.getLogger(__name__)
@@ -40,10 +40,10 @@ class SlackInterface():
                 self.active = True
             else:
                 self.logger.warning(
-                    "No API key file provided, Slack posting is disabled.")
+                    "No API key file provided, Slack posting is disabled."
+                )
         else:
-            self.logger.warning(
-                "No channel provided, Slack posting is disabled.")
+            self.logger.warning("No channel provided, Slack posting is disabled.")
 
     def set_api_key(self, api_keyfile):
         with open(api_keyfile, "r") as f:
@@ -57,26 +57,25 @@ class SlackInterface():
                 self.logger.info(msg)
                 return self.post_message(self.name + " " + msg)
             except Exception as err:
-                self.logger.warning(
-                    f"Posting to Slack failed because of: {err}")
+                self.logger.warning(f"Posting to Slack failed because of: {err}")
         return
 
     def upload_file(self, file_handle, filename, title):
-        api = 'files.upload'
+        api = "files.upload"
 
         response = requests.post(
             API_BASE_URL.format(api=api),
             timeout=60,
-            params={'token': self.api_key},
+            params={"token": self.api_key},
             data={
                 # 'content': content,
                 # 'filetype': filetype,
-                'filename': filename,
-                'title': title,
+                "filename": filename,
+                "title": title,
                 # 'initial_comment': initial_comment,
-                'channels': self.channel
+                "channels": self.channel,
             },
-            files={'file': file_handle}
+            files={"file": file_handle},
         )
 
         response.raise_for_status()
@@ -88,19 +87,19 @@ class SlackInterface():
         return response
 
     def post_message(self, text):
-        api = 'chat.postMessage'
+        api = "chat.postMessage"
 
         response = requests.post(
             API_BASE_URL.format(api=api),
             timeout=10,
-            params={'token': self.api_key},
+            params={"token": self.api_key},
             data={
-                'text': text,
-                'channel': self.channel,
-                'as_user': False,
-                'username': 'Marvin-the-Paranoid-Android',
-                'icon_emoji': ':disappointed:',
-            }
+                "text": text,
+                "channel": self.channel,
+                "as_user": False,
+                "username": "Marvin-the-Paranoid-Android",
+                "icon_emoji": ":disappointed:",
+            },
         )
 
         response.raise_for_status()
@@ -112,7 +111,7 @@ class SlackInterface():
         return response
 
 
-class MessageHelper():
+class MessageHelper:
     def __init__(self):
         pass
 
@@ -129,11 +128,11 @@ class MessageHelper():
         return msg
 
     def switch_off(shifters_slackid, exception_message):
-        msg = f'Switching off. {shifters_slackid}, something went wrong with the listener (python caught an exception): ```{exception_message}``` *I blame human error*'
+        msg = f"Switching off. {shifters_slackid}, something went wrong with the listener (python caught an exception): ```{exception_message}``` *I blame human error*"
         return msg
 
     def scan_fail(shifters_slackid, exception_message):
-        msg = f'Switching off. {shifters_slackid},  something went wrong while scanning the event (python caught an exception): ```{exception_message}``` *I blame human error*'
+        msg = f"Switching off. {shifters_slackid},  something went wrong while scanning the event (python caught an exception): ```{exception_message}``` *I blame human error*"
         return msg
 
     def sub_threshold():
@@ -149,7 +148,7 @@ class MessageHelper():
         return msg
 
     def new_event(run, evt, alert_streams):
-        msg = f'New event found, `{run}`, `{evt}`, tagged with alert streams: `{alert_streams}`'
+        msg = f"New event found, `{run}`, `{evt}`, tagged with alert streams: `{alert_streams}`"
         return msg
 
     def scanning_done(event_id):
