@@ -31,9 +31,19 @@ class SlackInterface():
     def __init__(self, whoami="", channel=None, api_keyfile=None):
         self.name = whoami
         self.logger = logging.getLogger(__name__)
-        self.channel = channel
-        if self.channel is not None:
-            self.set_api_key(api_keyfile)
+        self.active = False
+
+        if channel is not None:
+            if api_keyfile is not None:
+                self.set_api_key(api_keyfile)
+                self.channel = channel
+                self.active = True
+            else:
+                self.logger.warning(
+                    "No API key file provided, Slack posting is disabled.")
+        else:
+            self.logger.warning(
+                "No channel provided, Slack posting is disabled.")
 
     def set_api_key(self, api_keyfile):
         with open(api_keyfile, "r") as f:
@@ -42,7 +52,7 @@ class SlackInterface():
         self.api_key = key
 
     def post(self, msg):
-        if self.channel is not None:
+        if self.active:
             try:
                 self.logger.info(msg)
                 return self.post_message(self.name + " " + msg)
