@@ -51,8 +51,9 @@ class ProgressReporter:
     def __init__(
         self,
         state_dict: StateDict,
-        npixels: int,
-        logger: Callable[[Any], None] = print,
+        nscans: int,
+        nposvar: int,
+        logger: Callable[[Any], None],
         logging_interval_in_seconds: int = 5*60,
         skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
         skymap_plotting_callback_interval_in_seconds: int = 30*60,
@@ -61,8 +62,10 @@ class ProgressReporter:
         Arguments:
             `state_dict`
                 - the state_dict
-            `npixels`
-                - number of expected pixels
+            `nscans`
+                - number of expected scans
+            `nposvar`
+                - number of potion variations per pixel
             `logger`
                 - a callback function for semi-verbose logging
             `logging_interval_in_seconds`
@@ -89,18 +92,30 @@ class ProgressReporter:
             )
         self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
 
-        if npixels <= 0:
-            raise ValueError(f"npixels is not positive: {npixels}")
-        self.npixels = npixels
+        if nscans <= 0:
+            raise ValueError(f"nscans is not positive: {nscans}")
+        self.nscans = nscans
+
+        if nposvar <= 0:
+            raise ValueError(f"nposvar is not positive: {nposvar}")
+        self.nposvar = nposvar
 
         self.count = 0
         self.last_time_reported = time.time()
         self.last_time_reported_skymap = time.time()
 
-    def report(self, override_timestamp: bool = False) -> None:
+    def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
         self.count += 1
-        LOGGER.info(f"Collected: {self.count}/{self.npixels} ({self.count/self.npixels})")
+        self._report()
+
+    def final_report(self) -> None:
+        """Send a final, complete report/log/plot."""
+        self._report(override_timestamp=True)
+
+    def _report(self, override_timestamp: bool = False) -> None:
+        """Send reports/logs/plots if needed."""
+        LOGGER.info(f"Collected: {self.count}/{self.nscans} ({self.count/self.nscans})")
 
         # check if we need to send a report to the logger
         current_time = time.time()
@@ -118,10 +133,15 @@ class ProgressReporter:
                 self.skymap_plotting_callback(self.state_dict)
 
     def send_status_report(self) -> None:
-        # TODO - update with count (count of current or total? both?)
-        num_pixels_in_process = float("inf")
-        # num_pixels_in_process = len(self.pixels_in_process)
-        message = "I am busy scanning pixels. {0} pixels are currently being processed.\n".format(num_pixels_in_process)
+        """Log a status report."""
+        message = (
+            f"I am busy scanning pixels. "
+            f"~{self.count/self.nposvar} out of {self.nscans/self.nposvar} pixels are finished. "
+            "\n"
+            f"~{((self.count/self.nscans)*100):.2f}% ({self.count}/{self.nscans} scans)"
+            "\n"
+            f"{self.nposvar} position variations per pixel\n"
+        )
 
         if len(self.state_dict["nsides"])==0:
             message += " - no pixels are done yet\n"
@@ -139,13 +159,13 @@ class ProgressReporter:
         if not self.count:
             raise RuntimeError("No scans were ever received.")
 
-        if self.count != self.npixels:
+        if self.count != self.nscans:
             raise RuntimeError(
                 f"Not all scans were received: "
-                f"{self.count}/{self.npixels} ({self.count/self.npixels})"
+                f"{self.count}/{self.nscans} ({self.count/self.nscans})"
             )
 
-        self.report(override_timestamp=True)
+        self.final_report()
 
 
 class PixelsToScan:
@@ -157,7 +177,6 @@ class PixelsToScan:
         input_time_name: str = "HESE_VHESelfVetoVertexTime",
         input_pos_name: str = "HESE_VHESelfVetoVertexPos",
         output_particle_name: str = "MillipedeSeedParticle",
-        finish_function: Optional[Callable[[StateDict], None]] = None,
         mini_test_scan: bool = False,
     ) -> None:
         """
@@ -170,8 +189,6 @@ class PixelsToScan:
                 - name of an I3Position to use as the vertex position for the coarsest scan
             `output_particle_name`
                 - name of the output I3Particle
-            `finish_function`
-                - function to be run once scan is finished. handles final plotting
             `mini_test_scan`
                 - whether this is a mini test scan (fewer variations)
         """
@@ -179,7 +196,6 @@ class PixelsToScan:
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
-        self.finish_function = finish_function
 
         variationDistance = 20.*I3Units.m
         if mini_test_scan:  # Use Just 2 Variations for Mini-Test Scan
@@ -343,11 +359,11 @@ class FindBestRecoResultForPixel:
 
     def __init__(
         self,
-        NPosVar: int,  # Number of position variations to collect
+        nposvar: int,  # Number of position variations to collect
     ) -> None:
-        if NPosVar <= 0:
-            raise ValueError(f"NPosVar is not positive: {NPosVar}")
-        self.NPosVar = NPosVar
+        if nposvar <= 0:
+            raise ValueError(f"nposvar is not positive: {nposvar}")
+        self.nposvar = nposvar
 
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
 
@@ -373,7 +389,7 @@ class FindBestRecoResultForPixel:
             self.pixelNumToFramesMap[index] = []
         self.pixelNumToFramesMap[index].append(frame)
 
-        if len(self.pixelNumToFramesMap[index]) >= self.NPosVar:
+        if len(self.pixelNumToFramesMap[index]) >= self.nposvar:
             # print "all scans arrived for pixel", index
             bestFrame = None
             bestFrameLLH = None
@@ -407,7 +423,6 @@ class FindBestRecoResultForPixel:
         if len(self.pixelNumToFramesMap) != 0:
             raise RuntimeError(
                 f"Pixels left in cache, not all of the packets seem to be complete: "
-                f"{self.count}/{self.npixels} ({self.count/self.npixels}): "
                 f"{self.pixelNumToFramesMap}"
             )
 
@@ -474,14 +489,14 @@ class SaveRecoResults:
 class ScanCollector:
     def __init__(
         self,
-        NPosVar: int,  # Number of position variations to collect
-        npixels: int,  # Number of expected pixels
+        nposvar: int,  # Number of position variations to collect
+        nscans: int,  # Number of expected pixels
         state_dict: StateDict,
         event_id: str,
         cache_dir: str,
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
-            NPosVar=NPosVar,
+            nposvar=nposvar,
         )
         self.saver = SaveRecoResults(
             state_dict=state_dict,
@@ -490,8 +505,9 @@ class ScanCollector:
         )
         self.progress_reporter = ProgressReporter(
             state_dict,
-            npixels,
-            logger=print,
+            nscans,
+            nposvar,
+            logger=LOGGER.info,
             logging_interval_in_seconds=5 * 60,
             skymap_plotting_callback=None,
             skymap_plotting_callback_interval_in_seconds=30 * 60,
@@ -516,7 +532,7 @@ class ScanCollector:
         scan_id = f"S#{len(self.scans_received) - 1}"
 
         LOGGER.info(f"Got a scan {scan_id} {scan_tuple}: {scan}")
-        self.progress_reporter.report()
+        self.progress_reporter.record_scan()
 
         best_scan = self.finder.cache_and_get_best(scan)
         LOGGER.info(f"Cached scan {scan_id} {scan_tuple}")
@@ -592,18 +608,18 @@ async def serve_pixel_scans(
 
     # check if anything was actually processed
     try:
-        npixels = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
+        nscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
     except NameError as e:
         raise RuntimeError("No pixels were sent.") from e
-    LOGGER.info(f"Done serving pixels to clients: {npixels}.")
+    LOGGER.info(f"Done serving pixel-variations to clients: {nscans}.")
 
     #
     # COLLECT SCANS
     #
 
     collector = ScanCollector(
-        NPosVar=len(pixeler.posVariations),
-        npixels=npixels,
+        nposvar=len(pixeler.posVariations),
+        nscans=nscans,
         state_dict=state_dict,
         event_id=event_id,
         cache_dir=cache_dir,
@@ -616,7 +632,7 @@ async def serve_pixel_scans(
             async for i, scan in asl.enumerate(sub):
                 col.collect(scan)
                 # if we've got all the scans, no need to wait for queue's timeout
-                if i == npixels - 1:
+                if i == nscans - 1:
                     break
 
     LOGGER.info("Done receiving/saving scans from clients.")
