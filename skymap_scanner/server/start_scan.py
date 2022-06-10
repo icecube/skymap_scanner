@@ -17,6 +17,7 @@ Based on:
 
 import argparse
 import asyncio
+import datetime as dt
 import json
 import logging
 import os
@@ -102,8 +103,18 @@ class ProgressReporter:
         self.nposvar = nposvar
 
         self.count = 0
-        self.last_time_reported = time.time()
-        self.last_time_reported_skymap = time.time()
+
+        # all set by calling initial_report()
+        self.last_time_reported = 0.0
+        self.last_time_reported_skymap = 0.0
+        self.scan_start_time = time.time()
+        self.time_before_scan = 0
+
+    def initial_report(self, global_start_time: float) -> None:
+        """Send an initial report/log/plot."""
+        self.scan_start_time = time.time()
+        self.time_before_scan = int(self.scan_start_time - global_start_time)
+        self._report(override_timestamp=True)
 
     def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
@@ -135,14 +146,38 @@ class ProgressReporter:
 
     def send_status_report(self) -> None:
         """Log a status report."""
-        message = (
-            f"I am busy scanning pixels. "
-            f"~{self.count/self.nposvar} out of {self.nscans/self.nposvar} pixels are finished. "
-            "\n"
-            f"~{((self.count/self.nscans)*100):.2f}% ({self.count}/{self.nscans} scans)"
-            "\n"
-            f"{self.nposvar} position variations per pixel\n"
-        )
+
+        def time_stat() -> str:
+            diff = int(time.time() - self.scan_start_time)
+            secs_per_scan = diff / self.count
+            secs_left = secs_per_scan * (1.0 - (self.count/self.nscans))
+            secs_predicted = diff / (self.count/self.nscans)
+            return (
+                f"Elapsed Runtime: {dt.timedelta(seconds=diff+self.time_before_scan)} "
+                f"({secs_per_scan/60:.2f} mins/scan, "
+                f"{secs_per_scan/60/self.nposvar:.2f} mins/pixel)\n"
+                f"Predicted Finish: {dt.timedelta(seconds=secs_left)} from now "
+                f"(predicted total runtime: "
+                f"{dt.timedelta(seconds=secs_predicted+self.time_before_scan)})"
+            )
+
+        if self.count == self.nscans:
+            message = (
+                f"I am done scanning! "
+                f"{self.count} total pixels ({self.nscans} scans)"
+                "\n"
+            )
+        else:
+            message = (
+                f"I am busy scanning pixels. "
+                f"~{self.count/self.nposvar} out of {self.nscans/self.nposvar} pixels are finished. "
+                "\n"
+                f"~{((self.count/self.nscans)*100):.2f}% ({self.count}/{self.nscans} scans)"
+                "\n"
+            )
+
+        message += f"{time_stat()}\n"
+        message += f"{self.nposvar} position variations per pixel\n"
 
         if len(self.state_dict["nsides"])==0:
             message += " - no pixels are done yet\n"
@@ -495,6 +530,7 @@ class ScanCollector:
         state_dict: StateDict,
         event_id: str,
         cache_dir: str,
+        global_start_time: float,
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
             nposvar=nposvar,
@@ -513,9 +549,11 @@ class ScanCollector:
             skymap_plotting_callback=None,
             skymap_plotting_callback_interval_in_seconds=30 * 60,
         )
+        self.global_start_time = global_start_time
         self.scans_received: List[Tuple[int, int, int]] = []
 
     def __enter__(self) -> "ScanCollector":
+        self.progress_reporter.initial_report(self.global_start_time)
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -572,6 +610,7 @@ async def serve_pixel_scans(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
+    global_start_time = time.time()
     LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
 
     LOGGER.info("Making MQClient queue connections...")
@@ -624,6 +663,7 @@ async def serve_pixel_scans(
         state_dict=state_dict,
         event_id=event_id,
         cache_dir=cache_dir,
+        global_start_time=global_start_time,
     )
 
     # get scans from client(s), collect and save
