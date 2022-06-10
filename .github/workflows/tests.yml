@@ -6,6 +6,7 @@ env:
   # NOTE: only put env vars here that make sense only for CI-purposes (see tests/docker_scripts/set_env.sh)
   PY_COLORS: "1"
   SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
+  REALTIME_EVENTS_DIR: tests/data/realtime_events
 
 jobs:
 
