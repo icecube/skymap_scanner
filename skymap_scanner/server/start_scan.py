@@ -149,11 +149,14 @@ class ProgressReporter:
 
         def time_stat() -> str:
             diff = int(time.time() - self.scan_start_time)
+            runtime_msg = f"Elapsed Runtime: {dt.timedelta(seconds=diff+self.time_before_scan)}"
+            if not self.count:
+                return runtime_msg
             secs_per_scan = diff / self.count
             secs_left = secs_per_scan * (1.0 - (self.count/self.nscans))
             secs_predicted = diff / (self.count/self.nscans)
             return (
-                f"Elapsed Runtime: {dt.timedelta(seconds=diff+self.time_before_scan)} "
+                f"{runtime_msg} "
                 f"({secs_per_scan/60:.2f} mins/scan, "
                 f"{secs_per_scan/60/self.nposvar:.2f} mins/pixel)\n"
                 f"Predicted Finish: {dt.timedelta(seconds=secs_left)} from now "
