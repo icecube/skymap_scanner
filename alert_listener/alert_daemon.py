@@ -25,37 +25,23 @@ if __name__ == "__main__":
     # ARGUMENT PARSER
     # ================
 
-    parser = argparse.ArgumentParser(description="New Alert Daemon")
+    parser = argparse.ArgumentParser(description='New Alert Daemon')
 
-    parser.add_argument(
-        "-x",
-        "--execute",
-        action="store_true",
-        dest="execute",
-        default=False,
-        help="Send scans to cluster",
-    )
-    parser.add_argument(
-        "-l",
-        "--localhost",
-        action="store_true",
-        dest="localhost",
-        default=False,
-        help="Listen to localhost for alerts",
-    )
-    parser.add_argument(
-        "-s", "--slackchannel", dest="slackchannel", default=None, help="Slack channel"
-    )
-    parser.add_argument(
-        "-k", "--slackkey", dest="slackkey", default=None, help="Slack key file"
-    )
-    parser.add_argument(
-        "-n",
-        "--nworkers",
-        dest="nworkers",
-        default=1000,
-        help="Number of workers to send out",
-    )
+    parser.add_argument("-x", "--execute",
+                        action="store_true", dest="execute", default=False,
+                        help="Send scans to cluster")
+    parser.add_argument("-l", "--localhost",
+                        action="store_true", dest="localhost", default=False,
+                        help="Listen to localhost for alerts")
+    parser.add_argument("-s", "--slackchannel",
+                        dest="slackchannel", default=None,
+                        help="Slack channel")
+    parser.add_argument("-k", "--slack_key",
+                        dest="slack_key", default=None,
+                        help="Slack key file")
+    parser.add_argument("-n", "--nworkers",
+                        dest="nworkers", default=1000,
+                        help="Number of workers to send out")
 
     args = parser.parse_args()
 
@@ -64,9 +50,14 @@ if __name__ == "__main__":
     # ================
 
     # TODO: better handling of case args.slackchannel = None
+<<<<<<< HEAD
     slack = SlackInterface(
         whoami="New Alert Daemon", channel=args.slackchannel, api_keyfile=args.slackkey
     )
+=======
+    slack = SlackInterface(whoami="New Alert Daemon",
+                           channel=args.slackchannel, api_keyfile=args.slack_key)
+>>>>>>> 2a255d49c3043c7bd1c609ea4114eabfb3ceb1b9
 
     # ================
     # MAIN LOGIC
