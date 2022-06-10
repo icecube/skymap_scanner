@@ -186,7 +186,8 @@ class ProgressReporter:
                 pixels = self.state_dict["nsides"][nside]
                 message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
 
-        message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
+        if self.count != self.nscans:
+            message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
 
         self.logger(message)
 
