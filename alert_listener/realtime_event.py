@@ -24,8 +24,8 @@ class RealtimeEvent():
 
         pass
 
-    def get_frame_list(self):
-        self.event['value']['data']['frames']
+    def get_frame_list(self) -> list:
+        return self.event['value']['data']['frames']
 
     def extract_frame_packet(self):
         frame_list = self.get_frame_list()
