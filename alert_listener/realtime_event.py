@@ -18,7 +18,7 @@ class RealtimeEvent():
         self.frame_packet = self.extract_frame_packet()
 
         self.frame_packet_control = full_event_followup.i3live_json_to_frame_packet(
-            json.dumps(self.get_frame_list()), pnf_framing=True)
+            json.dumps(self.event, pnf_framing=True)
 
         # TODO: delete self.event['value']['data']['frames']
 
@@ -28,7 +28,7 @@ class RealtimeEvent():
         return self.event['value']['data']['frames']
 
     def extract_frame_packet(self):
-        frame_list = self.get_frame_list()
+        frame_list=self.get_frame_list()
         return FramePacket(frame_list)
 
     def get_message_time(self):
@@ -47,11 +47,11 @@ class RealtimeEvent():
         '''
             filename stem based on evt and run number
             in origin this was based on a hash of event['time']
-            to be verified if this new approach is equally robust 
+            to be verified if this new approach is equally robust
         '''
-        uid = self.get_uid()
+        uid=self.get_uid()
         # dashes are preferred to dots in directory names
-        stem = uid.replace('.', '-')
+        stem=uid.replace('.', '-')
 
         return stem
 
@@ -77,18 +77,18 @@ class RealtimeEvent():
 class FramePacket():
     def __init__(self, frame_list) -> None:
 
-        self.logger = logging.getLogger(__name__)
+        self.logger=logging.getLogger(__name__)
 
-        frames = []
+        frames=[]
 
         """
         The frame_list from the realtime event is a list of tuples (each tuple is a python list). Each tuple contains a frame ID (G, C, D, Q, P) associated to packed I3 frame data.
         """
         for frame_tuple in frame_list:
-            frame = self.extract_frame_tuple(frame_tuple)
+            frame=self.extract_frame_tuple(frame_tuple)
             frames.append(frame)
 
-        self.frames = frames
+        self.frames=frames
 
     def extract_frame_tuple(self, frame_tuple):
         """
@@ -100,23 +100,23 @@ class FramePacket():
         # 1. check integrity
 
         if len(frame_tuple) == 2:
-            frame_id, frame_data = frame_tuple
+            frame_id, frame_data=frame_tuple
         else:
             raise ValueError("Frame tuple has more than two values")
 
         # 2. decode and decompress
 
-        decompressed_data = zlib.decompress(base64.b64decode(frame_data))
+        decompressed_data=zlib.decompress(base64.b64decode(frame_data))
 
         del frame_data
 
         # 3. unpickle
 
         try:
-            frame_object = pickle.loads(decompressed_data, encoding="bytes")
+            frame_object=pickle.loads(decompressed_data, encoding="bytes")
             self.logger.info('Frame unpickled with byte encoding')
         except TypeError:  # this is the python 2 version
-            frame_object = pickle.loads(decompressed_data)
+            frame_object=pickle.loads(decompressed_data)
             self.logger.warning('Frame unpickled with default encoding')
 
         del decompressed_data  # is it really needed?
