@@ -201,7 +201,7 @@ def main() -> None:
         scan_pixel_distributed(
             broker=args.broker,
             auth_token=args.auth_token,
-            event_name=event_name,
+            event_name=args.event_name,
             topic_to_clients=os.path.join(
                 args.topics_root, f"to-clients-{os.path.basename(args.event_name)}"
             ),
