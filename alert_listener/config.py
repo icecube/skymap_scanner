@@ -1,3 +1,6 @@
+source_stream = 'realtimeEventData'
+stream_topics = ['HESE', 'EHE', 'ESTRES', 'realtimeEventData', 'neutrino']
+
 # Set the rate of GFU prescaling. For GFU-only events, only 1 in N are sent out to slack.
 gfu_prescale = 40.
 

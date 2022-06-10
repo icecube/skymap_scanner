@@ -4,12 +4,12 @@ import argparse
 
 from icecube import realtime_tools
 
-from alert_listener.config import shifters_slackid
-from cache_manager import CacheManager
-from event_handling import EventHandler
+from alert_listener.config import source_stream, stream_topics, shifters_slackid
+from alert_listener.cache_manager import CacheManager
+from alert_listener.event_handling import EventHandler
 
-from slack_tools import SlackInterface
-from slack_tools import MessageHelper as msg
+from alert_listener.slack_tools import SlackInterface
+from alert_listener.slack_tools import MessageHelper as msg
 
 if __name__ == '__main__':
 
@@ -63,17 +63,13 @@ if __name__ == '__main__':
 
     slack.post(msg.switch_on(realtime_tools.config.ZMQ_HOST, args.execute))
 
-    # tentatively hardcoded but could better fit in the config file
-    stream = 'realtimeEventData'
-    topics = ['HESE', 'EHE', 'ESTRES', 'realtimeEventData', 'neutrino']
-
     cache_manager = CacheManager()
 
     event_handler = EventHandler(cache_manager=cache_manager)
 
     try:
         realtime_tools.make_receiver(
-            varname=stream, topic=topics, callback=event_handler)
+            varname=source_stream, topic=stream_topics, callback=event_handler)
     except Exception as err:
         exception_message = f'Type: {type(err)} - Message: {err} -  Traceback: {err.__traceback__}'
         slack.post(msg.switch_off(shifters_slackid, exception_message))
