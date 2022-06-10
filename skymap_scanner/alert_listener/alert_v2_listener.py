@@ -184,7 +184,7 @@ def spawn_scan(
         (
             f"python -m server "
             f"--cache-dir {cache_dir} "
-            f"--event-pkl {event_pkl} "
+            f"--event-file {event_pkl} "
             f"--broker {skymap_scanner_server_broker} "
             f"--auth-token {skymap_scanner_server_broker_auth} "
             f"--log {skymap_scanner_server_log_level} "
@@ -355,7 +355,7 @@ def main():
     parser.add_option("-n", "--nworkers",
                       dest="nworkers", default=1000,
                       help="Number of workers to send out")
-    parser.add_option( "--event-pkl", dest="event_pkl", default=None,
+    parser.add_option( "--event-file", dest="event_pkl", default=None,
                       help="Send scans to cluster")
 
     # Directory args

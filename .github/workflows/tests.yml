@@ -18,7 +18,21 @@ jobs:
           . ./tests/docker_scripts/set_env.sh
           ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
 
+  gather-test-events:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(find $REALTIME_EVENTS_DIR -type f)"
+
   test-run-all:
+    needs: gather-test-events
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        event-file: ${{fromJSON(needs.job1.outputs.matrix)}}
     runs-on: ubuntu-latest
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
@@ -46,12 +60,12 @@ jobs:
       - name: Run
         run: |
           . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER &
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER ${{ matrix.event-file }} &
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           for i in $( seq 1 $nclients ); do
-            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER &
+            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER ${{ matrix.event-file }} &
             echo -e "\t$i clients launched"
           done
 
