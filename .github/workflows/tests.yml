@@ -21,16 +21,13 @@ jobs:
   gather-test-events:
     runs-on: ubuntu-latest
     env:
-      REALTIME_EVENTS_DIR: tests/data/skyscan_data/realtime_events/
+      REALTIME_EVENTS_DIR: tests/data/realtime_events/
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3
       - id: set-matrix
         run: |
-          echo $GITHUB_WORKSPACE
-          echo $REALTIME_EVENTS_DIR
-          ls $GITHUB_WORKSPACE
           echo "::set-output name=matrix::$(find $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR -type f)"
 
   test-run-all:
