@@ -36,6 +36,9 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--slackchannel",
                         dest="slackchannel", default=None,
                         help="Slack channel")
+    parser.add_argument("-k", "--slackkey",
+                        dest="slackkey", default=None,
+                        help="Slack key file")
     parser.add_argument("-n", "--nworkers",
                         dest="nworkers", default=1000,
                         help="Number of workers to send out")
@@ -48,7 +51,7 @@ if __name__ == '__main__':
 
     # TODO: better handling of case args.slackchannel = None
     slack = SlackInterface(whoami="New Alert Daemon",
-                           channel=args.slackchannel, api_keyfile='slack.key')
+                           channel=args.slackchannel, api_keyfile=args.slackkey)
 
     # ================
     # MAIN LOGIC
