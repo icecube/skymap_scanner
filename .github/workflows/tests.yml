@@ -44,7 +44,6 @@ jobs:
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
-      EVENTFILE: $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }}
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
@@ -69,12 +68,12 @@ jobs:
       - name: Run
         run: |
           . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER $EVENTFILE &
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           for i in $( seq 1 $nclients ); do
-            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER $EVENTFILE &
+            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
             echo -e "\t$i clients launched"
           done
 
