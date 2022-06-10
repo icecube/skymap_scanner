@@ -17,6 +17,7 @@ Based on:
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import pickle
@@ -658,17 +659,17 @@ def main() -> None:
     # "physics" args
     parser.add_argument(
         "-e",
-        "--event-pkl",
+        "--event-file",
         required=True,
         help=(
-            "The pickle (.pkl) file containing the event to scan. "
-            "The basename is used as a suffix for pulsar topics."
+            "The file containing the event to scan (.pkl or .json). "
+            "The event name is used as a suffix for pulsar topics."
         ),
         type=lambda x: _validate_arg(
             x,
-            x.endswith(".pkl") and os.path.isfile(x),
+            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
             argparse.ArgumentTypeError(
-                f"Invalid Event: {x}. Event needs to be a .pkl file."
+                f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
             ),
         ),
     )
@@ -757,8 +758,14 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    with open(args.event_pkl, "rb") as f:
-        event_contents = pickle.load(f)
+    if args.event_file.endswith(".json"):
+        # json
+        with open(args.event_file, "r") as fj:
+            event_contents = json.load(fj)
+    else:
+        # pickle
+        with open(args.event_file, "rb") as fp:
+            event_contents = pickle.load(fp)
 
     # get inputs (load event_id + state_dict cache)
     event_id, state_dict = extract_json_message.extract_json_message(
@@ -777,10 +784,10 @@ def main() -> None:
             broker=args.broker,
             auth_token=args.auth_token,
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{os.path.basename(args.event_pkl)}"
+                args.topics_root, f"to-clients-{os.path.basename(args.event_file)}"
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{os.path.basename(args.event_pkl)}"
+                args.topics_root, f"from-clients-{os.path.basename(args.event_file)}"
             ),
             timeout_s_to_clients=args.timeout_s_to_clients,
             timeout_s_from_clients=args.timeout_s_from_clients,
