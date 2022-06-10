@@ -159,9 +159,9 @@ class ProgressReporter:
                 f"{runtime_msg} "
                 f"({secs_per_scan/60:.2f} mins/scan, "
                 f"{secs_per_scan/60/self.nposvar:.2f} mins/pixel)\n"
-                f"Predicted Finish: {dt.timedelta(seconds=secs_left)} from now "
+                f"Predicted Finish: {dt.timedelta(seconds=int(secs_left))} from now "
                 f"(predicted total runtime: "
-                f"{dt.timedelta(seconds=secs_predicted+self.time_before_scan)})"
+                f"{dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))})"
             )
 
         if self.count == self.nscans:
