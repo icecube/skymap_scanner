@@ -533,7 +533,7 @@ class ScanCollector:
 
 
 async def serve_pixel_scans(
-    event_id_string: str,
+    event_id: str,
     state_dict: StateDict,
     cache_dir: str,
     broker: str,  # for pulsar
@@ -555,6 +555,8 @@ async def serve_pixel_scans(
         cloud_tools/collect_pixels.py
         cloud_tools/save_pixels.py (only nominally)
     """
+    LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
+
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
         address=broker,
@@ -603,7 +605,7 @@ async def serve_pixel_scans(
         NPosVar=len(pixeler.posVariations),
         npixels=npixels,
         state_dict=state_dict,
-        event_id=event_id_string,
+        event_id=event_id,
         cache_dir=cache_dir,
     )
 
@@ -753,7 +755,7 @@ def main() -> None:
     # go!
     asyncio.get_event_loop().run_until_complete(
         serve_pixel_scans(
-            event_id_string=event_id,
+            event_id=event_id,
             state_dict=state_dict,
             cache_dir=args.cache_dir,
             broker=args.broker,

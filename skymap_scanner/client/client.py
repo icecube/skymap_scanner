@@ -56,11 +56,14 @@ def outfile_to_outmsg(debug_outfile: str) -> Any:
 async def scan_pixel_distributed(
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
+    event_name: str,
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
     debug_directory: str = "",
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
+    LOGGER.info(f"Starting up a Skymap Scanner client for event: {event_name=}")
+
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # TODO - only false during debugging; make fail safe logic (on server end?)
     in_queue = mq.Queue(
@@ -198,6 +201,7 @@ def main() -> None:
         scan_pixel_distributed(
             broker=args.broker,
             auth_token=args.auth_token,
+            event_name=event_name,
             topic_to_clients=os.path.join(
                 args.topics_root, f"to-clients-{os.path.basename(args.event_name)}"
             ),
