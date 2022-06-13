@@ -1,5 +1,5 @@
-'''
-Could be useful to have a logger that can optionally post to slack?
+# Could be useful to have a logger that can optionally post to slack?
+# UNTESTED
 
 from logging import Logger
 
@@ -15,4 +15,4 @@ class FlexiLogger(Logger):
         if slack:
             self.slack.post(message)
         self.log_func[level](message)
-'''
+
