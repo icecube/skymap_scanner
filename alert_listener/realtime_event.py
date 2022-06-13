@@ -18,10 +18,6 @@ class RealtimeEvent:
         if extract_frames:
             self.frame_packet = self.extract_frame_packet()
 
-            self.frame_packet_control = full_event_followup.i3live_json_to_frame_packet(
-                json.dumps(self.event), pnf_framing=True
-            )
-
             del self.event["value"]["data"]["frames"]
 
         pass
@@ -30,6 +26,12 @@ class RealtimeEvent:
         return self.event["value"]["data"]["frames"]
 
     def extract_frame_packet(self):
+        """
+        This method replaces:
+            full_event_followup.i3live_json_to_frame_packet(
+                json.dumps(self.event), pnf_framing=True)
+        """
+
         frame_list = self.get_frame_list()
         return FramePacket(frame_list)
 
@@ -116,7 +118,7 @@ class FramePacket:
 
         try:
             frame_object = pickle.loads(decompressed_data, encoding="bytes")
-            self.logger.info("Frame unpickled with byte encoding")
+            self.logger.debug("Frame unpickled with byte encoding")
         except TypeError:  # this is the python 2 version
             frame_object = pickle.loads(decompressed_data)
             self.logger.warning("Frame unpickled with default encoding")
