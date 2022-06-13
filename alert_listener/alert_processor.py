@@ -42,8 +42,7 @@ def main():
 
     logger.info(f"Read {args.event} corresponding to {event.get_uid()}")
 
-    run = event.get_run()
-    evt = event.get_event_number()
+    run, evt = event.get_run(), event.get_event_number()
 
     """
     Allocate filestagers.
@@ -51,34 +50,15 @@ def main():
     stagers = dataio.get_stagers()
 
     """
-    Preprocessing the event.
+    Access and dump physics frame.
     """
+    phys = event.get_physics_frame()
 
-    """
-    Code from original listener to be converted.
-        event_id, state_dict = extract_json_message(
-            event, filestager=stagers,
-            cache_dir=event_cache_dir,
-            override_GCD_filename=gcd_dir
-        )
-        [run, evt, _] = event_id.split(".")
-    """
-    logger.info(event.frame_packet.frames[3])
-    logger.info(event.frame_packet.frames[4]["SplitUncleanedInIcePulses"])
-
-    # if event.frame_packet.frames != event.frame_packet_control:
-    #    print("DIFFERENT")
-    # else:
-    #    print("EQUAL")
-    # output_filepath = Path(cache.dir) / Path(event.get_stem() + ".unpacked.pkl")
-
-    # with output_filepath.open(mode="wb") as output_file:
-    #    pickle.dump(event, output_file)
+    logger.info(phys)
 
     """
     Cleanup.
     """
-
     if not args.read_only:
         logger.info("Cleaning up the event file")
         event_filepath.unlink()
