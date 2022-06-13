@@ -102,7 +102,7 @@ class ProgressReporter:
             raise ValueError(f"nposvar is not positive: {nposvar}")
         self.nposvar = nposvar
 
-        self.count = 0
+        self.scan_ct = 0
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
@@ -118,7 +118,7 @@ class ProgressReporter:
 
     def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
-        self.count += 1
+        self.scan_ct += 1
         self._report()
 
     def final_report(self) -> None:
@@ -127,7 +127,7 @@ class ProgressReporter:
 
     def _report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
-        LOGGER.info(f"Collected: {self.count}/{self.nscans} ({self.count/self.nscans})")
+        LOGGER.info(f"Collected: {self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})")
 
         # check if we need to send a report to the logger
         current_time = time.time()
@@ -153,31 +153,34 @@ class ProgressReporter:
                 f"Elapsed Runtime: {dt.timedelta(seconds=elapsed+self.time_before_scan)} "
                 f"({dt.timedelta(seconds=elapsed)} spent scanning)"
             )
-            if not self.count:
+            if not self.scan_ct:
                 return runtime_msg
-            secs_per_scan = elapsed / self.count
-            secs_predicted = elapsed / (self.count/self.nscans)
+            secs_per_scan = elapsed / self.scan_ct
+            secs_predicted = elapsed / (self.scan_ct/self.nscans)
             return (
                 f"{runtime_msg} "
-                f"({secs_per_scan/60:.2f} mins/scan, "
-                f"{secs_per_scan/60*self.nposvar:.2f} mins/pixel)\n"
+                f"\n"
+                f"Rate: {secs_per_scan/60*self.nposvar:.2f} min/pixel "
+                f"({secs_per_scan/60:.2f} min/scan)"
+                f"\n"
                 f"Predicted Finish: {dt.timedelta(seconds=int(secs_predicted-elapsed))} from now "
-                f"(predicted total runtime: "
+                f"\n"
+                f"Predicted Total Runtime: "
                 f"{dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))})"
             )
 
-        if self.count == self.nscans:
+        if self.scan_ct == self.nscans:
             message = (
                 f"I am done scanning! "
-                f"{self.count} total pixels ({self.nscans} scans)"
+                f"{self.scan_ct/self.nposvar} total pixels ({self.scan_ct} scans)"
                 "\n"
             )
         else:
             message = (
                 f"I am busy scanning pixels. "
                 "\n"
-                f"~{self.count/self.nposvar} out of {self.nscans/self.nposvar} pixels are finished. "
-                f"~{int((self.count/self.nscans)*100)}% ({self.count}/{self.nscans} scans)"
+                f"Finished: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
+                f"~{int((self.scan_ct/self.nscans)*100)}% ({self.scan_ct}/{self.nscans} scans)"
                 "\n"
             )
 
@@ -191,20 +194,20 @@ class ProgressReporter:
                 pixels = self.state_dict["nsides"][nside]
                 message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
 
-        if self.count != self.nscans:
+        if self.scan_ct != self.nscans:
             message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
 
         self.logger(message)
 
     def finish(self) -> None:
         """Check if all the scans were received & make a final report."""
-        if not self.count:
+        if not self.scan_ct:
             raise RuntimeError("No scans were ever received.")
 
-        if self.count != self.nscans:
+        if self.scan_ct != self.nscans:
             raise RuntimeError(
                 f"Not all scans were received: "
-                f"{self.count}/{self.nscans} ({self.count/self.nscans})"
+                f"{self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})"
             )
 
         self.final_report()
