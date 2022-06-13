@@ -1,6 +1,7 @@
 import pickle
 import argparse
 import logging
+import sys
 
 from pathlib import Path
 
@@ -11,18 +12,22 @@ from cache_manager import CacheManager
 
 from icecube import dataio
 
-if __name__ == "__main__":
-    log = logging.getLogger(__name__)
 
-    log.setLevel(logging.INFO)
+def main():
+    parser = argparse.ArgumentParser(description="Millipede Scanner")
+    parser.add_argument("-e", "--event", help="Event file to process")
+    parser.add_argument(
+        "--read-only", action="store_true", default=False, help="Read only mode"
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+
+    logger = logging.getLogger(__name__)
 
     slack = SlackInterface()
 
     cache = CacheManager()
-
-    parser = argparse.ArgumentParser(description="Millipede Scanner")
-    parser.add_argument("-e", "--event", help="Event file to process")
-    args = parser.parse_args()
 
     """
     Load event.
@@ -33,9 +38,9 @@ if __name__ == "__main__":
     with event_filepath.open(mode="rb") as event_file:
         event_dict = pickle.load(event_file)
 
-    event = RealtimeEvent(event_dict)
+    event = RealtimeEvent(event_dict, extract_frames=True)
 
-    log.info(f"Read {args.event} corresponding to f{event.get_uid()}")
+    logger.info(f"Read {args.event} corresponding to {event.get_uid()}")
 
     run = event.get_run()
     evt = event.get_event_number()
@@ -58,16 +63,28 @@ if __name__ == "__main__":
         )
         [run, evt, _] = event_id.split(".")
     """
+    logger.info(event.frame_packet.frames[3])
+    logger.info(event.frame_packet.frames[4]["SplitUncleanedInIcePulses"])
 
-    output_filepath = Path(cache.dir) / Path(event.get_stem() + ".unpacked.pkl")
+    # if event.frame_packet.frames != event.frame_packet_control:
+    #    print("DIFFERENT")
+    # else:
+    #    print("EQUAL")
+    # output_filepath = Path(cache.dir) / Path(event.get_stem() + ".unpacked.pkl")
 
-    with output_filepath.open(mode="wb") as output_file:
-        pickle.dump(event, output_file)
+    # with output_filepath.open(mode="wb") as output_file:
+    #    pickle.dump(event, output_file)
 
     """
     Cleanup.
     """
 
-    log.info("Cleaning up the event file")
+    if not args.read_only:
+        logger.info("Cleaning up the event file")
+        event_filepath.unlink()
+    else:
+        logger.info("Running in read-only mode, input file is preserved.")
 
-    event_filepath.unlink()
+
+if __name__ == "__main__":
+    main()
