@@ -3,8 +3,9 @@ import logging
 import pickle
 import zlib
 
-import json
-from icecube import full_event_followup  # , frame_object_diff
+from icecube import icetray
+
+from utils import rewrite_frame_stop
 
 
 class RealtimeEvent:
@@ -14,26 +15,14 @@ class RealtimeEvent:
 
     def __init__(self, event, extract_frames=False) -> None:
         self.event = event
+        self.logger = logging.getLogger(__name__)
 
         if extract_frames:
             self.frame_packet = self.extract_frame_packet()
-
             del self.event["value"]["data"]["frames"]
 
-        pass
-
-    def get_frame_list(self) -> list:
+    def get_frame_list(self):
         return self.event["value"]["data"]["frames"]
-
-    def extract_frame_packet(self):
-        """
-        This method replaces:
-            full_event_followup.i3live_json_to_frame_packet(
-                json.dumps(self.event), pnf_framing=True)
-        """
-
-        frame_list = self.get_frame_list()
-        return FramePacket(frame_list)
 
     def get_message_time(self):
         return self.event["time"]
@@ -64,26 +53,28 @@ class RealtimeEvent:
         # [str(x) for x in event["value"]["streams"]]
         return self.event["value"]["streams"]
 
-    """
-    def stem_from_message_time(self):
-        # provides uid based on timestamp
-        # tentatively superseded
-        sep = '-'
-        buf = self.event['time']
-        buf = buf.replace('-', '')
-        buf = buf.replace(' ', sep)
-        buf = buf.replace(':', '')
-        buf = buf.replace('.', sep)
-        return buf
-    """
+    def extract_frame_packet(self):
+        """
+        This method replaces:
+            full_event_followup.i3live_json_to_frame_packet(
+                json.dumps(self.event), pnf_framing=True)
+        """
+        frame_list = self.get_frame_list()
+        return FramePacket(frame_list)
+
+    def get_physics_frame(self):
+        return self.frame_packet.get_physics_frame()
 
 
 class FramePacket:
+
+    NFRAMES_MIN = 5  # G C D Q P
+
     def __init__(self, frame_list) -> None:
 
         self.logger = logging.getLogger(__name__)
 
-        frames = []
+        frames = list()
 
         """
         The frame_list from the realtime event is a list of tuples (each tuple is a python list). Each tuple contains a frame ID (G, C, D, Q, P) associated to packed I3 frame data.
@@ -93,6 +84,14 @@ class FramePacket:
             frames.append(frame)
 
         self.frames = frames
+
+        self.ensure_integrity()
+
+    def __len__(self):
+        return len(self.frames)
+
+    def __getitem__(self, index):
+        return self.frames[index]
 
     def extract_frame_tuple(self, frame_tuple):
         """
@@ -116,14 +115,9 @@ class FramePacket:
 
         # 3. unpickle
 
-        try:
-            frame_object = pickle.loads(decompressed_data, encoding="bytes")
-            self.logger.debug("Frame unpickled with byte encoding")
-        except TypeError:  # this is the python 2 version
-            frame_object = pickle.loads(decompressed_data)
-            self.logger.warning("Frame unpickled with default encoding")
+        frame_object = self.unpickle_frame(decompressed_data)
 
-        del decompressed_data  # is it really needed?
+        del decompressed_data
 
         # 4. check consistency
 
@@ -133,3 +127,36 @@ class FramePacket:
             )
 
         return frame_object
+
+    def unpickle_frame(self, decompressed_data):
+        try:
+            frame_object = pickle.loads(decompressed_data, encoding="bytes")
+            self.logger.debug("Frame unpickled with byte encoding")
+        except TypeError:  # this is the python 2 version
+            frame_object = pickle.loads(decompressed_data)
+            self.logger.warning("Frame unpickled with default encoding")
+        return frame_object
+
+    def ensure_integrity(self):
+        fp_len = len(self.frames)
+
+        if fp_len < self.NFRAMES_MIN:
+            raise ValueError(
+                f"Frame packet has size {fp_len}, less than the required minimum {self.NFRAMES_MIN} frames (G, C, D, Q, P)"
+            )
+
+        if self.frames[-1].Stop != icetray.I3Frame.Physics:
+            if self.frames[-1].Stop == icetray.I3Frame.Stream("p"):
+                # compatibility with legacy IceTray versions
+                self.logger.warning(
+                    "Frame packet ends with frame of type 'p' and needs to be rewrited."
+                )
+                self.frames[-1] = rewrite_frame_stop(
+                    self.frames[-1], icetray.I3Frame.Stream("P")
+                )
+
+            else:
+                raise ValueError("Frame packet does not end with a Physics frame")
+
+    def get_physics_frame(self):
+        return self.frames[-1]
