@@ -12,6 +12,7 @@ from cache_manager import CacheManager
 
 from icecube import dataio
 
+# from ..python.extract_json_message import extract_GCD_diff_base_filename
 
 def main():
     parser = argparse.ArgumentParser(description="Millipede Scanner")
@@ -55,6 +56,21 @@ def main():
     phys = event.get_physics_frame()
 
     logger.info(phys)
+
+    """
+    Allocate path.
+    """
+    path = cache.allocate_dir(event.get_stem())
+
+    logger.info(f"Allocated event cache in {path}")
+
+    """
+    Check GCD
+    """
+
+    frame_packet = event.get_frame_packet()
+
+    GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
 
     """
     Cleanup.
