@@ -3,18 +3,13 @@ import shutil
 import json
 import hashlib
 import numpy as np
-import logging
 from icecube import icetray, dataclasses, dataio
 from icecube import full_event_followup, frame_object_diff
 
-
-# the following comes from symlinked files
-import config
-from utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop
-from load_scan_state import load_scan_state
-from prepare_frames import prepare_frames
-
-logger = logging.getLogger(__name__)
+from . import config
+from .utils import create_event_id, load_GCD_frame_packet_from_file, save_GCD_frame_packet_to_file, hash_frame_packet, rewrite_frame_stop
+from .load_scan_state import load_scan_state
+from .prepare_frames import prepare_frames
 
 def extract_GCD_diff_base_filename(frame_packet):
     # check the base filename (it should be the same for all "Diff" objects)
@@ -76,7 +71,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         raise RuntimeError("No I3EventHeader in Physics frame")
     header = physics_frame["I3EventHeader"]
     event_id_string = create_event_id(header.run_id, header.event_id)
-    logger.info("event ID is {0}".format(event_id_string))
+    print(("event ID is {0}".format(event_id_string)))
 
     # create the cache directory if necessary
     this_event_cache_dir = os.path.join(cache_dir, event_id_string)
@@ -150,7 +145,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         with open(original_GCD_diff_base_filename, "w") as text_file:
             text_file.write(GCD_diff_base_filename)
     else:
-        logger.info("packet does not need a GCD diff")
+        print("packet does not need a GCD diff")
 
     # special case for old EHE alerts with empty GCD frames
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):

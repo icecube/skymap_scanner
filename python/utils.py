@@ -1,3 +1,6 @@
+
+
+
 import os
 import shutil
 import json
@@ -5,7 +8,7 @@ import hashlib
 
 from icecube import icetray, dataio, dataclasses, astro
 
-import config
+from . import config
 
 def get_event_mjd(state_dict):
     if "GCDQp_packet" not in state_dict:

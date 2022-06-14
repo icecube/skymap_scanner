@@ -5,10 +5,8 @@ from I3Tray import I3Units
 from icecube import icetray, dataclasses, dataio
 from icecube import gulliver, millipede
 
-# symlinked files
-import config
-from utils import load_GCD_frame_packet_from_file, hash_frame_packet
-
+from .utils import load_GCD_frame_packet_from_file, hash_frame_packet
+from . import config
 
 def load_cache_state(event_id, filestager=None, cache_dir="./cache/"):
     this_event_cache_dir = os.path.join(cache_dir, event_id)
