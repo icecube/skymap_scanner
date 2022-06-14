@@ -7,7 +7,6 @@ from icecube import icetray
 
 from utils import rewrite_frame_stop
 
-
 class RealtimeEvent:
     """
     The implementation of this class assumes that the event dictionary is structured according to the new (2018) data format, with the data frames accessible under key value/data/frames. The pre-2018 format has frames in value/data and is supported in IceTray (see `full_event_followup/python/frame_packet_to_i3live_json.py`). The original `skymap_scanner` code assumed the new format, so the old one is not meant to be supported here (unless required).
@@ -18,10 +17,10 @@ class RealtimeEvent:
         self.logger = logging.getLogger(__name__)
 
         if extract_frames:
-            self.frame_packet = self.extract_frame_packet()
+            self.frame_packet = self.extract_frames()
             del self.event["value"]["data"]["frames"]
 
-    def get_frame_list(self):
+    def get_packed_frames(self):
         return self.event["value"]["data"]["frames"]
 
     def get_message_time(self):
@@ -53,17 +52,20 @@ class RealtimeEvent:
         # [str(x) for x in event["value"]["streams"]]
         return self.event["value"]["streams"]
 
-    def extract_frame_packet(self):
+    def extract_frames(self):
         """
         This method replaces:
             full_event_followup.i3live_json_to_frame_packet(
                 json.dumps(self.event), pnf_framing=True)
         """
-        frame_list = self.get_frame_list()
-        return FramePacket(frame_list)
+        return FramePacket(self.get_packed_frames())
 
     def get_physics_frame(self):
+        # NOTE: metadata available in I3EventHeader / run_id, header.event_id
         return self.frame_packet.get_physics_frame()
+
+    def get_frame_packet(self):
+        return self.frame_packet.frames
 
 
 class FramePacket:
@@ -82,10 +84,13 @@ class FramePacket:
         for frame_tuple in frame_list:
             frame = self.extract_frame_tuple(frame_tuple)
             frames.append(frame)
-
         self.frames = frames
 
-        self.ensure_integrity()
+        """
+        Perform integrity and consistency checks.
+        """
+        self.check_size()
+        self.check_physics_frame()
 
     def __len__(self):
         return len(self.frames)
@@ -137,7 +142,7 @@ class FramePacket:
             self.logger.warning("Frame unpickled with default encoding")
         return frame_object
 
-    def ensure_integrity(self):
+    def check_size(self):
         fp_len = len(self.frames)
 
         if fp_len < self.NFRAMES_MIN:
@@ -145,6 +150,7 @@ class FramePacket:
                 f"Frame packet has size {fp_len}, less than the required minimum {self.NFRAMES_MIN} frames (G, C, D, Q, P)"
             )
 
+    def check_physics_frame(self):
         if self.frames[-1].Stop != icetray.I3Frame.Physics:
             if self.frames[-1].Stop == icetray.I3Frame.Stream("p"):
                 # compatibility with legacy IceTray versions
@@ -154,9 +160,11 @@ class FramePacket:
                 self.frames[-1] = rewrite_frame_stop(
                     self.frames[-1], icetray.I3Frame.Stream("P")
                 )
-
             else:
                 raise ValueError("Frame packet does not end with a Physics frame")
+
+        if "I3EventHeader" not in self.frames[-1]:
+            raise ValueError("No I3EventHeader in Physics frame")
 
     def get_physics_frame(self):
         return self.frames[-1]
