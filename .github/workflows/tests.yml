@@ -68,13 +68,19 @@ jobs:
       - name: Run
         run: |
           . ./tests/docker_scripts/set_env.sh
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
-          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+          ./launch_scripts/launch_server.sh \
+            --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
+            --cache-dir $SKYSCAN_CACHE_DIR \
+            --gcd-dir SKYSCAN_GCD_DIR \
+            --broker $PULSAR_ADDRESS \
+            --log DEBUG \
+            --mini-test-scan \
+            &
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           for i in $( seq 1 $nclients ); do
-            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
+            ./launch_scripts/launch_client.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
             echo -e "\t$i clients launched"
           done
 
@@ -112,7 +118,7 @@ jobs:
   #     - name: Run
   #       run: |
   #         . ./tests/docker_scripts/set_env.sh
-  #         ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+  #         ./launch_scripts/launch_server.sh $SKYSCAN_CONTAINER
   #     # - name: Test Output
   #     #   run: |
 
@@ -142,7 +148,7 @@ jobs:
   #     - name: Run
   #       run: |
   #         . ./tests/docker_scripts/set_env.sh
-  #         ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
+  #         ./launch_scripts/launch_client.sh $SKYSCAN_CONTAINER
   #     # - name: Test Output
   #     #   run: |
 
