@@ -70,8 +70,8 @@ jobs:
           . ./tests/docker_scripts/set_env.sh
           ./launch_scripts/launch_server.sh \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --gcd-dir SKYSCAN_GCD_DIR \
+            --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
+            --gcd-dir $GITHUB_WORKSPACE/$SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
             --mini-test-scan \
@@ -84,7 +84,7 @@ jobs:
               --event-name $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
               --broker $PULSAR_ADDRESS \
               --log DEBUG \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
+              --debug-directory $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR \
               &
             echo -e "\t$i clients launched"
           done
