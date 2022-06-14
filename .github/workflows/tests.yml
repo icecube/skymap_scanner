@@ -69,6 +69,7 @@ jobs:
         run: |
           . ./tests/docker_scripts/set_env.sh
           ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
