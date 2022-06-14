@@ -1,5 +1,14 @@
 #!/bin/sh
 
+########################################################################
+#
+# Launch a Skymap Scanner client
+#
+# Pass in the arguments as if this were just the python script
+#
+########################################################################
+
+
 set -x
 
 # Get & transform arguments that are files/dirs for docker-mounting
