@@ -56,7 +56,7 @@ jobs:
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
           . ./tests/docker_scripts/set_env.sh
-          ./tests/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+          ./launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
       - name: Build Skymap Scanner Docker Image
         run: |
           . ./tests/docker_scripts/set_env.sh
@@ -111,7 +111,7 @@ jobs:
   #     - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
   #       run: |
   #         . ./tests/docker_scripts/set_env.sh
-  #         ./tests/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+  #         ./launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
   #     - name: Build Skymap Scanner Docker Image
   #       run: |
   #         . ./tests/docker_scripts/set_env.sh
@@ -141,7 +141,7 @@ jobs:
   #     - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
   #       run: |
   #         . ./tests/docker_scripts/set_env.sh
-  #         ./tests/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+  #         ./launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
   #     - name: Build Skymap Scanner Docker Image
   #       run: |
   #         . ./tests/docker_scripts/set_env.sh
