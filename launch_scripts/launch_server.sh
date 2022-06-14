@@ -18,10 +18,12 @@ py_args, event = extract_opt(py_args, "--event-file")
 py_args, cache = extract_opt(py_args, "--cache-dir")
 py_args, gcd = extract_opt(py_args, "--gcd-dir")
 
-py_args = f"{py_args} " \
-       f"--event-file /local/event/{os.path.basename(event)} " \
-       f"--cache-dir /local/{os.path.basename(cache)} " \
-       f"--gcd-dir /local/gcd-dir"
+py_args = (
+    f"{py_args} "
+    f"--event-file /local/event/{os.path.basename(event)} "
+    f"--cache-dir /local/{os.path.basename(cache)} "
+    f"--gcd-dir /local/gcd-dir"
+)
 
 dockermount_args = (
     f"--mount type=bind,source={os.path.dirname(event)},target=/local/event,readonly "
@@ -43,10 +45,3 @@ docker run --network="host" --rm -i \
     --env PY_COLORS=1 \
     $SKYSCAN_CONTAINER skymap_scanner.server \
     $PY_ARGS
-
-    # --event-file /local/event/"$(basename $2)" \
-    # --cache-dir /local/$SKYSCAN_CACHE_DIR \
-    # --gcd-dir /local/gcd-dir \
-    # --broker $PULSAR_ADDRESS \
-    # --log DEBUG \
-    # --mini-test-scan
