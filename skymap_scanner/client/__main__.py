@@ -1,6 +1,6 @@
 """Entry-point to start up client service."""
 
-from . import scan_pixel
+from . import client
 
 if __name__ == "__main__":
-    scan_pixel.main()
+    client.main()

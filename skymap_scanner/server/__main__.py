@@ -1,6 +1,6 @@
 """Entry-point to start up server."""
 
-from . import perform_scan
+from . import start_scan
 
 if __name__ == "__main__":
-    perform_scan.main()
+    start_scan.main()
