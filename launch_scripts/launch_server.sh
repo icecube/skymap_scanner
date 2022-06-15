@@ -12,6 +12,7 @@
 # Get & transform arguments that are files/dirs for docker-mounting
 # yes, this is simpler than a bash-native solution
 export ARGS="$*" # all of the arguments stuck together into a single string
+echo $ARGS
 DOCKER_PY_ARGS=$(python3 -c '
 import os
 py_args = os.getenv("ARGS")
