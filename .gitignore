@@ -157,3 +157,8 @@ env*/
 /*.json
 !Level2_IC86.2019_data_Run00133119_1001_77_488_GCD.i3.zst
 !ic191001a_sim.i3
+*.HESE/
+debug-pkl-dir/
+*.rpm
+*.deb
+*.sif

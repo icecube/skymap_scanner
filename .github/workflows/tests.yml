@@ -3,11 +3,10 @@ name: tests
 on: [push]
 
 env:
-  SKYSCAN_TEST_EVENT: test_event_01
-  SKYSCAN_TEST_EVENT_PATH: /mnt/test_event_01.i3
-  PULSAR_CONTAINER: pulsar_local
-  SKYSCAN_CONTAINER: skyscan-cloud
-  SKYSCAN_EVENT: ./skymap_scanner/tests/docker_scripts/event_HESE_2017-11-28.json
+  # NOTE: only put env vars here that make sense only for CI-purposes (see tests/docker_scripts/set_env.sh)
+  PY_COLORS: "1"
+  SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
+  REALTIME_EVENTS_DIR: tests/data/realtime_events
 
 jobs:
 
@@ -17,58 +16,158 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker Image
         run: |
-          ./skymap_scanner/tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
 
   test-run-all:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        eventfile: [
+          hese_event_01.json,
+          181316502608923741.pkl,
+          3367288815241920337.pkl,
+          # -50979521318877545.pkl,
+          # -6447967553792706853.pkl,
+          # hese_event_02.json,
+          # 1996560004361018775.pkl,
+          # 903038395198487317.pkl,
+          # 2890414988286888508.pkl,
+          # -8508219839558639919.pkl,
+          # event_HESE_2017-11-28.json,
+          # hese_event_00.json,
+          # hese_event_03.json,
+          # -4995948919969127373.pkl,
+          # -243122034428012599.pkl,
+          # 6121837127383098916.pkl,
+        ]
+    env:
+      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
       - uses: actions/checkout@v3
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+        with:
+          cvmfs_backoff_init: 2
+          cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
       - name: Build Skymap Scanner Docker Image
         run: |
-          ./skymap_scanner/tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
       - name: Configure Pulsar Server
         run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Launch Containers
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+      - name: Run
         run: |
-          # Based on cloud_tools README.md (with collector+saver merged into server)
-          ./skymap_scanner/tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
-          ./skymap_scanner/tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
-          docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
 
-  test-run-server:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
-      - name: Build Skymap Scanner Docker Image
-        run: |
-          ./skymap_scanner/tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
-      - name: Configure Pulsar Server
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run Test(s)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          echo "Launching $nclients clients"
+          for i in $( seq 1 $nclients ); do
+            ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} &
+            echo -e "\t$i clients launched"
+          done
 
-  test-run-client:
+          wait -n  # for server
+          for i in $( seq 1 $nclients ); do
+            wait -n  # for client
+          done
+      # - name: Test Output
+      #   run: |
+      #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
+
+  # test-run-server:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: cvmfs-contrib/github-action-cvmfs@v2
+  #       with:
+  #         cvmfs_backoff_init: 2
+  #         cvmfs_max_retries: 3
+  #         cvmfs_dns_retries: 3
+  #     - name: Test CernVM-FS
+  #       run: ls $SKYSCAN_GCD_DIR
+  #     - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
+  #     - name: Build Skymap Scanner Docker Image
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+  #     - name: Configure Pulsar Server
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+  #     - name: Run
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/launch_server.sh $SKYSCAN_CONTAINER
+  #     # - name: Test Output
+  #     #   run: |
+
+  # test-run-client:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: cvmfs-contrib/github-action-cvmfs@v2
+  #       with:
+  #         cvmfs_backoff_init: 2
+  #         cvmfs_max_retries: 3
+  #         cvmfs_dns_retries: 3
+  #     - name: Test CernVM-FS
+  #       run: ls $SKYSCAN_GCD_DIR
+  #     - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
+  #     - name: Build Skymap Scanner Docker Image
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+  #     - name: Configure Pulsar Server
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+  #     - name: Run
+  #       run: |
+  #         . ./tests/docker_scripts/set_env.sh
+  #         ./tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
+  #     # - name: Test Output
+  #     #   run: |
+
+
+  test-run-client-scanner:
     runs-on: ubuntu-latest
+    env:
+      SKYSCAN_CLIENT_SCANNER_FILES_DIR: tests/data/scan_pixel_pkls
+      SKYSCAN_CLIENT_SCANNER_IN_FILENAME: in.pkl
+      SKYSCAN_CLIENT_SCANNER_OUT_FILENAME: out.pkl
     steps:
       - uses: actions/checkout@v3
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_run.sh $PULSAR_CONTAINER
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+        with:
+          cvmfs_backoff_init: 2
+          cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
       - name: Build Skymap Scanner Docker Image
         run: |
-          ./skymap_scanner/tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
-      - name: Configure Pulsar Server
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+      - name: Run
         run: |
-          ./skymap_scanner/tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
-      - name: Run Test(s)
-        run: |
-          ./skymap_scanner/tests/docker_scripts/launch_client.sh $SKYSCAN_CONTAINER
+          . ./tests/docker_scripts/set_env.sh
+          ./tests/docker_scripts/_launch_scan_pixel.sh $SKYSCAN_CONTAINER
+      # - name: Test Output
+      #   run: |

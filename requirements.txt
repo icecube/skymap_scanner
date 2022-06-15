@@ -1,0 +1,9 @@
+asyncstdlib
+backports.tempfile
+healpy
+psutil
+pygcn
+pyzmq
+tqdm
+wipac-dev-tools[coloredlogs]
+wipac-mqclient-pulsar
