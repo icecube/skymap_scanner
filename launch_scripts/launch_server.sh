@@ -20,7 +20,8 @@ py_args = os.getenv("ARGS")
 def extract_opt(py_args, opt):
     if opt not in py_args:
         return py_args, ""
-    before, after = py_args.split(f" {opt} ", 1)
+    before, after = py_args.split(opt, 1)
+    before, after = before.strip(), after.strip()
     val, after = after.split(" ", 1)
     return f"{before} {after}", val
 
@@ -45,7 +46,6 @@ print(f"{dockermount_args}#{py_args}")
 ')
 DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
 PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
-
 
 set -x
 
