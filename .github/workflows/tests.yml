@@ -7,7 +7,6 @@ env:
   SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   PULSAR_CONTAINER: pulsar_local
-  SKYSCAN_CONTAINER: icecube/skymap_scanner_cloud
   SKYSCAN_CACHE_DIR: cache-dir
   PULSAR_ADDRESS: localhost:6650
   PULSAR_AUTH: ""
@@ -21,7 +20,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker Image
         run: |
-          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/docker_local_build.sh
 
   test-run-all:
     runs-on: ubuntu-latest
@@ -62,7 +61,7 @@ jobs:
           ./launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
       - name: Build Skymap Scanner Docker Image
         run: |
-          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/docker_local_build.sh icecube/skymap_scanner_cloud
       - name: Configure Pulsar Server
         run: |
           ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
@@ -119,9 +118,9 @@ jobs:
         run: ls $SKYSCAN_GCD_DIR
       - name: Build Skymap Scanner Docker Image
         run: |
-          ./tests/docker_scripts/docker_build.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/docker_local_build.sh icecube/skymap_scanner_cloud
       - name: Run
         run: |
-          ./tests/docker_scripts/_launch_scan_pixel.sh $SKYSCAN_CONTAINER
+          ./tests/docker_scripts/_launch_scan_pixel.sh icecube/skymap_scanner_cloud
       # - name: Test Output
       #   run: |

@@ -56,5 +56,5 @@ set -x
 docker run --network="host" --rm -i \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
-    $SKYSCAN_CONTAINER skymap_scanner.server \
+    icecube/skymap_scanner_cloud skymap_scanner.server \
     $PY_ARGS
