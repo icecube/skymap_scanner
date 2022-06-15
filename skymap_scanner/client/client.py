@@ -136,6 +136,12 @@ def main() -> None:
             os.makedirs(val, exist_ok=True)
         return val
 
+    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
+        if test:
+            return val
+        raise exc
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform millipede scans on pixels "
@@ -144,12 +150,28 @@ def main() -> None:
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    # "physics" args
     parser.add_argument(
         "-e",
         "--event-name",
         required=True,
         help="Some identifier to correspond to an event for MQ connections",
     )
+    parser.add_argument(
+        # we aren't going to use this arg, but just check if it exists for incoming pixels
+        "-g",
+        "--gcd-dir",
+        required=True,
+        help="The GCD directory to use",
+        type=lambda x: _validate_arg(
+            x,
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+
+    # pulsar args
     parser.add_argument(
         "-t",
         "--topics-root",
@@ -168,6 +190,8 @@ def main() -> None:
         default=None,
         help="The Pulsar authentication token to use",
     )
+
+    # logging args
     parser.add_argument(
         "-l",
         "--log",
@@ -179,6 +203,8 @@ def main() -> None:
         default="WARNING",
         help="the output logging level for third-party loggers",
     )
+
+    # testing/debugging args
     parser.add_argument(
         "--debug-directory",
         default="",
