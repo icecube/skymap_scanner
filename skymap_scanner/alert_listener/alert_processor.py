@@ -5,14 +5,16 @@ import sys
 
 from pathlib import Path
 
-from slack_tools import SlackInterface
-from realtime_event import RealtimeEvent
-
 from cache_manager import CacheManager
+import config
+from realtime_event import RealtimeEvent
+from slack_tools import SlackInterface
 
 from icecube import dataio
 
-# from ..python.extract_json_message import extract_GCD_diff_base_filename
+from skymap_scanner.extract_json_message import extract_json_message
+from gcd import GCDManager
+
 
 def main():
     parser = argparse.ArgumentParser(description="Millipede Scanner")
@@ -30,6 +32,8 @@ def main():
 
     cache = CacheManager()
 
+    gcd = GCDManager(config.gcd_dir)
+
     """
     Load event.
     """
@@ -39,6 +43,26 @@ def main():
     with event_filepath.open(mode="rb") as event_file:
         event_dict = pickle.load(event_file)
 
+    """
+    Allocate filestagers.
+    """
+    stagers = dataio.get_stagers()
+
+    """
+    Test old code
+    """
+    """
+    event_old = extract_json_message(
+        event_dict,
+        filestager=stagers,
+        cache_dir=cache.dir,
+        override_GCD_filename=config.gcd_dir,
+    )
+    """
+
+    """
+    Test new code
+    """
     event = RealtimeEvent(event_dict, extract_frames=True)
 
     logger.info(f"Read {args.event} corresponding to {event.get_uid()}")
@@ -46,16 +70,11 @@ def main():
     run, evt = event.get_run(), event.get_event_number()
 
     """
-    Allocate filestagers.
-    """
-    stagers = dataio.get_stagers()
-
-    """
     Access and dump physics frame.
     """
     phys = event.get_physics_frame()
 
-    logger.info(phys)
+    logger.debug(phys)
 
     """
     Allocate path.
@@ -65,13 +84,19 @@ def main():
     logger.info(f"Allocated event cache in {path}")
 
     """
-    Check GCD
+    Check Frame packet
     """
-
     frame_packet = event.get_frame_packet()
 
-    GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
+    logger.info(frame_packet)
 
+    """
+    Check GCD
+    """
+    if not event.frame_packet.has_gcd():
+        gcd_path = gcd.get_gcd_path(run)
+        logger.info(f"Frame packet has empty GCD. Using {gcd_path}")
+        event.frame_packet.set_gcd(gcd_path)
     """
     Cleanup.
     """
