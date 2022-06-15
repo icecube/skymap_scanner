@@ -81,6 +81,7 @@ jobs:
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
+          mkdir $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR
           for i in $( seq 1 $nclients ); do
             ./launch_scripts/launch_client.sh \
               --event-name $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
