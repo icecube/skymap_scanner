@@ -46,7 +46,6 @@ print(f"{dockermount_args}#{py_args}")
 DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
 PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 
-exit 0
 set -x
 
 # Run

@@ -77,7 +77,7 @@ jobs:
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
             --mini-test-scan \
-            & /
+            &
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
@@ -88,7 +88,7 @@ jobs:
               --broker $PULSAR_ADDRESS \
               --log DEBUG \
               --debug-directory $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR \
-              & /
+              &
             echo -e "\t$i clients launched"
           done
 
