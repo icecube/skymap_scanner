@@ -90,8 +90,13 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
     if not os.path.exists(this_event_cache_dir):
         os.mkdir(this_event_cache_dir)
 
+    """ 
+    Realtime events seem to have empty GCD frames, so `GCD_diff_base_filename` will be `None`. Need an input that can trigger this part in order to test and refactor.
+    """
+
     # see if we have the required baseline GCD to which to apply the GCD diff
     GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
+
     if np.logical_and(GCD_diff_base_filename is not None, override_GCD_filename is not None):
         new_GCD_diff_base_filename = os.path.join(override_GCD_filename, GCD_diff_base_filename)
         print(("Trying GCD file: {0}".format(new_GCD_diff_base_filename)))
@@ -156,6 +161,11 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
             text_file.write(GCD_diff_base_filename)
     else:
         print("packet does not need a GCD diff")
+
+
+    """
+    The following is marked as "special case" but most GFU-only events coming from the realtime stream have indeed empty GCD frames (!)
+    """
 
     # special case for old EHE alerts with empty GCD frames
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
