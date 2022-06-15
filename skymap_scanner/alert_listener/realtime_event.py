@@ -5,7 +5,8 @@ import zlib
 
 from icecube import icetray
 
-from utils import rewrite_frame_stop
+from skymap_scanner.utils import rewrite_frame_stop
+
 
 class RealtimeEvent:
     """
@@ -168,3 +169,13 @@ class FramePacket:
 
     def get_physics_frame(self):
         return self.frames[-1]
+
+    def get_geometry_frame(self):
+        return self.frames[0]
+
+    def has_gcd(self) -> bool:
+        geometry = self.get_geometry_frame()
+        return ("I3Geometry" in geometry) or ("I3GeometryDiff" in geometry)
+
+    def set_gcd(self, gcd_path) -> None:
+        pass
