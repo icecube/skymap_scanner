@@ -7,7 +7,7 @@ env:
   SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   PULSAR_CONTAINER: pulsar_local
-  SKYSCAN_CONTAINER: skyscan-cloud
+  SKYSCAN_CONTAINER: icecube/skymap_scanner_cloud
   SKYSCAN_CACHE_DIR: cache-dir
   PULSAR_ADDRESS: localhost:6650
   PULSAR_AUTH: ""
