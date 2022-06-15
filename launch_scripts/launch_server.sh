@@ -22,7 +22,10 @@ def extract_opt(py_args, opt):
         return py_args, ""
     before, after = py_args.split(opt, 1)
     before, after = before.strip(), after.strip()
-    val, after = after.split(" ", 1)
+    if " " in after:
+        val, after = after.split(" ", 1)
+    else:  # for arg at end of string
+        val, after = after, ""
     return f"{before} {after}", val
 
 py_args, event = extract_opt(py_args, "--event-file")
