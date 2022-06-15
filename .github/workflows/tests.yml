@@ -68,6 +68,8 @@ jobs:
       - name: Run
         run: |
           . ./tests/docker_scripts/set_env.sh
+
+          mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
           ./launch_scripts/launch_server.sh \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
