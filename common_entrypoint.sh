@@ -1,4 +1,5 @@
 #!/bin/sh
+# Used by Dockerfile
 
 set -x
 
