@@ -53,6 +53,6 @@ docker run --network="host" --rm -i \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
-    icecube/skymap_scanner_cloud \
+    icecube/skymap_scanner \
     python -m skymap_scanner.client \
     $PY_ARGS
