@@ -57,7 +57,7 @@ jobs:
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [py-setup, pip-install]
+    needs: py-setup # [py-setup, pip-install]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
