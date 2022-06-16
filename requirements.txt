@@ -1,6 +1,4 @@
 asyncstdlib
-backports.tempfile
 healpy
-tqdm
 wipac-dev-tools[coloredlogs]
 wipac-mqclient-pulsar
