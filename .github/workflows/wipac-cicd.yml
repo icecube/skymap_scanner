@@ -4,21 +4,21 @@ on: [push]
 
 jobs:
 
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1
+  # flake8:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v3
+  #     - uses: WIPACrepo/wipac-dev-flake8-action@v1
 
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-        with:
-          python-version: '3.9'
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1
+  # mypy:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v3
+  #       with:
+  #         python-version: '3.9'
+  #     - uses: WIPACrepo/wipac-dev-mypy-action@v1
 
   py-setup:
     runs-on: ubuntu-latest
