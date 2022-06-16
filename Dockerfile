@@ -88,6 +88,6 @@ RUN pip install .
 # ENTRYPOINT
 #
 
-# set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
+# set the entry point so that module is called with any parameters given to the `docker run` command
 ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
 CMD []
