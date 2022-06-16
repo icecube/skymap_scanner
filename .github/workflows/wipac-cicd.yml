@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
       - uses: WIPACrepo/wipac-dev-mypy-action@v1
 
   py-setup:
@@ -40,7 +42,7 @@ jobs:
 
   pip-install:
     # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
-    # needs: [py-versions]
+    needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
