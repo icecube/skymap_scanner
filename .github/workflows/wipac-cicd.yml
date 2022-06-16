@@ -1,0 +1,72 @@
+name: wipac ci/cd
+
+on: [push]
+
+jobs:
+
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1
+
+  py-setup:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.6
+
+  # py-versions:
+  #   needs: [py-setup]
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     matrix: ${{ steps.versions.outputs.matrix }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - id: versions
+  #       uses: WIPACrepo/wipac-dev-py-versions-action@v1
+
+  # pip-install:
+  #   # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
+  #   needs: [py-versions]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     max-parallel: 4
+  #     fail-fast: false
+  #     matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v3
+  #       with:
+  #         python-version: ${{ matrix.py3_versions }}
+  #     - run: |
+  #         pip install --upgrade pip wheel setuptools
+  #         pip install .
+
+  release:
+    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+    needs: [py-setup, pip-install]
+    runs-on: ubuntu-latest
+    concurrency: release
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Python Semantic Release
+      uses: relekang/python-semantic-release@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        # repository_username: __token__
+        # repository_password: ${{ secrets.PYPI_TOKEN }}
