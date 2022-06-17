@@ -712,10 +712,7 @@ def main() -> None:
         "-e",
         "--event-file",
         required=True,
-        help=(
-            "The file containing the event to scan (.pkl or .json). "
-            "The event name is used as a suffix for pulsar topics."
-        ),
+        help="The file containing the event to scan (.pkl or .json)",
         type=lambda x: _validate_arg(
             x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
@@ -723,6 +720,11 @@ def main() -> None:
                 f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
             ),
         ),
+    )
+    parser.add_argument(
+        "--event-mqname",
+        required=True,
+        help="identifier to correspond to the event for MQ connections",
     )
     parser.add_argument(
         "-c",
@@ -756,12 +758,6 @@ def main() -> None:
     )
 
     # pulsar args
-    parser.add_argument(
-        "-t",
-        "--topics-root",
-        default="",
-        help="A root/prefix to base topic names for communicating to/from client(s)",
-    )
     parser.add_argument(
         "-b",
         "--broker",
@@ -835,10 +831,10 @@ def main() -> None:
             broker=args.broker,
             auth_token=args.auth_token,
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{os.path.basename(args.event_file)}"
+                "to-clients", os.path.basename(args.event_mqname)
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{os.path.basename(args.event_file)}"
+                "from-clients", os.path.basename(args.event_mqname)
             ),
             timeout_s_to_clients=args.timeout_s_to_clients,
             timeout_s_from_clients=args.timeout_s_from_clients,

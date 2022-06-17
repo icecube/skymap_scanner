@@ -56,14 +56,11 @@ def outfile_to_outmsg(debug_outfile: str) -> Any:
 async def scan_pixel_distributed(
     broker: str,  # for pulsar
     auth_token: str,  # for pulsar
-    event_name: str,
     topic_to_clients: str,  # for pulsar
     topic_from_clients: str,  # for pulsar
     debug_directory: str = "",
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
-    LOGGER.info(f"Starting up a Skymap Scanner client for event: {event_name=}")
-
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # TODO - only false during debugging; make fail safe logic (on server end?)
     in_queue = mq.Queue(
@@ -153,10 +150,9 @@ def main() -> None:
 
     # "physics" args
     parser.add_argument(
-        "-e",
-        "--event-name",
+        "--event-mqname",
         required=True,
-        help="Some identifier to correspond to an event for MQ connections",
+        help="identifier to correspond to an event for MQ connections",
     )
     parser.add_argument(
         # we aren't going to use this arg, but just check if it exists for incoming pixels
@@ -172,12 +168,6 @@ def main() -> None:
     )
 
     # pulsar args
-    parser.add_argument(
-        "-t",
-        "--topics-root",
-        default="",
-        help="A root/prefix to base topic names for communicating to/from client(s)",
-    )
     parser.add_argument(
         "-b",
         "--broker",
@@ -223,16 +213,16 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # go!
+    LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.event_mqname=}")
     asyncio.get_event_loop().run_until_complete(
         scan_pixel_distributed(
             broker=args.broker,
             auth_token=args.auth_token,
-            event_name=args.event_name,
             topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{os.path.basename(args.event_name)}"
+                "to-clients", os.path.basename(args.event_mqname)
             ),
             topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{os.path.basename(args.event_name)}"
+                "from-clients", os.path.basename(args.event_mqname)
             ),
             debug_directory=args.debug_directory,
         )
