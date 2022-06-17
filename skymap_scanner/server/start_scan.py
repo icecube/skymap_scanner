@@ -830,12 +830,8 @@ def main() -> None:
             cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=os.path.join(
-                "to-clients", os.path.basename(args.event_mqname)
-            ),
-            queue_from_clients=os.path.join(
-                "from-clients", os.path.basename(args.event_mqname)
-            ),
+            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
+            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
             timeout_s_to_clients=args.timeout_s_to_clients,
             timeout_s_from_clients=args.timeout_s_from_clients,
             mini_test_scan=args.mini_test_scan,

@@ -218,12 +218,8 @@ def main() -> None:
         scan_pixel_distributed(
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=os.path.join(
-                "to-clients", os.path.basename(args.event_mqname)
-            ),
-            queue_from_clients=os.path.join(
-                "from-clients", os.path.basename(args.event_mqname)
-            ),
+            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
+            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
             debug_directory=args.debug_directory,
         )
     )
