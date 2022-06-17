@@ -32,8 +32,6 @@ def main():
 
     cache = CacheManager()
 
-    gcd = GCDManager(config.gcd_dir)
-
     """
     Load event.
     """
@@ -47,6 +45,10 @@ def main():
     Allocate filestagers.
     """
     stagers = dataio.get_stagers()
+
+    logger.info(f"Allocated filestagers: {stagers}")
+
+    gcd_manager = GCDManager(config.gcd_dir, filestager=stagers)
 
     """
     Test old code
@@ -63,40 +65,49 @@ def main():
     """
     Test new code
     """
-    event = RealtimeEvent(event_dict, extract_frames=True)
+    realtime_event = RealtimeEvent(event_dict, extract=True)
 
-    logger.info(f"Read {args.event} corresponding to {event.get_uid()}")
+    run, evt = realtime_event.get_run(), realtime_event.get_event_number()
 
-    run, evt = event.get_run(), event.get_event_number()
+    icecube_event = realtime_event.get_event()
+
+    logger.info(f"Read {args.event} corresponding to {realtime_event.get_uid()}")
 
     """
     Access and dump physics frame.
     """
-    phys = event.get_physics_frame()
+    phys = icecube_event.get_physics_frame()
 
     logger.debug(phys)
 
     """
     Allocate path.
     """
-    path = cache.allocate_dir(event.get_stem())
+    path = cache.allocate_dir(realtime_event.get_stem())
 
     logger.info(f"Allocated event cache in {path}")
 
     """
     Check Frame packet
     """
-    frame_packet = event.get_frame_packet()
+    frame_packet = icecube_event.get_frame_packet()
 
     logger.info(frame_packet)
 
     """
     Check GCD
     """
-    if not event.frame_packet.has_gcd():
-        gcd_path = gcd.get_gcd_path(run)
+    if frame_packet.has_gcd():
+        pass
+    else:
+        gcd_path = gcd_manager.get_gcd_path(run)
+        gcd_packet = gcd_manager.load_gcd(gcd_path)
+        frame_packet.set_gcd(gcd_packet)
+
         logger.info(f"Frame packet has empty GCD. Using {gcd_path}")
-        event.frame_packet.set_gcd(gcd_path)
+
+    logging.info(icecube_event.frame_packet.frames[0])
+
     """
     Cleanup.
     """
