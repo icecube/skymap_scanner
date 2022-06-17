@@ -106,7 +106,7 @@ def main():
 
         logger.info(f"Frame packet has empty GCD. Using {gcd_path}")
 
-    logging.info(icecube_event.frame_packet.frames[0])
+    logger.info(f"Event has GCD: {icecube_event.frame_packet.has_gcd()}")
 
     """
     Cleanup.
