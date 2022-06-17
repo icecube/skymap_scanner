@@ -1,10 +1,15 @@
 import logging
 from pathlib import Path
 
+from icecube import dataio
+
+
 class GCDManager:
-    def __init__(self, gcd_path: str) -> None:
+    def __init__(self, gcd_path: str, filestager=None) -> None:
         self.logger = logging.getLogger(__name__)
         self.path = Path(gcd_path)
+        self.filestager = filestager
+
         self.index = self.build_gcd_index()
         self.runs = sorted(self.index.keys())
 
@@ -42,4 +47,25 @@ class GCDManager:
         )
         return self.index[gcd_run]
 
-    # def get_latest_gcd(self, run):
+    def load_gcd(self, path):
+        """
+        Cleaned up code from utils.load_GCD_frame_packet_from_file():
+        """
+
+        handle = (
+            self.filestager.GetReadablePath(str(path))
+            if self.filestager is not None
+            else path
+        )
+
+        self.logger.info(f"File handle: {handle}")
+
+        i3f = dataio.I3File(str(handle), "r")
+
+        frame_packet = list()
+
+        while i3f.more():
+            frame = i3f.pop_frame()
+            frame_packet.append(frame)
+
+        return frame_packet
