@@ -3,12 +3,12 @@
 Based on:
     python/perform_scan.py
         - a lot of similar code
-    cloud_tools/send_scan.py (just the Pulsar logic)
+    cloud_tools/send_scan.py (just the MQ logic)
         - send_scan_icetray() vs send_scan()
-        - Pulsar logic
+        - MQ logic
     cloud_tools/collect_pixels.py
         - collect_and_save_pixels_icetray() vs collect_and_save_pixels()
-        - Pulsar logic
+        - MQ logic
     cloud_tools/save_pixels.py
         - not much in common
 """
@@ -602,12 +602,12 @@ async def serve_pixel_scans(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    topic_to_clients: str,  # for pulsar
-    topic_from_clients: str,  # for pulsar
-    timeout_s_to_clients: int,  # for pulsar
-    timeout_s_from_clients: int,  # for pulsar
+    broker: str,  # for mq
+    auth_token: str,  # for mq
+    queue_to_clients: str,  # for mq
+    queue_from_clients: str,  # for mq
+    timeout_s_to_clients: int,  # for mq
+    timeout_s_from_clients: int,  # for mq
     mini_test_scan: bool,
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
@@ -627,13 +627,13 @@ async def serve_pixel_scans(
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
         address=broker,
-        name=topic_to_clients,
+        name=queue_to_clients,
         auth_token=auth_token,
         timeout=timeout_s_to_clients,
     )
     from_clients_queue = mq.Queue(
         address=broker,
-        name=topic_from_clients,
+        name=queue_from_clients,
         auth_token=auth_token,
         timeout=timeout_s_from_clients,
     )
@@ -647,7 +647,7 @@ async def serve_pixel_scans(
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.generate_pframes()):  # topic_to_clients
+        for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
             await pub.send(
                 {
@@ -757,18 +757,18 @@ def main() -> None:
         help="run a mini scan for testing (fewer pixels, variations, etc.)",
     )
 
-    # pulsar args
+    # mq args
     parser.add_argument(
         "-b",
         "--broker",
         required=True,
-        help="The Pulsar broker URL to connect to",
+        help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
         default=None,
-        help="The Pulsar authentication token to use",
+        help="The MQ authentication token to use",
     )
     parser.add_argument(
         "--timeout-pub",
@@ -830,10 +830,10 @@ def main() -> None:
             cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            topic_to_clients=os.path.join(
+            queue_to_clients=os.path.join(
                 "to-clients", os.path.basename(args.event_mqname)
             ),
-            topic_from_clients=os.path.join(
+            queue_from_clients=os.path.join(
                 "from-clients", os.path.basename(args.event_mqname)
             ),
             timeout_s_to_clients=args.timeout_s_to_clients,

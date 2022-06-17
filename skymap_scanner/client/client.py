@@ -54,10 +54,10 @@ def outfile_to_outmsg(debug_outfile: str) -> Any:
 
 
 async def scan_pixel_distributed(
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    topic_to_clients: str,  # for pulsar
-    topic_from_clients: str,  # for pulsar
+    broker: str,  # for mq
+    auth_token: str,  # for mq
+    queue_to_clients: str,  # for mq
+    queue_from_clients: str,  # for mq
     debug_directory: str = "",
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
@@ -65,13 +65,13 @@ async def scan_pixel_distributed(
     except_errors = False  # TODO - only false during debugging; make fail safe logic (on server end?)
     in_queue = mq.Queue(
         address=broker,
-        name=topic_to_clients,
+        name=queue_to_clients,
         auth_token=auth_token,
         except_errors=except_errors,
     )
     out_queue = mq.Queue(
         address=broker,
-        name=topic_from_clients,
+        name=queue_from_clients,
         auth_token=auth_token,
         except_errors=except_errors,
     )
@@ -167,18 +167,18 @@ def main() -> None:
         ),
     )
 
-    # pulsar args
+    # mq args
     parser.add_argument(
         "-b",
         "--broker",
         required=True,
-        help="The Pulsar broker URL to connect to",
+        help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
         default=None,
-        help="The Pulsar authentication token to use",
+        help="The MQ authentication token to use",
     )
 
     # logging args
@@ -218,10 +218,10 @@ def main() -> None:
         scan_pixel_distributed(
             broker=args.broker,
             auth_token=args.auth_token,
-            topic_to_clients=os.path.join(
+            queue_to_clients=os.path.join(
                 "to-clients", os.path.basename(args.event_mqname)
             ),
-            topic_from_clients=os.path.join(
+            queue_from_clients=os.path.join(
                 "from-clients", os.path.basename(args.event_mqname)
             ),
             debug_directory=args.debug_directory,
