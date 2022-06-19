@@ -1,5 +1,6 @@
 import argparse
 import logging
+from pathlib import Path
 
 from icecube import dataio
 
@@ -14,7 +15,7 @@ def main():
     Loads the scan result for a given event ID from a cache directory and writes the numerical results on a numpy file.
     """
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     logger = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ def main():
 
     parser.add_argument("-c", "--cache", help="Cache directory", required=True)
     parser.add_argument("-e", "--event", help="Event ID", required=True)
-    parser.add_argument("-o", "--output_file", help="Output file", required=False)
+    parser.add_argument("-o", "--output_path", help="Output path", required=False)
+    # parser.add_argument("-d", "--debug", help="Debug mode", action="store_true")
 
     args = parser.parse_args()
 
@@ -31,10 +33,10 @@ def main():
         args.event, filestager=stagers, cache_dir=args.cache
     )
 
-    if args.output_file is None:
-        output_file = eventID + ".npz"
-    else:
-        output_file = args.output_file
+    output_file = Path(eventID + ".npz")
+
+    if args.output_path is not None:
+        output_file = Path(args.output_path / output_file)
 
     result = ScanResult.from_state_dict(state_dict)
     result.save(output_file)
