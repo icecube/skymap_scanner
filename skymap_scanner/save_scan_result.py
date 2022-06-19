@@ -1,11 +1,12 @@
+import argparse
+import logging
+
 from icecube import dataio
 
-# not sure about why this still has the icecube prefix
+# not sure why this still has the icecube prefix
 from icecube.skymap_scanner import load_cache_state
 
-from skymap_scanner import ScanResult
-
-import argparse
+from scan_result import ScanResult
 
 
 def main():
