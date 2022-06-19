@@ -32,12 +32,14 @@ class ScanResult:
     """
 
     def __eq__(self, other):
+        # NOTE: will return false if NaN are present
+        # numpy.array_equal() supports `equal_nan` option only from version 1.19
         return all(
             np.array_equal(self.result[nside], other.result[nside])
             for nside in self.result
         )
 
-    def is_close(self, other):
+    def is_close(self, other, equal_nan=True):
         """
         Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
         """
@@ -46,19 +48,27 @@ class ScanResult:
         require_equal = ["index"]
         require_close = ["llh", "E_in", "E_tot"]
 
-        close = list()  # one bool for each nside value
+        close = dict()  # one bool for each nside value
 
         for nside in sre:
-            nside_equal = [
-                np.array_equal(sre[nside][key], ore[nside][key])
+            nside_equal = {
+                key: np.array_equal(sre[nside][key], ore[nside][key])
                 for key in require_equal
-            ]
-            nside_close = [
-                np.allclose(sre[nside][key], ore[nside][key]) for key in require_close
-            ]
-            close.append(all(nside_equal) and all(nside_close))
+            }
+            nside_close = {
+                key: np.allclose(sre[nside][key], ore[nside][key], equal_nan=equal_nan)
+                for key in require_close
+            }
+            close[nside] = all(nside_equal.values()) and all(nside_close.values())
 
-        return all(close)
+            if not all(nside_equal.values()):
+                self.logger.debug(f"Mismatched pixel indices for nside={nside}")
+            if not all(nside_close.values()):
+                self.logger.debug(f"Mismatched numerical results for nside={nside}")
+                self.logger.debug(f"{nside_close}")
+
+        self.logger.debug(f"Comparison result: {close}")
+        return all(close.values())
 
     """
     Auxiliary methods
