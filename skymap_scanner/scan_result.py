@@ -28,11 +28,37 @@ class ScanResult:
         self.result = result
 
     """
-    Comparison operators
+    Comparison operators and methods
     """
 
     def __eq__(self, other):
-        return np.array_equal(self.result, other.result)
+        return all(
+            np.array_equal(self.result[nside], other.result[nside])
+            for nside in self.result
+        )
+
+    def is_close(self, other):
+        """
+        Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
+        """
+        sre, ore = self.result, other.result  # just for brevity
+
+        require_equal = ["index"]
+        require_close = ["llh", "E_in", "E_tot"]
+
+        close = list()  # one bool for each nside value
+
+        for nside in sre:
+            nside_equal = [
+                np.array_equal(sre[nside][key], ore[nside][key])
+                for key in require_equal
+            ]
+            nside_close = [
+                np.allclose(sre[nside][key], ore[nside][key]) for key in require_close
+            ]
+            close.append(all(nside_equal) and all(nside_close))
+
+        return all(close)
 
     """
     Auxiliary methods
@@ -86,7 +112,11 @@ class ScanResult:
 
     @classmethod
     def load(cls, filename):
-        return cls(result=np.load(filename))
+        npz = np.load(filename)
+        result = dict()
+        for key in npz.keys():
+            result[key] = npz[key]
+        return cls(result=result)
 
     def save(self, filename):
         np.savez(filename, **self.result)
@@ -107,6 +137,7 @@ def main():
 
     parser.add_argument("-c", "--cache", help="Cache directory", required=True)
     parser.add_argument("-e", "--event", help="Event ID", required=True)
+    parser.add_argument("-o", "--output_file", help="Output file", required=False)
 
     args = parser.parse_args()
 
@@ -115,25 +146,22 @@ def main():
         args.event, filestager=stagers, cache_dir=args.cache
     )
 
-    outfile = eventID + ".npz"
-
-    result1 = ScanResult.from_state_dict(state_dict)
-
-    result1.save(outfile)
-
-    result2 = ScanResult.load(outfile)
-
-    result3 = ScanResult.from_state_dict(state_dict)
-
-    if result1 == result2:
-        logger.info("numpy I/O works")
+    if args.output_file is None:
+        output_file = eventID + ".npz"
     else:
-        logger.info("inconsistency in numpy I/O")
+        output_file = args.output_file
 
-    if result1 == result3:
-        logger.info("comparison between state_dict and file works")
+    result = ScanResult.from_state_dict(state_dict)
+    result.save(output_file)
 
-    result1.save(outfile)
+    result_check = ScanResult.load(output_file)
+
+    close = result.is_close(result_check)
+    equal = result == result_check
+
+    logger.info(
+        f"The loaded file is close? ({close}) and equal? ({equal}) to the source data."
+    )
 
 
 if __name__ == "__main__":
