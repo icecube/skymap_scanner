@@ -39,7 +39,11 @@ from ..utils import (
     pixel_to_tuple,
     save_GCD_frame_packet_to_file,
 )
-from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .choose_new_pixels_to_scan import (
+    MAX_NSIDE_DEFAULT,
+    MIN_NSIDE_DEFAULT,
+    choose_new_pixels_to_scan,
+)
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
