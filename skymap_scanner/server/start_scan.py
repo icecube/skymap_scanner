@@ -197,22 +197,17 @@ class ProgressReporter:
             )
 
         if self.scan_ct == self.nscans:
-            message = (
-                f"I am done scanning this refinement iteration! "
-                f"{self.scan_ct/self.nposvar} total pixels ({self.scan_ct} scans)"
-                "\n"
-            )
+            message = "I am done scanning this refinement iteration! \n"
         else:
-            message = (
-                f"I am busy scanning pixels. "
-                "\n"
-                f"Finished: "
-                f"\n"
-                f" - this iteration: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
-                f"~{int((self.scan_ct/self.nscans)*100)}% ({self.scan_ct}/{self.nscans} scans)"
-                "\n"
-            )
+            message = "I am busy scanning pixels. \n"
 
+        message += (
+            f"Stats: "
+            f"\n"
+            f" - this iteration: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
+            f"~{int((self.scan_ct/self.nscans)*100)}% ({self.scan_ct}/{self.nscans} scans)"
+            "\n"
+        )
         message += f"{time_stat()}\n"
         message += "Pixel Summary:\n"
         message += f" - {self.nposvar} position variations per pixel\n"
