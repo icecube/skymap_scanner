@@ -13,7 +13,6 @@ Based on:
         - not much in common
 """
 
-# fmt: off
 
 import argparse
 import asyncio
@@ -23,7 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import asyncstdlib as asl
 import healpy  # type: ignore[import]
@@ -47,6 +46,21 @@ NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 LOGGER = logging.getLogger("skyscan-server")
 
 
+def is_pow_of_two(value: Union[int, float]) -> bool:
+    """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
+    if isinstance(value, float):
+        if not value.is_integer():  # type: ignore[union-attr]
+            return False
+        value = int(value)
+
+    if not isinstance(value, int):
+        return False
+
+    # I know, I know, no one likes bit shifting... buuuut...
+    return (value != 0) and (value & (value - 1) == 0)
+
+
+# fmt: off
 class ProgressReporter:
     """Manage various means for reporting progress during event scanning."""
 
@@ -744,6 +758,34 @@ def main() -> None:
             x,
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+    parser.add_argument(
+        "--min-nside",
+        default=MIN_NSIDE_DEFAULT,
+        help="The first iteration's nside value",
+        type=lambda x: int(
+            _validate_arg(
+                x,
+                x.isnumeric() and is_pow_of_two(int(x)),
+                argparse.ArgumentTypeError(
+                    f"--min-nside must be an integer power of two (not {x})"
+                ),
+            ),
+        ),
+    )
+    parser.add_argument(
+        "--max-nside",
+        default=MAX_NSIDE_DEFAULT,
+        help="The final iteration's nside value",  # TODO: is that right?
+        type=lambda x: int(
+            _validate_arg(
+                x,
+                x.isnumeric() and is_pow_of_two(int(x)),
+                argparse.ArgumentTypeError(
+                    f"--max-nside must be an integer power of two (not {x})"
+                ),
+            )
         ),
     )
 
