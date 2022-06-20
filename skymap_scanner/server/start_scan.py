@@ -233,6 +233,8 @@ class PixelsToScan:
     def __init__(
         self,
         state_dict: StateDict,
+        min_nside: int,
+        max_nside: int,
         input_time_name: str = "HESE_VHESelfVetoVertexTime",
         input_pos_name: str = "HESE_VHESelfVetoVertexPos",
         output_particle_name: str = "MillipedeSeedParticle",
@@ -242,6 +244,10 @@ class PixelsToScan:
         Arguments:
             `state_dict`
                 - the state_dict
+            `min_nside`
+                - min nside value
+            `max_nside`
+                - max nside value
             `input_time_name`
                 - name of an I3Double to use as the vertex time for the coarsest scan
             `input_pos_name`
@@ -257,7 +263,8 @@ class PixelsToScan:
         self.output_particle_name = output_particle_name
 
         variationDistance = 20.*I3Units.m
-        if mini_test_scan:  # Use Just 2 Variations for Mini-Test Scan
+        # Production Scan or Mini-Test Scan?
+        if mini_test_scan:
             self.posVariations = [
                 dataclasses.I3Position(0.,0.,0.),
                 dataclasses.I3Position(-variationDistance,0.,0.)
@@ -273,11 +280,10 @@ class PixelsToScan:
                 dataclasses.I3Position(0.,0., variationDistance)
             ]
 
-        # Production Scan or Mini-Test Scan?
-        if mini_test_scan:
-            self.min_nside = 1
-        else:
-            self.min_nside = 8
+        if max_nside < min_nside:
+            raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
+        self.min_nside = min_nside
+        self.max_nside = max_nside
 
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
@@ -301,15 +307,11 @@ class PixelsToScan:
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned."""
+
         # find pixels to refine
-        if self.min_nside == 1:  # (mini test scan)
-            pixels_to_refine = choose_new_pixels_to_scan(
-                self.state_dict, min_nside=self.min_nside, max_nside=1
-            )
-        else:
-            pixels_to_refine = choose_new_pixels_to_scan(
-                self.state_dict, min_nside=self.min_nside
-            )
+        pixels_to_refine = choose_new_pixels_to_scan(
+            self.state_dict, min_nside=self.min_nside, max_nside=self.max_nside
+        )
         if len(pixels_to_refine) == 0:
             raise RuntimeError("There are no pixels to refine.")
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
@@ -623,6 +625,8 @@ async def serve_pixel_scans(
     timeout_s_to_clients: int,  # for pulsar
     timeout_s_from_clients: int,  # for pulsar
     mini_test_scan: bool,
+    min_nside: int,
+    max_nside: int,
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -656,7 +660,12 @@ async def serve_pixel_scans(
     # SEND PIXELS
     #
 
-    pixeler = PixelsToScan(state_dict=state_dict, mini_test_scan=mini_test_scan)
+    pixeler = PixelsToScan(
+        state_dict=state_dict,
+        mini_test_scan=mini_test_scan,
+        min_nside=min_nside,
+        max_nside=max_nside,
+    )
 
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
@@ -885,6 +894,8 @@ def main() -> None:
             timeout_s_to_clients=args.timeout_s_to_clients,
             timeout_s_from_clients=args.timeout_s_from_clients,
             mini_test_scan=args.mini_test_scan,
+            min_nside=args.min_nside,
+            max_nside=args.max_nside,
         )
     )
     LOGGER.info("Done.")
