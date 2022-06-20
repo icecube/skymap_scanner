@@ -672,9 +672,10 @@ async def serve_pixel_scans(
     )
 
     # Start the refinement-iteration loop
+    total_nscans = 0
     while True:
         logging.info("Starting new refinement iteration")
-        more_to_refine = await refinement_iteration(
+        nscans = await refinement_iteration(
             to_clients_queue,
             from_clients_queue,
             event_id,
@@ -683,9 +684,14 @@ async def serve_pixel_scans(
             global_start_time,
             pixeler,
         )
-        if not more_to_refine:
+        if not nscans:  # we're done
             break
-    LOGGER.info("Done with all refinement iterations.")
+        total_nscans += nscans
+
+    # sanity check
+    if not total_nscans:
+        raise RuntimeError("No pixels were ever sent.")
+    LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
 
 
 async def refinement_iteration(
@@ -696,10 +702,10 @@ async def refinement_iteration(
     cache_dir: str,
     global_start_time: float,
     pixeler: PixelsToScan,
-) -> bool:
+) -> int:
     """Run the next (or first) refinement iteration set of scans.
 
-    Return whether there were any pixels sent. Stop when this is False.
+    Return the number of pixels sent. Stop when this is 0.
     """
 
     #
@@ -723,8 +729,8 @@ async def refinement_iteration(
     try:
         nscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
     except NameError:
-        LOGGER.info("No pixels were sent.")
-        return False
+        LOGGER.info("No pixels were sent for this iteration.")
+        return 0
     LOGGER.info(f"Done serving pixel-variations to clients: {nscans}.")
 
     #
@@ -751,7 +757,7 @@ async def refinement_iteration(
                     break
 
     LOGGER.info("Done receiving/saving scans from clients.")
-    return True
+    return nscans
 
 
 def main() -> None:
