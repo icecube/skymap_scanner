@@ -168,8 +168,11 @@ class ProgressReporter:
         def time_stat() -> str:
             elapsed = int(time.time() - self.scan_start_time)
             runtime_msg = (
-                f"Elapsed Runtime: {dt.timedelta(seconds=elapsed+self.time_before_scan)} "
-                f"({dt.timedelta(seconds=elapsed)} spent scanning this refinement iteration)"
+                f"Elapsed Runtime: "
+                f"\n"
+                f" - this iteration: {dt.timedelta(seconds=elapsed)}"
+                f"\n"
+                f" - this iteration + prior processing: {dt.timedelta(seconds=elapsed+self.time_before_scan)}"
             )
             if not self.scan_ct:
                 return runtime_msg
@@ -178,18 +181,24 @@ class ProgressReporter:
             return (
                 f"{runtime_msg} "
                 f"\n"
-                f"Rate: {secs_per_scan/60*self.nposvar:.2f} min/pixel "
-                f"({secs_per_scan/60:.2f} min/scan)"
+                f"Rate: "
                 f"\n"
-                f"Predicted Refinement-Iteration Finish: {dt.timedelta(seconds=int(secs_predicted-elapsed))} from now "
+                f" - {secs_per_scan/60*self.nposvar:.2f} min/pixel ({secs_per_scan/60:.2f} min/scan)"
                 f"\n"
-                f"Predicted Elapsed Runtime at End of Refinement-Iteration: "
-                f"{dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))})"
+                f"Predicted Time Left: "
+                f"\n"
+                f" - this iteration: {dt.timedelta(seconds=int(secs_predicted-elapsed))}"
+                f"\n"
+                f"Predicted Total Runtime: "
+                f"\n"
+                f" - this iteration: {dt.timedelta(seconds=int(secs_predicted))}"
+                f"\n"
+                f" - this iteration + prior processing: {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))}"
             )
 
         if self.scan_ct == self.nscans:
             message = (
-                f"I am done scanning! "
+                f"I am done scanning this refinement iteration! "
                 f"{self.scan_ct/self.nposvar} total pixels ({self.scan_ct} scans)"
                 "\n"
             )
@@ -197,13 +206,16 @@ class ProgressReporter:
             message = (
                 f"I am busy scanning pixels. "
                 "\n"
-                f"Finished: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
+                f"Finished: "
+                f"\n"
+                f" - this iteration: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
                 f"~{int((self.scan_ct/self.nscans)*100)}% ({self.scan_ct}/{self.nscans} scans)"
                 "\n"
             )
 
         message += f"{time_stat()}\n"
-        message += f"{self.nposvar} position variations per pixel\n"
+        message += "Pixel Summary:\n"
+        message += f" - {self.nposvar} position variations per pixel\n"
 
         if len(self.state_dict["nsides"])==0:
             message += " - no pixels are done yet\n"
