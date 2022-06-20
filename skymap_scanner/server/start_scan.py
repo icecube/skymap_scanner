@@ -827,7 +827,7 @@ def main() -> None:
     parser.add_argument(
         "--max-nside",
         default=MAX_NSIDE_DEFAULT,
-        help="The final refinement iteration's nside value",  # TODO: is that right?
+        help="The final refinement iteration's nside value",
         type=lambda x: int(
             _validate_arg(
                 x,
