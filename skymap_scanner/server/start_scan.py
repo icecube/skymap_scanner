@@ -125,7 +125,7 @@ class ProgressReporter:
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
-        self.scan_start_time = time.time()
+        self.scan_start_time = 0.0
         self.time_before_scan = 0
 
     def initial_report(self, global_start_time: float) -> None:
@@ -169,7 +169,7 @@ class ProgressReporter:
             elapsed = int(time.time() - self.scan_start_time)
             runtime_msg = (
                 f"Elapsed Runtime: {dt.timedelta(seconds=elapsed+self.time_before_scan)} "
-                f"({dt.timedelta(seconds=elapsed)} spent scanning)"
+                f"({dt.timedelta(seconds=elapsed)} spent scanning this refinement iteration)"
             )
             if not self.scan_ct:
                 return runtime_msg
@@ -181,9 +181,9 @@ class ProgressReporter:
                 f"Rate: {secs_per_scan/60*self.nposvar:.2f} min/pixel "
                 f"({secs_per_scan/60:.2f} min/scan)"
                 f"\n"
-                f"Predicted Finish: {dt.timedelta(seconds=int(secs_predicted-elapsed))} from now "
+                f"Predicted Refinement-Iteration Finish: {dt.timedelta(seconds=int(secs_predicted-elapsed))} from now "
                 f"\n"
-                f"Predicted Total Runtime: "
+                f"Predicted Elapsed Runtime at End of Refinement-Iteration: "
                 f"{dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))})"
             )
 
@@ -320,7 +320,8 @@ class PixelsToScan:
             self.state_dict, min_nside=self.min_nside, max_nside=self.max_nside
         )
         if len(pixels_to_refine) == 0:
-            raise RuntimeError("There are no pixels to refine.")
+            LOGGER.info("There are no pixels to refine.")
+            return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
         # sanity check state_dict
@@ -663,16 +664,47 @@ async def serve_pixel_scans(
         timeout=timeout_s_from_clients,
     )
 
-    #
-    # SEND PIXELS
-    #
-
     pixeler = PixelsToScan(
         state_dict=state_dict,
         mini_test_variations=mini_test_variations,
         min_nside=min_nside,
         max_nside=max_nside,
     )
+
+    # Start the refinement-iteration loop
+    while True:
+        logging.info("Starting new refinement iteration")
+        more_to_refine = await refinement_iteration(
+            to_clients_queue,
+            from_clients_queue,
+            event_id,
+            state_dict,
+            cache_dir,
+            global_start_time,
+            pixeler,
+        )
+        if not more_to_refine:
+            break
+    LOGGER.info("Done with all refinement iterations.")
+
+
+async def refinement_iteration(
+    to_clients_queue: mq.Queue,
+    from_clients_queue: mq.Queue,
+    event_id: str,
+    state_dict: StateDict,
+    cache_dir: str,
+    global_start_time: float,
+    pixeler: PixelsToScan,
+) -> bool:
+    """Run the next (or first) refinement iteration set of scans.
+
+    Return whether there were any pixels sent. Stop when this is False.
+    """
+
+    #
+    # SEND PIXELS
+    #
 
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
@@ -690,8 +722,9 @@ async def serve_pixel_scans(
     # check if anything was actually processed
     try:
         nscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError as e:
-        raise RuntimeError("No pixels were sent.") from e
+    except NameError:
+        LOGGER.info("No pixels were sent.")
+        return False
     LOGGER.info(f"Done serving pixel-variations to clients: {nscans}.")
 
     #
@@ -718,6 +751,7 @@ async def serve_pixel_scans(
                     break
 
     LOGGER.info("Done receiving/saving scans from clients.")
+    return True
 
 
 def main() -> None:
@@ -779,7 +813,7 @@ def main() -> None:
     parser.add_argument(
         "--min-nside",
         default=MIN_NSIDE_DEFAULT,
-        help="The first iteration's nside value",
+        help="The first refinement iteration's nside value",
         type=lambda x: int(
             _validate_arg(
                 x,
@@ -793,7 +827,7 @@ def main() -> None:
     parser.add_argument(
         "--max-nside",
         default=MAX_NSIDE_DEFAULT,
-        help="The final iteration's nside value",  # TODO: is that right?
+        help="The final refinement iteration's nside value",  # TODO: is that right?
         type=lambda x: int(
             _validate_arg(
                 x,
