@@ -242,7 +242,7 @@ class PixelsToScan:
         input_time_name: str = "HESE_VHESelfVetoVertexTime",
         input_pos_name: str = "HESE_VHESelfVetoVertexPos",
         output_particle_name: str = "MillipedeSeedParticle",
-        mini_test_scan: bool = False,
+        mini_test_variations: bool = False,
     ) -> None:
         """
         Arguments:
@@ -258,7 +258,7 @@ class PixelsToScan:
                 - name of an I3Position to use as the vertex position for the coarsest scan
             `output_particle_name`
                 - name of the output I3Particle
-            `mini_test_scan`
+            `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
         """
         self.state_dict = state_dict
@@ -266,29 +266,32 @@ class PixelsToScan:
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
 
-        variationDistance = 20.*I3Units.m
+        # Get Position Variations
+        variation_distance = 20.*I3Units.m
         # Production Scan or Mini-Test Scan?
-        if mini_test_scan:
-            self.posVariations = [
+        if mini_test_variations:
+            self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variationDistance,0.,0.)
+                dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
-            self.posVariations = [
+            self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variationDistance,0.,0.),
-                dataclasses.I3Position( variationDistance,0.,0.),
-                dataclasses.I3Position(0.,-variationDistance,0.),
-                dataclasses.I3Position(0., variationDistance,0.),
-                dataclasses.I3Position(0.,0.,-variationDistance),
-                dataclasses.I3Position(0.,0., variationDistance)
+                dataclasses.I3Position(-variation_distance,0.,0.),
+                dataclasses.I3Position( variation_distance,0.,0.),
+                dataclasses.I3Position(0.,-variation_distance,0.),
+                dataclasses.I3Position(0., variation_distance,0.),
+                dataclasses.I3Position(0.,0.,-variation_distance),
+                dataclasses.I3Position(0.,0., variation_distance)
             ]
 
+        # Set nside values
         if max_nside < min_nside:
             raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
         self.min_nside = min_nside
         self.max_nside = max_nside
 
+        # Validate & read state_dict
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
 
@@ -387,8 +390,8 @@ class PixelsToScan:
                     time = coarser_particle.time
                     energy = coarser_particle.energy
 
-        for i in range(0,len(self.posVariations)):
-            posVariation = self.posVariations[i]
+        for i in range(0,len(self.pos_variations)):
+            posVariation = self.pos_variations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
             thisPosition = dataclasses.I3Position(position.x + posVariation.x,position.y + posVariation.y,position.z + posVariation.z)
@@ -628,7 +631,7 @@ async def serve_pixel_scans(
     topic_from_clients: str,  # for pulsar
     timeout_s_to_clients: int,  # for pulsar
     timeout_s_from_clients: int,  # for pulsar
-    mini_test_scan: bool,
+    mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
 ) -> None:
@@ -666,7 +669,7 @@ async def serve_pixel_scans(
 
     pixeler = PixelsToScan(
         state_dict=state_dict,
-        mini_test_scan=mini_test_scan,
+        mini_test_variations=mini_test_variations,
         min_nside=min_nside,
         max_nside=max_nside,
     )
@@ -696,7 +699,7 @@ async def serve_pixel_scans(
     #
 
     collector = ScanCollector(
-        nposvar=len(pixeler.posVariations),
+        nposvar=len(pixeler.pos_variations),
         nscans=nscans,
         state_dict=state_dict,
         event_id=event_id,
@@ -804,10 +807,10 @@ def main() -> None:
 
     # testing/debugging args
     parser.add_argument(
-        "--mini-test-scan",
+        "--mini-test-variations",
         default=False,
         action="store_true",
-        help="run a mini scan for testing (fewer pixels, variations, etc.)",
+        help="run w/ minimal variations for testing (mini-scale)",
     )
 
     # pulsar args
@@ -897,7 +900,7 @@ def main() -> None:
             ),
             timeout_s_to_clients=args.timeout_s_to_clients,
             timeout_s_from_clients=args.timeout_s_from_clients,
-            mini_test_scan=args.mini_test_scan,
+            mini_test_variations=args.mini_test_variations,
             min_nside=args.min_nside,
             max_nside=args.max_nside,
         )
