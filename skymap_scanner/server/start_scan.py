@@ -22,17 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import asyncstdlib as asl
 import healpy  # type: ignore[import]
@@ -683,17 +673,19 @@ async def serve_pixel_scans(
 
     # Start the refinement-iteration loop
     total_nscans = 0
-    ir_scanner = iterate_refinement_scans(
-        to_clients_queue,
-        from_clients_queue,
-        event_id,
-        state_dict,
-        cache_dir,
-        global_start_time,
-        pixeler,
-    )
-    async for i, nscans in asl.enumerate(ir_scanner):
-        LOGGER.info(f"Done with refinement iteration #{i}'s scans: {nscans}.")
+    while True:
+        logging.info("Starting new refinement iteration")
+        nscans = await refinement_iteration(
+            to_clients_queue,
+            from_clients_queue,
+            event_id,
+            state_dict,
+            cache_dir,
+            global_start_time,
+            pixeler,
+        )
+        if not nscans:  # we're done
+            break
         total_nscans += nscans
 
     # sanity check
@@ -702,7 +694,7 @@ async def serve_pixel_scans(
     LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
 
 
-async def iterate_refinement_scans(
+async def refinement_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     event_id: str,
@@ -710,7 +702,7 @@ async def iterate_refinement_scans(
     cache_dir: str,
     global_start_time: float,
     pixeler: PixelsToScan,
-) -> AsyncIterator[int]:
+) -> int:
     """Run the next (or first) refinement iteration set of scans.
 
     Return the number of pixels sent. Stop when this is 0.
@@ -738,7 +730,7 @@ async def iterate_refinement_scans(
         nscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
     except NameError:
         LOGGER.info("No pixels were sent for this iteration.")
-        return
+        return 0
     LOGGER.info(f"Done serving pixel-variations to clients: {nscans}.")
 
     #
@@ -765,7 +757,7 @@ async def iterate_refinement_scans(
                     break
 
     LOGGER.info("Done receiving/saving scans from clients.")
-    yield nscans
+    return nscans
 
 
 def main() -> None:
