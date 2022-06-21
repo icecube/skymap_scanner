@@ -239,16 +239,14 @@ class ProgressReporter:
 
     def get_state_dict_report(self) -> str:
         """Get a multi-line progress report of the state_dict's nside contents."""
-        msg = ""
+        msg = "Iterations with Saved Pixels:\n"
         if not self.state_dict["nsides"]:
-            msg += "Iterations with Saved Pixels:\n "
             msg += " - no pixels are done yet\n"
         else:
 
             def nside_line(nside: int, npixels: int) -> str:
                 return f" - {npixels} pixels, nside={nside}\n"
 
-            msg += "Iterations:\n"
             for nside in sorted(self.state_dict["nsides"]):  # sorted by nside
                 msg += nside_line(nside, len(self.state_dict["nsides"][nside]))
 
