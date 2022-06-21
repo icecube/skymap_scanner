@@ -4,12 +4,12 @@ import argparse
 
 from icecube import realtime_tools
 
-from alert_listener.config import source_stream, stream_topics, shifters_slackid
-from alert_listener.cache_manager import CacheManager
-from alert_listener.event_handling import EventHandler
+import config
+from cache_manager import CacheManager
+from event_handling import EventHandler
 
-from alert_listener.slack_tools import SlackInterface
-from alert_listener.slack_tools import MessageHelper as msg
+from slack_tools import SlackInterface
+from slack_tools import MessageHelper as msg
 
 
 def main():
@@ -17,9 +17,9 @@ def main():
     # LOGGING
     # ========
 
-    log = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
 
-    log.setLevel(logging.INFO)
+    log = logging.getLogger(__name__)
 
     # ================
     # ARGUMENT PARSER
@@ -49,21 +49,25 @@ def main():
         realtime_tools.config.ZMQ_HOST = "localhost"
         realtime_tools.config.ZMQ_SUB_PORT = 5556
 
-    slack.post(msg.switch_on(realtime_tools.config.ZMQ_HOST, args.execute))
+    msg_switchon = msg.switch_on(realtime_tools.config.ZMQ_HOST, args.process)
+
+    log.info(msg_switchon), slack.post(msg_switchon)
 
     cache_manager = CacheManager()
 
-    event_handler = EventHandler(cache_manager=cache_manager)
+    event_handler = EventHandler(cache_manager=cache_manager, process=args.process)
 
     try:
         realtime_tools.make_receiver(
-            varname=source_stream, topic=stream_topics, callback=event_handler
+            varname=config.source_stream,
+            topic=config.stream_topics,
+            callback=event_handler,
         )
     except Exception as err:
         exception_message = (
             f"Type: {type(err)} - Message: {err} -  Traceback: {err.__traceback__}"
         )
-        slack.post(msg.switch_off(shifters_slackid, exception_message))
+        slack.post(msg.switch_off(config.shifters_slackid, exception_message))
         raise err
 
 
@@ -72,12 +76,12 @@ def init_parser(description="New Alert Daemon"):
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
-        "-x",
-        "--execute",
+        "-p",
+        "--process",
         action="store_true",
-        dest="execute",
+        dest="process",
         default=False,
-        help="Send scans to cluster",
+        help="Call processor on incoming events",
     )
     parser.add_argument(
         "-l",
@@ -100,6 +104,8 @@ def init_parser(description="New Alert Daemon"):
         default=1000,
         help="Number of workers to send out",
     )
+
+    return parser
 
 
 if __name__ == "__main__":
