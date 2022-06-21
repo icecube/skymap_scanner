@@ -14,6 +14,6 @@ docker run --network="host" --rm -i \
     --gcd-dir /local/gcd-dir \
     --broker $PULSAR_ADDRESS \
     --log DEBUG \
-    --mini-test-variations
-    # --min-nside 1 \
-    # --max-nside 1
+    --mini-test-variations \
+    --min-nside 1 \
+    --max-nside 1
