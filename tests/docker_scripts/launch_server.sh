@@ -16,4 +16,4 @@ docker run --network="host" --rm -i \
     --log DEBUG \
     --mini-test-variations \
     --min-nside 1 \
-    --max-nside 1
+    --max-nside 512
