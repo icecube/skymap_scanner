@@ -193,15 +193,16 @@ class ProgressReporter:
         else:
             message = "I am starting up the next refinement iteration...\n\n"
 
-        message += f"{self.get_state_dict_report()}\n"
         message += (
+            f"{self.get_state_dict_report()}"  # ends w/ '\n'
             "Config:\n"
             f" - event: {self.event_id}\n"
             f" - min nside: {self.min_nside}\n"
             f" - max nside: {self.max_nside}\n"
             f" - position variations per pixel: {self.nposvar}\n"
+            f"{self.get_processing_stats_report()}"  # ends w/ '\n'
+            f"\n"
         )
-        message += f"{self.get_processing_stats_report()}\n"
 
         if self.scan_ct != self.nscans:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
