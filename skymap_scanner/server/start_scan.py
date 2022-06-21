@@ -259,8 +259,6 @@ class ProgressReporter:
             for nside, npixels in no_pixels:
                 msg += nside_line(nside, npixels)
 
-            # TODO - move the saving step to BEFORE the reporting step so state_dict is up-to-date
-
         msg += f" - {self.nposvar} position variations per pixel\n"
         return msg
 
@@ -652,22 +650,25 @@ class ScanCollector:
             raise ValueError(f"Scan has already been received: {scan_tuple}")
         self.scans_received.append(scan_tuple)
         scan_id = f"S#{len(self.scans_received) - 1}"
-
         LOGGER.info(f"Got a scan {scan_id} {scan_tuple}: {scan}")
-        self.progress_reporter.record_scan()
 
+        # get best scan
         best_scan = self.finder.cache_and_get_best(scan)
         LOGGER.info(f"Cached scan {scan_id} {scan_tuple}")
 
+        # save best scan (if we got it)
         if not best_scan:
             LOGGER.debug(f"Best scan not yet found ({scan_id}) {scan_tuple}")
-            return
-        LOGGER.info(
-            f"Saving a BEST scan (found during {scan_id}): "
-            f"{pixel_to_tuple(best_scan)} {best_scan}"
-        )
-        self.saver.save(best_scan)
-        LOGGER.debug(f"Saved (found during {scan_id}): {pixel_to_tuple(best_scan)}")
+        else:
+            LOGGER.info(
+                f"Saving a BEST scan (found during {scan_id}): "
+                f"{pixel_to_tuple(best_scan)} {best_scan}"
+            )
+            self.saver.save(best_scan)
+            LOGGER.debug(f"Saved (found during {scan_id}): {pixel_to_tuple(best_scan)}")
+
+        # report after potential save
+        self.progress_reporter.record_scan()
 
 
 async def serve_pixel_scans(
