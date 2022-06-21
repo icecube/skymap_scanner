@@ -219,38 +219,17 @@ class ProgressReporter:
         """Get a multi-line progress report of the state_dict's nside contents."""
         msg = ""
         if not self.state_dict["nsides"]:
+            msg += "Iterations:\n "
             msg += " - no pixels are done yet\n"
         else:
-            with_pixels: List[Tuple[int, int]] = []
-            no_pixels: List[Tuple[int, int]] = []
-
-            for nside in sorted(self.state_dict["nsides"]):  # sorted keys
-                npixels = len(self.state_dict["nsides"][nside])
-                if npixels:
-                    with_pixels.append((nside, npixels))
-                else:
-                    no_pixels.append((nside, npixels))
-
-            # the current nside is either the last "with pixels" or the first "without"
-            if self.scan_ct:
-                # if we've collected a pixel-scan, then we found the in-progress iteration
-                in_progress = with_pixels.pop()
-            else:
-                in_progress = no_pixels.pop(0)
 
             def nside_line(nside: int, npixels: int) -> str:
                 return f" - {npixels} pixels, nside={nside}\n"
 
-            msg += "Iteration in Progress:\n"
-            msg += nside_line(in_progress[0], in_progress[1])
-            msg += "Completed Iterations:\n"
-            for nside, npixels in with_pixels:
-                msg += nside_line(nside, npixels)
-            msg += "Remaining Iterations:\n"
-            for nside, npixels in no_pixels:
-                msg += nside_line(nside, npixels)
+            msg += "Iterations:\n"
+            for nside in sorted(self.state_dict["nsides"]):  # sorted by nside
+                msg += nside_line(nside, len(self.state_dict["nsides"][nside]))
 
-        msg += f" - {self.nposvar} position variations per pixel\n"
         return msg
 
     def finish(self) -> None:
