@@ -64,7 +64,6 @@ def is_pow_of_two(value: Union[int, float]) -> bool:
     return (value != 0) and (value & (value - 1) == 0)
 
 
-# fmt: off
 class ProgressReporter:
     """Manage various means for reporting progress during event scanning."""
 
@@ -74,9 +73,9 @@ class ProgressReporter:
         nscans: int,
         nposvar: int,
         logger: Callable[[Any], None],
-        logging_interval_in_seconds: int = 5*60,
+        logging_interval_in_seconds: int = 5 * 60,
         skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
-        skymap_plotting_callback_interval_in_seconds: int = 30*60,
+        skymap_plotting_callback_interval_in_seconds: int = 30 * 60,
     ) -> None:
         """
         Arguments:
@@ -110,7 +109,9 @@ class ProgressReporter:
             raise ValueError(
                 f"skymap_plotting_callback_interval_in_seconds is not positive: {skymap_plotting_callback_interval_in_seconds}"
             )
-        self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
+        self.skymap_plotting_callback_interval_in_seconds = (
+            skymap_plotting_callback_interval_in_seconds
+        )
 
         if nscans <= 0:
             raise ValueError(f"nscans is not positive: {nscans}")
@@ -145,7 +146,9 @@ class ProgressReporter:
 
     def _report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
-        LOGGER.info(f"Collected: {self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})")
+        LOGGER.info(
+            f"Collected: {self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})"
+        )
 
         # check if we need to send a report to the logger
         current_time = time.time()
@@ -157,72 +160,109 @@ class ProgressReporter:
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported_skymap
-        if override_timestamp or elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds:
+        if (
+            override_timestamp
+            or elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds
+        ):
             self.last_time_reported_skymap = current_time
             if self.skymap_plotting_callback is not None:
                 self.skymap_plotting_callback(self.state_dict)
 
     def send_status_report(self) -> None:
         """Log a status report."""
-
-        def time_stat() -> str:
-            elapsed = int(time.time() - self.scan_start_time)
-            runtime_msg = (
-                f"Elapsed Runtime: "
-                f"\n"
-                f" - this iteration: {dt.timedelta(seconds=elapsed)}"
-                f"\n"
-                f" - this iteration + prior processing: {dt.timedelta(seconds=elapsed+self.time_before_scan)}"
-            )
-            if not self.scan_ct:
-                return runtime_msg
-            secs_per_scan = elapsed / self.scan_ct
-            secs_predicted = elapsed / (self.scan_ct/self.nscans)
-            return (
-                f"{runtime_msg} "
-                f"\n"
-                f"Rate: "
-                f"\n"
-                f" - {secs_per_scan/60*self.nposvar:.2f} min/pixel ({secs_per_scan/60:.2f} min/scan)"
-                f"\n"
-                f"Predicted Time Left: "
-                f"\n"
-                f" - this iteration: {dt.timedelta(seconds=int(secs_predicted-elapsed))}"
-                f"\n"
-                f"Predicted Total Runtime: "
-                f"\n"
-                f" - this iteration: {dt.timedelta(seconds=int(secs_predicted))}"
-                f"\n"
-                f" - this iteration + prior processing: {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))}"
-            )
-
         if self.scan_ct == self.nscans:
-            message = "I am done scanning this refinement iteration! \n"
+            message = "I am done scanning this refinement iteration!\n\n"
         else:
-            message = "I am busy scanning pixels. \n"
+            message = "I am busy scanning pixels.\n\n"
 
         message += (
             f"Stats: "
             f"\n"
             f" - this iteration: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
-            f"~{int((self.scan_ct/self.nscans)*100)}% ({self.scan_ct}/{self.nscans} scans)"
+            f" ({self.scan_ct}/{self.nscans} scans)"
             "\n"
         )
-        message += f"{time_stat()}\n"
-        message += "Pixel Summary:\n"
-        message += f" - {self.nposvar} position variations per pixel\n"
-
-        if len(self.state_dict["nsides"])==0:
-            message += " - no pixels are done yet\n"
-        else:
-            for nside in self.state_dict["nsides"]:
-                pixels = self.state_dict["nsides"][nside]
-                message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
+        message += f"{self.get_processing_stats_report()}\n"
+        message += f"{self.get_state_dict_report()}\n"
 
         if self.scan_ct != self.nscans:
-            message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
+            message += f"I will report back again in {self.logging_interval_in_seconds} seconds."
 
         self.logger(message)
+        LOGGER.info(message)
+
+    def get_processing_stats_report(self) -> str:
+        """Get a multi-line report on processing stats."""
+        elapsed = int(time.time() - self.scan_start_time)
+        msg = (
+            f"Elapsed Runtime: "
+            f"\n"
+            f" - this iteration: {dt.timedelta(seconds=elapsed)}"
+            f"\n"
+            f" - this iteration + prior procesing: {dt.timedelta(seconds=elapsed+self.time_before_scan)}"
+            f"\n"
+        )
+        if not self.scan_ct:  # we can't predict
+            return msg
+
+        secs_per_scan = elapsed / self.scan_ct
+        secs_predicted = elapsed / (self.scan_ct / self.nscans)
+        msg += (
+            f"Rate: "
+            f"\n"
+            f" - {secs_per_scan/60*self.nposvar:.2f} min/pixel ({secs_per_scan/60:.2f} min/scan)"
+            f"\n"
+            f"Predicted Time Left: "
+            f"\n"
+            f" - this iteration: {dt.timedelta(seconds=int(secs_predicted-elapsed))}"
+            f"\n"
+            f"Predicted Total Runtime: "
+            f"\n"
+            f" - this iteration: {dt.timedelta(seconds=int(secs_predicted))}"
+            f"\n"
+            f" - this iteration + prior processing: {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))}"
+            f"\n"
+        )
+        return msg
+
+    def get_state_dict_report(self) -> str:
+        """Get a multi-line progress report of the state_dict's nside contents."""
+        msg = ""
+        if not self.state_dict["nsides"]:
+            msg += " - no pixels are done yet\n"
+        else:
+            with_pixels: List[Tuple[int, int]] = []
+            no_pixels: List[Tuple[int, int]] = []
+
+            for nside in sorted(self.state_dict["nsides"]):  # sorted keys
+                npixels = len(self.state_dict["nsides"][nside])
+                if npixels:
+                    with_pixels.append((nside, npixels))
+                else:
+                    no_pixels.append((nside, npixels))
+
+            if self.scan_ct:
+                # if we've collected a pixel-scan, then we found the in-progress iteration
+                in_progress = with_pixels.pop()
+            else:
+                in_progress = no_pixels.pop(0)
+
+            def nside_line(nside: int, npixels: int) -> str:
+                return f" - {npixels} pixels, nside={nside}\n"
+
+            msg += "Iteration in Progress:\n"
+            msg += nside_line(in_progress[0], in_progress[1])
+            msg += "Completed Iterations:\n"
+            for nside, npixels in with_pixels:
+                msg += nside_line(nside, npixels)
+            msg += "Remaining Iterations:\n"
+            for nside, npixels in no_pixels:
+                msg += nside_line(nside, npixels)
+
+            # TODO - move the saving step to BEFORE the reporting step so state_dict is up-to-date
+
+        msg += f" - {self.nposvar} position variations per pixel\n"
+        return msg
 
     def finish(self) -> None:
         """Check if all the scans were received & make a final report."""
@@ -238,6 +278,7 @@ class ProgressReporter:
         self.final_report()
 
 
+# fmt: off
 class PixelsToScan:
     """Manage providing pixels to scan."""
 
