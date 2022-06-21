@@ -191,12 +191,13 @@ class ProgressReporter:
         elapsed = int(time.time() - self.scan_start_time)
         msg = (
             "Processing Stats:\n"
-            f"    * this iteration: ~{int((self.scan_ct/self.nscans)*100)}%, "
+            f" - {self.nposvar} position variations per pixel\n"
+            f" - ~{int((self.scan_ct/self.nscans)*100)}%, "
             f"~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels "
-            f"({self.scan_ct}/{self.nscans} scans)\n"
+            f"({self.scan_ct}/{self.nscans} scans) [this iteration]\n"
             f" - Elapsed Runtime\n"
-            f"    * this iteration: {dt.timedelta(seconds=elapsed)}\n"
-            f"    * this iteration + prior processing: {dt.timedelta(seconds=elapsed+self.time_before_scan)}\n"
+            f"    * {dt.timedelta(seconds=elapsed)} [this iteration]\n"
+            f"    * {dt.timedelta(seconds=elapsed+self.time_before_scan)} [this iteration + prior processing]\n"
         )
         if not self.scan_ct:  # we can't predict
             return msg
@@ -207,10 +208,10 @@ class ProgressReporter:
             f" - Rate\n"
             f"    * {secs_per_scan/60*self.nposvar:.2f} min/pixel ({secs_per_scan/60:.2f} min/scan)\n"
             f" - Predicted Time Left\n"
-            f"    * this iteration: {dt.timedelta(seconds=int(secs_predicted-elapsed))}\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
             f" - Predicted Total Runtime\n"
-            f"    * this iteration: {dt.timedelta(seconds=int(secs_predicted))}\n"
-            f"    * this iteration + prior processing: {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))}\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted))} [this iteration]\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))} [this iteration + prior processing]\n"
         )
         return msg
 
