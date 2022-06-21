@@ -188,8 +188,10 @@ class ProgressReporter:
         """Make a status report string."""
         if self.scan_ct == self.nscans:
             message = "I am done scanning this refinement iteration!\n\n"
-        else:
+        elif self.scan_ct:
             message = "I am busy scanning pixels.\n\n"
+        else:
+            message = "I am starting up the next refinement iteration...\n\n"
 
         message += f"{self.get_state_dict_report()}\n"
         message += (
@@ -238,7 +240,7 @@ class ProgressReporter:
         """Get a multi-line progress report of the state_dict's nside contents."""
         msg = ""
         if not self.state_dict["nsides"]:
-            msg += "Iterations:\n "
+            msg += "Iterations with Saved Pixels:\n "
             msg += " - no pixels are done yet\n"
         else:
 
