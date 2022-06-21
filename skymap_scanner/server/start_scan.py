@@ -197,7 +197,7 @@ class ProgressReporter:
             f" - event: {self.event_id}\n"
             f" - min nside: {self.min_nside}\n"
             f" - max nside: {self.max_nside}\n"
-            f" - {self.nposvar} position variations per pixel\n"
+            f" - position variations per pixel: {self.nposvar}\n"
         )
         message += f"{self.get_processing_stats_report()}\n"
 
@@ -211,9 +211,9 @@ class ProgressReporter:
         elapsed = int(time.time() - self.scan_start_time)
         msg = (
             "Processing Stats:\n"
-            f" - ~{int((self.scan_ct/self.nscans)*100)}%, "
-            f"~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels "
-            f"({self.scan_ct}/{self.nscans} scans) [this iteration]\n"
+            f" - {((self.scan_ct/self.nscans)*100):.1f}% "
+            f"({self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
+            f"{self.scan_ct}/{self.nscans} scans) [this iteration]\n"
             f" - Elapsed Runtime\n"
             f"    * {dt.timedelta(seconds=elapsed)} [this iteration]\n"
             f"    * {dt.timedelta(seconds=elapsed+self.time_before_scan)} [this iteration + prior processing]\n"
