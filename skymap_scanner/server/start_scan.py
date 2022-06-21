@@ -178,8 +178,8 @@ class ProgressReporter:
         else:
             message = "I am busy scanning pixels.\n\n"
 
-        message += f"{self.get_processing_stats_report()}\n"
         message += f"{self.get_state_dict_report()}\n"
+        message += f"{self.get_processing_stats_report()}\n"
 
         if self.scan_ct != self.nscans:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
