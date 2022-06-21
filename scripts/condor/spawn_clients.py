@@ -45,7 +45,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             else ""
         )
 
-        executable = "launch_scripts/launch_client.sh"
+        executable = "scripts/launch_scripts/launch_client.sh"
         transfer_input_files = [executable]
 
         # write
@@ -74,9 +74,7 @@ def main() -> None:
 
     Make scratch directory and condor file.
     """
-    if not (
-        os.getcwd().endswith("skymap_scanner") and "launch_scripts" in os.listdir(".")
-    ):
+    if not (os.getcwd().endswith("skymap_scanner") and "scripts" in os.listdir(".")):
         raise RuntimeError(
             "You must run this script from repo root (script uses relative paths)"
         )

@@ -58,7 +58,7 @@ jobs:
         run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
-          ./launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+          ./scripts/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
       - name: Build Skymap Scanner Docker Image
         run: |
           ./tests/docker_scripts/docker_local_build.sh
@@ -69,7 +69,7 @@ jobs:
         run: |
 
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
-          ./launch_scripts/launch_server.sh \
+          ./scripts/launch_scripts/launch_server.sh \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --event-mqname $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
@@ -83,7 +83,7 @@ jobs:
           echo "Launching $nclients clients"
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR
           for i in $( seq 1 $nclients ); do
-            ./launch_scripts/launch_client.sh \
+            ./scripts/launch_scripts/launch_client.sh \
               --event-mqname $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
               --gcd-dir $SKYSCAN_GCD_DIR \
               --broker $PULSAR_ADDRESS \
