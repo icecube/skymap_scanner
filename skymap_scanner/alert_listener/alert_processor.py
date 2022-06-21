@@ -53,14 +53,16 @@ def main():
     """
     Test old code
     """
-    """
+    logger.info("*** TESTING OLD CODE - START ***")
+
     event_old = extract_json_message(
         event_dict,
         filestager=stagers,
         cache_dir=cache.dir,
         override_GCD_filename=config.gcd_dir,
     )
-    """
+
+    logger.info("*** TESTING OLD CODE - STOP ***")
 
     """
     Test new code
@@ -98,7 +100,7 @@ def main():
     Check GCD
     """
     if frame_packet.has_gcd():
-        pass
+        logger.warning("NOT IMPLEMENTED")
     else:
         gcd_path = gcd_manager.get_gcd_path(run)
         gcd_packet = gcd_manager.load_gcd(gcd_path)
