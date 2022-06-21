@@ -1,13 +1,16 @@
 import os
 import tempfile
 from pathlib import Path
+import logging
 
 
 class CacheManager:
     def __init__(self, name="skymap_scanner_cache"):
+        self.logger = logging.getLogger(__name__)
         self.loc = self.get_cache_location()
         self.cache_dir = self.make_cache_dir(cache_name=name)
         self.path = Path(self.cache_dir)
+        self.logger.info(f"Allocated cache with path: {self.cache_dir}")
 
     def get_cache_location(self):
         # logic borrowed from realtime_tools/python/config.py
