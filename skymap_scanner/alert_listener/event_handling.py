@@ -7,9 +7,10 @@ from realtime_event import RealtimeEvent
 
 
 class EventHandler:
-    def __init__(self, cache_manager):
+    def __init__(self, cache_manager, process=True):
         self.cache = cache_manager
         self.log = logging.getLogger(__name__)
+        self.process = process
 
     def __call__(self, varname, topics, event):
         self.handle_event(varname, topics, event)
@@ -39,10 +40,13 @@ class EventHandler:
             os.path.dirname(os.path.abspath(__file__)) + "/alert_processor.py"
         )
 
-        self.log.info(f"Processing event with subprocess, check {log_filepath}")
-        with open(log_filepath, "w") as logfile:
-            subprocess.run(
-                ["python", alert_processor, "-e", event_filepath],
-                stdout=logfile,
-                stderr=subprocess.STDOUT,
-            )
+        if self.process:
+            self.log.info(f"Processing event with subprocess, check {log_filepath}")
+            cmd = ["python", alert_processor, "-e", event_filepath]
+
+            with open(log_filepath, "w") as logfile:
+                subprocess.run(
+                    cmd,
+                    stdout=logfile,
+                    stderr=subprocess.STDOUT,
+                )
