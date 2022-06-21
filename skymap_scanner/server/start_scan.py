@@ -72,6 +72,9 @@ class ProgressReporter:
         state_dict: StateDict,
         nscans: int,
         nposvar: int,
+        min_nside: int,
+        max_nside: int,
+        event_id: str,
         report_callback: Optional[Callable[[Any], None]] = None,
         report_interval_in_seconds: int = 5 * 60,
         skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
@@ -85,6 +88,12 @@ class ProgressReporter:
                 - number of expected scans
             `nposvar`
                 - number of potion variations per pixel
+            `min_nside`
+                - min nside value
+            `max_nside`
+                - max nside value
+            `event_id`
+                - the event id
             `report_callback`
                 - a callback function for semi-verbose reporting
             `report_interval_in_seconds`
@@ -120,6 +129,10 @@ class ProgressReporter:
         if nposvar <= 0:
             raise ValueError(f"nposvar is not positive: {nposvar}")
         self.nposvar = nposvar
+
+        self.min_nside = min_nside
+        self.max_nside = max_nside
+        self.event_id = event_id
 
         self.scan_ct = 0
 
@@ -179,6 +192,13 @@ class ProgressReporter:
             message = "I am busy scanning pixels.\n\n"
 
         message += f"{self.get_state_dict_report()}\n"
+        message += (
+            "Config:\n"
+            f" - event: {self.event_id}\n"
+            f" - min nside: {self.min_nside}\n"
+            f" - max nside: {self.max_nside}\n"
+            f" - {self.nposvar} position variations per pixel\n"
+        )
         message += f"{self.get_processing_stats_report()}\n"
 
         if self.scan_ct != self.nscans:
@@ -191,7 +211,6 @@ class ProgressReporter:
         elapsed = int(time.time() - self.scan_start_time)
         msg = (
             "Processing Stats:\n"
-            f" - {self.nposvar} position variations per pixel\n"
             f" - ~{int((self.scan_ct/self.nscans)*100)}%, "
             f"~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels "
             f"({self.scan_ct}/{self.nscans} scans) [this iteration]\n"
@@ -578,6 +597,8 @@ class ScanCollector:
         self,
         nposvar: int,  # Number of position variations to collect
         nscans: int,  # Number of expected pixels
+        min_nside: int,
+        max_nside: int,
         state_dict: StateDict,
         event_id: str,
         cache_dir: str,
@@ -595,6 +616,9 @@ class ScanCollector:
             state_dict,
             nscans,
             nposvar,
+            min_nside,
+            max_nside,
+            event_id,
             report_callback=None,  # TODO
             report_interval_in_seconds=5 * 60,
             skymap_plotting_callback=None,  # TODO
@@ -759,6 +783,8 @@ async def refinement_iteration(
     collector = ScanCollector(
         nposvar=len(pixeler.pos_variations),
         nscans=nscans,
+        min_nside=pixeler.min_nside,
+        max_nside=pixeler.max_nside,
         state_dict=state_dict,
         event_id=event_id,
         cache_dir=cache_dir,
