@@ -673,8 +673,8 @@ async def serve_pixel_scans(
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
     queue_from_clients: str,  # for mq
-    timeout_s_to_clients: int,  # for mq
-    timeout_s_from_clients: int,  # for mq
+    timeout_to_clients: int,  # for mq
+    timeout_from_clients: int,  # for mq
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
@@ -698,13 +698,13 @@ async def serve_pixel_scans(
         address=broker,
         name=queue_to_clients,
         auth_token=auth_token,
-        timeout=timeout_s_to_clients,
+        timeout=timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
         address=broker,
         name=queue_from_clients,
         auth_token=auth_token,
-        timeout=timeout_s_from_clients,
+        timeout=timeout_from_clients,
     )
 
     pixeler = PixelsToScan(
@@ -930,14 +930,12 @@ def main() -> None:
         help="The MQ authentication token to use",
     )
     parser.add_argument(
-        "--timeout-pub",
-        dest="timeout_s_to_clients",
+        "--timeout-to-clients",
         default=60 * 1,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
-        "--timeout-sub",
-        dest="timeout_s_from_clients",
+        "--timeout-from-clients",
         default=60 * 30,
         help="timeout (seconds) for messages FROM client(s)",
     )
@@ -991,8 +989,8 @@ def main() -> None:
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
             queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
-            timeout_s_to_clients=args.timeout_s_to_clients,
-            timeout_s_from_clients=args.timeout_s_from_clients,
+            timeout_to_clients=args.timeout_to_clients,
+            timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,
             min_nside=args.min_nside,
             max_nside=args.max_nside,

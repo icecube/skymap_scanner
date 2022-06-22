@@ -33,6 +33,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     broker: str,
     auth_token: str,
     log_level: str,
+    timeout_to_clients: int,
+    timeout_from_clients: int,
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -49,9 +51,18 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         transfer_input_files = [executable]
 
         # write
+        args = (
+            f"--event-mqname {event_mqname} "
+            f"--gcd-dir {gcd_dir} "
+            f"--broker {broker} "
+            f"--auth-token {auth_token} "
+            f"--log {log_level} "
+            f"--timeout-to_clients {timeout_to_clients} "
+            f"--timeout-from_clients {timeout_from_clients}"
+        )
         file.write(
             f"""executable = {executable}
-arguments = --event-mqname {event_mqname} --gcd-dir {gcd_dir} --broker {broker} --auth-token {auth_token} --log {log_level}
+arguments = {args}
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
 log = {scratch}/skymap_scanner.log
@@ -127,6 +138,16 @@ def main() -> None:
         help="Skymap Scanner: the Pulsar authentication token to use",
     )
     parser.add_argument(
+        "--timeout-to-clients",
+        default=60 * 1,
+        help="timeout (seconds) for messages TO client(s)",
+    )
+    parser.add_argument(
+        "--timeout-from-clients",
+        default=60 * 30,
+        help="timeout (seconds) for messages FROM client(s)",
+    )
+    parser.add_argument(
         "--log-level",
         required=True,
         help="Skymap Scanner: the output logging level",
@@ -152,6 +173,8 @@ def main() -> None:
         args.broker,
         args.auth_token,
         args.log_level,
+        args.timeout_to_clients,
+        args.timeout_from_clients,
     )
 
     # Execute
