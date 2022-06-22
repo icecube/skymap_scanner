@@ -918,13 +918,13 @@ def main() -> None:
         "--timeout-pub",
         dest="timeout_s_to_clients",
         default=60 * 1,
-        help="timeout (seconds) for sending messages TO client(s)",
+        help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-sub",
         dest="timeout_s_from_clients",
         default=60 * 30,
-        help="timeout (seconds) for receiving messages FROM client(s)",
+        help="timeout (seconds) for messages FROM client(s)",
     )
 
     # logging args

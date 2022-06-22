@@ -58,6 +58,8 @@ async def scan_pixel_distributed(
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
     queue_from_clients: str,  # for mq
+    timeout_s_to_clients: int,  # for mq
+    timeout_s_from_clients: int,  # for mq
     debug_directory: str = "",
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
@@ -68,12 +70,14 @@ async def scan_pixel_distributed(
         name=queue_to_clients,
         auth_token=auth_token,
         except_errors=except_errors,
+        timeout=timeout_s_to_clients,
     )
     out_queue = mq.Queue(
         address=broker,
         name=queue_from_clients,
         auth_token=auth_token,
         except_errors=except_errors,
+        timeout=timeout_s_from_clients,
     )
 
     LOGGER.info("Getting pixels from server to scan then send back...")
@@ -180,6 +184,18 @@ def main() -> None:
         default=None,
         help="The MQ authentication token to use",
     )
+    parser.add_argument(
+        "--timeout-sub",
+        dest="timeout_s_to_clients",
+        default=60 * 1,
+        help="timeout (seconds) for messages TO client(s)",
+    )
+    parser.add_argument(
+        "--timeout-pub",
+        dest="timeout_s_from_clients",
+        default=60 * 30,
+        help="timeout (seconds) for messages FROM client(s)",
+    )
 
     # logging args
     parser.add_argument(
@@ -220,6 +236,8 @@ def main() -> None:
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
             queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            timeout_s_to_clients=args.timeout_s_to_clients,
+            timeout_s_from_clients=args.timeout_s_from_clients,
             debug_directory=args.debug_directory,
         )
     )
