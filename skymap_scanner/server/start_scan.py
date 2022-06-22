@@ -3,12 +3,12 @@
 Based on:
     python/perform_scan.py
         - a lot of similar code
-    cloud_tools/send_scan.py (just the Pulsar logic)
+    cloud_tools/send_scan.py (just the MQ logic)
         - send_scan_icetray() vs send_scan()
-        - Pulsar logic
+        - MQ logic
     cloud_tools/collect_pixels.py
         - collect_and_save_pixels_icetray() vs collect_and_save_pixels()
-        - Pulsar logic
+        - MQ logic
     cloud_tools/save_pixels.py
         - not much in common
 """
@@ -22,7 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import asyncstdlib as asl
 import healpy  # type: ignore[import]
@@ -50,6 +50,12 @@ NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 LOGGER = logging.getLogger("skyscan-server")
 
 
+class SlackInterface:
+    """Dummy class for now."""
+
+    active = False
+
+
 def is_pow_of_two(value: Union[int, float]) -> bool:
     """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
     if isinstance(value, float):
@@ -75,10 +81,9 @@ class ProgressReporter:
         min_nside: int,
         max_nside: int,
         event_id: str,
-        report_callback: Optional[Callable[[Any], None]] = None,
+        slack_interface: SlackInterface,
         report_interval_in_seconds: int = 5 * 60,
-        skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
-        skymap_plotting_callback_interval_in_seconds: int = 30 * 60,
+        skymap_plotting_interval_in_seconds: int = 30 * 60,
     ) -> None:
         """
         Arguments:
@@ -94,17 +99,15 @@ class ProgressReporter:
                 - max nside value
             `event_id`
                 - the event id
-            `report_callback`
-                - a callback function for semi-verbose reporting
+            `slack_interface`
+                - a connection to Slack
             `report_interval_in_seconds`
-                - call the report-callback with this interval
-            `skymap_plotting_callback`
-                - a callback function the receives the full current state of the map
-            `skymap_plotting_callback_interval_in_seconds`
-                - call the skymap_plotting-callback with this interval
+                - make a report with this interval
+            `skymap_plotting_interval_in_seconds`
+                - make a skymap plot with this interval
         """
         self.state_dict = state_dict
-        self.report_callback = report_callback
+        self.slack_interface = slack_interface
 
         if report_interval_in_seconds <= 0:
             raise ValueError(
@@ -112,15 +115,11 @@ class ProgressReporter:
             )
         self.report_interval_in_seconds = report_interval_in_seconds
 
-        self.skymap_plotting_callback = skymap_plotting_callback
-
-        if skymap_plotting_callback_interval_in_seconds <= 0:
+        if skymap_plotting_interval_in_seconds <= 0:
             raise ValueError(
-                f"skymap_plotting_callback_interval_in_seconds is not positive: {skymap_plotting_callback_interval_in_seconds}"
+                f"skymap_plotting_interval_in_seconds is not positive: {skymap_plotting_interval_in_seconds}"
             )
-        self.skymap_plotting_callback_interval_in_seconds = (
-            skymap_plotting_callback_interval_in_seconds
-        )
+        self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
         if nscans <= 0:
             raise ValueError(f"nscans is not positive: {nscans}")
@@ -169,8 +168,8 @@ class ProgressReporter:
         if override_timestamp or elapsed_seconds > self.report_interval_in_seconds:
             self.last_time_reported = current_time
             status_report = self.get_status_report()
-            if self.report_callback:
-                self.report_callback(status_report)
+            if self.slack_interface.active:
+                self.slack_interface.post(status_report)
             LOGGER.info(status_report)
 
         # check if we need to send a report to the skymap logger
@@ -178,11 +177,11 @@ class ProgressReporter:
         elapsed_seconds = current_time - self.last_time_reported_skymap
         if (
             override_timestamp
-            or elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds
+            or elapsed_seconds > self.skymap_plotting_interval_in_seconds
         ):
             self.last_time_reported_skymap = current_time
-            if self.skymap_plotting_callback:
-                self.skymap_plotting_callback(self.state_dict)
+            if self.slack_interface.active:
+                self.slack_interface.post_skymap_plot(self.state_dict)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -604,6 +603,7 @@ class ScanCollector:
         event_id: str,
         cache_dir: str,
         global_start_time: float,
+        slack_interface: SlackInterface,
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
             nposvar=nposvar,
@@ -620,10 +620,9 @@ class ScanCollector:
             min_nside,
             max_nside,
             event_id,
-            report_callback=None,  # TODO
+            slack_interface,
             report_interval_in_seconds=5 * 60,
-            skymap_plotting_callback=None,  # TODO
-            skymap_plotting_callback_interval_in_seconds=30 * 60,
+            skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
         self.scans_received: List[Tuple[int, int, int]] = []
@@ -670,12 +669,12 @@ async def serve_pixel_scans(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    topic_to_clients: str,  # for pulsar
-    topic_from_clients: str,  # for pulsar
-    timeout_s_to_clients: int,  # for pulsar
-    timeout_s_from_clients: int,  # for pulsar
+    broker: str,  # for mq
+    auth_token: str,  # for mq
+    queue_to_clients: str,  # for mq
+    queue_from_clients: str,  # for mq
+    timeout_to_clients: int,  # for mq
+    timeout_from_clients: int,  # for mq
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
@@ -697,15 +696,15 @@ async def serve_pixel_scans(
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
         address=broker,
-        name=topic_to_clients,
+        name=queue_to_clients,
         auth_token=auth_token,
-        timeout=timeout_s_to_clients,
+        timeout=timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
         address=broker,
-        name=topic_from_clients,
+        name=queue_from_clients,
         auth_token=auth_token,
-        timeout=timeout_s_from_clients,
+        timeout=timeout_from_clients,
     )
 
     pixeler = PixelsToScan(
@@ -714,6 +713,8 @@ async def serve_pixel_scans(
         min_nside=min_nside,
         max_nside=max_nside,
     )
+
+    slack_interface = SlackInterface()
 
     # Start the refinement-iteration loop
     total_nscans = 0
@@ -727,6 +728,7 @@ async def serve_pixel_scans(
             cache_dir,
             global_start_time,
             pixeler,
+            slack_interface,
         )
         if not nscans:  # we're done
             break
@@ -735,6 +737,17 @@ async def serve_pixel_scans(
     # sanity check
     if not total_nscans:
         raise RuntimeError("No pixels were ever sent.")
+
+    # TODO - save pixel results to .npz file
+
+    if slack_interface.active:
+        slack_interface.post(
+            f"All refinement iterations / scans complete.\n"
+            f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
+            f"Total Millipede Scans: {total_nscans}"
+        )
+        slack_interface.post_skymap_plot(state_dict)
+
     LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
 
 
@@ -746,6 +759,7 @@ async def refinement_iteration(
     cache_dir: str,
     global_start_time: float,
     pixeler: PixelsToScan,
+    slack_interface: SlackInterface,
 ) -> int:
     """Run the next (or first) refinement iteration set of scans.
 
@@ -759,7 +773,7 @@ async def refinement_iteration(
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.generate_pframes()):  # topic_to_clients
+        for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
             await pub.send(
                 {
@@ -790,6 +804,7 @@ async def refinement_iteration(
         event_id=event_id,
         cache_dir=cache_dir,
         global_start_time=global_start_time,
+        slack_interface=slack_interface,
     )
 
     # get scans from client(s), collect and save
@@ -828,10 +843,7 @@ def main() -> None:
         "-e",
         "--event-file",
         required=True,
-        help=(
-            "The file containing the event to scan (.pkl or .json). "
-            "The event name is used as a suffix for pulsar topics."
-        ),
+        help="The file containing the event to scan (.pkl or .json)",
         type=lambda x: _validate_arg(
             x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
@@ -839,6 +851,11 @@ def main() -> None:
                 f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
             ),
         ),
+    )
+    parser.add_argument(
+        "--event-mqname",
+        required=True,
+        help="identifier to correspond to the event for MQ connections",
     )
     parser.add_argument(
         "-c",
@@ -899,36 +916,28 @@ def main() -> None:
         help="run w/ minimal variations for testing (mini-scale)",
     )
 
-    # pulsar args
-    parser.add_argument(
-        "-t",
-        "--topics-root",
-        default="",
-        help="A root/prefix to base topic names for communicating to/from client(s)",
-    )
+    # mq args
     parser.add_argument(
         "-b",
         "--broker",
         required=True,
-        help="The Pulsar broker URL to connect to",
+        help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
         default=None,
-        help="The Pulsar authentication token to use",
+        help="The MQ authentication token to use",
     )
     parser.add_argument(
-        "--timeout-pub",
-        dest="timeout_s_to_clients",
+        "--timeout-to-clients",
         default=60 * 1,
-        help="timeout (seconds) for sending messages TO client(s)",
+        help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
-        "--timeout-sub",
-        dest="timeout_s_from_clients",
+        "--timeout-from-clients",
         default=60 * 30,
-        help="timeout (seconds) for receiving messages FROM client(s)",
+        help="timeout (seconds) for messages FROM client(s)",
     )
 
     # logging args
@@ -978,14 +987,10 @@ def main() -> None:
             cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{os.path.basename(args.event_file)}"
-            ),
-            topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{os.path.basename(args.event_file)}"
-            ),
-            timeout_s_to_clients=args.timeout_s_to_clients,
-            timeout_s_from_clients=args.timeout_s_from_clients,
+            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
+            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            timeout_to_clients=args.timeout_to_clients,
+            timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,
             min_nside=args.min_nside,
             max_nside=args.max_nside,

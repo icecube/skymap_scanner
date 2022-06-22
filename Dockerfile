@@ -81,13 +81,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
 RUN sudo apt-get install python3-pip -y
 RUN python3 -m pip install --upgrade pip
-RUN pip install -r /local/requirements.txt
+RUN pip install .
 
 
 #
 # ENTRYPOINT
 #
 
-# set the entry point so that entrypoint.py is called by default with any parameters given to the `docker run` command
-ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh", "/local/common_entrypoint.sh"]
+# set the entry point so that module is called with any parameters given to the `docker run` command
+ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
 CMD []
