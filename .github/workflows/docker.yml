@@ -1,60 +1,45 @@
-name: 'Docker'
+name: docker releases
 
 on:
-  pull_request:
   push:
-    branches:
-      - master
-  release:
-    types: [published]
+    branches-ignore:
+      - '**'
+    tags:
+      - '**'
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: "Push Docker Image"
+  docker:
+    name: "Docker Image"
     runs-on: ubuntu-latest
     steps:
+
     - name: Checkout Project
       uses: actions/checkout@v3
 
     - name: Docker meta
       id: docker_meta
-      uses: crazy-max/ghaction-docker-meta@v1
+      uses: docker/metadata-action@v4
       with:
-        # list of Docker images to use as base name for tags
         images: |
           icecube/skymap_scanner
-        # add git short SHA as Docker tag
-        tag-sha: true
-        tag-semver: |
-            {{major}}
-            {{major}}.{{minor}}
-            {{major}}.{{minor}}.{{patch}}
+        tags: |
+            type=ref,event=branch
+            type=semver,pattern={{major}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
 
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: docker/setup-buildx-action@v1
-
-    - name: Cache Docker layers
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-lta-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-lta-
-
-    - name: Login to DockerHub
-      uses: docker/login-action@v1
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      if: ${{ github.event_name != 'pull_request' }}
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Push Docker Image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
-        builder: ${{ steps.buildx.outputs.name }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache
+        push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-        push: ${{ github.event_name != 'pull_request' }}
