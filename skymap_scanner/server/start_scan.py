@@ -22,7 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import asyncstdlib as asl
 import healpy  # type: ignore[import]
@@ -50,6 +50,12 @@ NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 LOGGER = logging.getLogger("skyscan-server")
 
 
+class SlackInterface:
+    """Dummy class for now."""
+
+    active = False
+
+
 def is_pow_of_two(value: Union[int, float]) -> bool:
     """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
     if isinstance(value, float):
@@ -75,10 +81,9 @@ class ProgressReporter:
         min_nside: int,
         max_nside: int,
         event_id: str,
-        report_callback: Optional[Callable[[Any], None]] = None,
+        slack_interface: SlackInterface,
         report_interval_in_seconds: int = 5 * 60,
-        skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
-        skymap_plotting_callback_interval_in_seconds: int = 30 * 60,
+        skymap_plotting_interval_in_seconds: int = 30 * 60,
     ) -> None:
         """
         Arguments:
@@ -94,17 +99,15 @@ class ProgressReporter:
                 - max nside value
             `event_id`
                 - the event id
-            `report_callback`
-                - a callback function for semi-verbose reporting
+            `slack_interface`
+                - a connection to Slack
             `report_interval_in_seconds`
-                - call the report-callback with this interval
-            `skymap_plotting_callback`
-                - a callback function the receives the full current state of the map
-            `skymap_plotting_callback_interval_in_seconds`
-                - call the skymap_plotting-callback with this interval
+                - make a report with this interval
+            `skymap_plotting_interval_in_seconds`
+                - make a skymap plot with this interval
         """
         self.state_dict = state_dict
-        self.report_callback = report_callback
+        self.slack_interface = slack_interface
 
         if report_interval_in_seconds <= 0:
             raise ValueError(
@@ -112,15 +115,11 @@ class ProgressReporter:
             )
         self.report_interval_in_seconds = report_interval_in_seconds
 
-        self.skymap_plotting_callback = skymap_plotting_callback
-
-        if skymap_plotting_callback_interval_in_seconds <= 0:
+        if skymap_plotting_interval_in_seconds <= 0:
             raise ValueError(
-                f"skymap_plotting_callback_interval_in_seconds is not positive: {skymap_plotting_callback_interval_in_seconds}"
+                f"skymap_plotting_interval_in_seconds is not positive: {skymap_plotting_interval_in_seconds}"
             )
-        self.skymap_plotting_callback_interval_in_seconds = (
-            skymap_plotting_callback_interval_in_seconds
-        )
+        self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
         if nscans <= 0:
             raise ValueError(f"nscans is not positive: {nscans}")
@@ -169,8 +168,8 @@ class ProgressReporter:
         if override_timestamp or elapsed_seconds > self.report_interval_in_seconds:
             self.last_time_reported = current_time
             status_report = self.get_status_report()
-            if self.report_callback:
-                self.report_callback(status_report)
+            if self.slack_interface.active:
+                self.slack_interface.post(status_report)
             LOGGER.info(status_report)
 
         # check if we need to send a report to the skymap logger
@@ -178,11 +177,11 @@ class ProgressReporter:
         elapsed_seconds = current_time - self.last_time_reported_skymap
         if (
             override_timestamp
-            or elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds
+            or elapsed_seconds > self.skymap_plotting_interval_in_seconds
         ):
             self.last_time_reported_skymap = current_time
-            if self.skymap_plotting_callback:
-                self.skymap_plotting_callback(self.state_dict)
+            if self.slack_interface.active:
+                self.slack_interface.post_skymap_plot(self.state_dict)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -604,6 +603,7 @@ class ScanCollector:
         event_id: str,
         cache_dir: str,
         global_start_time: float,
+        slack_interface: SlackInterface,
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
             nposvar=nposvar,
@@ -620,10 +620,9 @@ class ScanCollector:
             min_nside,
             max_nside,
             event_id,
-            report_callback=None,  # TODO
+            slack_interface,
             report_interval_in_seconds=5 * 60,
-            skymap_plotting_callback=None,  # TODO
-            skymap_plotting_callback_interval_in_seconds=30 * 60,
+            skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
         self.scans_received: List[Tuple[int, int, int]] = []
@@ -715,6 +714,8 @@ async def serve_pixel_scans(
         max_nside=max_nside,
     )
 
+    slack_interface = SlackInterface()
+
     # Start the refinement-iteration loop
     total_nscans = 0
     while True:
@@ -727,6 +728,7 @@ async def serve_pixel_scans(
             cache_dir,
             global_start_time,
             pixeler,
+            slack_interface,
         )
         if not nscans:  # we're done
             break
@@ -735,6 +737,17 @@ async def serve_pixel_scans(
     # sanity check
     if not total_nscans:
         raise RuntimeError("No pixels were ever sent.")
+
+    # TODO - save pixel results to .npz file
+
+    if slack_interface.active:
+        slack_interface.post(
+            f"All refinement iterations / scans complete.\n"
+            f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
+            f"Total Millipede Scans: {total_nscans}"
+        )
+        slack_interface.post_skymap_plot(state_dict)
+
     LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
 
 
@@ -746,6 +759,7 @@ async def refinement_iteration(
     cache_dir: str,
     global_start_time: float,
     pixeler: PixelsToScan,
+    slack_interface: SlackInterface,
 ) -> int:
     """Run the next (or first) refinement iteration set of scans.
 
@@ -790,6 +804,7 @@ async def refinement_iteration(
         event_id=event_id,
         cache_dir=cache_dir,
         global_start_time=global_start_time,
+        slack_interface=slack_interface,
     )
 
     # get scans from client(s), collect and save
