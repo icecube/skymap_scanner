@@ -76,7 +76,9 @@ jobs:
             --gcd-dir $SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
-            --mini-test-scan \
+            --mini-test-variations \
+            --min-nside 1 \
+            --max-nside 1 \
             &
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
