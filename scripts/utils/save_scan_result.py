@@ -48,7 +48,7 @@ def main():
     equal = result == result_check
 
     logger.info(
-        f"The loaded file is close? ({close}) and equal? ({equal}) to the source data."
+        f"The loaded file is close? ({close}) and/or equal? ({equal}) to the source data."
     )
 
     return equal or close
