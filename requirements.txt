@@ -34,7 +34,7 @@ kiwisolver==1.4.3
     # via matplotlib
 matplotlib==3.5.2
     # via healpy
-numpy==1.22.4
+numpy==1.23.0
     # via
     #   astropy
     #   healpy
