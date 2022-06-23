@@ -67,8 +67,12 @@ class ScanResult:
                 self.logger.debug(f"Mismatched numerical results for nside={nside}")
                 self.logger.debug(f"{nside_close}")
 
-        self.logger.debug(f"Comparison result: {close}")
-        return all(close.values())
+        result = all(close.values())
+
+        if not result:
+            self.logger.debug(f"Comparison result: {close}")
+
+        return result
 
     """
     Auxiliary methods
