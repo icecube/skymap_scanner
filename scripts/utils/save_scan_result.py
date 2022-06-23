@@ -1,5 +1,6 @@
 import argparse
 import logging
+
 from pathlib import Path
 
 from icecube import dataio
@@ -7,7 +8,7 @@ from icecube import dataio
 # not sure why this still has the icecube prefix
 from icecube.skymap_scanner import load_cache_state
 
-from scan_result import ScanResult
+from skymap_scanner.scan_result import ScanResult
 
 
 def main():
@@ -24,11 +25,11 @@ def main():
     parser.add_argument("-c", "--cache", help="Cache directory", required=True)
     parser.add_argument("-e", "--event", help="Event ID", required=True)
     parser.add_argument("-o", "--output_path", help="Output path", required=False)
-    # parser.add_argument("-d", "--debug", help="Debug mode", action="store_true")
 
     args = parser.parse_args()
 
     stagers = dataio.get_stagers()
+
     eventID, state_dict = load_cache_state(
         args.event, filestager=stagers, cache_dir=args.cache
     )
@@ -49,6 +50,8 @@ def main():
     logger.info(
         f"The loaded file is close? ({close}) and equal? ({equal}) to the source data."
     )
+
+    return equal or close
 
 
 if __name__ == "__main__":
