@@ -8,7 +8,7 @@ from icecube import dataio
 # not sure why this still has the icecube prefix
 from icecube.skymap_scanner import load_cache_state
 
-from skymap_scanner.scan_result import ScanResult
+from skymap_scanner.server.scan_result import ScanResult
 
 
 def main():

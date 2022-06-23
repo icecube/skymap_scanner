@@ -6,7 +6,7 @@ from pathlib import Path
 from numpy import append
 
 
-from skymap_scanner.scan_result import ScanResult
+from skymap_scanner.server.scan_result import ScanResult
 
 
 def main():
