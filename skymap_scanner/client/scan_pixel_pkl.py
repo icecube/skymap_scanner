@@ -6,7 +6,7 @@ Based on:
     python/traysegments/scan_pixel_distributed.py
         - a lot of similar code
     cloud_tools/scan_pixel.py
-        - Pulsar logic
+        - MQ logic
 """
 
 # fmt: off

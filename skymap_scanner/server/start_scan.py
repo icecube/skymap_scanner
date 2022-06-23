@@ -3,17 +3,16 @@
 Based on:
     python/perform_scan.py
         - a lot of similar code
-    cloud_tools/send_scan.py (just the Pulsar logic)
+    cloud_tools/send_scan.py (just the MQ logic)
         - send_scan_icetray() vs send_scan()
-        - Pulsar logic
+        - MQ logic
     cloud_tools/collect_pixels.py
         - collect_and_save_pixels_icetray() vs collect_and_save_pixels()
-        - Pulsar logic
+        - MQ logic
     cloud_tools/save_pixels.py
         - not much in common
 """
 
-# fmt: off
 
 import argparse
 import asyncio
@@ -23,7 +22,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import asyncstdlib as asl
 import healpy  # type: ignore[import]
@@ -40,11 +39,35 @@ from ..utils import (
     pixel_to_tuple,
     save_GCD_frame_packet_to_file,
 )
-from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .choose_new_pixels_to_scan import (
+    MAX_NSIDE_DEFAULT,
+    MIN_NSIDE_DEFAULT,
+    choose_new_pixels_to_scan,
+)
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
 LOGGER = logging.getLogger("skyscan-server")
+
+
+class SlackInterface:
+    """Dummy class for now."""
+
+    active = False
+
+
+def is_pow_of_two(value: Union[int, float]) -> bool:
+    """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
+    if isinstance(value, float):
+        if not value.is_integer():  # type: ignore[union-attr]
+            return False
+        value = int(value)
+
+    if not isinstance(value, int):
+        return False
+
+    # I know, I know, no one likes bit shifting... buuuut...
+    return (value != 0) and (value & (value - 1) == 0)
 
 
 class ProgressReporter:
@@ -55,10 +78,12 @@ class ProgressReporter:
         state_dict: StateDict,
         nscans: int,
         nposvar: int,
-        logger: Callable[[Any], None],
-        logging_interval_in_seconds: int = 5*60,
-        skymap_plotting_callback: Optional[Callable[[StateDict], None]] = None,
-        skymap_plotting_callback_interval_in_seconds: int = 30*60,
+        min_nside: int,
+        max_nside: int,
+        event_id: str,
+        slack_interface: SlackInterface,
+        report_interval_in_seconds: int = 5 * 60,
+        skymap_plotting_interval_in_seconds: int = 30 * 60,
     ) -> None:
         """
         Arguments:
@@ -68,31 +93,33 @@ class ProgressReporter:
                 - number of expected scans
             `nposvar`
                 - number of potion variations per pixel
-            `logger`
-                - a callback function for semi-verbose logging
-            `logging_interval_in_seconds`
-                - call the logger callback with this interval
-            `skymap_plotting_callback`
-                - a callback function the receives the full current state of the map
-            `skymap_plotting_callback_interval_in_seconds`
-                - a callback function the receives the full
+            `min_nside`
+                - min nside value
+            `max_nside`
+                - max nside value
+            `event_id`
+                - the event id
+            `slack_interface`
+                - a connection to Slack
+            `report_interval_in_seconds`
+                - make a report with this interval
+            `skymap_plotting_interval_in_seconds`
+                - make a skymap plot with this interval
         """
         self.state_dict = state_dict
-        self.logger = logger
+        self.slack_interface = slack_interface
 
-        if logging_interval_in_seconds <= 0:
+        if report_interval_in_seconds <= 0:
             raise ValueError(
-                f"logging_interval_in_seconds is not positive: {logging_interval_in_seconds}"
+                f"report_interval_in_seconds is not positive: {report_interval_in_seconds}"
             )
-        self.logging_interval_in_seconds = logging_interval_in_seconds
+        self.report_interval_in_seconds = report_interval_in_seconds
 
-        self.skymap_plotting_callback = skymap_plotting_callback
-
-        if skymap_plotting_callback_interval_in_seconds <= 0:
+        if skymap_plotting_interval_in_seconds <= 0:
             raise ValueError(
-                f"skymap_plotting_callback_interval_in_seconds is not positive: {skymap_plotting_callback_interval_in_seconds}"
+                f"skymap_plotting_interval_in_seconds is not positive: {skymap_plotting_interval_in_seconds}"
             )
-        self.skymap_plotting_callback_interval_in_seconds = skymap_plotting_callback_interval_in_seconds
+        self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
         if nscans <= 0:
             raise ValueError(f"nscans is not positive: {nscans}")
@@ -102,12 +129,16 @@ class ProgressReporter:
             raise ValueError(f"nposvar is not positive: {nposvar}")
         self.nposvar = nposvar
 
+        self.min_nside = min_nside
+        self.max_nside = max_nside
+        self.event_id = event_id
+
         self.scan_ct = 0
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
-        self.scan_start_time = time.time()
+        self.scan_start_time = 0.0
         self.time_before_scan = 0
 
     def initial_report(self, global_start_time: float) -> None:
@@ -127,77 +158,98 @@ class ProgressReporter:
 
     def _report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
-        LOGGER.info(f"Collected: {self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})")
+        LOGGER.info(
+            f"Collected: {self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})"
+        )
 
         # check if we need to send a report to the logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported
-        if override_timestamp or elapsed_seconds > self.logging_interval_in_seconds:
+        if override_timestamp or elapsed_seconds > self.report_interval_in_seconds:
             self.last_time_reported = current_time
-            self.send_status_report()
+            status_report = self.get_status_report()
+            if self.slack_interface.active:
+                self.slack_interface.post(status_report)
+            LOGGER.info(status_report)
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported_skymap
-        if override_timestamp or elapsed_seconds > self.skymap_plotting_callback_interval_in_seconds:
+        if (
+            override_timestamp
+            or elapsed_seconds > self.skymap_plotting_interval_in_seconds
+        ):
             self.last_time_reported_skymap = current_time
-            if self.skymap_plotting_callback is not None:
-                self.skymap_plotting_callback(self.state_dict)
+            if self.slack_interface.active:
+                self.slack_interface.post_skymap_plot(self.state_dict)
 
-    def send_status_report(self) -> None:
-        """Log a status report."""
-
-        def time_stat() -> str:
-            elapsed = int(time.time() - self.scan_start_time)
-            runtime_msg = (
-                f"Elapsed Runtime: {dt.timedelta(seconds=elapsed+self.time_before_scan)} "
-                f"({dt.timedelta(seconds=elapsed)} spent scanning)"
-            )
-            if not self.scan_ct:
-                return runtime_msg
-            secs_per_scan = elapsed / self.scan_ct
-            secs_predicted = elapsed / (self.scan_ct/self.nscans)
-            return (
-                f"{runtime_msg} "
-                f"\n"
-                f"Rate: {secs_per_scan/60*self.nposvar:.2f} min/pixel "
-                f"({secs_per_scan/60:.2f} min/scan)"
-                f"\n"
-                f"Predicted Finish: {dt.timedelta(seconds=int(secs_predicted-elapsed))} from now "
-                f"\n"
-                f"Predicted Total Runtime: "
-                f"{dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))})"
-            )
-
+    def get_status_report(self) -> str:
+        """Make a status report string."""
         if self.scan_ct == self.nscans:
-            message = (
-                f"I am done scanning! "
-                f"{self.scan_ct/self.nposvar} total pixels ({self.scan_ct} scans)"
-                "\n"
-            )
+            message = "I am done scanning this refinement iteration!\n\n"
+        elif self.scan_ct:
+            message = "I am busy scanning pixels.\n\n"
         else:
-            message = (
-                f"I am busy scanning pixels. "
-                "\n"
-                f"Finished: ~{self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
-                f"~{int((self.scan_ct/self.nscans)*100)}% ({self.scan_ct}/{self.nscans} scans)"
-                "\n"
-            )
+            message = "I am starting up the next refinement iteration...\n\n"
 
-        message += f"{time_stat()}\n"
-        message += f"{self.nposvar} position variations per pixel\n"
-
-        if len(self.state_dict["nsides"])==0:
-            message += " - no pixels are done yet\n"
-        else:
-            for nside in self.state_dict["nsides"]:
-                pixels = self.state_dict["nsides"][nside]
-                message += " - {0} pixels of nside={1}\n".format( len(pixels), nside )
+        message += (
+            f"{self.get_state_dict_report()}"  # ends w/ '\n'
+            "Config:\n"
+            f" - event: {self.event_id}\n"
+            f" - min nside: {self.min_nside}\n"
+            f" - max nside: {self.max_nside}\n"
+            f" - position variations per pixel: {self.nposvar}\n"
+            f"{self.get_processing_stats_report()}"  # ends w/ '\n'
+            f"\n"
+        )
 
         if self.scan_ct != self.nscans:
-            message += "I will report back again in {0} seconds.".format(self.logging_interval_in_seconds)
+            message += f"I will report back again in {self.report_interval_in_seconds} seconds."
 
-        self.logger(message)
+        return message
+
+    def get_processing_stats_report(self) -> str:
+        """Get a multi-line report on processing stats."""
+        elapsed = int(time.time() - self.scan_start_time)
+        msg = (
+            "Processing Stats:\n"
+            f" - {((self.scan_ct/self.nscans)*100):.1f}% "
+            f"({self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
+            f"{self.scan_ct}/{self.nscans} scans) [this iteration]\n"
+            f" - Elapsed Runtime\n"
+            f"    * {dt.timedelta(seconds=elapsed)} [this iteration]\n"
+            f"    * {dt.timedelta(seconds=elapsed+self.time_before_scan)} [this iteration + prior processing]\n"
+        )
+        if not self.scan_ct:  # we can't predict
+            return msg
+
+        secs_per_scan = elapsed / self.scan_ct
+        secs_predicted = elapsed / (self.scan_ct / self.nscans)
+        msg += (
+            f" - Rate\n"
+            f"    * {secs_per_scan/60*self.nposvar:.2f} min/pixel ({secs_per_scan/60:.2f} min/scan)\n"
+            f" - Predicted Time Left\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
+            f" - Predicted Total Runtime\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted))} [this iteration]\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))} [this iteration + prior processing]\n"
+        )
+        return msg
+
+    def get_state_dict_report(self) -> str:
+        """Get a multi-line progress report of the state_dict's nside contents."""
+        msg = "Iterations with Saved Pixels:\n"
+        if not self.state_dict["nsides"]:
+            msg += " - no pixels are done yet\n"
+        else:
+
+            def nside_line(nside: int, npixels: int) -> str:
+                return f" - {npixels} pixels, nside={nside}\n"
+
+            for nside in sorted(self.state_dict["nsides"]):  # sorted by nside
+                msg += nside_line(nside, len(self.state_dict["nsides"][nside]))
+
+        return msg
 
     def finish(self) -> None:
         """Check if all the scans were received & make a final report."""
@@ -213,28 +265,35 @@ class ProgressReporter:
         self.final_report()
 
 
+# fmt: off
 class PixelsToScan:
     """Manage providing pixels to scan."""
 
     def __init__(
         self,
         state_dict: StateDict,
+        min_nside: int,
+        max_nside: int,
         input_time_name: str = "HESE_VHESelfVetoVertexTime",
         input_pos_name: str = "HESE_VHESelfVetoVertexPos",
         output_particle_name: str = "MillipedeSeedParticle",
-        mini_test_scan: bool = False,
+        mini_test_variations: bool = False,
     ) -> None:
         """
         Arguments:
             `state_dict`
                 - the state_dict
+            `min_nside`
+                - min nside value
+            `max_nside`
+                - max nside value
             `input_time_name`
                 - name of an I3Double to use as the vertex time for the coarsest scan
             `input_pos_name`
                 - name of an I3Position to use as the vertex position for the coarsest scan
             `output_particle_name`
                 - name of the output I3Particle
-            `mini_test_scan`
+            `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
         """
         self.state_dict = state_dict
@@ -242,29 +301,32 @@ class PixelsToScan:
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
 
-        variationDistance = 20.*I3Units.m
-        if mini_test_scan:  # Use Just 2 Variations for Mini-Test Scan
-            self.posVariations = [
-                dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variationDistance,0.,0.)
-            ]
-        else:
-            self.posVariations = [
-                dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variationDistance,0.,0.),
-                dataclasses.I3Position( variationDistance,0.,0.),
-                dataclasses.I3Position(0.,-variationDistance,0.),
-                dataclasses.I3Position(0., variationDistance,0.),
-                dataclasses.I3Position(0.,0.,-variationDistance),
-                dataclasses.I3Position(0.,0., variationDistance)
-            ]
-
+        # Get Position Variations
+        variation_distance = 20.*I3Units.m
         # Production Scan or Mini-Test Scan?
-        if mini_test_scan:
-            self.min_nside = 1
+        if mini_test_variations:
+            self.pos_variations = [
+                dataclasses.I3Position(0.,0.,0.),
+                dataclasses.I3Position(-variation_distance,0.,0.)
+            ]
         else:
-            self.min_nside = 8
+            self.pos_variations = [
+                dataclasses.I3Position(0.,0.,0.),
+                dataclasses.I3Position(-variation_distance,0.,0.),
+                dataclasses.I3Position( variation_distance,0.,0.),
+                dataclasses.I3Position(0.,-variation_distance,0.),
+                dataclasses.I3Position(0., variation_distance,0.),
+                dataclasses.I3Position(0.,0.,-variation_distance),
+                dataclasses.I3Position(0.,0., variation_distance)
+            ]
 
+        # Set nside values
+        if max_nside < min_nside:
+            raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
+        self.min_nside = min_nside
+        self.max_nside = max_nside
+
+        # Validate & read state_dict
         if "GCDQp_packet" not in self.state_dict:
             raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
 
@@ -287,17 +349,14 @@ class PixelsToScan:
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned."""
+
         # find pixels to refine
-        if self.min_nside == 1:  # (mini test scan)
-            pixels_to_refine = choose_new_pixels_to_scan(
-                self.state_dict, min_nside=self.min_nside, max_nside=1
-            )
-        else:
-            pixels_to_refine = choose_new_pixels_to_scan(
-                self.state_dict, min_nside=self.min_nside
-            )
+        pixels_to_refine = choose_new_pixels_to_scan(
+            self.state_dict, min_nside=self.min_nside, max_nside=self.max_nside
+        )
         if len(pixels_to_refine) == 0:
-            raise RuntimeError("There are no pixels to refine.")
+            LOGGER.info("There are no pixels to refine.")
+            return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
         # sanity check state_dict
@@ -367,8 +426,8 @@ class PixelsToScan:
                     time = coarser_particle.time
                     energy = coarser_particle.energy
 
-        for i in range(0,len(self.posVariations)):
-            posVariation = self.posVariations[i]
+        for i in range(0,len(self.pos_variations)):
+            posVariation = self.pos_variations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
             thisPosition = dataclasses.I3Position(position.x + posVariation.x,position.y + posVariation.y,position.z + posVariation.z)
@@ -538,10 +597,13 @@ class ScanCollector:
         self,
         nposvar: int,  # Number of position variations to collect
         nscans: int,  # Number of expected pixels
+        min_nside: int,
+        max_nside: int,
         state_dict: StateDict,
         event_id: str,
         cache_dir: str,
         global_start_time: float,
+        slack_interface: SlackInterface,
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
             nposvar=nposvar,
@@ -555,10 +617,12 @@ class ScanCollector:
             state_dict,
             nscans,
             nposvar,
-            logger=LOGGER.info,
-            logging_interval_in_seconds=5 * 60,
-            skymap_plotting_callback=None,
-            skymap_plotting_callback_interval_in_seconds=30 * 60,
+            min_nside,
+            max_nside,
+            event_id,
+            slack_interface,
+            report_interval_in_seconds=5 * 60,
+            skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
         self.scans_received: List[Tuple[int, int, int]] = []
@@ -580,35 +644,40 @@ class ScanCollector:
             raise ValueError(f"Scan has already been received: {scan_tuple}")
         self.scans_received.append(scan_tuple)
         scan_id = f"S#{len(self.scans_received) - 1}"
-
         LOGGER.info(f"Got a scan {scan_id} {scan_tuple}: {scan}")
-        self.progress_reporter.record_scan()
 
+        # get best scan
         best_scan = self.finder.cache_and_get_best(scan)
         LOGGER.info(f"Cached scan {scan_id} {scan_tuple}")
 
+        # save best scan (if we got it)
         if not best_scan:
             LOGGER.debug(f"Best scan not yet found ({scan_id}) {scan_tuple}")
-            return
-        LOGGER.info(
-            f"Saving a BEST scan (found during {scan_id}): "
-            f"{pixel_to_tuple(best_scan)} {best_scan}"
-        )
-        self.saver.save(best_scan)
-        LOGGER.debug(f"Saved (found during {scan_id}): {pixel_to_tuple(best_scan)}")
+        else:
+            LOGGER.info(
+                f"Saving a BEST scan (found during {scan_id}): "
+                f"{pixel_to_tuple(best_scan)} {best_scan}"
+            )
+            self.saver.save(best_scan)
+            LOGGER.debug(f"Saved (found during {scan_id}): {pixel_to_tuple(best_scan)}")
+
+        # report after potential save
+        self.progress_reporter.record_scan()
 
 
 async def serve_pixel_scans(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    topic_to_clients: str,  # for pulsar
-    topic_from_clients: str,  # for pulsar
-    timeout_s_to_clients: int,  # for pulsar
-    timeout_s_from_clients: int,  # for pulsar
-    mini_test_scan: bool,
+    broker: str,  # for mq
+    auth_token: str,  # for mq
+    queue_to_clients: str,  # for mq
+    queue_from_clients: str,  # for mq
+    timeout_to_clients: int,  # for mq
+    timeout_from_clients: int,  # for mq
+    mini_test_variations: bool,
+    min_nside: int,
+    max_nside: int,
 ) -> None:
     """Send pixels to be scanned by client(s), then collect scans and save to disk
 
@@ -627,27 +696,84 @@ async def serve_pixel_scans(
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
         address=broker,
-        name=topic_to_clients,
+        name=queue_to_clients,
         auth_token=auth_token,
-        timeout=timeout_s_to_clients,
+        timeout=timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
         address=broker,
-        name=topic_from_clients,
+        name=queue_from_clients,
         auth_token=auth_token,
-        timeout=timeout_s_from_clients,
+        timeout=timeout_from_clients,
     )
+
+    pixeler = PixelsToScan(
+        state_dict=state_dict,
+        mini_test_variations=mini_test_variations,
+        min_nside=min_nside,
+        max_nside=max_nside,
+    )
+
+    slack_interface = SlackInterface()
+
+    # Start the refinement-iteration loop
+    total_nscans = 0
+    while True:
+        logging.info("Starting new refinement iteration")
+        nscans = await refinement_iteration(
+            to_clients_queue,
+            from_clients_queue,
+            event_id,
+            state_dict,
+            cache_dir,
+            global_start_time,
+            pixeler,
+            slack_interface,
+        )
+        if not nscans:  # we're done
+            break
+        total_nscans += nscans
+
+    # sanity check
+    if not total_nscans:
+        raise RuntimeError("No pixels were ever sent.")
+
+    # TODO - save pixel results to .npz file
+
+    if slack_interface.active:
+        slack_interface.post(
+            f"All refinement iterations / scans complete.\n"
+            f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
+            f"Total Millipede Scans: {total_nscans}"
+        )
+        slack_interface.post_skymap_plot(state_dict)
+
+    LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
+
+
+async def refinement_iteration(
+    to_clients_queue: mq.Queue,
+    from_clients_queue: mq.Queue,
+    event_id: str,
+    state_dict: StateDict,
+    cache_dir: str,
+    global_start_time: float,
+    pixeler: PixelsToScan,
+    slack_interface: SlackInterface,
+) -> int:
+    """Run the next (or first) refinement iteration set of scans.
+
+    Return the number of pixels sent. Stop when this is 0.
+    """
 
     #
     # SEND PIXELS
     #
 
-    pixeler = PixelsToScan(state_dict=state_dict, mini_test_scan=mini_test_scan)
-
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.generate_pframes()):  # topic_to_clients
+        for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
             await pub.send(
                 {
@@ -660,8 +786,9 @@ async def serve_pixel_scans(
     # check if anything was actually processed
     try:
         nscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError as e:
-        raise RuntimeError("No pixels were sent.") from e
+    except NameError:
+        LOGGER.info("No pixels were sent for this iteration.")
+        return 0
     LOGGER.info(f"Done serving pixel-variations to clients: {nscans}.")
 
     #
@@ -669,12 +796,15 @@ async def serve_pixel_scans(
     #
 
     collector = ScanCollector(
-        nposvar=len(pixeler.posVariations),
+        nposvar=len(pixeler.pos_variations),
         nscans=nscans,
+        min_nside=pixeler.min_nside,
+        max_nside=pixeler.max_nside,
         state_dict=state_dict,
         event_id=event_id,
         cache_dir=cache_dir,
         global_start_time=global_start_time,
+        slack_interface=slack_interface,
     )
 
     # get scans from client(s), collect and save
@@ -688,6 +818,7 @@ async def serve_pixel_scans(
                     break
 
     LOGGER.info("Done receiving/saving scans from clients.")
+    return nscans
 
 
 def main() -> None:
@@ -712,10 +843,7 @@ def main() -> None:
         "-e",
         "--event-file",
         required=True,
-        help=(
-            "The file containing the event to scan (.pkl or .json). "
-            "The event name is used as a suffix for pulsar topics."
-        ),
+        help="The file containing the event to scan (.pkl or .json)",
         type=lambda x: _validate_arg(
             x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
@@ -723,6 +851,11 @@ def main() -> None:
                 f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
             ),
         ),
+    )
+    parser.add_argument(
+        "--event-mqname",
+        required=True,
+        help="identifier to correspond to the event for MQ connections",
     )
     parser.add_argument(
         "-c",
@@ -746,45 +879,65 @@ def main() -> None:
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
+    parser.add_argument(
+        "--min-nside",
+        default=MIN_NSIDE_DEFAULT,
+        help="The first refinement iteration's nside value",
+        type=lambda x: int(
+            _validate_arg(
+                x,
+                x.isnumeric() and is_pow_of_two(int(x)),
+                argparse.ArgumentTypeError(
+                    f"--min-nside must be an integer power of two (not {x})"
+                ),
+            ),
+        ),
+    )
+    parser.add_argument(
+        "--max-nside",
+        default=MAX_NSIDE_DEFAULT,
+        help="The final refinement iteration's nside value",
+        type=lambda x: int(
+            _validate_arg(
+                x,
+                x.isnumeric() and is_pow_of_two(int(x)),
+                argparse.ArgumentTypeError(
+                    f"--max-nside must be an integer power of two (not {x})"
+                ),
+            )
+        ),
+    )
 
     # testing/debugging args
     parser.add_argument(
-        "--mini-test-scan",
+        "--mini-test-variations",
         default=False,
         action="store_true",
-        help="run a mini scan for testing (fewer pixels, variations, etc.)",
+        help="run w/ minimal variations for testing (mini-scale)",
     )
 
-    # pulsar args
-    parser.add_argument(
-        "-t",
-        "--topics-root",
-        default="",
-        help="A root/prefix to base topic names for communicating to/from client(s)",
-    )
+    # mq args
     parser.add_argument(
         "-b",
         "--broker",
         required=True,
-        help="The Pulsar broker URL to connect to",
+        help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
         default=None,
-        help="The Pulsar authentication token to use",
+        help="The MQ authentication token to use",
     )
     parser.add_argument(
-        "--timeout-pub",
-        dest="timeout_s_to_clients",
+        "--timeout-to-clients",
         default=60 * 1,
-        help="timeout (seconds) for sending messages TO client(s)",
+        help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
-        "--timeout-sub",
-        dest="timeout_s_from_clients",
+        "--timeout-from-clients",
         default=60 * 30,
-        help="timeout (seconds) for receiving messages FROM client(s)",
+        help="timeout (seconds) for messages FROM client(s)",
     )
 
     # logging args
@@ -834,15 +987,13 @@ def main() -> None:
             cache_dir=args.cache_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{os.path.basename(args.event_file)}"
-            ),
-            topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{os.path.basename(args.event_file)}"
-            ),
-            timeout_s_to_clients=args.timeout_s_to_clients,
-            timeout_s_from_clients=args.timeout_s_from_clients,
-            mini_test_scan=args.mini_test_scan,
+            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
+            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            timeout_to_clients=args.timeout_to_clients,
+            timeout_from_clients=args.timeout_from_clients,
+            mini_test_variations=args.mini_test_variations,
+            min_nside=args.min_nside,
+            max_nside=args.max_nside,
         )
     )
     LOGGER.info("Done.")
