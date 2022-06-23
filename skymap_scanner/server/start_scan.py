@@ -44,6 +44,8 @@ from .choose_new_pixels_to_scan import (
     MIN_NSIDE_DEFAULT,
     choose_new_pixels_to_scan,
 )
+from .scan_result import ScanResult
+
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
@@ -738,7 +740,9 @@ async def serve_pixel_scans(
     if not total_nscans:
         raise RuntimeError("No pixels were ever sent.")
 
-    # TODO - save pixel results to .npz file
+    result = ScanResult.from_state_dict(state_dict)
+
+    result.save(filename=f"{event_id}.npz")
 
     if slack_interface.active:
         slack_interface.post(
