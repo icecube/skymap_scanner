@@ -33,7 +33,7 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import extract_json_message
-from ..load_scan_state import get_reco_losses_inside
+from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
 from ..utils import (
     StateDict,
     get_event_mjd,
@@ -571,16 +571,19 @@ class SaveRecoResults:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
-        # calculate reco losses
-        g_frame = self.state_dict["GCDQp_packet"][0]
-
+        """
+        Calculate reco losses, based on load_scan_state()
+        """
+        # apparently baseline GCD is sufficient here
+        # maybe filestager can be None
+        geometry = get_baseline_gcd_frames(self.state_dict, filestager=dataio.get_stagers())[0]
+        
         try:
-            recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=g_frame)
+            recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
         except KeyError:
             LOGGER.error(f"Missing attribute in Geometry frame: {KeyError}")
-            LOGGER.info(f"Frame contains the following keys {g_frame.keys()}")
-            recoLossesInside, recoLossesTotal = 0, 0
-            
+            LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
+            raise
 
         # insert scan into state_dict
         if nside not in self.state_dict["nsides"]:

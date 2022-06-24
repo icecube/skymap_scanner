@@ -4,16 +4,18 @@
 # mypy: ignore-errors
 # pylint: skip-file
 
+from email.mime import base
 import os
+from turtle import st
 from typing import Tuple
 
 import numpy
+from pyrsistent import s
 from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio
 
 from . import config
 from .utils import StateDict, hash_frame_packet, load_GCD_frame_packet_from_file
-
 
 def load_cache_state(
     event_id: str,
@@ -81,7 +83,12 @@ def get_reco_losses_inside(p_frame, g_frame):
 
     return totalRecoLossesInside, totalRecoLosses
 
-def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/"):
+
+"""
+Code extracted from load_scan_state()
+"""    
+def get_baseline_gcd_frames(state_dict, filestager):  
+
     if state_dict['baseline_GCD_file'] is not None:
           
         print(("trying to read GCD from {0}".format( state_dict['baseline_GCD_file'] )))
@@ -114,7 +121,13 @@ def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/")
         baseline_GCD_frames = [state_dict['GCDQp_packet'][0]]
         if "I3Geometry" not in baseline_GCD_frames[0]:
             raise RuntimeError("No baseline GCD file available but main packet G frame does not contain I3Geometry")
+    return baseline_GCD_frames
+
+
+def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/"):
     
+    baseline_GCD_frames = get_baseline_gcd_frames(state_dict, filestager)
+
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
         raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
