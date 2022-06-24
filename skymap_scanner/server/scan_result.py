@@ -111,9 +111,16 @@ class ScanResult:
 
             for i, pixel in enumerate(sorted(maps[nside])):
                 pixel_data = maps[nside][pixel]
-                llh = pixel_data["llh"]
-                E_in = pixel_data["recoLossesInside"]
-                E_tot = pixel_data["recoLossesTotal"]
+                try:
+                    llh = pixel_data["llh"]
+                    E_in = pixel_data["recoLossesInside"]
+                    E_tot = pixel_data["recoLossesTotal"]
+                except KeyError:
+                    logger.warning(KeyError)
+                    logger.warning(
+                        f"Missing data for pixel {pixel} having keys {pixel_data.keys()}"
+                    )
+                    raise
                 v[i] = (pixel, llh, E_in, E_tot)
             key = cls.format_nside(nside)
             out[key] = v
