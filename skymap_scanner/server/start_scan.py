@@ -574,8 +574,15 @@ class SaveRecoResults:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
         # calculate reco losses
-        g_frame = self.state_dict["GCDQp_packet"][0] 
-        recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=g_frame)
+        g_frame = self.state_dict["GCDQp_packet"][0]
+
+        try:
+            recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=g_frame)
+        except KeyError:
+            LOGGER.error(f"Missing attribute in Geometry frame: {KeyError}")
+            LOGGER.info(f"Frame contains the following keys {g_frame.keys()}")
+            recoLossesInside, recoLossesTotal = 0, 0
+            
 
         # insert scan into state_dict
         if nside not in self.state_dict["nsides"]:
