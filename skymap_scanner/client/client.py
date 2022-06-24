@@ -54,29 +54,30 @@ def outfile_to_outmsg(debug_outfile: str) -> Any:
 
 
 async def scan_pixel_distributed(
-    broker: str,  # for pulsar
-    auth_token: str,  # for pulsar
-    event_name: str,
-    topic_to_clients: str,  # for pulsar
-    topic_from_clients: str,  # for pulsar
+    broker: str,  # for mq
+    auth_token: str,  # for mq
+    queue_to_clients: str,  # for mq
+    queue_from_clients: str,  # for mq
+    timeout_to_clients: int,  # for mq
+    timeout_from_clients: int,  # for mq
     debug_directory: str = "",
 ) -> None:
     """Communicate with server and outsource pixel scanning to subprocesses."""
-    LOGGER.info(f"Starting up a Skymap Scanner client for event: {event_name=}")
-
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # TODO - only false during debugging; make fail safe logic (on server end?)
     in_queue = mq.Queue(
         address=broker,
-        name=topic_to_clients,
+        name=queue_to_clients,
         auth_token=auth_token,
         except_errors=except_errors,
+        timeout=timeout_to_clients,
     )
     out_queue = mq.Queue(
         address=broker,
-        name=topic_from_clients,
+        name=queue_from_clients,
         auth_token=auth_token,
         except_errors=except_errors,
+        timeout=timeout_from_clients,
     )
 
     LOGGER.info("Getting pixels from server to scan then send back...")
@@ -136,6 +137,12 @@ def main() -> None:
             os.makedirs(val, exist_ok=True)
         return val
 
+    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
+        if test:
+            return val
+        raise exc
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform millipede scans on pixels "
@@ -144,30 +151,51 @@ def main() -> None:
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    # "physics" args
     parser.add_argument(
-        "-e",
-        "--event-name",
+        "--event-mqname",
         required=True,
-        help="Some identifier to correspond to an event for MQ connections",
+        help="identifier to correspond to an event for MQ connections",
     )
     parser.add_argument(
-        "-t",
-        "--topics-root",
-        default="",
-        help="A root/prefix to base topic names for communicating to/from client(s)",
+        # we aren't going to use this arg, but just check if it exists for incoming pixels
+        "-g",
+        "--gcd-dir",
+        required=True,
+        help="The GCD directory to use",
+        type=lambda x: _validate_arg(
+            x,
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
     )
+
+    # mq args
     parser.add_argument(
         "-b",
         "--broker",
         required=True,
-        help="The Pulsar broker URL to connect to",
+        help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
         default=None,
-        help="The Pulsar authentication token to use",
+        help="The MQ authentication token to use",
     )
+    parser.add_argument(
+        "--timeout-to-clients",
+        default=60 * 1,
+        help="timeout (seconds) for messages TO client(s)",
+    )
+    parser.add_argument(
+        "--timeout-from-clients",
+        default=60 * 30,
+        help="timeout (seconds) for messages FROM client(s)",
+    )
+
+    # logging args
     parser.add_argument(
         "-l",
         "--log",
@@ -179,6 +207,8 @@ def main() -> None:
         default="WARNING",
         help="the output logging level for third-party loggers",
     )
+
+    # testing/debugging args
     parser.add_argument(
         "--debug-directory",
         default="",
@@ -197,17 +227,15 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # go!
+    LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.event_mqname=}")
     asyncio.get_event_loop().run_until_complete(
         scan_pixel_distributed(
             broker=args.broker,
             auth_token=args.auth_token,
-            event_name=args.event_name,
-            topic_to_clients=os.path.join(
-                args.topics_root, f"to-clients-{os.path.basename(args.event_name)}"
-            ),
-            topic_from_clients=os.path.join(
-                args.topics_root, f"from-clients-{os.path.basename(args.event_name)}"
-            ),
+            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
+            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            timeout_to_clients=args.timeout_to_clients,
+            timeout_from_clients=args.timeout_from_clients,
             debug_directory=args.debug_directory,
         )
     )

@@ -138,8 +138,8 @@ def spawn_scan(
     # RemoteSubmitPrefix,  # Actually send jobs
     # short_message,
     gcd_dir,
-    skymap_scanner_server_broker,  # for pulsar
-    skymap_scanner_server_broker_auth,  # for pulsar
+    skymap_scanner_server_broker,  # for mq
+    skymap_scanner_server_broker_auth,  # for mq
     skymap_scanner_server_log_level,  # for server
 ):
 
@@ -206,8 +206,8 @@ def individual_event(
     event,
     event_pkl,
     final_channels,
-    skymap_scanner_server_broker,  # for pulsar
-    skymap_scanner_server_broker_auth,  # for pulsar
+    skymap_scanner_server_broker,  # for mq
+    skymap_scanner_server_broker_auth,  # for mq
     skymap_scanner_server_log_level,  # for server
 ):
 
@@ -377,10 +377,10 @@ def main():
     # Server args to pass along
     parser.add_option("--server-broker",
                       dest="skymap_scanner_server_broker",
-                      help="Server's Pulsar broker address")
+                      help="Server's MQ broker address")
     parser.add_option("--server-broker-auth",
                       dest="skymap_scanner_server_broker_auth",
-                      help="Server's Pulsar broker auth token")
+                      help="Server's MQ broker auth token")
     parser.add_option("--server-log-level",
                       dest="skymap_scanner_server_log_level",
                       help="Server's logging level")

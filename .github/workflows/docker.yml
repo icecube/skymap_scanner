@@ -1,0 +1,45 @@
+name: docker releases
+
+on:
+  push:
+    branches-ignore:
+      - '**'
+    tags:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  docker:
+    name: "Docker Image"
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Project
+      uses: actions/checkout@v3
+
+    - name: Docker meta
+      id: docker_meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          icecube/skymap_scanner
+        tags: |
+            type=ref,event=branch
+            type=semver,pattern={{major}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      if: ${{ github.event_name != 'pull_request' }}
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Push Docker Image
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.docker_meta.outputs.tags }}
+        labels: ${{ steps.docker_meta.outputs.labels }}
