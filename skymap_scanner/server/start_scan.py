@@ -47,6 +47,8 @@ from .choose_new_pixels_to_scan import (
 
 from .scan_result import ScanResult
 
+from ..load_scan_state import get_reco_losses_inside
+
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
 LOGGER = logging.getLogger("skyscan-server")
@@ -571,8 +573,9 @@ class SaveRecoResults:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
-        # TODO: compute and retrieve losses
-        recoLossesInside, recoLossesTotal = 0, 0 # get_reco_losses_inside(frame)
+        # calculate reco losses
+        g_frame = self.state_dict["GCDQp_packet"][0] 
+        recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=g_frame)
 
         # insert scan into state_dict
         if nside not in self.state_dict["nsides"]:
