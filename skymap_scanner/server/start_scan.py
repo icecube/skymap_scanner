@@ -33,6 +33,7 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import extract_json_message
+from ..load_scan_state import get_reco_losses_inside
 from ..utils import (
     StateDict,
     get_event_mjd,
@@ -44,10 +45,7 @@ from .choose_new_pixels_to_scan import (
     MIN_NSIDE_DEFAULT,
     choose_new_pixels_to_scan,
 )
-
 from .scan_result import ScanResult
-
-from ..load_scan_state import get_reco_losses_inside
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
@@ -684,6 +682,7 @@ async def serve_pixel_scans(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
+    output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
@@ -753,10 +752,10 @@ async def serve_pixel_scans(
     if not total_nscans:
         raise RuntimeError("No pixels were ever sent.")
 
+    # write out .npz file
     result = ScanResult.from_state_dict(state_dict)
-
-    result.save(filename=f"{event_id}.npz")
-
+    npz_fpath = os.path.join(output_dir, f"{event_id}.npz")
+    result.save(filename=npz_fpath)
     if slack_interface.active:
         slack_interface.post(
             f"All refinement iterations / scans complete.\n"
@@ -886,6 +885,17 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "-o",
+        "--output-dir",
+        required=True,
+        help="The directory to write out the .npz file",
+        type=lambda x: _validate_arg(
+            x,
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+    parser.add_argument(
         "-g",
         "--gcd-dir",
         required=True,
@@ -1002,6 +1012,7 @@ def main() -> None:
             event_id=event_id,
             state_dict=state_dict,
             cache_dir=args.cache_dir,
+            output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
