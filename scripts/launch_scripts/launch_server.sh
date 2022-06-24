@@ -30,6 +30,7 @@ def extract_opt(py_args, opt):
 
 py_args, event = extract_opt(py_args, "--event-file")
 py_args, cache = extract_opt(py_args, "--cache-dir")
+py_args, output = extract_opt(py_args, "--output-dir")
 py_args, gcd = extract_opt(py_args, "--gcd-dir")
 
 dockermount_args = ""
@@ -41,6 +42,9 @@ if event:
 if cache:
     dockermount_args += f"--mount type=bind,source={cache},target=/local/{os.path.basename(cache)} "
     py_args += f"--cache-dir /local/{os.path.basename(cache)} "
+if output:
+    dockermount_args += f"--mount type=bind,source={output},target=/local/output "
+    py_args += f"--output-dir /local/output "
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd-dir,readonly "
     py_args += f"--gcd-dir /local/gcd-dir"
