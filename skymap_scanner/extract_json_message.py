@@ -196,6 +196,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         frame_packet[2] = ehe_override_gcd[2]
         del ehe_override_gcd
 
+    # clutter could be removed by taking care of str(GCD_...) in prepare_frames 
     if GCD_diff_base_filename is not None:
         frame_packet, ExcludedDOMs = prepare_frames(frame_packet, str(GCD_diff_base_handle), pulsesName=pulsesName)
     else:

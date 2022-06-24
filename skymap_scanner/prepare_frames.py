@@ -218,7 +218,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
     
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
-    tray.AddModule("TrashCan")
+    tray.AddModule("TrashCan") # unnecessary according to https://docs.icecube.aq/icetray/main/projects/icetray/summary.html
     tray.Execute()
     tray.Finish()
     del tray
