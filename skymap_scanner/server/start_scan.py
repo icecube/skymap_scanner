@@ -46,7 +46,6 @@ from .choose_new_pixels_to_scan import (
 )
 
 from .scan_result import ScanResult
-from .reco_losses import get_reco_losses_inside
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
@@ -572,10 +571,8 @@ class SaveRecoResults:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
-        # compute and retrieve losses
-        get_reco_losses_inside(frame)
-        recoLossesInside = frame["MillipedeStarting2ndPass_totalRecoLossesInside"].value
-        recoLossesTotal = frame["MillipedeStarting2ndPass_totalRecoLossesTotal"].value
+        # TODO: compute and retrieve losses
+        recoLossesInside, recoLossesTotal = 0, 0 # get_reco_losses_inside(frame)
 
         # insert scan into state_dict
         if nside not in self.state_dict["nsides"]:
