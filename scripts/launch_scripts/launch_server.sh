@@ -40,8 +40,8 @@ if event:
     dockermount_args += f"--mount type=bind,source={os.path.dirname(event)},target=/local/event,readonly "
     py_args += f"--event-file /local/event/{os.path.basename(event)} "
 if cache:
-    dockermount_args += f"--mount type=bind,source={cache},target=/local/{os.path.basename(cache)} "
-    py_args += f"--cache-dir /local/{os.path.basename(cache)} "
+    dockermount_args += f"--mount type=bind,source={cache},target=/local/cache "
+    py_args += f"--cache-dir /local/cache "
 if output:
     dockermount_args += f"--mount type=bind,source={output},target=/local/output "
     py_args += f"--output-dir /local/output "

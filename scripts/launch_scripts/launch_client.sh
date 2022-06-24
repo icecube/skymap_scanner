@@ -35,11 +35,11 @@ dockermount_args = ""
 py_args += " "
 
 if debug_dir:
-    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/{os.path.basename(debug_dir)} "
-    py_args += f"--debug-directory /local/{os.path.basename(debug_dir)} "
+    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/debug_dir "
+    py_args += f"--debug-directory /local/debug_dir "
 if gcd:
-    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd-dir,readonly "
-    py_args += f"--gcd-dir /local/gcd-dir"
+    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd_dir,readonly "
+    py_args += f"--gcd-dir /local/gcd_dir"
 
 print(f"{dockermount_args}#{py_args}")
 ')
