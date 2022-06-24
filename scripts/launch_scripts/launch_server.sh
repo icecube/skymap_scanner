@@ -46,8 +46,8 @@ if output:
     dockermount_args += f"--mount type=bind,source={output},target=/local/output "
     py_args += f"--output-dir /local/output "
 if gcd:
-    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd-dir,readonly "
-    py_args += f"--gcd-dir /local/gcd-dir"
+    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
+    py_args += f"--gcd-dir /local/gcd "
 
 print(f"{dockermount_args}#{py_args}")
 ')
