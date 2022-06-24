@@ -756,15 +756,18 @@ async def serve_pixel_scans(
     result = ScanResult.from_state_dict(state_dict)
     npz_fpath = os.path.join(output_dir, f"{event_id}.npz")
     result.save(filename=npz_fpath)
-    if slack_interface.active:
-        slack_interface.post(
-            f"All refinement iterations / scans complete.\n"
-            f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
-            f"Total Millipede Scans: {total_nscans}"
-        )
-        slack_interface.post_skymap_plot(state_dict)
 
-    LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
+    # log & post final slack message
+    final_message = (
+        f"All refinement iterations / scans complete.\n"
+        f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
+        f"Total Millipede Scans: {total_nscans}\n"
+        f"Output File: {npz_fpath}"
+    )
+    LOGGER.info(final_message)
+    if slack_interface.active:
+        slack_interface.post(final_message)
+        slack_interface.post_skymap_plot(state_dict)
 
 
 async def refinement_iteration(
