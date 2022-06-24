@@ -762,7 +762,7 @@ async def serve_pixel_scans(
         f"All refinement iterations / scans complete.\n"
         f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
         f"Total Millipede Scans: {total_nscans}\n"
-        f"Output File: {npz_fpath}"
+        f"Output File: {os.path.basename(npz_fpath)}"
     )
     LOGGER.info(final_message)
     if slack_interface.active:
