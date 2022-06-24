@@ -47,7 +47,7 @@ packaging==21.3
     #   matplotlib
 pillow==9.1.1
     # via matplotlib
-protobuf==4.21.1
+protobuf==4.21.2
     # via apache-bookkeeper-client
 pulsar-client==2.10.0
     # via wipac-mqclient-pulsar
