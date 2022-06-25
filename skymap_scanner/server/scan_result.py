@@ -43,20 +43,22 @@ class ScanResult:
         """
         Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
         """
-        sre, ore = self.result, other.result  # just for brevity
 
         require_equal = ["index"]
         require_close = ["llh", "E_in", "E_tot"]
 
         close = dict()  # one bool for each nside value
 
-        for nside in sre:
+        for nside in self.result:
+            sre, ore = self.result[nside], other.result[nside]  # brevity
+
             nside_equal = {
-                key: np.array_equal(sre[nside][key], ore[nside][key])
-                for key in require_equal
+                key: np.array_equal(sre[key], ore[key]) for key in require_equal
             }
             nside_close = {
-                key: np.allclose(sre[nside][key], ore[nside][key], equal_nan=equal_nan)
+                # np.allclose() expects equal shapes so we need to check for that first
+                key: (sre[key].shape == ore[key].shape)
+                and np.allclose(sre[key], ore[key], equal_nan=equal_nan)
                 for key in require_close
             }
             close[nside] = all(nside_equal.values()) and all(nside_close.values())
