@@ -4,13 +4,10 @@
 # mypy: ignore-errors
 # pylint: skip-file
 
-from email.mime import base
 import os
-from turtle import st
 from typing import Tuple
 
 import numpy
-from pyrsistent import s
 from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio
 
