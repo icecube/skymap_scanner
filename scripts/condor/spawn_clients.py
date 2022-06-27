@@ -113,8 +113,8 @@ def main() -> None:
             "By default no accounting group is used."
         ),
     )
-    parser.add_argument("--cpus", type=int, help="number of CPUs", default=8)
-    parser.add_argument("--memory", help="amount of memory", default="20GB")
+    parser.add_argument("--cpus", type=int, help="number of CPUs", default=4)
+    parser.add_argument("--memory", help="amount of memory", default="5GB")
 
     # skymap scanner args
     parser.add_argument(
