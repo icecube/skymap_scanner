@@ -86,9 +86,13 @@ def main() -> None:
 
     Make scratch directory and condor file.
     """
-    if not (os.getcwd().endswith("skymap_scanner") and "scripts" in os.listdir(".")):
+    if not (
+        os.getcwd().startswith("/home/")
+        and os.getcwd().endswith("skymap_scanner")
+        and "scripts" in os.listdir(".")
+    ):
         raise RuntimeError(
-            "You must run this script from repo root (script uses relative paths)"
+            "You must run this script from /home/ @ repo root (script uses relative paths)"
         )
 
     parser = argparse.ArgumentParser(
