@@ -58,8 +58,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             f"--broker {broker} "
             f"--auth-token {auth_token} "
             f"--log {log_level} "
-            f"--timeout-to_clients {timeout_to_clients} "
-            f"--timeout-from_clients {timeout_from_clients}"
+            f"--timeout-to-clients {timeout_to_clients} "
+            f"--timeout-from-clients {timeout_from_clients}"
         )
         file.write(
             f"""executable = {executable}
