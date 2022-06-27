@@ -870,7 +870,7 @@ def main() -> None:
             x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
             argparse.ArgumentTypeError(
-                f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
+                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
             ),
         ),
     )
