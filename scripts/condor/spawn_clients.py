@@ -6,6 +6,7 @@ import getpass
 import logging
 import os
 import subprocess
+from typing import List
 
 import coloredlogs  # type: ignore[import]
 
@@ -47,8 +48,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             else ""
         )
 
-        executable = "scripts/launch_scripts/launch_client.sh"
-        transfer_input_files = [executable]
+        transfer_input_files: List[str] = []
+        executable = os.path.abspath("./scripts/launch_scripts/launch_client.sh")
 
         # write
         args = (
