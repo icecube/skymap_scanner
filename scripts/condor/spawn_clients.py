@@ -145,11 +145,13 @@ def main() -> None:
     parser.add_argument(
         "--timeout-to-clients",
         default=60 * 1,
+        type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
         default=60 * 30,
+        type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
     parser.add_argument(
