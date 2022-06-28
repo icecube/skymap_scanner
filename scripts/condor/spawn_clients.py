@@ -33,7 +33,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     gcd_dir: str,
     broker: str,
     auth_token: str,
-    log_level: str,
+    log: str,
+    log_third_party: str,
     timeout_to_clients: int,
     timeout_from_clients: int,
 ) -> str:
@@ -57,7 +58,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             f"--gcd-dir {gcd_dir} "
             f"--broker {broker} "
             f"--auth-token {auth_token} "
-            f"--log {log_level} "
+            f"--log {log} "
+            f"--log-third-party {log_third_party} "
             f"--timeout-to-clients {timeout_to_clients} "
             f"--timeout-from-clients {timeout_from_clients}"
         )
@@ -155,9 +157,15 @@ def main() -> None:
         help="timeout (seconds) for messages FROM client(s)",
     )
     parser.add_argument(
-        "--log-level",
+        "-l",
+        "--log",
         required=True,
-        help="Skymap Scanner: the output logging level",
+        help="Skymap Scanner: the output logging level (for first-party loggers)",
+    )
+    parser.add_argument(
+        "--log-third-party",
+        required=True,
+        help="Skymap Scanner: the output logging level for third-party loggers",
     )
 
     args = parser.parse_args()
@@ -179,7 +187,8 @@ def main() -> None:
         args.gcd_dir,
         args.broker,
         args.auth_token,
-        args.log_level,
+        args.log,
+        args.log_third_party,
         args.timeout_to_clients,
         args.timeout_from_clients,
     )
