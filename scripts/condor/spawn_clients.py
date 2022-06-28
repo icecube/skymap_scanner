@@ -89,7 +89,7 @@ def main() -> None:
     Make scratch directory and condor file.
     """
     if not (
-        os.getcwd().startswith(os.path.abspath("~")[:-1])  # Ex: "~" -> /home/eevans/~
+        os.getcwd().startswith(os.path.expanduser("~"))
         and os.getcwd().endswith("skymap_scanner")
         and "scripts" in os.listdir(".")
     ):
