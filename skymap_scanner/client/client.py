@@ -124,8 +124,8 @@ async def scan_pixel_distributed(
     # check if anything was actually processed
     try:
         npixels = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError as e:
-        raise RuntimeError("No Pixels Were Received.") from e
+    except NameError:
+        raise RuntimeError("No Pixels Were Received.")
     LOGGER.info(f"Done scanning: handled {npixels} pixels/scans.")
 
 
