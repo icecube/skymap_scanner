@@ -120,8 +120,19 @@ def main() -> None:
             "By default no accounting group is used."
         ),
     )
-    parser.add_argument("--cpus", type=int, help="number of CPUs", default=4)
-    parser.add_argument("--memory", help="amount of memory", default="8GB")
+    parser.add_argument(
+        "--cpus",
+        required=True,
+        type=int,
+        help="number of CPUs",
+        # default=4,
+    )
+    parser.add_argument(
+        "--memory",
+        required=True,
+        help="amount of memory",
+        # default="8GB",
+    )
 
     # skymap scanner args
     parser.add_argument(
@@ -146,13 +157,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--timeout-to-clients",
-        default=60 * 1,
+        required=True,
         type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
-        default=60 * 30,
+        required=True,
         type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
