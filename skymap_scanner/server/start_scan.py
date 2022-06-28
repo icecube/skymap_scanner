@@ -152,7 +152,11 @@ class ProgressReporter:
     def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
         self.scan_ct += 1
-        self._report()
+        if self.scan_ct == 1:
+            # always report the first received scan so we know things are rolling
+            self._report(override_timestamp=True)
+        else:
+            self._report()
 
     def final_report(self) -> None:
         """Send a final, complete report/log/plot."""
@@ -205,7 +209,9 @@ class ProgressReporter:
             f"\n"
         )
 
-        if self.scan_ct != self.nscans:
+        if self.scan_ct == 0:
+            message += "I will report back when I start getting scans."
+        elif self.scan_ct != self.nscans:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
 
         return message
@@ -870,7 +876,7 @@ def main() -> None:
             x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
             argparse.ArgumentTypeError(
-                f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
+                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
             ),
         ),
     )
@@ -965,11 +971,13 @@ def main() -> None:
     parser.add_argument(
         "--timeout-to-clients",
         default=60 * 1,
+        type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
         default=60 * 30,
+        type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
 
@@ -988,7 +996,7 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log,
+        args.log.upper(),
         first_party_loggers=[LOGGER],
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
