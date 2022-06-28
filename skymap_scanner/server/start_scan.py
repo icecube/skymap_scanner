@@ -152,7 +152,11 @@ class ProgressReporter:
     def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
         self.scan_ct += 1
-        self._report()
+        if self.scan_ct == 1:
+            # always report the first received scan so we know things are rolling
+            self._report(override_timestamp=True)
+        else:
+            self._report()
 
     def final_report(self) -> None:
         """Send a final, complete report/log/plot."""
@@ -205,7 +209,9 @@ class ProgressReporter:
             f"\n"
         )
 
-        if self.scan_ct != self.nscans:
+        if self.scan_ct == 0:
+            message += "I will report back when I start getting scans."
+        elif self.scan_ct != self.nscans:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
 
         return message
