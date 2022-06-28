@@ -49,7 +49,7 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 set -x
 
 # Run
-docker run --network="host" --rm -i \
+docker run --network="host" --pull=always --rm -i \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \

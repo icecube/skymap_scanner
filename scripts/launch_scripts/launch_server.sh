@@ -57,7 +57,7 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 set -x
 
 # Run
-docker run --network="host" --rm -i \
+docker run --network="host" --pull=always --rm -i \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     icecube/skymap_scanner:latest \
