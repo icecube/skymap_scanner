@@ -48,8 +48,13 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 
 set -x
 
+PULL_POLICY="--pull=always"
+if [ $CI_TESTING_USE_LOCAL_DOCKER == "1" ]; then
+    PULL_POLICY=""
+fi
+
 # Run
-docker run --network="host" --pull=always --rm -i \
+docker run --network="host" $PULL_POLICY --rm -i \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \

@@ -4,7 +4,7 @@ set -x
 
 # NOTE: don't change mount locations, these are embedded in the 'in.pkl' file
 
-docker run --network="host" --pull=always --rm -i \
+docker run --network="host" --rm -i \
     --shm-size=6gb \
     --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd-dir \
     --mount type=bind,source="$(pwd)"/$SKYSCAN_CLIENT_SCANNER_FILES_DIR,target=/local/$SKYSCAN_CLIENT_SCANNER_FILES_DIR \
