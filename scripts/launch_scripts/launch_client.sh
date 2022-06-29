@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ########################################################################
 #
@@ -35,11 +35,11 @@ dockermount_args = ""
 py_args += " "
 
 if debug_dir:
-    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/{os.path.basename(debug_dir)} "
-    py_args += f"--debug-directory /local/{os.path.basename(debug_dir)} "
+    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/debug "
+    py_args += f"--debug-directory /local/debug "
 if gcd:
-    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd-dir,readonly "
-    py_args += f"--gcd-dir /local/gcd-dir"
+    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
+    py_args += f"--gcd-dir /local/gcd "
 
 print(f"{dockermount_args}#{py_args}")
 ')
@@ -48,11 +48,16 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 
 set -x
 
+PULL_POLICY="--pull=always"
+if [ "$CI_TESTING_USE_LOCAL_DOCKER" == "1" ]; then
+    PULL_POLICY=""
+fi
+
 # Run
-docker run --network="host" --rm -i \
+docker run --network="host" $PULL_POLICY --rm -i \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
-    icecube/skymap_scanner \
+    icecube/skymap_scanner:latest \
     python -m skymap_scanner.client \
     $PY_ARGS

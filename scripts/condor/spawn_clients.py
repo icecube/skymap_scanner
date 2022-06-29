@@ -6,6 +6,7 @@ import getpass
 import logging
 import os
 import subprocess
+from typing import List
 
 import coloredlogs  # type: ignore[import]
 
@@ -32,7 +33,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     gcd_dir: str,
     broker: str,
     auth_token: str,
-    log_level: str,
+    log: str,
+    log_third_party: str,
     timeout_to_clients: int,
     timeout_from_clients: int,
 ) -> str:
@@ -47,8 +49,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             else ""
         )
 
-        executable = "scripts/launch_scripts/launch_client.sh"
-        transfer_input_files = [executable]
+        transfer_input_files: List[str] = []
+        executable = os.path.abspath("./scripts/launch_scripts/launch_client.sh")
 
         # write
         args = (
@@ -56,9 +58,10 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             f"--gcd-dir {gcd_dir} "
             f"--broker {broker} "
             f"--auth-token {auth_token} "
-            f"--log {log_level} "
-            f"--timeout-to_clients {timeout_to_clients} "
-            f"--timeout-from_clients {timeout_from_clients}"
+            f"--log {log} "
+            f"--log-third-party {log_third_party} "
+            f"--timeout-to-clients {timeout_to_clients} "
+            f"--timeout-from-clients {timeout_from_clients}"
         )
         file.write(
             f"""executable = {executable}
@@ -85,9 +88,13 @@ def main() -> None:
 
     Make scratch directory and condor file.
     """
-    if not (os.getcwd().endswith("skymap_scanner") and "scripts" in os.listdir(".")):
+    if not (
+        os.getcwd().startswith(os.path.expanduser("~"))
+        and os.getcwd().endswith("skymap_scanner")
+        and "scripts" in os.listdir(".")
+    ):
         raise RuntimeError(
-            "You must run this script from repo root (script uses relative paths)"
+            "You must run this script from home directory @ repo root (script uses relative paths)"
         )
 
     parser = argparse.ArgumentParser(
@@ -113,8 +120,19 @@ def main() -> None:
             "By default no accounting group is used."
         ),
     )
-    parser.add_argument("--cpus", type=int, help="number of CPUs", default=8)
-    parser.add_argument("--memory", help="amount of memory", default="20GB")
+    parser.add_argument(
+        "--cpus",
+        required=True,
+        type=int,
+        help="number of CPUs",
+        # default=4,
+    )
+    parser.add_argument(
+        "--memory",
+        required=True,
+        help="amount of memory",
+        # default="8GB",
+    )
 
     # skymap scanner args
     parser.add_argument(
@@ -139,18 +157,26 @@ def main() -> None:
     )
     parser.add_argument(
         "--timeout-to-clients",
-        default=60 * 1,
+        required=True,
+        type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
-        default=60 * 30,
+        required=True,
+        type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
     parser.add_argument(
-        "--log-level",
+        "-l",
+        "--log",
         required=True,
-        help="Skymap Scanner: the output logging level",
+        help="Skymap Scanner: the output logging level (for first-party loggers)",
+    )
+    parser.add_argument(
+        "--log-third-party",
+        required=True,
+        help="Skymap Scanner: the output logging level for third-party loggers",
     )
 
     args = parser.parse_args()
@@ -172,7 +198,8 @@ def main() -> None:
         args.gcd_dir,
         args.broker,
         args.auth_token,
-        args.log_level,
+        args.log,
+        args.log_third_party,
         args.timeout_to_clients,
         args.timeout_from_clients,
     )

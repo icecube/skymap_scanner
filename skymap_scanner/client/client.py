@@ -124,8 +124,8 @@ async def scan_pixel_distributed(
     # check if anything was actually processed
     try:
         npixels = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError as e:
-        raise RuntimeError("No Pixels Were Received.") from e
+    except NameError:
+        raise RuntimeError("No Pixels Were Received.")
     LOGGER.info(f"Done scanning: handled {npixels} pixels/scans.")
 
 
@@ -187,11 +187,13 @@ def main() -> None:
     parser.add_argument(
         "--timeout-to-clients",
         default=60 * 1,
+        type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
         default=60 * 30,
+        type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
 
@@ -219,7 +221,7 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log,
+        args.log.upper(),
         first_party_loggers=[LOGGER],
         third_party_level=args.log_third_party,
         use_coloredlogs=True,

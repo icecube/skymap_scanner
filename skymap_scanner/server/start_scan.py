@@ -33,6 +33,7 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import extract_json_message
+from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
 from ..utils import (
     StateDict,
     get_event_mjd,
@@ -44,6 +45,7 @@ from .choose_new_pixels_to_scan import (
     MIN_NSIDE_DEFAULT,
     choose_new_pixels_to_scan,
 )
+from .scan_result import ScanResult
 
 NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
@@ -150,7 +152,11 @@ class ProgressReporter:
     def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
         self.scan_ct += 1
-        self._report()
+        if self.scan_ct == 1:
+            # always report the first received scan so we know things are rolling
+            self._report(override_timestamp=True)
+        else:
+            self._report()
 
     def final_report(self) -> None:
         """Send a final, complete report/log/plot."""
@@ -203,7 +209,9 @@ class ProgressReporter:
             f"\n"
         )
 
-        if self.scan_ct != self.nscans:
+        if self.scan_ct == 0:
+            message += "I will report back when I start getting scans."
+        elif self.scan_ct != self.nscans:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
 
         return message
@@ -569,12 +577,26 @@ class SaveRecoResults:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
+        """
+        Calculate reco losses, based on load_scan_state()
+        """
+        # apparently baseline GCD is sufficient here
+        # maybe filestager can be None
+        geometry = get_baseline_gcd_frames(self.state_dict, filestager=dataio.get_stagers())[0]
+        
+        try:
+            recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
+        except KeyError:
+            LOGGER.error(f"Missing attribute in Geometry frame: {KeyError}")
+            LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
+            raise
+
         # insert scan into state_dict
         if nside not in self.state_dict["nsides"]:
             self.state_dict["nsides"][nside] = {}
         if pixel in self.state_dict["nsides"][nside]:
             raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
-        self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh)
+        self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
 
         # save this frame to the disk cache
 
@@ -669,6 +691,7 @@ async def serve_pixel_scans(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
+    output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
@@ -738,17 +761,22 @@ async def serve_pixel_scans(
     if not total_nscans:
         raise RuntimeError("No pixels were ever sent.")
 
-    # TODO - save pixel results to .npz file
+    # write out .npz file
+    result = ScanResult.from_state_dict(state_dict)
+    npz_fpath = os.path.join(output_dir, f"{event_id}.npz")
+    result.save(filename=npz_fpath)
 
+    # log & post final slack message
+    final_message = (
+        f"All refinement iterations / scans complete.\n"
+        f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
+        f"Total Millipede Scans: {total_nscans}\n"
+        f"Output File: {os.path.basename(npz_fpath)}"
+    )
+    LOGGER.info(final_message)
     if slack_interface.active:
-        slack_interface.post(
-            f"All refinement iterations / scans complete.\n"
-            f"Runtime: {dt.timedelta(seconds=int(global_start_time - time.time()))}\n"
-            f"Total Millipede Scans: {total_nscans}"
-        )
+        slack_interface.post(final_message)
         slack_interface.post_skymap_plot(state_dict)
-
-    LOGGER.info(f"Done with all refinement iterations ({total_nscans} total scans)")
 
 
 async def refinement_iteration(
@@ -848,7 +876,7 @@ def main() -> None:
             x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
             argparse.ArgumentTypeError(
-                f"Invalid Event: {x}. Event needs to be a .pkl or .json file."
+                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
             ),
         ),
     )
@@ -862,6 +890,17 @@ def main() -> None:
         "--cache-dir",
         required=True,
         help="The cache directory to use",
+        type=lambda x: _validate_arg(
+            x,
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        required=True,
+        help="The directory to write out the .npz file",
         type=lambda x: _validate_arg(
             x,
             os.path.isdir(x),
@@ -932,11 +971,13 @@ def main() -> None:
     parser.add_argument(
         "--timeout-to-clients",
         default=60 * 1,
+        type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
         default=60 * 30,
+        type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
 
@@ -955,7 +996,7 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log,
+        args.log.upper(),
         first_party_loggers=[LOGGER],
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
@@ -985,6 +1026,7 @@ def main() -> None:
             event_id=event_id,
             state_dict=state_dict,
             cache_dir=args.cache_dir,
+            output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",

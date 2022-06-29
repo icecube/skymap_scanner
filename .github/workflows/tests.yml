@@ -34,6 +34,7 @@ jobs:
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      CI_TESTING_USE_LOCAL_DOCKER: 1
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
@@ -60,6 +61,7 @@ jobs:
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --event-mqname $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
+            --output-dir $GITHUB_WORKSPACE \
             --gcd-dir $SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \

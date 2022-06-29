@@ -162,3 +162,4 @@ debug-pkl-dir/
 *.rpm
 *.deb
 *.sif
+*.token
