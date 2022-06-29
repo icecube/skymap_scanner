@@ -37,6 +37,8 @@ def main():
     """
     The output filename is partially built inside the ScanResult class.
     """
+    result = ScanResult.from_state_dict(state_dict)
+
     output_file = result.save(eventID, output_path=args.output_path)
 
     result_check = ScanResult.load(output_file)
