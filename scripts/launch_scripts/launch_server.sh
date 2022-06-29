@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ########################################################################
 #
@@ -57,7 +57,7 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 set -x
 
 PULL_POLICY="--pull=always"
-if [ $CI_TESTING_USE_LOCAL_DOCKER == "1" ]; then
+if [ "$CI_TESTING_USE_LOCAL_DOCKER" == "1" ]; then
     PULL_POLICY=""
 fi
 
