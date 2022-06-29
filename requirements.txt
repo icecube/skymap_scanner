@@ -14,7 +14,7 @@ certifi==2022.6.15
     # via
     #   pulsar-client
     #   requests
-charset-normalizer==2.0.12
+charset-normalizer==2.1.0
     # via requests
 coloredlogs==15.0.1
     # via wipac-dev-tools
@@ -49,7 +49,7 @@ pillow==9.1.1
     # via matplotlib
 protobuf==4.21.2
     # via apache-bookkeeper-client
-pulsar-client==2.10.0
+pulsar-client==2.10.1
     # via wipac-mqclient-pulsar
 pyerfa==2.0.0.1
     # via astropy
@@ -65,7 +65,7 @@ pytz==2022.1
     # via apache-bookkeeper-client
 pyyaml==6.0
     # via astropy
-requests==2.28.0
+requests==2.28.1
     # via wipac-dev-tools
 scipy==1.8.1
     # via healpy
