@@ -31,9 +31,7 @@ def main():
     close = results[0].is_close(results[1])
     equal = results[0] == results[1]
 
-    logger.info(
-        f"The loaded file is close? ({close}) and/or equal? ({equal}) to the source data."
-    )
+    logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
 
     if equal or close:
         return 0
