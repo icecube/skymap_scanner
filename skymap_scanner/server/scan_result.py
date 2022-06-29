@@ -137,7 +137,11 @@ class ScanResult:
         """
         Returns a string string listing the nside values to be included in the output filename.
         """
-        return "_".join(sorted(self.result))
+        # keys have a 'nside-NNN' format but we just want to extract the nside values to build the string
+        # parsing back and forth numbers to strings is not the most elegant choice but works for now
+        # TODO: possibly better to use integer values as keys in self.result
+        nsides = sorted([self.parse_nside(key) for key in self.result])
+        return "_".join([str(nside) for nside in nsides])
 
     @classmethod
     def load(cls, filename):
