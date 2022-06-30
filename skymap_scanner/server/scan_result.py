@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from pathlib import Path
 
 
 class ScanResult:
@@ -88,12 +89,11 @@ class ScanResult:
     def parse_nside(key):
         return int(key.split("nside-")[1])
 
-    """
-    Factory method for state_dict
-    """
-
     @classmethod
     def from_state_dict(cls, state_dict):
+        """
+        Factory method for state_dict
+        """
         result = cls.load_pixels(state_dict)
         return cls(result)
 
@@ -133,6 +133,16 @@ class ScanResult:
     numpy input / output
     """
 
+    def get_nside_string(self):
+        """
+        Returns a string string listing the nside values to be included in the output filename.
+        """
+        # keys have a 'nside-NNN' format but we just want to extract the nside values to build the string
+        # parsing back and forth numbers to strings is not the most elegant choice but works for now
+        # TODO: possibly better to use integer values as keys in self.result
+        nsides = sorted([self.parse_nside(key) for key in self.result])
+        return "_".join([str(nside) for nside in nsides])
+
     @classmethod
     def load(cls, filename):
         npz = np.load(filename)
@@ -141,5 +151,9 @@ class ScanResult:
             result[key] = npz[key]
         return cls(result=result)
 
-    def save(self, filename):
+    def save(self, event_id, output_path=None):
+        filename = event_id + "_" + self.get_nside_string() + ".npz"
+        if output_path is not None:
+            filename = output_path / Path(filename)
         np.savez(filename, **self.result)
+        return filename

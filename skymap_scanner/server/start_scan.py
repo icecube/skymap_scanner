@@ -763,8 +763,7 @@ async def serve_pixel_scans(
 
     # write out .npz file
     result = ScanResult.from_state_dict(state_dict)
-    npz_fpath = os.path.join(output_dir, f"{event_id}.npz")
-    result.save(filename=npz_fpath)
+    npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
     final_message = (

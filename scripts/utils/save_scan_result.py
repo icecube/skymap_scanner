@@ -34,13 +34,14 @@ def main():
         args.event, filestager=stagers, cache_dir=args.cache
     )
 
-    output_file = Path(eventID + ".npz")
-
-    if args.output_path is not None:
-        output_file = Path(args.output_path / output_file)
-
+    """
+    The output filename is partially built inside the ScanResult class.
+    """
     result = ScanResult.from_state_dict(state_dict)
-    result.save(output_file)
+
+    output_file = result.save(eventID, output_path=args.output_path)
+
+    result_check = ScanResult.load(output_file)
 
     result_check = ScanResult.load(output_file)
 
