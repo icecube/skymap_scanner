@@ -68,7 +68,8 @@ fi
 # Run
 docker run --network="host" $PULL_POLICY --rm -i \
     $DOCKERMOUNT_ARGS \
-    --env PY_COLORS=1 "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=300}" \
+    --env PY_COLORS=1 \
+    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=300}" \
     icecube/skymap_scanner:latest \
     python -m skymap_scanner.server \
     $PY_ARGS
