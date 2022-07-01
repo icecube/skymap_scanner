@@ -25,7 +25,7 @@ def make_condor_scratch_dir() -> str:
 def make_condor_file(  # pylint: disable=R0913,R0914
     # condor args
     scratch: str,
-    cpus: int,
+    jobs: int,
     memory: str,
     accounting_group: str,
     # skymap scanner args
@@ -72,11 +72,11 @@ log = {scratch}/skymap_scanner.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
 transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
-request_cpus = {cpus}
+request_cpus = 1
 {accounting_group_attr}
 request_memory = {memory}
 notification = Error
-queue
+queue {jobs}
 """
         )
 
@@ -121,10 +121,10 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--cpus",
+        "--jobs",
         required=True,
         type=int,
-        help="number of CPUs",
+        help="number of jobs",
         # default=4,
     )
     parser.add_argument(
@@ -190,7 +190,7 @@ def main() -> None:
     condorpath = make_condor_file(
         # condor args
         scratch,
-        args.cpus,
+        args.jobs,
         args.memory,
         args.accounting_group,
         # skymap scanner args
