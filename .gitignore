@@ -163,3 +163,5 @@ debug-pkl-dir/
 *.deb
 *.sif
 *.token
+_condor_*
+*.out

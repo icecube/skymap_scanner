@@ -54,17 +54,22 @@ print(f"{dockermount_args}#{py_args}")
 DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
 PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 
+
 set -x
 
+
+# Toggle Options
 PULL_POLICY="--pull=always"
 if [ "$CI_TESTING_USE_LOCAL_DOCKER" == "1" ]; then
     PULL_POLICY=""
 fi
 
+
 # Run
 docker run --network="host" $PULL_POLICY --rm -i \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
+    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=300}" \
     icecube/skymap_scanner:latest \
     python -m skymap_scanner.server \
     $PY_ARGS

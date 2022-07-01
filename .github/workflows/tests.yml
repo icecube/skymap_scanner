@@ -73,6 +73,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
               --event-mqname $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
