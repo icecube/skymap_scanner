@@ -52,6 +52,14 @@ NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 LOGGER = logging.getLogger("skyscan-server")
 
 
+class DuplicateScanException(Exception):
+    """Raised when a message is received that is semantically equivalent to a prior.
+
+    For example, a scan/message that has the same NSide, Pixel ID, and
+    Variation ID as an already received message.
+    """
+
+
 class SlackInterface:
     """Dummy class for now."""
 
@@ -663,7 +671,9 @@ class ScanCollector:
 
         scan_tuple = pixel_to_tuple(scan)
         if scan_tuple in self.scans_received:
-            raise ValueError(f"Scan has already been received: {scan_tuple}")
+            raise DuplicateScanException(
+                f"Scan has already been received: {scan_tuple}"
+            )
         self.scans_received.append(scan_tuple)
         scan_id = f"S#{len(self.scans_received) - 1}"
         LOGGER.info(f"Got a scan {scan_id} {scan_tuple}: {scan}")
@@ -838,10 +848,13 @@ async def refinement_iteration(
     LOGGER.info("Receiving scans from clients...")
     with collector as col:  # enter collector 1st for detecting when no scans received
         async with from_clients_queue.open_sub() as sub:
-            async for i, scan in asl.enumerate(sub):
-                col.collect(scan)
+            async for scan in sub:
+                try:
+                    col.collect(scan)
+                except DuplicateScanException as e:
+                    logging.error(e)
                 # if we've got all the scans, no need to wait for queue's timeout
-                if i == nscans - 1:
+                if len(col.scans_received) == nscans:
                     break
 
     LOGGER.info("Done receiving/saving scans from clients.")
