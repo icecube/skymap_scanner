@@ -45,7 +45,7 @@ packaging==21.3
     # via
     #   astropy
     #   matplotlib
-pillow==9.1.1
+pillow==9.2.0
     # via matplotlib
 protobuf==4.21.2
     # via apache-bookkeeper-client
