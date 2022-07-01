@@ -75,15 +75,17 @@ six==1.16.0
     #   grpcio
     #   pulsar-client
     #   python-dateutil
-typing-extensions==4.2.0
+typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.9
     # via requests
 wipac-dev-tools[coloredlogs]==1.2.2
-    # via skymap-scanner (setup.py)
+    # via
+    #   skymap-scanner (setup.py)
+    #   wipac-mqclient-pulsar
 wipac-mqclient==0.5.0
     # via wipac-mqclient-pulsar
-wipac-mqclient-pulsar==0.4.1
+wipac-mqclient-pulsar==0.4.2
     # via skymap-scanner (setup.py)
 
 # The following packages are considered to be unsafe in a requirements file:
