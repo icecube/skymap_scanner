@@ -388,8 +388,6 @@ class PixelsToScan:
     ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be scanned for a given `nside` and `pixel`."""
 
-        # print "Scanning nside={0}, pixel={1}".format(nside,pixel)
-
         dec, ra = healpy.pix2ang(nside, pixel)
         dec = dec - numpy.pi/2.
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
@@ -468,7 +466,7 @@ class PixelsToScan:
 
 
 class FindBestRecoResultForPixel:
-    """Facilitate finding the best reco scan result."""
+    """Facilitate finding the best reco result for any pixel."""
 
     def __init__(
         self,
@@ -483,7 +481,7 @@ class FindBestRecoResultForPixel:
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
         """Add frame to internal cache and possibly return the best reco for pixel.
 
-        If all the scans for the embedded pixel have be received,
+        If all the recos for the embedded pixel have be received,
         return the best one. Otherwise, return None.
         """
         if "SCAN_HealpixNSide" not in frame:
@@ -503,7 +501,6 @@ class FindBestRecoResultForPixel:
         self.pixelNumToFramesMap[index].append(frame)
 
         if len(self.pixelNumToFramesMap[index]) >= self.n_posvar:
-            # print "all scans arrived for pixel", index
             bestFrame = None
             bestFrameLLH = None
             for frame in self.pixelNumToFramesMap[index]:
@@ -511,12 +508,9 @@ class FindBestRecoResultForPixel:
                     thisLLH = frame["MillipedeStarting2ndPass_millipedellh"].logl
                 else:
                     thisLLH = numpy.nan
-                # print "  * llh =", thisLLH
                 if (bestFrame is None) or ((thisLLH < bestFrameLLH) and (not numpy.isnan(thisLLH))):
                     bestFrame=frame
                     bestFrameLLH=thisLLH
-
-            # print "all scans arrived for pixel", index, "best LLH is", bestFrameLLH
 
             if bestFrame is None:
                 # just push the first frame if all of them are nan
@@ -606,7 +600,6 @@ class SaveRecoResults:
             os.mkdir(nside_dir)
         pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
 
-        # print " - saving pixel file {0}...".format(pixel_file_name)
         save_GCD_frame_packet_to_file([frame], pixel_file_name)
 
         return frame
