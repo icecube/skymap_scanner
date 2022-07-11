@@ -225,15 +225,15 @@ class ProgressReporter:
 
     def get_processing_stats_report(self) -> str:
         """Get a multi-line report on processing stats."""
-        elapsed = int(time.time() - self.scan_start_time)
+        elapsed = time.time() - self.scan_start_time
         msg = (
             "Processing Stats:\n"
             f" - {((self.scan_ct/self.nscans)*100):.1f}% "
             f"({self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
             f"{self.scan_ct}/{self.nscans} scans) [this iteration]\n"
             f" - Elapsed Runtime\n"
-            f"    * {dt.timedelta(seconds=elapsed)} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=elapsed+self.time_before_scan)} [this iteration + prior processing]\n"
+            f"    * {dt.timedelta(seconds=int(elapsed))} [this iteration]\n"
+            f"    * {dt.timedelta(seconds=int(elapsed+self.time_before_scan))} [this iteration + prior processing]\n"
         )
         if not self.scan_ct:  # we can't predict
             return msg
