@@ -17,6 +17,7 @@ Based on:
 import argparse
 import asyncio
 import datetime as dt
+import itertools as it
 import json
 import logging
 import os
@@ -85,7 +86,7 @@ class ProgressReporter:
     def __init__(
         self,
         state_dict: StateDict,
-        nscans: int,
+        n_clientscans: int,
         nposvar: int,
         min_nside: int,
         max_nside: int,
@@ -98,7 +99,7 @@ class ProgressReporter:
         Arguments:
             `state_dict`
                 - the state_dict
-            `nscans`
+            `n_clientscans`
                 - number of expected scans
             `nposvar`
                 - number of potion variations per pixel
@@ -130,9 +131,9 @@ class ProgressReporter:
             )
         self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
-        if nscans <= 0:
-            raise ValueError(f"nscans is not positive: {nscans}")
-        self.nscans = nscans
+        if n_clientscans <= 0:
+            raise ValueError(f"n_clientscans is not positive: {n_clientscans}")
+        self.n_clientscans = n_clientscans
 
         if nposvar <= 0:
             raise ValueError(f"nposvar is not positive: {nposvar}")
@@ -142,7 +143,7 @@ class ProgressReporter:
         self.max_nside = max_nside
         self.event_id = event_id
 
-        self.scan_ct = 0
+        self.clientscan_ct = 0
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
@@ -160,8 +161,8 @@ class ProgressReporter:
 
     def record_scan(self) -> None:
         """Send reports/logs/plots if needed."""
-        self.scan_ct += 1
-        if self.scan_ct == 1:
+        self.clientscan_ct += 1
+        if self.clientscan_ct == 1:
             # always report the first received scan so we know things are rolling
             self._report(override_timestamp=True)
         else:
@@ -174,7 +175,7 @@ class ProgressReporter:
     def _report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
-            f"Collected: {self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})"
+            f"Collected: {self.clientscan_ct}/{self.n_clientscans} ({self.clientscan_ct/self.n_clientscans})"
         )
 
         # check if we need to send a report to the logger
@@ -200,12 +201,12 @@ class ProgressReporter:
 
     def get_status_report(self) -> str:
         """Make a status report string."""
-        if self.scan_ct == self.nscans:
-            message = "I am done scanning this refinement iteration!\n\n"
-        elif self.scan_ct:
+        if self.clientscan_ct == self.n_clientscans:
+            message = "I am done scanning this scan iteration!\n\n"
+        elif self.clientscan_ct:
             message = "I am busy scanning pixels.\n\n"
         else:
-            message = "I am starting up the next refinement iteration...\n\n"
+            message = "I am starting up the next scan iteration...\n\n"
 
         message += (
             f"{self.get_state_dict_report()}"  # ends w/ '\n'
@@ -218,9 +219,9 @@ class ProgressReporter:
             f"\n"
         )
 
-        if self.scan_ct == 0:
+        if self.clientscan_ct == 0:
             message += "I will report back when I start getting scans."
-        elif self.scan_ct != self.nscans:
+        elif self.clientscan_ct != self.n_clientscans:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
 
         return message
@@ -234,21 +235,21 @@ class ProgressReporter:
             f"    * {dt.datetime.fromtimestamp(int(self.global_start_time))} [global]\n"
             f"    * {dt.datetime.fromtimestamp(int(self.scan_start_time))} [this iteration]\n"
             f" - Complete\n"
-            f"    * {((self.scan_ct/self.nscans)*100):.1f}% "
-            f"({self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
-            f"{self.scan_ct}/{self.nscans} scans) [this iteration]\n"
+            f"    * {((self.clientscan_ct/self.n_clientscans)*100):.1f}% "
+            f"({self.clientscan_ct/self.nposvar}/{self.n_clientscans/self.nposvar} pixels, "
+            f"{self.clientscan_ct}/{self.n_clientscans} scans) [this iteration]\n"
             f" - Elapsed Runtime\n"
             f"    * {dt.timedelta(seconds=int(elapsed))} [this iteration]\n"
             f"    * {dt.timedelta(seconds=int(elapsed+self.time_before_scan))} [this iteration + prior processing]\n"
         )
-        if not self.scan_ct:  # we can't predict
+        if not self.clientscan_ct:  # we can't predict
             return msg
 
-        secs_per_scan = elapsed / self.scan_ct
-        secs_predicted = elapsed / (self.scan_ct / self.nscans)
+        secs_per_clientscan = elapsed / self.clientscan_ct
+        secs_predicted = elapsed / (self.clientscan_ct / self.n_clientscans)
         msg += (
             f" - Rate\n"
-            f"    * {dt.timedelta(seconds=int(secs_per_scan*self.nposvar))} per-pixel ({dt.timedelta(seconds=int(secs_per_scan))} per-scan)\n"
+            f"    * {dt.timedelta(seconds=int(secs_per_clientscan*self.nposvar))} per pixel ({dt.timedelta(seconds=int(secs_per_clientscan))} per client-scan)\n"
             f" - Predicted Time Left\n"
             f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
             f" - Predicted Total Runtime\n"
@@ -274,13 +275,13 @@ class ProgressReporter:
 
     def finish(self) -> None:
         """Check if all the scans were received & make a final report."""
-        if not self.scan_ct:
+        if not self.clientscan_ct:
             raise RuntimeError("No scans were ever received.")
 
-        if self.scan_ct != self.nscans:
+        if self.clientscan_ct != self.n_clientscans:
             raise RuntimeError(
                 f"Not all scans were received: "
-                f"{self.scan_ct}/{self.nscans} ({self.scan_ct/self.nscans})"
+                f"{self.clientscan_ct}/{self.n_clientscans} ({self.clientscan_ct/self.n_clientscans})"
             )
 
         self.final_report()
@@ -493,7 +494,7 @@ class FindBestRecoResultForPixel:
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
 
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
-        """Add frame to internal cache and possibly return the best scan for pixel.
+        """Add frame to internal cache and possibly return the best client-scan for pixel.
 
         If all the scans for the embedded pixel have be received,
         return the best one. Otherwise, return None.
@@ -540,9 +541,9 @@ class FindBestRecoResultForPixel:
         return None
 
     def finish(self) -> None:
-        """Check if all the scans were received.
+        """Check if all the client-scans were received.
 
-        If an entire pixel (and all its scans) was dropped by client(s),
+        If an entire pixel (and all its client-scans) was dropped by client(s),
         this will not catch it.
         """
         if len(self.pixelNumToFramesMap) != 0:
@@ -565,7 +566,7 @@ class SaveRecoResults:
         self.this_event_cache_dir = os.path.join(cache_dir, event_id)
 
     def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
-        """Save scan to disk as .i3 file at `self.this_event_cache_dir`.
+        """Save pixel-scan to disk as .i3 file at `self.this_event_cache_dir`.
 
         Raise errors for invalid frame or already saved scan.
 
@@ -604,7 +605,7 @@ class SaveRecoResults:
             LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
             raise
 
-        # insert scan into state_dict
+        # insert pixel-scan into state_dict
         if nside not in self.state_dict["nsides"]:
             self.state_dict["nsides"][nside] = {}
         if pixel in self.state_dict["nsides"][nside]:
@@ -625,13 +626,13 @@ class SaveRecoResults:
 
 
 # fmt: on
-class ScanCollector:
-    """Manage the collecting, filtering, reporting, and saving of scan results."""
+class ResultCollector:
+    """Manage the collecting, filtering, reporting, and saving of client-scan results."""
 
     def __init__(
         self,
         nposvar: int,  # Number of position variations to collect
-        nscans: int,  # Number of expected pixels
+        n_clientscans: int,  # Number of expected pixels
         min_nside: int,
         max_nside: int,
         state_dict: StateDict,
@@ -650,7 +651,7 @@ class ScanCollector:
         )
         self.progress_reporter = ProgressReporter(
             state_dict,
-            nscans,
+            n_clientscans,
             nposvar,
             min_nside,
             max_nside,
@@ -660,9 +661,9 @@ class ScanCollector:
             skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
-        self.scans_received: List[Tuple[int, int, int]] = []
+        self.clientscans_received: List[Tuple[int, int, int]] = []
 
-    def __enter__(self) -> "ScanCollector":
+    def __enter__(self) -> "ResultCollector":
         self.progress_reporter.initial_report(self.global_start_time)
         return self
 
@@ -670,39 +671,45 @@ class ScanCollector:
         self.progress_reporter.finish()
         self.finder.finish()
 
-    def collect(self, scan: icetray.I3Frame) -> None:
-        """Cache scan until we can save the pixel's best received scan, for each pixel."""
+    def collect(self, clientscan: icetray.I3Frame) -> None:
+        """Cache scan until we can save the pixel's best received client-scan, for each pixel."""
         LOGGER.debug(f"{self.saver.state_dict=}")
 
-        scan_tuple = pixel_to_tuple(scan)
-        if scan_tuple in self.scans_received:
+        clientscan_tuple = pixel_to_tuple(clientscan)
+        if clientscan_tuple in self.clientscans_received:
             raise DuplicateScanException(
-                f"Scan has already been received: {scan_tuple}"
+                f"Client-scan has already been received: {clientscan_tuple}"
             )
-        self.scans_received.append(scan_tuple)
-        scan_id = f"S#{len(self.scans_received) - 1}"
-        LOGGER.info(f"Got a scan {scan_id} {scan_tuple}: {scan}")
+        self.clientscans_received.append(clientscan_tuple)
+        clientscan_id = f"S#{len(self.clientscans_received) - 1}"
+        LOGGER.info(
+            f"Got a client-scan {clientscan_id} {clientscan_tuple}: {clientscan}"
+        )
 
         # get best scan
-        best_scan = self.finder.cache_and_get_best(scan)
-        LOGGER.info(f"Cached scan {scan_id} {scan_tuple}")
+        best = self.finder.cache_and_get_best(clientscan)
+        LOGGER.info(f"Cached client-scan {clientscan_id} {clientscan_tuple}")
 
         # save best scan (if we got it)
-        if not best_scan:
-            LOGGER.debug(f"Best scan not yet found ({scan_id}) {scan_tuple}")
+        if not best:
+            LOGGER.debug(
+                f"Best client-scan not yet found ({clientscan_id}) {clientscan_tuple}"
+            )
         else:
             LOGGER.info(
-                f"Saving a BEST scan (found during {scan_id}): "
-                f"{pixel_to_tuple(best_scan)} {best_scan}"
+                f"Saving a BEST client-scan (found during {clientscan_id}): "
+                f"{pixel_to_tuple(best)} {best}"
             )
-            self.saver.save(best_scan)
-            LOGGER.debug(f"Saved (found during {scan_id}): {pixel_to_tuple(best_scan)}")
+            self.saver.save(best)
+            LOGGER.debug(
+                f"Saved (found during {clientscan_id}): {pixel_to_tuple(best)}"
+            )
 
         # report after potential save
         self.progress_reporter.record_scan()
 
 
-async def serve_pixel_scans(
+async def serve_scans(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
@@ -754,11 +761,11 @@ async def serve_pixel_scans(
 
     slack_interface = SlackInterface()
 
-    # Start the refinement-iteration loop
-    total_nscans = 0
-    while True:
-        logging.info("Starting new refinement iteration")
-        nscans = await refinement_iteration(
+    # Start the scan iteration loop
+    total_n_clientscans = 0
+    for i in it.count():
+        logging.info(f"Starting new scan iteration (#{i})")
+        n_clientscans = await serve_scan_iteration(
             to_clients_queue,
             from_clients_queue,
             event_id,
@@ -768,12 +775,12 @@ async def serve_pixel_scans(
             pixeler,
             slack_interface,
         )
-        if not nscans:  # we're done
+        if not n_clientscans:  # we're done
             break
-        total_nscans += nscans
+        total_n_clientscans += n_clientscans
 
     # sanity check
-    if not total_nscans:
+    if not total_n_clientscans:
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
@@ -782,10 +789,10 @@ async def serve_pixel_scans(
 
     # log & post final slack message
     final_message = (
-        f"All refinement iterations / scans complete.\n"
+        f"All scan iterations complete.\n"
         f"Start / End: {dt.datetime.fromtimestamp(int(global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
         f"Runtime: {dt.timedelta(seconds=int(time.time() - global_start_time))}\n"
-        f"Total Millipede-Client Scans: {total_nscans}\n"
+        f"Total Millipede-Client Scans: {total_n_clientscans}\n"
         f"Output File: {os.path.basename(npz_fpath)}"
     )
     LOGGER.info(final_message)
@@ -794,7 +801,7 @@ async def serve_pixel_scans(
         slack_interface.post_skymap_plot(state_dict)
 
 
-async def refinement_iteration(
+async def serve_scan_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     event_id: str,
@@ -804,7 +811,7 @@ async def refinement_iteration(
     pixeler: PixelsToScan,
     slack_interface: SlackInterface,
 ) -> int:
-    """Run the next (or first) refinement iteration set of scans.
+    """Run the next (or first) scan iteration (set of client-scans).
 
     Return the number of pixels sent. Stop when this is 0.
     """
@@ -828,19 +835,19 @@ async def refinement_iteration(
 
     # check if anything was actually processed
     try:
-        nscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
+        n_clientscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
     except NameError:
         LOGGER.info("No pixels were sent for this iteration.")
         return 0
-    LOGGER.info(f"Done serving pixel-variations to clients: {nscans}.")
+    LOGGER.info(f"Done serving pixel-variations to clients: {n_clientscans}.")
 
     #
-    # COLLECT SCANS
+    # COLLECT CLIENT-SCANS
     #
 
-    collector = ScanCollector(
+    collector = ResultCollector(
         nposvar=len(pixeler.pos_variations),
-        nscans=nscans,
+        n_clientscans=n_clientscans,
         min_nside=pixeler.min_nside,
         max_nside=pixeler.max_nside,
         state_dict=state_dict,
@@ -850,25 +857,25 @@ async def refinement_iteration(
         slack_interface=slack_interface,
     )
 
-    # get scans from client(s), collect and save
-    LOGGER.info("Receiving scans from clients...")
-    with collector as col:  # enter collector 1st for detecting when no scans received
+    # get client-scans from client(s), collect and save
+    LOGGER.info("Receiving client-scans from clients...")
+    with collector as col:  # enter collector 1st for detecting when no client-scans received
         async with from_clients_queue.open_sub() as sub:
-            async for scan in sub:
+            async for clientscan in sub:
                 try:
-                    col.collect(scan)
+                    col.collect(clientscan)
                 except DuplicateScanException as e:
                     logging.error(e)
                 # if we've got all the scans, no need to wait for queue's timeout
-                if len(col.scans_received) == nscans:
+                if len(col.clientscans_received) == n_clientscans:
                     break
 
-    LOGGER.info("Done receiving/saving scans from clients.")
-    return nscans
+    LOGGER.info("Done receiving/saving client-scans from clients.")
+    return n_clientscans
 
 
 def main() -> None:
-    """Get command-line arguments and serve pixel-scans to clients."""
+    """Get command-line arguments and serve scans to clients."""
     parser = argparse.ArgumentParser(
         description=(
             "Start up server to serve up pixels to and save millipede scans "
@@ -939,7 +946,7 @@ def main() -> None:
     parser.add_argument(
         "--min-nside",
         default=MIN_NSIDE_DEFAULT,
-        help="The first refinement iteration's nside value",
+        help="The first scan iteration's nside value",
         type=lambda x: int(
             _validate_arg(
                 x,
@@ -953,7 +960,7 @@ def main() -> None:
     parser.add_argument(
         "--max-nside",
         default=MAX_NSIDE_DEFAULT,
-        help="The final refinement iteration's nside value",
+        help="The final scan iteration's nside value",
         type=lambda x: int(
             _validate_arg(
                 x,
@@ -1040,7 +1047,7 @@ def main() -> None:
 
     # go!
     asyncio.get_event_loop().run_until_complete(
-        serve_pixel_scans(
+        serve_scans(
             event_id=event_id,
             state_dict=state_dict,
             cache_dir=args.cache_dir,
