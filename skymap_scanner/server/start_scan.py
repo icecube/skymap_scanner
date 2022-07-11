@@ -783,8 +783,9 @@ async def serve_pixel_scans(
     # log & post final slack message
     final_message = (
         f"All refinement iterations / scans complete.\n"
+        f"Start / End: {dt.datetime.fromtimestamp(int(global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
         f"Runtime: {dt.timedelta(seconds=int(time.time() - global_start_time))}\n"
-        f"Total Millipede Scans: {total_nscans}\n"
+        f"Total Millipede-Client Scans: {total_nscans}\n"
         f"Output File: {os.path.basename(npz_fpath)}"
     )
     LOGGER.info(final_message)
