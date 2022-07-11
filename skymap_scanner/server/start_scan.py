@@ -1,17 +1,4 @@
-"""The Server.
-
-Based on:
-    python/perform_scan.py
-        - a lot of similar code
-    cloud_tools/send_scan.py (just the MQ logic)
-        - send_scan_icetray() vs send_scan()
-        - MQ logic
-    cloud_tools/collect_pixels.py
-        - collect_and_save_pixels_icetray() vs collect_and_save_pixels()
-        - MQ logic
-    cloud_tools/save_pixels.py
-        - not much in common
-"""
+"""The Skymap Scanner Server."""
 
 
 import argparse
@@ -81,13 +68,13 @@ def is_pow_of_two(value: Union[int, float]) -> bool:
 
 
 class ProgressReporter:
-    """Manage various means for reporting progress during event scanning."""
+    """Manage various means for reporting progress during a scan-iteration."""
 
     def __init__(
         self,
         state_dict: StateDict,
-        n_clientscans: int,
-        nposvar: int,
+        n_pixreco: int,
+        n_posvar: int,
         min_nside: int,
         max_nside: int,
         event_id: str,
@@ -99,9 +86,9 @@ class ProgressReporter:
         Arguments:
             `state_dict`
                 - the state_dict
-            `n_clientscans`
+            `n_pixreco`
                 - number of expected scans
-            `nposvar`
+            `n_posvar`
                 - number of potion variations per pixel
             `min_nside`
                 - min nside value
@@ -131,51 +118,51 @@ class ProgressReporter:
             )
         self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
-        if n_clientscans <= 0:
-            raise ValueError(f"n_clientscans is not positive: {n_clientscans}")
-        self.n_clientscans = n_clientscans
+        if n_pixreco <= 0:
+            raise ValueError(f"n_pixreco is not positive: {n_pixreco}")
+        self.n_pixreco = n_pixreco
 
-        if nposvar <= 0:
-            raise ValueError(f"nposvar is not positive: {nposvar}")
-        self.nposvar = nposvar
+        if n_posvar <= 0:
+            raise ValueError(f"n_posvar is not positive: {n_posvar}")
+        self.n_posvar = n_posvar
 
         self.min_nside = min_nside
         self.max_nside = max_nside
         self.event_id = event_id
 
-        self.clientscan_ct = 0
+        self.pixreco_ct = 0
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
-        self.scan_start_time = 0.0
-        self.time_before_scan = 0.0
+        self.reporter_start_time = 0.0
+        self.time_before_reporter = 0.0
         self.global_start_time = 0.0
 
     def initial_report(self, global_start_time: float) -> None:
         """Send an initial report/log/plot."""
-        self.scan_start_time = time.time()
-        self.time_before_scan = self.scan_start_time - global_start_time
+        self.reporter_start_time = time.time()
+        self.time_before_reporter = self.reporter_start_time - global_start_time
         self.global_start_time = global_start_time
         self._report(override_timestamp=True)
 
-    def record_scan(self) -> None:
+    def record_pixreco(self) -> None:
         """Send reports/logs/plots if needed."""
-        self.clientscan_ct += 1
-        if self.clientscan_ct == 1:
-            # always report the first received scan so we know things are rolling
+        self.pixreco_ct += 1
+        if self.pixreco_ct == 1:
+            # always report the first received pixreco so we know things are rolling
             self._report(override_timestamp=True)
         else:
             self._report()
 
-    def final_report(self) -> None:
+    def _final_report(self) -> None:
         """Send a final, complete report/log/plot."""
         self._report(override_timestamp=True)
 
     def _report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
-            f"Collected: {self.clientscan_ct}/{self.n_clientscans} ({self.clientscan_ct/self.n_clientscans})"
+            f"Collected: {self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
         )
 
         # check if we need to send a report to the logger
@@ -201,9 +188,9 @@ class ProgressReporter:
 
     def get_status_report(self) -> str:
         """Make a status report string."""
-        if self.clientscan_ct == self.n_clientscans:
-            message = "I am done scanning this scan iteration!\n\n"
-        elif self.clientscan_ct:
+        if self.pixreco_ct == self.n_pixreco:
+            message = "I am done with this scan iteration!\n\n"
+        elif self.pixreco_ct:
             message = "I am busy scanning pixels.\n\n"
         else:
             message = "I am starting up the next scan iteration...\n\n"
@@ -214,47 +201,47 @@ class ProgressReporter:
             f" - event: {self.event_id}\n"
             f" - min nside: {self.min_nside}\n"
             f" - max nside: {self.max_nside}\n"
-            f" - position variations per pixel: {self.nposvar}\n"
+            f" - position variations (reconstructions) per pixel: {self.n_posvar}\n"
             f"{self.get_processing_stats_report()}"  # ends w/ '\n'
             f"\n"
         )
 
-        if self.clientscan_ct == 0:
-            message += "I will report back when I start getting scans."
-        elif self.clientscan_ct != self.n_clientscans:
+        if self.pixreco_ct == 0:
+            message += "I will report back when I start getting pixel-reconstructions."
+        elif self.pixreco_ct != self.n_pixreco:
             message += f"I will report back again in {self.report_interval_in_seconds} seconds."
 
         return message
 
     def get_processing_stats_report(self) -> str:
         """Get a multi-line report on processing stats."""
-        elapsed = time.time() - self.scan_start_time
+        elapsed = time.time() - self.reporter_start_time
         msg = (
             "Processing Stats:\n"
             f" - Started\n"
-            f"    * {dt.datetime.fromtimestamp(int(self.global_start_time))} [global]\n"
-            f"    * {dt.datetime.fromtimestamp(int(self.scan_start_time))} [this iteration]\n"
+            f"    * {dt.datetime.fromtimestamp(int(self.global_start_time))} [entire scan]\n"
+            f"    * {dt.datetime.fromtimestamp(int(self.reporter_start_time))} [this iteration]\n"
             f" - Complete\n"
-            f"    * {((self.clientscan_ct/self.n_clientscans)*100):.1f}% "
-            f"({self.clientscan_ct/self.nposvar}/{self.n_clientscans/self.nposvar} pixels, "
-            f"{self.clientscan_ct}/{self.n_clientscans} scans) [this iteration]\n"
+            f"    * {((self.pixreco_ct/self.n_pixreco)*100):.1f}% "
+            f"({self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar} pixels, "
+            f"{self.pixreco_ct}/{self.n_pixreco} recos) [this iteration]\n"
             f" - Elapsed Runtime\n"
             f"    * {dt.timedelta(seconds=int(elapsed))} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=int(elapsed+self.time_before_scan))} [this iteration + prior processing]\n"
+            f"    * {dt.timedelta(seconds=int(elapsed+self.time_before_reporter))} [this iteration + prior processing]\n"
         )
-        if not self.clientscan_ct:  # we can't predict
+        if not self.pixreco_ct:  # we can't predict
             return msg
 
-        secs_per_clientscan = elapsed / self.clientscan_ct
-        secs_predicted = elapsed / (self.clientscan_ct / self.n_clientscans)
+        secs_per_pixreco = elapsed / self.pixreco_ct
+        secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
         msg += (
             f" - Rate\n"
-            f"    * {dt.timedelta(seconds=int(secs_per_clientscan*self.nposvar))} per pixel ({dt.timedelta(seconds=int(secs_per_clientscan))} per client-scan)\n"
+            f"    * {dt.timedelta(seconds=int(secs_per_pixreco*self.n_posvar))} per pixel ({dt.timedelta(seconds=int(secs_per_pixreco))} per reco)\n"
             f" - Predicted Time Left\n"
             f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
             f" - Predicted Total Runtime\n"
             f"    * {dt.timedelta(seconds=int(secs_predicted))} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted+self.time_before_scan))} [this iteration + prior processing]\n"
+            f"    * {dt.timedelta(seconds=int(secs_predicted+self.time_before_reporter))} [this iteration + prior processing]\n"
         )
         return msg
 
@@ -275,16 +262,16 @@ class ProgressReporter:
 
     def finish(self) -> None:
         """Check if all the scans were received & make a final report."""
-        if not self.clientscan_ct:
-            raise RuntimeError("No scans were ever received.")
+        if not self.pixreco_ct:
+            raise RuntimeError("No pixel-reconstructions were ever received.")
 
-        if self.clientscan_ct != self.n_clientscans:
+        if self.pixreco_ct != self.n_pixreco:
             raise RuntimeError(
-                f"Not all scans were received: "
-                f"{self.clientscan_ct}/{self.n_clientscans} ({self.clientscan_ct/self.n_clientscans})"
+                f"Not all pixel-reconstructions were received: "
+                f"{self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
             )
 
-        self.final_report()
+        self._final_report()
 
 
 # fmt: off
@@ -485,16 +472,16 @@ class FindBestRecoResultForPixel:
 
     def __init__(
         self,
-        nposvar: int,  # Number of position variations to collect
+        n_posvar: int,  # Number of position variations to collect
     ) -> None:
-        if nposvar <= 0:
-            raise ValueError(f"nposvar is not positive: {nposvar}")
-        self.nposvar = nposvar
+        if n_posvar <= 0:
+            raise ValueError(f"n_posvar is not positive: {n_posvar}")
+        self.n_posvar = n_posvar
 
         self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
 
     def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
-        """Add frame to internal cache and possibly return the best client-scan for pixel.
+        """Add frame to internal cache and possibly return the best reco for pixel.
 
         If all the scans for the embedded pixel have be received,
         return the best one. Otherwise, return None.
@@ -515,7 +502,7 @@ class FindBestRecoResultForPixel:
             self.pixelNumToFramesMap[index] = []
         self.pixelNumToFramesMap[index].append(frame)
 
-        if len(self.pixelNumToFramesMap[index]) >= self.nposvar:
+        if len(self.pixelNumToFramesMap[index]) >= self.n_posvar:
             # print "all scans arrived for pixel", index
             bestFrame = None
             bestFrameLLH = None
@@ -541,9 +528,9 @@ class FindBestRecoResultForPixel:
         return None
 
     def finish(self) -> None:
-        """Check if all the client-scans were received.
+        """Check if all the pixel-recos were received.
 
-        If an entire pixel (and all its client-scans) was dropped by client(s),
+        If an entire pixel (and all its pixel-recos) was dropped by client(s),
         this will not catch it.
         """
         if len(self.pixelNumToFramesMap) != 0:
@@ -626,13 +613,13 @@ class SaveRecoResults:
 
 
 # fmt: on
-class ResultCollector:
-    """Manage the collecting, filtering, reporting, and saving of client-scan results."""
+class PixelRecoCollector:
+    """Manage the collecting, filtering, reporting, and saving of pixel-reco results."""
 
     def __init__(
         self,
-        nposvar: int,  # Number of position variations to collect
-        n_clientscans: int,  # Number of expected pixels
+        n_posvar: int,  # Number of position variations to collect
+        n_pixreco: int,  # Number of expected pixel-reconstructions
         min_nside: int,
         max_nside: int,
         state_dict: StateDict,
@@ -642,7 +629,7 @@ class ResultCollector:
         slack_interface: SlackInterface,
     ) -> None:
         self.finder = FindBestRecoResultForPixel(
-            nposvar=nposvar,
+            n_posvar=n_posvar,
         )
         self.saver = SaveRecoResults(
             state_dict=state_dict,
@@ -651,8 +638,8 @@ class ResultCollector:
         )
         self.progress_reporter = ProgressReporter(
             state_dict,
-            n_clientscans,
-            nposvar,
+            n_pixreco,
+            n_posvar,
             min_nside,
             max_nside,
             event_id,
@@ -661,7 +648,7 @@ class ResultCollector:
             skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
-        self.clientscans_received: List[Tuple[int, int, int]] = []
+        self.pixrecos_received: List[Tuple[int, int, int]] = []
 
     def __enter__(self) -> "ResultCollector":
         self.progress_reporter.initial_report(self.global_start_time)
@@ -671,45 +658,39 @@ class ResultCollector:
         self.progress_reporter.finish()
         self.finder.finish()
 
-    def collect(self, clientscan: icetray.I3Frame) -> None:
-        """Cache scan until we can save the pixel's best received client-scan, for each pixel."""
+    def collect(self, pixreco: icetray.I3Frame) -> None:
+        """Cache pixreco until we can save the pixel's best received reco."""
         LOGGER.debug(f"{self.saver.state_dict=}")
 
-        clientscan_tuple = pixel_to_tuple(clientscan)
-        if clientscan_tuple in self.clientscans_received:
+        pixreco_tuple = pixel_to_tuple(pixreco)
+        if pixreco_tuple in self.pixrecos_received:
             raise DuplicateScanException(
-                f"Client-scan has already been received: {clientscan_tuple}"
+                f"Pixel-reco has already been received: {pixreco_tuple}"
             )
-        self.clientscans_received.append(clientscan_tuple)
-        clientscan_id = f"S#{len(self.clientscans_received) - 1}"
-        LOGGER.info(
-            f"Got a client-scan {clientscan_id} {clientscan_tuple}: {clientscan}"
-        )
+        self.pixrecos_received.append(pixreco_tuple)
+        pixreco_id = f"S#{len(self.pixrecos_received) - 1}"
+        LOGGER.info(f"Got a pixel-reco {pixreco_id} {pixreco}")
 
-        # get best scan
-        best = self.finder.cache_and_get_best(clientscan)
-        LOGGER.info(f"Cached client-scan {clientscan_id} {clientscan_tuple}")
+        # get best pixreco
+        best = self.finder.cache_and_get_best(pixreco)
+        LOGGER.info(f"Cached pixel-reco {pixreco_tuple}")
 
-        # save best scan (if we got it)
+        # save best pixreco (if we got it)
         if not best:
-            LOGGER.debug(
-                f"Best client-scan not yet found ({clientscan_id}) {clientscan_tuple}"
-            )
+            LOGGER.debug(f"Best pixel-reco not yet found ({pixreco_tuple}")
         else:
             LOGGER.info(
-                f"Saving a BEST client-scan (found during {clientscan_id}): "
+                f"Saving a BEST pixel-reco (found {pixreco_id}): "
                 f"{pixel_to_tuple(best)} {best}"
             )
             self.saver.save(best)
-            LOGGER.debug(
-                f"Saved (found during {clientscan_id}): {pixel_to_tuple(best)}"
-            )
+            LOGGER.debug(f"Saved (found during {pixreco_id}): {pixel_to_tuple(best)}")
 
         # report after potential save
-        self.progress_reporter.record_scan()
+        self.progress_reporter.record_pixreco()
 
 
-async def serve_scans(
+async def serve(
     event_id: str,
     state_dict: StateDict,
     cache_dir: str,
@@ -724,17 +705,7 @@ async def serve_scans(
     min_nside: int,
     max_nside: int,
 ) -> None:
-    """Send pixels to be scanned by client(s), then collect scans and save to disk
-
-    Based on:
-        python/perform_scan.py
-        cloud_tools/send_scan.py
-
-    Based on:
-        python/perform_scan.py
-        cloud_tools/collect_pixels.py
-        cloud_tools/save_pixels.py (only nominally)
-    """
+    """Send pixels to be reco'd by client(s), then collect results and save to disk."""
     global_start_time = time.time()
     LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
 
@@ -762,10 +733,10 @@ async def serve_scans(
     slack_interface = SlackInterface()
 
     # Start the scan iteration loop
-    total_n_clientscans = 0
+    total_n_pixreco = 0
     for i in it.count():
         logging.info(f"Starting new scan iteration (#{i})")
-        n_clientscans = await serve_scan_iteration(
+        n_pixreco = await serve_scan_iteration(
             to_clients_queue,
             from_clients_queue,
             event_id,
@@ -775,12 +746,12 @@ async def serve_scans(
             pixeler,
             slack_interface,
         )
-        if not n_clientscans:  # we're done
+        if not n_pixreco:  # we're done
             break
-        total_n_clientscans += n_clientscans
+        total_n_pixreco += n_pixreco
 
     # sanity check
-    if not total_n_clientscans:
+    if not total_n_pixreco:
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
@@ -789,10 +760,10 @@ async def serve_scans(
 
     # log & post final slack message
     final_message = (
-        f"All scan iterations complete.\n"
+        f"The Skymap Scanner has finished.\n"
         f"Start / End: {dt.datetime.fromtimestamp(int(global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
         f"Runtime: {dt.timedelta(seconds=int(time.time() - global_start_time))}\n"
-        f"Total Millipede-Client Scans: {total_n_clientscans}\n"
+        f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
         f"Output File: {os.path.basename(npz_fpath)}"
     )
     LOGGER.info(final_message)
@@ -811,7 +782,7 @@ async def serve_scan_iteration(
     pixeler: PixelsToScan,
     slack_interface: SlackInterface,
 ) -> int:
-    """Run the next (or first) scan iteration (set of client-scans).
+    """Run the next (or first) scan iteration (set of pixel-recos).
 
     Return the number of pixels sent. Stop when this is 0.
     """
@@ -835,19 +806,19 @@ async def serve_scan_iteration(
 
     # check if anything was actually processed
     try:
-        n_clientscans = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
+        n_pixreco = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
     except NameError:
         LOGGER.info("No pixels were sent for this iteration.")
         return 0
-    LOGGER.info(f"Done serving pixel-variations to clients: {n_clientscans}.")
+    LOGGER.info(f"Done serving pixel-variations to clients: {n_pixreco}.")
 
     #
-    # COLLECT CLIENT-SCANS
+    # COLLECT PIXEL-RECOS
     #
 
-    collector = ResultCollector(
-        nposvar=len(pixeler.pos_variations),
-        n_clientscans=n_clientscans,
+    collector = PixelRecoCollector(
+        n_posvar=len(pixeler.pos_variations),
+        n_pixreco=n_pixreco,
         min_nside=pixeler.min_nside,
         max_nside=pixeler.max_nside,
         state_dict=state_dict,
@@ -857,29 +828,29 @@ async def serve_scan_iteration(
         slack_interface=slack_interface,
     )
 
-    # get client-scans from client(s), collect and save
-    LOGGER.info("Receiving client-scans from clients...")
-    with collector as col:  # enter collector 1st for detecting when no client-scans received
+    # get pixel-recos from client(s), collect and save
+    LOGGER.info("Receiving pixel-recos from clients...")
+    with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
-            async for clientscan in sub:
+            async for pixreco in sub:
                 try:
-                    col.collect(clientscan)
+                    col.collect(pixreco)
                 except DuplicateScanException as e:
                     logging.error(e)
-                # if we've got all the scans, no need to wait for queue's timeout
-                if len(col.clientscans_received) == n_clientscans:
+                # if we've got all the pixrecos, no need to wait for queue's timeout
+                if len(col.pixrecos_received) == n_pixreco:
                     break
 
-    LOGGER.info("Done receiving/saving client-scans from clients.")
-    return n_clientscans
+    LOGGER.info("Done receiving/saving pixel-recos from clients.")
+    return n_pixreco
 
 
 def main() -> None:
     """Get command-line arguments and serve scans to clients."""
     parser = argparse.ArgumentParser(
         description=(
-            "Start up server to serve up pixels to and save millipede scans "
-            "from n clients for a given event."
+            "Start up server to serve pixels to clients and save pixel-reconstructions "
+            "from clients for a given event."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -1047,7 +1018,7 @@ def main() -> None:
 
     # go!
     asyncio.get_event_loop().run_until_complete(
-        serve_scans(
+        serve(
             event_id=event_id,
             state_dict=state_dict,
             cache_dir=args.cache_dir,

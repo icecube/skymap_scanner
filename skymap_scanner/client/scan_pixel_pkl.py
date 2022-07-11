@@ -1,13 +1,4 @@
-"""Scan a single pixel.
-
-Based on:
-    python/perform_scan.py
-        - only 8 lines starting with `tray.AddSegment(, "scan_pixel_distributed",`
-    python/traysegments/scan_pixel_distributed.py
-        - a lot of similar code
-    cloud_tools/scan_pixel.py
-        - MQ logic
-"""
+"""Reco a single pixel."""
 
 # fmt: off
 # pylint: skip-file
@@ -121,14 +112,14 @@ def read_in_file(in_file: str) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], 
     return pframe, gcdqp_frames, get_GCD_diff_base_handle(base_GCD_filename_url)
 
 
-def scan_pixel(
+def reco_pixel(
     pframe: icetray.I3Frame,
     gcdqp_frames: List[icetray.I3Frame],
     GCD_diff_base_handle: str,
     out_file: str,
 ) -> str:
-    """Actually do the scan."""
-    LOGGER.info(f"Scanning pixel: {pixel_to_tuple(pframe)}...")
+    """Actually do the reco."""
+    LOGGER.info(f"Reco'ing pixel: {pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in gcdqp_frames:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
@@ -284,10 +275,10 @@ def scan_pixel(
 
     tray.AddModule(notify2, "notify2")
 
-    # Write scan out
-    def write_scan(frame: icetray.I3Frame) -> None:
+    # Write reco out
+    def writeout_reco(frame: icetray.I3Frame) -> None:
         LOGGER.debug(
-            f"write_scan {pixel_to_tuple(frame)}: {frame_for_logging(frame)}"
+            f"writeout_reco {pixel_to_tuple(frame)}: {frame_for_logging(frame)}"
         )
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
@@ -296,12 +287,12 @@ def scan_pixel(
             raise FileExistsError(out_file)
         with open(out_file, 'wb') as f:
             LOGGER.info(
-                f"Pickle-dumping scan {pixel_to_tuple(frame)}: "
+                f"Pickle-dumping reco {pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_file}."
             )
             pickle.dump(frame, f)
 
-    tray.AddModule(write_scan, "write_scan")
+    tray.AddModule(writeout_reco, "writeout_reco")
 
     tray.AddModule('TrashCan', 'thecan')
 
@@ -324,10 +315,10 @@ def scan_pixel(
 
 # fmt: on
 def main() -> None:
-    """Scan a single pixel."""
+    """Reco a single pixel."""
     parser = argparse.ArgumentParser(
         description=(
-            "Perform millipede reconstruction scans on a pixel "
+            "Perform reconstruction on a pixel "
             "by reading `--in-file FILE` and writing result to "
             "`--out-file FILE`."
         ),
@@ -337,12 +328,12 @@ def main() -> None:
     parser.add_argument(
         "--in-file",
         required=True,
-        help="a file containing the pixel to scan",
+        help="a file containing the pixel to reconstruct",
     )
     parser.add_argument(
         "--out-file",
         required=True,
-        help="a file to write the reco scan to",
+        help="a file to write the reconstruction to",
     )
     parser.add_argument(
         "-l",
@@ -369,8 +360,8 @@ def main() -> None:
     pframe, gcdqp_frames, GCD_diff_base_handle = read_in_file(args.in_file)
 
     # go!
-    scan_pixel(pframe, gcdqp_frames, GCD_diff_base_handle, args.out_file)
-    LOGGER.info("Done scanning pixel.")
+    reco_pixel(pframe, gcdqp_frames, GCD_diff_base_handle, args.out_file)
+    LOGGER.info("Done reco'ing pixel.")
 
 
 if __name__ == "__main__":
