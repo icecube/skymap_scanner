@@ -248,7 +248,7 @@ class ProgressReporter:
         secs_predicted = elapsed / (self.scan_ct / self.nscans)
         msg += (
             f" - Rate\n"
-            f"    * {dt.timedelta(seconds=int(secs_per_scan*self.nposvar))} per-pixel ({dt.timedelta(seconds=secs_per_scan)} per-scan)\n"
+            f"    * {dt.timedelta(seconds=int(secs_per_scan*self.nposvar))} per-pixel ({dt.timedelta(seconds=int(secs_per_scan))} per-scan)\n"
             f" - Predicted Time Left\n"
             f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
             f" - Predicted Total Runtime\n"
