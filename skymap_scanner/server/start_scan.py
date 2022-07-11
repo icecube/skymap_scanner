@@ -24,7 +24,6 @@ import pickle
 import time
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
-import asyncstdlib as asl
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
 import numpy
