@@ -209,6 +209,7 @@ def reco_pixel(
         cascade_service=cascade_service,
         ExcludedDOMs=ExcludedDOMs,
         pulsesName=pulsesName,
+        logger=LOGGER,
     )
 
     # Write reco out

@@ -20,15 +20,13 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     simclasses,
 )
 
-LOGGER = logging.getLogger("skyscan-client-scanner-millipede")
-
 
 @icetray.traysegment
-def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOMs, pulsesName):
+def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOMs, pulsesName, logger):
     """Perform Millipede reco."""
 
     def notify0(frame):
-        LOGGER.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
+        logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
 
     tray.AddModule(notify0, "notify0")
 
@@ -73,8 +71,8 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
         Minimizer='simplex')
 
     def notify1(frame):
-        LOGGER.debug(f"1st pass done! {datetime.datetime.now()}")
-        LOGGER.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
+        logger.debug(f"1st pass done! {datetime.datetime.now()}")
+        logger.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
 
     tray.AddModule(notify1, "notify1")
 
@@ -103,7 +101,7 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
         Minimizer='simplex')
 
     def notify2(frame):
-        LOGGER.debug(f"2nd pass done! {datetime.datetime.now()}")
-        LOGGER.debug(f"MillipedeStarting2ndPass: {frame['MillipedeStarting2ndPass']}")
+        logger.debug(f"2nd pass done! {datetime.datetime.now()}")
+        logger.debug(f"MillipedeStarting2ndPass: {frame['MillipedeStarting2ndPass']}")
 
     tray.AddModule(notify2, "notify2")
