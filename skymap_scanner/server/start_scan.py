@@ -148,12 +148,14 @@ class ProgressReporter:
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.scan_start_time = 0.0
-        self.time_before_scan = 0
+        self.time_before_scan = 0.0
+        self.global_start_time = 0.0
 
     def initial_report(self, global_start_time: float) -> None:
         """Send an initial report/log/plot."""
         self.scan_start_time = time.time()
-        self.time_before_scan = int(self.scan_start_time - global_start_time)
+        self.time_before_scan = self.scan_start_time - global_start_time
+        self.global_start_time = global_start_time
         self._report(override_timestamp=True)
 
     def record_scan(self) -> None:
@@ -228,7 +230,11 @@ class ProgressReporter:
         elapsed = time.time() - self.scan_start_time
         msg = (
             "Processing Stats:\n"
-            f" - {((self.scan_ct/self.nscans)*100):.1f}% "
+            f" - Started\n"
+            f"    * {dt.datetime.fromtimestamp(int(self.global_start_time))} [global]\n"
+            f"    * {dt.datetime.fromtimestamp(int(self.scan_start_time))} [this iteration]\n"
+            f" - Complete\n"
+            f"    * {((self.scan_ct/self.nscans)*100):.1f}% "
             f"({self.scan_ct/self.nposvar}/{self.nscans/self.nposvar} pixels, "
             f"{self.scan_ct}/{self.nscans} scans) [this iteration]\n"
             f" - Elapsed Runtime\n"
