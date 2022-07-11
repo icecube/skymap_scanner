@@ -4,7 +4,6 @@
 # pylint: skip-file
 
 import datetime
-import logging
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
