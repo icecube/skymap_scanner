@@ -643,7 +643,7 @@ class PixelRecoCollector:
         self.global_start_time = global_start_time
         self.pixrecos_received: List[Tuple[int, int, int]] = []
 
-    def __enter__(self) -> "ResultCollector":
+    def __enter__(self) -> "PixelRecoCollector":
         self.progress_reporter.initial_report(self.global_start_time)
         return self
 

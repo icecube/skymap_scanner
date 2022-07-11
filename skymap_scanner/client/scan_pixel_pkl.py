@@ -200,6 +200,7 @@ def reco_pixel(
             base_GCD_filename=str(GCD_diff_base_handle),
         )
 
+    # TODO (FUTURE DEV) - change reco algo based on some pkl attribute
     # perform fit
     tray.AddSegment(
         millipede_traysegment,
