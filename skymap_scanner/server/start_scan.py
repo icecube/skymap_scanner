@@ -248,7 +248,7 @@ class ProgressReporter:
         secs_predicted = elapsed / (self.scan_ct / self.nscans)
         msg += (
             f" - Rate\n"
-            f"    * {secs_per_scan/60*self.nposvar:.2f} min/pixel ({secs_per_scan/60:.2f} min/scan)\n"
+            f"    * {dt.timedelta(seconds=int(secs_per_scan*self.nposvar))} per-pixel ({dt.timedelta(seconds=secs_per_scan)} per-scan)\n"
             f" - Predicted Time Left\n"
             f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
             f" - Predicted Total Runtime\n"
@@ -596,7 +596,7 @@ class SaveRecoResults:
         # apparently baseline GCD is sufficient here
         # maybe filestager can be None
         geometry = get_baseline_gcd_frames(self.state_dict, filestager=dataio.get_stagers())[0]
-        
+
         try:
             recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
         except KeyError:
