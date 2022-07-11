@@ -23,7 +23,7 @@ from .. import config
 from ..utils import pixel_to_tuple
 from .millipede_traysegment import millipede_traysegment
 
-LOGGER = logging.getLogger("skyscan-client-scanner")
+LOGGER = logging.getLogger("skyscan-client-reco")
 
 
 def frame_for_logging(frame: icetray.I3Frame) -> str:

@@ -101,7 +101,7 @@ async def consume_and_reply(
 
             # call & check outputs
             cmd = (
-                f"python -m skymap_scanner.client.scan_pixel_pkl "
+                f"python -m skymap_scanner.client.reco_pixel_pkl "
                 f"--in-file {IN} "
                 f"--out-file {OUT} "
                 f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
