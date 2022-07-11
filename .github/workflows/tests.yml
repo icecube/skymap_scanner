@@ -102,9 +102,9 @@ jobs:
           outfile=$(ls -d $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-          # $GITHUB_WORKSPACE/tests/compare_scan_results.py -f \
-          #   $outfile \
-          #   TODO
+          $GITHUB_WORKSPACE/tests/compare_scan_results.py --assert -f \
+            $outfile \
+            $GITHUB_WORKSPACE/tests/data/realtime_results/$(basename $outfile)
 
 
   test-run-client-scanner:

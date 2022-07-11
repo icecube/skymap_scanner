@@ -1,17 +1,16 @@
+"""Testing script for comparing two scan results (.npz files)."""
+
 import argparse
 import logging
-
+import sys
 from pathlib import Path
-
-from numpy import append
-
 
 from skymap_scanner.server.scan_result import ScanResult
 
 
 def main():
     """
-    Loads two scan results in numpy format and return the outcome of the comparison.
+    Loads two scan results in numpy format and exit with the outcome of the comparison.
     """
 
     logging.basicConfig(level=logging.INFO)
@@ -23,6 +22,13 @@ def main():
     parser.add_argument(
         "-f", "--files", help="Files to compare", nargs=2, required=True
     )
+    parser.add_argument(
+        "--assert",
+        dest="do_assert",
+        default=False,
+        action="store_true",
+        help="'assert' the results",
+    )
 
     args = parser.parse_args()
 
@@ -33,10 +39,13 @@ def main():
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
 
-    if equal or close:
-        return 0
+    if args.do_assert:
+        assert equal or close
     else:
-        return 1
+        if equal or close:
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
 
 if __name__ == "__main__":
