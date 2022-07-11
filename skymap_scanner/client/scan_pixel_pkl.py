@@ -1,6 +1,5 @@
 """Reco a single pixel."""
 
-# fmt: off
 # pylint: skip-file
 
 import argparse
@@ -10,23 +9,19 @@ import os
 import pickle
 from typing import Any, List, Tuple
 
-from I3Tray import I3Tray, I3Units  # type: ignore[import]
+from I3Tray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
-    dataclasses,
     dataio,
     frame_object_diff,
-    gulliver,
-    gulliver_modules,
     icetray,
-    millipede,
     photonics_service,
-    recclasses,
-    simclasses,
 )
+from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import config
 from ..utils import pixel_to_tuple
+from .millipede_traysegment import millipede_traysegment
 
 LOGGER = logging.getLogger("skyscan-client-scanner")
 
@@ -79,23 +74,27 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
-    if base_GCD_filename_url not in [None, 'None']:
+    if base_GCD_filename_url not in [None, "None"]:
         for GCD_base_dir in config.GCD_base_dirs:
             try:
                 read_url = os.path.join(GCD_base_dir, base_GCD_filename_url)
-                LOGGER.debug("reading baseline GCD from {0}".format( read_url ))
-                GCD_diff_base_handle = stagers.GetReadablePath( read_url )
-                if not os.path.isfile( str(GCD_diff_base_handle) ):
+                LOGGER.debug("reading baseline GCD from {0}".format(read_url))
+                GCD_diff_base_handle = stagers.GetReadablePath(read_url)
+                if not os.path.isfile(str(GCD_diff_base_handle)):
                     raise RuntimeError("file does not exist (or is not a file)")
             except:
                 LOGGER.debug(" -> failed")
-                GCD_diff_base_handle=None
+                GCD_diff_base_handle = None
             if GCD_diff_base_handle is not None:
                 LOGGER.debug(" -> success")
                 break
 
         if GCD_diff_base_handle is None:
-            raise RuntimeError("Could not read the input GCD file '{0}' from any pre-configured location".format(base_GCD_filename_url))
+            raise RuntimeError(
+                "Could not read the input GCD file '{0}' from any pre-configured location".format(
+                    base_GCD_filename_url
+                )
+            )
 
     return GCD_diff_base_handle
 
@@ -105,9 +104,9 @@ def read_in_file(in_file: str) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], 
     with open(in_file, "rb") as f:
         payload = pickle.load(f)
 
-    pframe = payload['Pixel_PFrame']
-    gcdqp_frames = payload['GCDQp_Frames']
-    base_GCD_filename_url = payload['base_GCD_filename_url']
+    pframe = payload["Pixel_PFrame"]
+    gcdqp_frames = payload["GCDQp_Frames"]
+    base_GCD_filename_url = payload["base_GCD_filename_url"]
 
     return pframe, gcdqp_frames, get_GCD_diff_base_handle(base_GCD_filename_url)
 
@@ -127,14 +126,14 @@ def reco_pixel(
 
     # Constants ########################################################
 
-    pulsesName = 'SplitUncleanedInIcePulsesLatePulseCleaned'
+    pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
     ExcludedDOMs = [
-        'CalibrationErrata',
-        'BadDomsList',
-        'DeepCoreDOMs',
-        'SaturatedDOMs',
-        'BrightDOMs',
-        pulsesName+'TimeWindows',
+        "CalibrationErrata",
+        "BadDomsList",
+        "DeepCoreDOMs",
+        "SaturatedDOMs",
+        "BrightDOMs",
+        pulsesName + "TimeWindows",
     ]
     SPEScale = 0.99
 
@@ -143,11 +142,13 @@ def reco_pixel(
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use ems_mie instead of InfBareMu_mie even for tracks
-    base = os.path.expandvars('$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits')
+    base = os.path.expandvars("$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits")
     for fname in [base % "abs", base % "prob"]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
-    cascade_service = photonics_service.I3PhotoSplineService(base % "abs", base % "prob", timingSigma=0.0)
+    cascade_service = photonics_service.I3PhotoSplineService(
+        base % "abs", base % "prob", timingSigma=0.0
+    )
     cascade_service.SetEfficiencies(SPEScale)
 
     muon_service = None
@@ -155,6 +156,8 @@ def reco_pixel(
     # Build Tray #######################################################
 
     tray = I3Tray()
+
+    # Load frames
     tray.AddModule(
         LoadInitialFrames,
         "LoadInitialFrames",
@@ -166,114 +169,46 @@ def reco_pixel(
         pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
-        if pulsesName+"TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeWindows"))
-        if pulsesName+"TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName+"TimeRange"))
+        if pulsesName + "TimeWindows" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
+        if pulsesName + "TimeRange" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
     tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist")
-
-    ########## perform the fit
 
     def notifyStart(frame):
         LOGGER.debug(f"got data - uncompressing GCD {datetime.datetime.now()}")
 
     tray.AddModule(notifyStart, "notifyStart")
 
+    # get GCD
     @icetray.traysegment
-    def UncompressGCD(tray,name, base_GCD_path, base_GCD_filename):
-        from icecube.frame_object_diff.segments import uncompress
-
-        tray.Add(uncompress, name+"_GCD_patch",
-                 keep_compressed=False,
-                 base_path=base_GCD_path,
-                 base_filename=base_GCD_filename)
+    def UncompressGCD(tray, name, base_GCD_path, base_GCD_filename):
+        tray.Add(
+            uncompress,
+            name + "_GCD_patch",
+            keep_compressed=False,
+            base_path=base_GCD_path,
+            base_filename=base_GCD_filename,
+        )
 
     if GCD_diff_base_handle is not None:
-        tray.Add(UncompressGCD, "GCD_uncompress",
-                 base_GCD_path="",
-                 base_GCD_filename=str(GCD_diff_base_handle))
+        tray.Add(
+            UncompressGCD,
+            "GCD_uncompress",
+            base_GCD_path="",
+            base_GCD_filename=str(GCD_diff_base_handle),
+        )
 
-    def notify0(frame):
-        LOGGER.debug(f"starting a new fit! {datetime.datetime.now()}")
-
-    tray.AddModule(notify0, "notify0")
-
-    tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-        MuonPhotonicsService=muon_service,
-        CascadePhotonicsService=cascade_service,
-        ShowerRegularization=0,
-        PhotonsPerBin=15,
-        # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
+    # perform fit
+    tray.AddSegment(
+        millipede_traysegment,
+        "millipede_traysegment",
+        muon_service=muon_service,
+        cascade_service=cascade_service,
         ExcludedDOMs=ExcludedDOMs,
-        PartialExclusion=True,
-        ReadoutWindow=pulsesName+'TimeRange',
-        Pulses=pulsesName,
-        BinSigma=3)
-
-    tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
-
-    tray.AddService('I3GSLSimplexFactory', 'simplex',
-        MaxIterations=20000)
-
-    tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
-        MuonSpacing=0.*I3Units.m,
-        ShowerSpacing=5.*I3Units.m,
-        StepX = 10.*I3Units.m,
-        StepY = 10.*I3Units.m,
-        StepZ = 10.*I3Units.m,
-        StepT = 0.,
-        StepZenith = 0.,
-        StepAzimuth = 0.,
-        )
-
-    tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-        FirstGuesses=['MillipedeSeedParticle'],
-        TimeShiftType='TNone',
-        PositionShiftType='None')
-
-    tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
-        OutputName='MillipedeStarting1stPass',
-        SeedService='vetoseed',
-        Parametrization='coarseSteps',
-        LogLikelihood='millipedellh',
-        Minimizer='simplex')
-
-    def notify1(frame):
-        LOGGER.debug(f"1st pass done! {datetime.datetime.now()}")
-        LOGGER.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
-
-    tray.AddModule(notify1, "notify1")
-
-    tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
-        MuonSpacing=0.*I3Units.m,
-        ShowerSpacing=2.5*I3Units.m,
-
-        StepX = 2.*I3Units.m,
-        StepY = 2.*I3Units.m,
-        StepZ = 2.*I3Units.m,
-        StepT = 5.*I3Units.ns, # now, also fit for time
-        StepZenith = 0.,
-        StepAzimuth = 0.,
-        )
-
-    tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
-        FirstGuess='MillipedeStarting1stPass',
-        TimeShiftType='TNone',
-        PositionShiftType='None')
-
-    tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
-        OutputName='MillipedeStarting2ndPass',
-        SeedService='firstFitSeed',
-        Parametrization='fineSteps',
-        LogLikelihood='millipedellh',
-        Minimizer='simplex')
-
-    def notify2(frame):
-        LOGGER.debug(f"2nd pass done! {datetime.datetime.now()}")
-        LOGGER.debug(f"MillipedeStarting2ndPass: {frame['MillipedeStarting2ndPass']}")
-
-    tray.AddModule(notify2, "notify2")
+        pulsesName=pulsesName,
+    )
 
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:
@@ -285,7 +220,7 @@ def reco_pixel(
             return
         if os.path.exists(out_file):
             raise FileExistsError(out_file)
-        with open(out_file, 'wb') as f:
+        with open(out_file, "wb") as f:
             LOGGER.info(
                 f"Pickle-dumping reco {pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_file}."
@@ -294,7 +229,7 @@ def reco_pixel(
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
-    tray.AddModule('TrashCan', 'thecan')
+    tray.AddModule("TrashCan", "thecan")
 
     # Start Tray #######################################################
 
