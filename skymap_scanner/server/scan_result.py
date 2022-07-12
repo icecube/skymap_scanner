@@ -53,6 +53,14 @@ class ScanResult:
 
         close = dict()  # one bool for each nside value
 
+        # first check which nsides were used
+        if sorted(self.result.keys()) != sorted(other.result.keys()):
+            self.logger.warning(
+                f"Mismatched nsides: {sorted(self.result.keys())} vs {sorted(other.result.keys())}"
+            )
+            close["same-nsides"] = False
+
+        # now check individual nside-iterations
         for nside in sorted(self.result, reverse=True):
             self.logger.debug(f"Comparing for nside={nside}")
             sre, ore = self.result[nside], other.result[nside]  # brevity
@@ -75,6 +83,7 @@ class ScanResult:
             }
             close[nside] = all(nside_equal.values()) and all(nside_close.values())
 
+            # log results
             if not all(nside_equal.values()):
                 self.logger.debug(f"Mismatched pixel indices for nside={nside}")
             if not all(nside_close.values()):
