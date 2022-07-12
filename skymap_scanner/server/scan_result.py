@@ -53,8 +53,16 @@ class ScanResult:
 
         close = dict()  # one bool for each nside value
 
-        for nside in self.result:
+        for nside in sorted(self.result, reverse=True):
+            self.logger.debug(f"Comparing for nside={nside}")
             sre, ore = self.result[nside], other.result[nside]  # brevity
+
+            if len(sre) != len(ore):
+                self.logger.warning(
+                    f"Mismatched ndarray lengths: {len(sre)} vs {len(ore)}"
+                )
+                close[nside] = False
+                continue  # we can't go on
 
             nside_equal = {
                 key: np.array_equal(sre[key], ore[key]) for key in require_equal
