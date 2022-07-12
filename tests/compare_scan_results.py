@@ -45,7 +45,7 @@ def main():
     if equal or close:
         sys.exit(0)
     else:
-        alpha.json_dump_diff(
+        alpha.dump_json_diff(
             beta,
             f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff",
         )
