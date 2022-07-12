@@ -39,10 +39,10 @@ NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 LOGGER = logging.getLogger("skyscan-server")
 
 
-class DuplicateScanException(Exception):
-    """Raised when a message is received that is semantically equivalent to a prior.
+class DuplicatePixelRecoException(Exception):
+    """Raised when a pixel-reco (message) is received that is semantically equivalent to a prior.
 
-    For example, a scan/message that has the same NSide, Pixel ID, and
+    For example, a pixel-reco (message) that has the same NSide, Pixel ID, and
     Variation ID as an already received message.
     """
 
@@ -87,7 +87,7 @@ class ProgressReporter:
             `state_dict`
                 - the state_dict
             `n_pixreco`
-                - number of expected scans
+                - number of expected pixel-recos
             `n_posvar`
                 - number of potion variations per pixel
             `min_nside`
@@ -261,7 +261,7 @@ class ProgressReporter:
         return msg
 
     def finish(self) -> None:
-        """Check if all the scans were received & make a final report."""
+        """Check if all the pixel-recos were received & make a final report."""
         if not self.pixreco_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
@@ -275,8 +275,8 @@ class ProgressReporter:
 
 
 # fmt: off
-class PixelsToScan:
-    """Manage providing pixels to scan."""
+class PixelsToReco:
+    """Manage providing pixels to reco."""
 
     def __init__(
         self,
@@ -357,7 +357,7 @@ class PixelsToScan:
         self.event_mjd = get_event_mjd(self.state_dict)  # type: ignore[no-untyped-call]
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames to be scanned."""
+        """Yield PFrames to be reco'd."""
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
@@ -386,7 +386,7 @@ class PixelsToScan:
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
     ) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames to be scanned for a given `nside` and `pixel`."""
+        """Yield PFrames to be reco'd for a given `nside` and `pixel`."""
 
         dec, ra = healpy.pix2ang(nside, pixel)
         dec = dec - numpy.pi/2.
@@ -395,7 +395,6 @@ class PixelsToScan:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        # test-case-scan: this whole part is different
         if nside == self.min_nside:
             position = self.fallback_position
             time = self.fallback_time
@@ -465,7 +464,7 @@ class PixelsToScan:
             yield p_frame
 
 
-class FindBestRecoResultForPixel:
+class BestPixelRecoFinder:
     """Facilitate finding the best reco result for any pixel."""
 
     def __init__(
@@ -534,8 +533,8 @@ class FindBestRecoResultForPixel:
             )
 
 
-class SaveRecoResults:
-    """Facilitate saving reco scan results to disk."""
+class PixelRecoSaver:
+    """Facilitate saving pixel-reco results to disk."""
 
     def __init__(
         self,
@@ -547,9 +546,9 @@ class SaveRecoResults:
         self.this_event_cache_dir = os.path.join(cache_dir, event_id)
 
     def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
-        """Save pixel-scan to disk as .i3 file at `self.this_event_cache_dir`.
+        """Save pixel-reco to disk as .i3 file at `self.this_event_cache_dir`.
 
-        Raise errors for invalid frame or already saved scan.
+        Raise errors for invalid frame or already saved pixel-reco.
 
         Makes dirs as needed.
         """
@@ -586,7 +585,7 @@ class SaveRecoResults:
             LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
             raise
 
-        # insert pixel-scan into state_dict
+        # insert pixel-reco into state_dict
         if nside not in self.state_dict["nsides"]:
             self.state_dict["nsides"][nside] = {}
         if pixel in self.state_dict["nsides"][nside]:
@@ -621,10 +620,10 @@ class PixelRecoCollector:
         global_start_time: float,
         slack_interface: SlackInterface,
     ) -> None:
-        self.finder = FindBestRecoResultForPixel(
+        self.finder = BestPixelRecoFinder(
             n_posvar=n_posvar,
         )
-        self.saver = SaveRecoResults(
+        self.saver = PixelRecoSaver(
             state_dict=state_dict,
             event_id=event_id,
             cache_dir=cache_dir,
@@ -657,7 +656,7 @@ class PixelRecoCollector:
 
         pixreco_tuple = pixel_to_tuple(pixreco)
         if pixreco_tuple in self.pixrecos_received:
-            raise DuplicateScanException(
+            raise DuplicatePixelRecoException(
                 f"Pixel-reco has already been received: {pixreco_tuple}"
             )
         self.pixrecos_received.append(pixreco_tuple)
@@ -716,7 +715,7 @@ async def serve(
         timeout=timeout_from_clients,
     )
 
-    pixeler = PixelsToScan(
+    pixeler = PixelsToReco(
         state_dict=state_dict,
         mini_test_variations=mini_test_variations,
         min_nside=min_nside,
@@ -772,7 +771,7 @@ async def serve_scan_iteration(
     state_dict: StateDict,
     cache_dir: str,
     global_start_time: float,
-    pixeler: PixelsToScan,
+    pixeler: PixelsToReco,
     slack_interface: SlackInterface,
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
@@ -828,7 +827,7 @@ async def serve_scan_iteration(
             async for pixreco in sub:
                 try:
                     col.collect(pixreco)
-                except DuplicateScanException as e:
+                except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
                 if len(col.pixrecos_received) == n_pixreco:
@@ -839,7 +838,7 @@ async def serve_scan_iteration(
 
 
 def main() -> None:
-    """Get command-line arguments and serve scans to clients."""
+    """Get command-line arguments and perform event scan via clients."""
     parser = argparse.ArgumentParser(
         description=(
             "Start up server to serve pixels to clients and save pixel-reconstructions "
@@ -910,7 +909,7 @@ def main() -> None:
     parser.add_argument(
         "--min-nside",
         default=MIN_NSIDE_DEFAULT,
-        help="The first scan iteration's nside value",
+        help="The first scan-iteration's nside value",
         type=lambda x: int(
             _validate_arg(
                 x,
@@ -924,7 +923,7 @@ def main() -> None:
     parser.add_argument(
         "--max-nside",
         default=MAX_NSIDE_DEFAULT,
-        help="The final scan iteration's nside value",
+        help="The final scan-iteration's nside value",
         type=lambda x: int(
             _validate_arg(
                 x,
