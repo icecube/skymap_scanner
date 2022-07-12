@@ -13,7 +13,7 @@ def main():
     Loads two scan results in numpy format and exit with the outcome of the comparison.
     """
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     logger = logging.getLogger(__name__)
 
@@ -33,9 +33,11 @@ def main():
     args = parser.parse_args()
 
     results = [ScanResult.load(Path(f)) for f in args.files]
+    alpha, beta = results[0], results[1]
 
-    close = results[0].is_close(results[1])
-    equal = results[0] == results[1]
+    # compare
+    close = alpha.is_close(beta)
+    equal = alpha == beta
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
 

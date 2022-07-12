@@ -1,6 +1,9 @@
+"""For encapsulating the results of an event scan in a single instance."""
+
 import logging
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 class ScanResult:
