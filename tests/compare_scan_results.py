@@ -47,7 +47,7 @@ def main():
     else:
         alpha.dump_json_diff(
             beta,
-            f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff",
+            f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff.json",
         )
         if args.do_assert:
             assert False
