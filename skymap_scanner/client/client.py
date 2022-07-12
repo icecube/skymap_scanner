@@ -26,11 +26,13 @@ def inmsg_to_infile(in_msg: Any, debug_infile: str) -> str:
     Also, dump to a file for debugging (if not "").
     """
     with open(IN, "wb") as f:
-        LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {IN}")
+        LOGGER.info(f"Pickle-dumping in-payload to file: {str(in_msg)} @ {IN}")
         pickle.dump(in_msg, f)
     if debug_infile:  # for debugging
         with open(debug_infile, "wb") as f:
-            LOGGER.info(f"Pickle-dumping pixel to file: {str(in_msg)} @ {debug_infile}")
+            LOGGER.info(
+                f"Pickle-dumping in-payload to file: {str(in_msg)} @ {debug_infile}"
+            )
             pickle.dump(in_msg, f)
     return IN
 
@@ -42,18 +44,18 @@ def outfile_to_outmsg(debug_outfile: str) -> Any:
     """
     with open(OUT, "rb") as f:
         out_msg = pickle.load(f)
-        LOGGER.info(f"Pickle-loaded scan from file: {str(out_msg)} @ {OUT}")
+        LOGGER.info(f"Pickle-loaded out-payload from file: {str(out_msg)} @ {OUT}")
     os.remove(OUT)
     if debug_outfile:  # for debugging
         with open(debug_outfile, "wb") as f:
             LOGGER.info(
-                f"Pickle-dumping scan to file: {str(out_msg)} @ {debug_outfile}"
+                f"Pickle-dumping out-payload to file: {str(out_msg)} @ {debug_outfile}"
             )
             pickle.dump(out_msg, f)
     return out_msg
 
 
-async def scan_pixel_distributed(
+async def consume_and_reply(
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
@@ -62,9 +64,9 @@ async def scan_pixel_distributed(
     timeout_from_clients: int,  # for mq
     debug_directory: str = "",
 ) -> None:
-    """Communicate with server and outsource pixel scanning to subprocesses."""
+    """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
-    except_errors = False  # TODO - only false during debugging; make fail safe logic (on server end?)
+    except_errors = False  # if there's an error, have the cluster try again (probably a system error)
     in_queue = mq.Queue(
         address=broker,
         name=queue_to_clients,
@@ -80,10 +82,10 @@ async def scan_pixel_distributed(
         timeout=timeout_from_clients,
     )
 
-    LOGGER.info("Getting pixels from server to scan then send back...")
+    LOGGER.info("Getting messages from server to process then send back...")
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
         async for i, in_msg in asl.enumerate(sub):
-            LOGGER.info(f"Got a pixel to scan (#{i}): {str(in_msg)}")
+            LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
 
             # debugging logic
             if debug_directory:
@@ -99,7 +101,7 @@ async def scan_pixel_distributed(
 
             # call & check outputs
             cmd = (
-                f"python -m skymap_scanner.client.scan_pixel_pkl "
+                f"python -m skymap_scanner.client.reco_pixel_pkl "
                 f"--in-file {IN} "
                 f"--out-file {OUT} "
                 f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
@@ -111,22 +113,22 @@ async def scan_pixel_distributed(
             if result.returncode != 0:
                 raise subprocess.CalledProcessError(result.returncode, cmd)
             if not os.path.exists(OUT):
-                LOGGER.error("Out file was not written for pixel")
-                raise RuntimeError("Out file was not written for pixel")
+                LOGGER.error("Out file was not written for in-payload")
+                raise RuntimeError("Out file was not written for in-payload")
 
             # get
             out_msg = outfile_to_outmsg(debug_outfile)
 
             # send
-            LOGGER.info("Sending scan to server...")
+            LOGGER.info("Sending out-payload to server...")
             await pub.send(out_msg)
 
     # check if anything was actually processed
     try:
-        npixels = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
+        n_msgs = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
     except NameError:
-        raise RuntimeError("No Pixels Were Received.")
-    LOGGER.info(f"Done scanning: handled {npixels} pixels/scans.")
+        raise RuntimeError("No Messages Were Received.")
+    LOGGER.info(f"Done Processing: handled {n_msgs} messages")
 
 
 def main() -> None:
@@ -145,7 +147,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Start up client daemon to perform millipede scans on pixels "
+            "Start up client daemon to perform reco scans on pixels "
             "received from the server for a given event."
         ),
         epilog="",
@@ -231,7 +233,7 @@ def main() -> None:
     # go!
     LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.event_mqname=}")
     asyncio.get_event_loop().run_until_complete(
-        scan_pixel_distributed(
+        consume_and_reply(
             broker=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
