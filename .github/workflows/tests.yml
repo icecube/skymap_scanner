@@ -108,10 +108,10 @@ jobs:
             $GITHUB_WORKSPACE/tests/data/realtime_results/$(basename $outfile)
 
 
-  test-run-client-scanner:
+  test-run-pixel-reco:
     runs-on: ubuntu-latest
     env:
-      SKYSCAN_CLIENT_SCANNER_FILES_DIR: tests/data/scan_pixel_pkls
+      SKYSCAN_CLIENT_SCANNER_FILES_DIR: tests/data/reco_pixel_pkls
       SKYSCAN_CLIENT_SCANNER_IN_FILENAME: in.pkl
       SKYSCAN_CLIENT_SCANNER_OUT_FILENAME: out.pkl
     steps:
@@ -128,6 +128,6 @@ jobs:
           ./tests/docker_scripts/docker_local_build.sh
       - name: Run
         run: |
-          ./tests/docker_scripts/_launch_scan_pixel.sh
+          ./tests/docker_scripts/_launch_reco_pixel.sh
       # - name: Test Output
       #   run: |
