@@ -102,7 +102,8 @@ jobs:
           outfile=$(ls -d $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-          python3 $GITHUB_WORKSPACE/tests/compare_scan_results.py --assert -f \
+          pip install .  # don't have to use the docker container for this
+          python $GITHUB_WORKSPACE/tests/compare_scan_results.py --assert -f \
             $outfile \
             $GITHUB_WORKSPACE/tests/data/realtime_results/$(basename $outfile)
 
