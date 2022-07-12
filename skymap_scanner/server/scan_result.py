@@ -108,15 +108,17 @@ class ScanResult:
                 return None
             return i - j
 
-        for nside in self.result.keys():
+        for nside in self.result.keys() & other.result.keys():
             joined = []
             for sre, ore in it.zip_longest(
-                self.result[nside].tolist(), other.result[nside].tolist()
+                self.result.get(nside, []),
+                other.result.get(nside, []),
+                fillvalue=(None,) * len(self.result[nside][0]),
             ):
-                if not sre:
-                    sre = (None,) * len(ore)
-                elif not ore:
-                    ore = (None,) * len(sre)
+                if not isinstance(sre, tuple):
+                    sre = tuple(sre.tolist())
+                if not isinstance(ore, tuple):
+                    ore = tuple(ore.tolist())
                 joined.append(
                     (
                         sre,
