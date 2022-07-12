@@ -1,5 +1,7 @@
 """For encapsulating the results of an event scan in a single instance."""
 
+import itertools as it
+import json
 import logging
 from pathlib import Path
 
@@ -96,6 +98,38 @@ class ScanResult:
             self.logger.debug(f"Comparison result: {close}")
 
         return result
+
+    def dump_json_diff(self, other, json_fpath):
+        """Get a python-native dict of the diff of the two results."""
+        diffs = dict()
+
+        def diff_element(i, j):
+            if i is None or j is None:
+                return None
+            return i - j
+
+        for nside in self.result.keys():
+            joined = []
+            for sre, ore in it.zip_longest(
+                self.result[nside].tolist(), other.result[nside].tolist()
+            ):
+                if not sre:
+                    sre = (None,) * len(ore)
+                elif not ore:
+                    ore = (None,) * len(sre)
+                joined.append(
+                    (
+                        sre,
+                        ore,
+                        tuple(map(lambda i, j: diff_element(i, j), sre, ore)),
+                    )
+                )
+            diffs[nside] = joined
+
+        with open(json_fpath, "w") as f:
+            self.logger.info(f"Writing diff to {json_fpath}...")
+            json.dump(diffs, f, indent=3)
+        return diffs
 
     """
     Auxiliary methods

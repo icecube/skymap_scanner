@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -41,13 +42,16 @@ def main():
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
 
-    if args.do_assert:
-        assert equal or close
+    if equal or close:
+        sys.exit(0)
     else:
-        if equal or close:
-            sys.exit(0)
-        else:
-            sys.exit(1)
+        alpha.json_dump_diff(
+            beta,
+            f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff",
+        )
+        if args.do_assert:
+            assert False
+        sys.exit(1)
 
 
 if __name__ == "__main__":
