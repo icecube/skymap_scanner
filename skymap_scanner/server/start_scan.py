@@ -546,7 +546,11 @@ class PixelRecoSaver:
         self.this_event_cache_dir = os.path.join(cache_dir, event_id)
 
     def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
-        """Save pixel-reco to disk as .i3 file at `self.this_event_cache_dir`.
+        """Save pixel-reco to state_dict and disk cache.
+
+        Locations:
+            state_dict: @ state_dict["nsides"][nside][pixel]
+            disk cache: @ `self.this_event_cache_dir` as .i3 file
 
         Raise errors for invalid frame or already saved pixel-reco.
 
@@ -561,7 +565,29 @@ class PixelRecoSaver:
 
         nside = frame["SCAN_HealpixNSide"].value
         pixel = frame["SCAN_HealpixPixel"].value
-        index = (nside,pixel)
+
+        # insert pixel data into state_dict
+        if nside not in self.state_dict["nsides"]:
+            self.state_dict["nsides"][nside] = {}
+        if pixel in self.state_dict["nsides"][nside]:
+            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
+        self.state_dict["nsides"][nside][pixel] = self.get_pixel_data(
+            self.state_dict["baseline_GCD_file"],
+            self.state_dict["GCDQp_packet"],
+            frame,
+        )
+
+        self.save_to_disk_cache(nside, pixel, frame)
+
+        return frame
+
+    @staticmethod
+    def get_pixel_data(
+        baseline_GCD_file: str,  # pylint:disable=invalid-name
+        GCDQp_packet: List[icetray.I3Frame],  # pylint:disable=invalid-name
+        frame: icetray.I3Frame
+    ) -> Dict[str, Any]:
+        """Get frame, llh, recoLossesInside, and recoLossesTotal packaged in a dict."""
 
         if "MillipedeStarting2ndPass" not in frame:
             raise RuntimeError("\"MillipedeStarting2ndPass\" not found in reconstructed frame")
@@ -571,37 +597,37 @@ class PixelRecoSaver:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
-        """
-        Calculate reco losses, based on load_scan_state()
-        """
+        # Calculate reco losses, based on load_scan_state()
         # apparently baseline GCD is sufficient here
         # maybe filestager can be None
-        geometry = get_baseline_gcd_frames(self.state_dict, filestager=dataio.get_stagers())[0]
+        geometry = get_baseline_gcd_frames(
+            baseline_GCD_file,
+            GCDQp_packet,
+            filestager=dataio.get_stagers()
+        )[0]
 
         try:
             recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
-        except KeyError:
-            LOGGER.error(f"Missing attribute in Geometry frame: {KeyError}")
+        except KeyError as e:
+            LOGGER.error(f"Missing attribute in Geometry frame: {e}")
             LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
             raise
 
-        # insert pixel-reco into state_dict
-        if nside not in self.state_dict["nsides"]:
-            self.state_dict["nsides"][nside] = {}
-        if pixel in self.state_dict["nsides"][nside]:
-            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
-        self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
+        return dict(
+            frame=frame,
+            llh=llh,
+            recoLossesInside=recoLossesInside,
+            recoLossesTotal=recoLossesTotal
+        )
 
-        # save this frame to the disk cache
-
+    def save_to_disk_cache(self, nside: int, pixel: int, frame: icetray.I3Frame) -> None:
+        """Save this frame to the disk cache."""
         nside_dir = os.path.join(self.this_event_cache_dir, "nside{0:06d}".format(nside))
         if not os.path.exists(nside_dir):
             os.mkdir(nside_dir)
         pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
 
         save_GCD_frame_packet_to_file([frame], pixel_file_name)
-
-        return frame
 
 
 # fmt: on
@@ -747,7 +773,7 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
-    result = ScanResult.from_state_dict(state_dict)
+    result = ScanResult.from_nsides_dict(state_dict["nsides"])
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message

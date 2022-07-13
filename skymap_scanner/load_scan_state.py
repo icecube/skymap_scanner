@@ -14,6 +14,7 @@ from icecube import VHESelfVeto, dataclasses, dataio
 from . import config
 from .utils import StateDict, hash_frame_packet, load_GCD_frame_packet_from_file
 
+
 def load_cache_state(
     event_id: str,
     filestager=None,
@@ -84,13 +85,13 @@ def get_reco_losses_inside(p_frame, g_frame):
 """
 Code extracted from load_scan_state()
 """    
-def get_baseline_gcd_frames(state_dict, filestager):  
+def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
 
-    if state_dict['baseline_GCD_file'] is not None:
+    if baseline_GCD_file is not None:
           
-        print(("trying to read GCD from {0}".format( state_dict['baseline_GCD_file'] )))
+        print("trying to read GCD from {0}".format(baseline_GCD_file))
         try:
-            baseline_GCD_frames = load_GCD_frame_packet_from_file(state_dict['baseline_GCD_file'], filestager=filestager)
+            baseline_GCD_frames = load_GCD_frame_packet_from_file(baseline_GCD_file, filestager=filestager)
         except:
             baseline_GCD_frames = None
             print(" -> failed")
@@ -99,7 +100,7 @@ def get_baseline_gcd_frames(state_dict, filestager):
 
         if baseline_GCD_frames is None:
             for GCD_base_dir in config.GCD_base_dirs:
-                read_url = os.path.join(GCD_base_dir, state_dict['baseline_GCD_file'])
+                read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 print(("trying to read GCD from {0}".format( read_url )))
                 try:
                     baseline_GCD_frames = load_GCD_frame_packet_from_file(read_url, filestager=filestager)                
@@ -115,7 +116,7 @@ def get_baseline_gcd_frames(state_dict, filestager):
                  raise RuntimeError("Could not load basline GCD file from any location")
     else:
         # assume we have full non-diff GCD frames in the packet
-        baseline_GCD_frames = [state_dict['GCDQp_packet'][0]]
+        baseline_GCD_frames = [GCDQp_packet[0]]
         if "I3Geometry" not in baseline_GCD_frames[0]:
             raise RuntimeError("No baseline GCD file available but main packet G frame does not contain I3Geometry")
     return baseline_GCD_frames
@@ -123,7 +124,11 @@ def get_baseline_gcd_frames(state_dict, filestager):
 
 def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/"):
     
-    baseline_GCD_frames = get_baseline_gcd_frames(state_dict, filestager)
+    baseline_GCD_frames = get_baseline_gcd_frames(
+        state_dict.get("baseline_GCD_file"),
+        state_dict.get("GCDQp_packet"),
+        filestager,
+    )
 
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):

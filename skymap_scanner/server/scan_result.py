@@ -10,17 +10,29 @@ import numpy as np
 
 class ScanResult:
     """
-    This class parses a `state_dict` and stores the relevant numeric result of the scan. Ideally it should serve as the basic data structure for plotting / processing / transmission of the scan result.
+    This class parses a nsides_dict (`state_dict["nsides"]`) and stores
+    the relevant numeric result of the scan. Ideally it should serve as
+    the basic data structure for plotting / processing / transmission of
+    the scan result.
 
     The `state_dict` as produced by `load_cache_state()` is currently structured as follows:
     - 'GCDQp_packet'
     - 'baseline_GCD_file'
     - 'nsides'
 
-    `state_dict['nsides']` is a dictionary having per indices the 'nside' values for which a scan result is available (e.g. 8, 64, 512). The scan result is a dictionary:
-    - i (pixel index, integer) -> 'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
+    nsides_dict (`state_dict['nsides']`) is a dictionary having per
+    indices the 'nside' values for which a scan result is available
+    (e.g. 8, 64, 512). The scan result is a dictionary:
+    - i (pixel index, integer) ->
+        'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
 
-    The numeric values of interest are 'llh', 'recoLossesInside', 'recoLossesTotal'. The pixel indices in the input dictionary are in general unsorted (python dict are unsorted by design) and are incomplete (since fine-grained scans only cover a portion of the HEALPIX area). The class stores the each result in a numpy structured array sorted by the pixel index, which is stored in a dedicated field.
+    The numeric values of interest are 'llh', 'recoLossesInside',
+    'recoLossesTotal'. The pixel indices in the input dictionary are in
+    general unsorted (python dict are unsorted by design) and are
+    incomplete (since fine-grained scans only cover a portion of the
+    HEALPIX area). The class stores the each result in a numpy
+    structured array sorted by the pixel index, which is stored in a
+    dedicated field.
 
     TODO: implement FITS output.
     """
@@ -146,29 +158,28 @@ class ScanResult:
         return int(key.split("nside-")[1])
 
     @classmethod
-    def from_state_dict(cls, state_dict):
+    def from_nsides_dict(cls, nsides_dict) -> "ScanResult":
         """
-        Factory method for state_dict
+        Factory method for nsides_dict (`state_dict["nsides"]`)
         """
-        result = cls.load_pixels(state_dict)
+        result = cls.load_pixels(nsides_dict)
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, state_dict):
+    def load_pixels(cls, nsides_dict):
         logger = logging.getLogger(__name__)
 
         out = dict()
-        maps = state_dict["nsides"]
 
-        for nside in maps:
+        for nside in nsides_dict:
 
-            n = len(maps[nside])
+            n = len(nsides_dict[nside])
             v = np.zeros(n, dtype=cls.pixel_type)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
-            for i, pixel in enumerate(sorted(maps[nside])):
-                pixel_data = maps[nside][pixel]
+            for i, pixel in enumerate(sorted(nsides_dict[nside])):
+                pixel_data = nsides_dict[nside][pixel]
                 try:
                     llh = pixel_data["llh"]
                     E_in = pixel_data["recoLossesInside"]
@@ -207,7 +218,7 @@ class ScanResult:
             result[key] = npz[key]
         return cls(result=result)
 
-    def save(self, event_id, output_path=None):
+    def save(self, event_id, output_path=None) -> str:
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
