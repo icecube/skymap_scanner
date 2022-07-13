@@ -129,5 +129,6 @@ jobs:
       - name: Run
         run: |
           ./tests/docker_scripts/_launch_reco_pixel.sh
-      # - name: Test Output
-      #   run: |
+      - name: Test Output
+        run: |
+          # TODO

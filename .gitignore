@@ -165,3 +165,4 @@ debug-pkl-dir/
 *.token
 _condor_*
 *.out
+local-runs/
