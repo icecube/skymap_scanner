@@ -113,11 +113,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        in-pkl: [
-          1657734371.72056.in.pkl,
-          1657735973.0575783.in.pkl,
-          1657739174.4579704.in.pkl,
-          in.pkl,
+        pkl-prefix: [
+          "1657734371.72056",
+          "1657735973.0575783",
+          "1657739174.4579704",
         ]
     steps:
       - uses: actions/checkout@v3
@@ -134,7 +133,9 @@ jobs:
       - name: Run
         run: |
           ./tests/docker_scripts/_launch_reco_pixel.sh \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.in-pkl }}
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.in.pkl
       - name: Test Output
         run: |
-          # TODO
+          docker run --network="host" --rm -i \
+            --mount type=bind,source=$(dirname $1),target=/local/pkls \
+            icecube/skymap_scanner:latest
