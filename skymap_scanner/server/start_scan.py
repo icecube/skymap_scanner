@@ -791,8 +791,8 @@ async def serve_scan_iteration(
             await pub.send(
                 {
                     "Pixel_PFrame": pframe,
-                    "GCDQp_Frames": state_dict["GCDQp_packet"],
-                    "base_GCD_filename_url": state_dict["baseline_GCD_file"],
+                    "GCDQp_packet": state_dict["GCDQp_packet"],
+                    "baseline_GCD_file": state_dict["baseline_GCD_file"],
                 }
             )
 
