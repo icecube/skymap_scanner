@@ -134,8 +134,13 @@ jobs:
         run: |
           ./tests/docker_scripts/_launch_reco_pixel.sh \
             $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.in.pkl
-      - name: Test Output
+      - name: Test Output Against Known Result (.pkl)
         run: |
+          # we need to launch in docker conatiner b/c pickle needs icecube
           docker run --network="host" --rm -i \
-            --mount type=bind,source=$(dirname $1),target=/local/pkls \
-            icecube/skymap_scanner:latest
+            --mount type=bind,source=$GITHUB_WORKSPACE/tests/data/reco_pixel_pkls,target=/local/pkls \
+            icecube/skymap_scanner:latest \
+            python /local/tests/compare_reco_pixel_pkl.py \
+            --alpha /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/${{ matrix.pkl-prefix }}.out.pkl \
+            --beta /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/out.pkl \
+            --assert
