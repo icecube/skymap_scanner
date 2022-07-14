@@ -194,7 +194,9 @@ class ProgressReporter:
         if self.pixreco_ct == 0:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {self.report_interval_in_seconds} seconds."
+            message += (
+                f"I will report back again in {config.REPORT_INTERVAL_SEC} seconds."
+            )
 
         return message
 
