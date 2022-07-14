@@ -19,7 +19,7 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import extract_json_message
+from .. import config, extract_json_message
 from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
 from ..utils import (
     StateDict,
@@ -79,8 +79,6 @@ class ProgressReporter:
         max_nside: int,
         event_id: str,
         slack_interface: SlackInterface,
-        report_interval_in_seconds: int = 5 * 60,
-        skymap_plotting_interval_in_seconds: int = 30 * 60,
     ) -> None:
         """
         Arguments:
@@ -98,25 +96,15 @@ class ProgressReporter:
                 - the event id
             `slack_interface`
                 - a connection to Slack
-            `report_interval_in_seconds`
+
+        Environment Variables:
+            `REPORT_INTERVAL_SEC`
                 - make a report with this interval
-            `skymap_plotting_interval_in_seconds`
+            `PLOT_INTERVAL_SEC`
                 - make a skymap plot with this interval
         """
         self.state_dict = state_dict
         self.slack_interface = slack_interface
-
-        if report_interval_in_seconds <= 0:
-            raise ValueError(
-                f"report_interval_in_seconds is not positive: {report_interval_in_seconds}"
-            )
-        self.report_interval_in_seconds = report_interval_in_seconds
-
-        if skymap_plotting_interval_in_seconds <= 0:
-            raise ValueError(
-                f"skymap_plotting_interval_in_seconds is not positive: {skymap_plotting_interval_in_seconds}"
-            )
-        self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
         if n_pixreco <= 0:
             raise ValueError(f"n_pixreco is not positive: {n_pixreco}")
@@ -168,7 +156,7 @@ class ProgressReporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported
-        if override_timestamp or elapsed_seconds > self.report_interval_in_seconds:
+        if override_timestamp or elapsed_seconds > config.REPORT_INTERVAL_SEC:
             self.last_time_reported = current_time
             status_report = self.get_status_report()
             if self.slack_interface.active:
@@ -178,10 +166,7 @@ class ProgressReporter:
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported_skymap
-        if (
-            override_timestamp
-            or elapsed_seconds > self.skymap_plotting_interval_in_seconds
-        ):
+        if override_timestamp or elapsed_seconds > config.PLOT_INTERVAL_SEC:
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
                 self.slack_interface.post_skymap_plot(self.state_dict)
@@ -662,8 +647,6 @@ class PixelRecoCollector:
             max_nside,
             event_id,
             slack_interface,
-            report_interval_in_seconds=5 * 60,
-            skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
         self.pixrecos_received: List[Tuple[int, int, int]] = []
