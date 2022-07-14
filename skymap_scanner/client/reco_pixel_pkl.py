@@ -75,7 +75,7 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> str:
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
     if baseline_GCD_file not in [None, "None"]:
-        for GCD_base_dir in config.GCD_base_dirs:
+        for GCD_base_dir in config.GCD_BASE_DIRS:
             try:
                 read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 LOGGER.debug("reading baseline GCD from {0}".format(read_url))

@@ -164,7 +164,7 @@ def spawn_scan(
         
         def log_func(text):
             for i,ch in enumerate(final_channels):
-                config.slack_channel=ch
+                config.SLACK_CHANNEL=ch
                 post_to_slack(text)
          
         event_id = kwargs["event_id_string"]
@@ -388,7 +388,7 @@ def main():
     # get parsed args
     (options, args) = parser.parse_args()
 
-    config.slack_channel = options.slackchannel
+    config.SLACK_CHANNEL = options.slackchannel
     distribute_numclients = options.nworkers
     # If execute is not toggled on, then replace perform_scan with dummy
     # function

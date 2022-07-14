@@ -99,7 +99,7 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
             print(" -> success")
 
         if baseline_GCD_frames is None:
-            for GCD_base_dir in config.GCD_base_dirs:
+            for GCD_base_dir in config.GCD_BASE_DIRS:
                 read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 print(("trying to read GCD from {0}".format( read_url )))
                 try:
@@ -193,7 +193,7 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         else:
             if filestager is None:
                 orig_packet = None
-                for GCD_base_dir in config.GCD_base_dirs:
+                for GCD_base_dir in config.GCD_BASE_DIRS:
                     try:
                         read_path = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
                         print(("reading GCD from {0}".format( read_url )))
@@ -206,7 +206,7 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
             else:
                 # try to load the base file from the various possible input directories
                 GCD_diff_base_handle = None
-                for GCD_base_dir in config.GCD_base_dirs:
+                for GCD_base_dir in config.GCD_BASE_DIRS:
                     try:
                         read_url = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
                         print(("reading GCD from {0}".format( read_url )))

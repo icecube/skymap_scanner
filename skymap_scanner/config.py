@@ -1,10 +1,11 @@
 """Configuration constants"""
 
-# TODO - what here would be useful as environment variables?
-
 import os
+from typing import Final
 
-GCD_base_dirs = [
+from wipac_dev_tools import from_environment
+
+GCD_BASE_DIRS: Final = [
     os.path.join(
         os.environ["HOME"], "PoleBaseGCDs"
     ),  # why can't we reach anything from the followup nodes???
@@ -15,9 +16,14 @@ GCD_base_dirs = [
     "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
 ]
 
-slack_api_key = ""
-# slack_channel = "#test_messaging"
-slack_channel = "#gfu_live"
-# slack_channel = "#amon-alerts"
+# Read ENV vars
+ENV: Final = from_environment(
+    {
+        "SLACK_API_KEY": "",
+        "SLACK_CHANNEL": "#gfu_live",
+    }
+)
 
-del os
+# Set constants for easy access
+SLACK_API_KEY: Final = ENV["SLACK_API_KEY"]
+SLACK_CHANNEL: Final = ENV["SLACK_CHANNEL"]
