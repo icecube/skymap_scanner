@@ -24,6 +24,12 @@ def main():
         "-f", "--files", help="Files to compare", nargs=2, required=True
     )
     parser.add_argument(
+        "-d",
+        "--diff-out-dir",
+        help="Which dir to save any resulting .diff.json file (only if diff exists)",
+        default=".",
+    )
+    parser.add_argument(
         "--assert",
         dest="do_assert",
         default=False,
@@ -47,7 +53,8 @@ def main():
     else:
         alpha.dump_json_diff(
             beta,
-            f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff.json",
+            Path(args.diff_out_dir)
+            / f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff.json",
         )
         if args.do_assert:
             assert False

@@ -103,9 +103,10 @@ jobs:
           echo $outfile
 
           pip install .  # don't have to use the docker container for this
-          python $GITHUB_WORKSPACE/tests/compare_scan_results.py --assert -f \
-            $outfile \
-            $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile)
+          python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
+            -f $outfile $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
+            --assert \
+            || cat $(ls *.diff.json)
 
 
   test-run-pixel-reco:
@@ -143,4 +144,6 @@ jobs:
             python /local/tests/compare_reco_pixel_pkl.py \
             --alpha /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/${{ matrix.pkl-prefix }}.out.pkl \
             --beta /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/out.pkl \
-            --assert
+            --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
+            --assert \
+            || cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json)
