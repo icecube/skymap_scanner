@@ -861,29 +861,39 @@ def main() -> None:
         "--event-file",
         required=True,
         help="The file containing the event to scan (.pkl or .json)",
-        type=lambda x: _validate_arg(
-            x,
-            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
-            argparse.ArgumentTypeError(
-                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
-            ),
+        type=lambda x: Path(
+            _validate_arg(
+                x,
+                (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
+                argparse.ArgumentTypeError(
+                    f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
+                ),
+            )
         ),
     )
     parser.add_argument(
         "--init-files-dir",
         required=True,
-        type=Path,
         help="The dir to save the files needed to spawn clients",
+        type=lambda x: Path(
+            _validate_arg(
+                x,
+                os.path.isdir(x),
+                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            )
+        ),
     )
     parser.add_argument(
         "-c",
         "--cache-dir",
         required=True,
         help="The cache directory to use",
-        type=lambda x: _validate_arg(
-            x,
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        type=lambda x: Path(
+            _validate_arg(
+                x,
+                os.path.isdir(x),
+                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            )
         ),
     )
     parser.add_argument(
@@ -891,10 +901,12 @@ def main() -> None:
         "--output-dir",
         required=True,
         help="The directory to write out the .npz file",
-        type=lambda x: _validate_arg(
-            x,
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        type=lambda x: Path(
+            _validate_arg(
+                x,
+                os.path.isdir(x),
+                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            )
         ),
     )
     parser.add_argument(
@@ -902,10 +914,12 @@ def main() -> None:
         "--gcd-dir",
         required=True,
         help="The GCD directory to use",
-        type=lambda x: _validate_arg(
-            x,
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        type=lambda x: Path(
+            _validate_arg(
+                x,
+                os.path.isdir(x),
+                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            )
         ),
     )
     parser.add_argument(
@@ -993,7 +1007,7 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    if args.event_file.endswith(".json"):
+    if args.event_file.suffix == ".json":
         # json
         with open(args.event_file, "r") as fj:
             event_contents = json.load(fj)

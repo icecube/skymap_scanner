@@ -1,6 +1,8 @@
 import logging
-import numpy as np
 from pathlib import Path
+from typing import Optional, Union
+
+import numpy as np
 
 
 class ScanResult:
@@ -133,7 +135,7 @@ class ScanResult:
     numpy input / output
     """
 
-    def get_nside_string(self):
+    def get_nside_string(self) -> str:
         """
         Returns a string string listing the nside values to be included in the output filename.
         """
@@ -151,7 +153,9 @@ class ScanResult:
             result[key] = npz[key]
         return cls(result=result)
 
-    def save(self, event_id, output_path=None):
+    def save(
+        self, event_id: str, output_path: Optional[Union[str, Path]] = None
+    ) -> Union[str, Path]:
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
