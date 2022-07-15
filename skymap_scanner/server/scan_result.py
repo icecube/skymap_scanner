@@ -54,7 +54,7 @@ class ScanResult:
         # numpy.array_equal() supports `equal_nan` option only from version 1.19
         return all(
             np.array_equal(self.result[nside], other.result[nside])
-            for nside in self.result
+            for nside in (self.result.keys() & other.result.keys())
         )
 
     def is_close(self, other, equal_nan=True) -> bool:
