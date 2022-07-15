@@ -10,7 +10,7 @@ fi
 
 docker run --network="host" --rm -i \
     --shm-size=6gb \
-    --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/$(basename $SKYSCAN_GCD_DIR) \
+    --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd \
     --mount type=bind,source=$(dirname $1),target=/local/pkls \
     --env PY_COLORS=1 \
     icecube/skymap_scanner:latest \
