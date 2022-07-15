@@ -107,8 +107,8 @@ def read_from_in_pkl(
         payload = pickle.load(f)
 
     pframe = payload["Pixel_PFrame"]
-    GCDQp_packet = payload["GCDQp_packet"]
-    baseline_GCD_file = payload["baseline_GCD_file"]
+    gcdqp_frames = payload["GCDQp_Frames"]
+    base_GCD_filename_url = payload["base_GCD_filename_url"]
 
     return pframe, GCDQp_packet, baseline_GCD_file
 
