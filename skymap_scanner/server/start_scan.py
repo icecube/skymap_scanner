@@ -10,6 +10,7 @@ import logging
 import os
 import pickle
 import time
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import healpy  # type: ignore[import]
@@ -869,9 +870,10 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--event-mqname",
+        "--init-files-dir",
         required=True,
-        help="identifier to correspond to the event for MQ connections",
+        type=Path,
+        help="The dir to save the files needed to spawn clients",
     )
     parser.add_argument(
         "-c",
@@ -1008,6 +1010,11 @@ def main() -> None:
         override_GCD_filename=args.gcd_dir,
     )
 
+    # get MQ basename and write it to a file for client-spawning
+    mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"  # TODO - make shorter
+    with open(args.init_files_dir / "skymap-scanner-queue-basename.txt", "w") as f:
+        f.write(mq_basename)
+
     # go!
     asyncio.get_event_loop().run_until_complete(
         serve(
@@ -1017,8 +1024,8 @@ def main() -> None:
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
-            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            queue_to_clients=f"to-clients-{mq_basename}",
+            queue_from_clients=f"from-clients-{mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,
