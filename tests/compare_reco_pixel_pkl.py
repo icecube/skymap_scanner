@@ -2,14 +2,14 @@
 
 import argparse
 import logging
-import os
 import pickle
-import sys
 from pathlib import Path
 
 from skymap_scanner.client.reco_pixel_pkl import read_from_in_pkl
 from skymap_scanner.server.scan_result import ScanResult
 from skymap_scanner.server.start_scan import PixelRecoSaver
+
+from compare_scan_results import compare_then_exit
 
 
 def main():
@@ -77,23 +77,15 @@ def main():
         Path(args.beta_in_out[1]),
     )
 
-    # compare
-    close = alpha.is_close(beta)
-    equal = alpha == beta
-
-    logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
-
-    if equal or close:
-        sys.exit(0)
-    else:
-        alpha.dump_json_diff(
-            beta,
-            Path(args.diff_out_dir)
-            / f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff.json",
-        )
-        if args.do_assert:
-            assert False
-        sys.exit(1)
+    compare_then_exit(
+        alpha,
+        args.alpha_in_out[1],
+        beta,
+        args.beta_in_out[1],
+        args.do_assert,
+        args.diff_out_dir,
+        logger,
+    )
 
 
 if __name__ == "__main__":

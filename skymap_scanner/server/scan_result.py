@@ -57,7 +57,7 @@ class ScanResult:
             for nside in self.result
         )
 
-    def is_close(self, other, equal_nan=True):
+    def is_close(self, other, equal_nan=True) -> bool:
         """
         Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
         """
@@ -111,7 +111,7 @@ class ScanResult:
 
         return result
 
-    def dump_json_diff(self, other, json_fpath):
+    def dump_json_diff(self, other, json_fpath) -> dict:
         """Get a python-native dict of the diff of the two results."""
         diffs = dict()
 
@@ -211,14 +211,14 @@ class ScanResult:
         return "_".join([str(nside) for nside in nsides])
 
     @classmethod
-    def load(cls, filename):
+    def load(cls, filename) -> "ScanResult":
         npz = np.load(filename)
         result = dict()
         for key in npz.keys():
             result[key] = npz[key]
         return cls(result=result)
 
-    def save(self, event_id, output_path=None) -> str:
+    def save(self, event_id, output_path=None):
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)

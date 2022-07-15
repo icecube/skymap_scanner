@@ -42,6 +42,26 @@ def main():
     results = [ScanResult.load(Path(f)) for f in args.files]
     alpha, beta = results[0], results[1]
 
+    compare_then_exit(
+        alpha,
+        args.files[0],
+        beta,
+        args.files[1],
+        args.do_assert,
+        args.diff_out_dir,
+        logger,
+    )
+
+
+def compare_then_exit(
+    alpha: ScanResult,
+    alpha_fpath: str,
+    beta: ScanResult,
+    beta_fpath: str,
+    do_assert: bool,
+    diff_out_dir: str,
+    logger: logging.Logger,
+) -> None:
     # compare
     close = alpha.is_close(beta)
     equal = alpha == beta
@@ -53,10 +73,10 @@ def main():
     else:
         alpha.dump_json_diff(
             beta,
-            Path(args.diff_out_dir)
-            / f"{os.path.basename(args.files[0])}-{os.path.basename(args.files[1])}.diff.json",
+            Path(diff_out_dir)
+            / f"{os.path.basename(alpha_fpath)}-{os.path.basename(beta_fpath)}.diff.json",
         )
-        if args.do_assert:
+        if do_assert:
             assert False
         sys.exit(1)
 
