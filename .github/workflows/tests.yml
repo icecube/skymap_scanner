@@ -107,7 +107,7 @@ jobs:
           python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
             -f $outfile $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
             --assert \
-            || cat $(ls *.diff.json)
+            || (cat $(ls *.diff.json) && false)
 
 
   test-run-pixel-reco:
@@ -147,4 +147,4 @@ jobs:
             --beta /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/out.pkl \
             --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
             --assert \
-            || cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json)
+            || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json) && false)
