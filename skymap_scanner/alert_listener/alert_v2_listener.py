@@ -388,7 +388,7 @@ def main():
     # get parsed args
     (options, args) = parser.parse_args()
 
-    config.env.SLACK_CHANNEL = options.slackchannel
+    config.env.SKYSCAN_SLACK_CHANNEL = options.slackchannel
     distribute_numclients = options.nworkers
     # If execute is not toggled on, then replace perform_scan with dummy
     # function

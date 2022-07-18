@@ -32,20 +32,20 @@ GCD_BASE_DIRS: Final = [
 class EnvConfig:
     """For storing env vars, typed."""
 
-    REPORT_INTERVAL_SEC: int = 5 * 60
-    PLOT_INTERVAL_SEC: int = 30 * 60
-    SLACK_API_KEY: str = ""
-    SLACK_CHANNEL: str = "#gfu_live"
+    SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
+    SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
+    SKYSCAN_SLACK_API_KEY: str = ""
+    SKYSCAN_SLACK_CHANNEL: str = "#gfu_live"
 
     def __post_init__(self) -> None:
         """Check values."""
-        if self.REPORT_INTERVAL_SEC <= 0:
+        if self.SKYSCAN_REPORT_INTERVAL_SEC <= 0:
             raise ValueError(
-                f"Env Var: REPORT_INTERVAL_SEC is not positive: {self.REPORT_INTERVAL_SEC}"
+                f"Env Var: SKYSCAN_REPORT_INTERVAL_SEC is not positive: {self.SKYSCAN_REPORT_INTERVAL_SEC}"
             )
-        if self.PLOT_INTERVAL_SEC <= 0:
+        if self.SKYSCAN_PLOT_INTERVAL_SEC <= 0:
             raise ValueError(
-                f"Env Var: PLOT_INTERVAL_SEC is not positive: {self.PLOT_INTERVAL_SEC}"
+                f"Env Var: SKYSCAN_PLOT_INTERVAL_SEC is not positive: {self.SKYSCAN_PLOT_INTERVAL_SEC}"
             )
 
 

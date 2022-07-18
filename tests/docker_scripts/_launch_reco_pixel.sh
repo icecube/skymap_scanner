@@ -13,6 +13,7 @@ docker run --network="host" --rm -i \
     --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd \
     --mount type=bind,source=$(dirname $1),target=/local/pkls \
     --env PY_COLORS=1 \
+    $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     icecube/skymap_scanner:latest \
     python -m skymap_scanner.client.reco_pixel_pkl \
     --in-file /local/pkls/$(basename $1) \
