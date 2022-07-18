@@ -24,13 +24,13 @@ fonttools==4.34.4
     # via matplotlib
 grpcio==1.27.2
     # via apache-bookkeeper-client
-healpy==1.15.2
+healpy==1.16.0
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
 idna==3.3
     # via requests
-kiwisolver==1.4.3
+kiwisolver==1.4.4
     # via matplotlib
 matplotlib==3.5.2
     # via healpy
@@ -79,7 +79,7 @@ typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.10
     # via requests
-wipac-dev-tools[coloredlogs]==1.2.2
+wipac-dev-tools[coloredlogs]==1.3.0
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient-pulsar
