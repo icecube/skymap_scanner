@@ -541,10 +541,10 @@ class PixelRecoSaver:
         self,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: str,
+        cache_dir: Path,
     ) -> None:
         self.state_dict = state_dict
-        self.this_event_cache_dir = os.path.join(cache_dir, event_id)
+        self.this_event_cache_dir = cache_dir / event_id
 
     def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
         """Save pixel-reco to disk as .i3 file at `self.this_event_cache_dir`.
@@ -595,12 +595,12 @@ class PixelRecoSaver:
 
         # save this frame to the disk cache
 
-        nside_dir = os.path.join(self.this_event_cache_dir, "nside{0:06d}".format(nside))
+        nside_dir = self.this_event_cache_dir / "nside{0:06d}".format(nside)
         if not os.path.exists(nside_dir):
             os.mkdir(nside_dir)
-        pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
+        pixel_file_name = nside_dir / "pix{0:012d}.i3".format(pixel)
 
-        save_GCD_frame_packet_to_file([frame], pixel_file_name)
+        save_GCD_frame_packet_to_file([frame], str(pixel_file_name))
 
         return frame
 
@@ -617,7 +617,7 @@ class PixelRecoCollector:
         max_nside: int,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: str,
+        cache_dir: Path,
         global_start_time: float,
         slack_interface: SlackInterface,
     ) -> None:
@@ -686,8 +686,8 @@ class PixelRecoCollector:
 async def serve(
     event_id: str,
     state_dict: StateDict,
-    cache_dir: str,
-    output_dir: str,
+    cache_dir: Path,
+    output_dir: Path,
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
@@ -770,7 +770,7 @@ async def serve_scan_iteration(
     from_clients_queue: mq.Queue,
     event_id: str,
     state_dict: StateDict,
-    cache_dir: str,
+    cache_dir: Path,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -1007,6 +1007,7 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    # read event file
     if args.event_file.suffix == ".json":
         # json
         with open(args.event_file, "r") as fj:
@@ -1020,8 +1021,8 @@ def main() -> None:
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
         filestager=dataio.get_stagers(),
-        cache_dir=args.cache_dir,
-        override_GCD_filename=args.gcd_dir,
+        cache_dir=str(args.cache_dir),
+        override_GCD_filename=str(args.gcd_dir),
     )
 
     # get MQ basename and write it to a file for client-spawning
