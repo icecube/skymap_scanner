@@ -156,7 +156,7 @@ class ProgressReporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported
-        if override_timestamp or elapsed_seconds > config.REPORT_INTERVAL_SEC:
+        if override_timestamp or elapsed_seconds > config.env.REPORT_INTERVAL_SEC:
             self.last_time_reported = current_time
             status_report = self.get_status_report()
             if self.slack_interface.active:
@@ -166,7 +166,7 @@ class ProgressReporter:
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported_skymap
-        if override_timestamp or elapsed_seconds > config.PLOT_INTERVAL_SEC:
+        if override_timestamp or elapsed_seconds > config.env.PLOT_INTERVAL_SEC:
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
                 self.slack_interface.post_skymap_plot(self.state_dict)
@@ -195,7 +195,7 @@ class ProgressReporter:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
             message += (
-                f"I will report back again in {config.REPORT_INTERVAL_SEC} seconds."
+                f"I will report back again in {config.env.REPORT_INTERVAL_SEC} seconds."
             )
 
         return message

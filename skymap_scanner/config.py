@@ -1,9 +1,12 @@
 """Configuration constants"""
 
+import dataclasses as dc
 import os
-from typing import Final, cast
+from typing import Final
 
-from wipac_dev_tools import from_environment
+from wipac_dev_tools import from_environment_as_dataclass
+
+# pylint:disable=invalid-name
 
 #
 # True constants
@@ -21,27 +24,29 @@ GCD_BASE_DIRS: Final = [
 ]
 
 #
-# Env var constants: set as constants for easy access
+# Env var constants: set as constants & typecast
 #
 
-ENV: Final = from_environment(
-    {
-        "REPORT_INTERVAL_SEC": 5 * 60,
-        "PLOT_INTERVAL_SEC": 30 * 60,
-        "SLACK_API_KEY": "",
-        "SLACK_CHANNEL": "#gfu_live",
-    }
-)
 
-REPORT_INTERVAL_SEC: Final = cast(int, ENV["REPORT_INTERVAL_SEC"])
-if REPORT_INTERVAL_SEC <= 0:
-    raise ValueError(
-        f"Env Var: REPORT_INTERVAL_SEC is not positive: {REPORT_INTERVAL_SEC}"
-    )
+@dc.dataclass(frozen=True)
+class EnvConfig:
+    """For storing env vars, typed."""
 
-PLOT_INTERVAL_SEC: Final = cast(int, ENV["PLOT_INTERVAL_SEC"])
-if PLOT_INTERVAL_SEC <= 0:
-    raise ValueError(f"Env Var: PLOT_INTERVAL_SEC is not positive: {PLOT_INTERVAL_SEC}")
+    REPORT_INTERVAL_SEC: int = 5 * 60
+    PLOT_INTERVAL_SEC: int = 30 * 60
+    SLACK_API_KEY: str = ""
+    SLACK_CHANNEL: str = "#gfu_live"
 
-SLACK_API_KEY: Final = ENV["SLACK_API_KEY"]
-SLACK_CHANNEL: Final = ENV["SLACK_CHANNEL"]
+    def __post_init__(self) -> None:
+        """Check values."""
+        if self.REPORT_INTERVAL_SEC <= 0:
+            raise ValueError(
+                f"Env Var: REPORT_INTERVAL_SEC is not positive: {self.REPORT_INTERVAL_SEC}"
+            )
+        if self.PLOT_INTERVAL_SEC <= 0:
+            raise ValueError(
+                f"Env Var: PLOT_INTERVAL_SEC is not positive: {self.PLOT_INTERVAL_SEC}"
+            )
+
+
+env = from_environment_as_dataclass(EnvConfig)
