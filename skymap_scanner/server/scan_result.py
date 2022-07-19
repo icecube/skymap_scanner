@@ -39,6 +39,7 @@ class ScanResult:
 
     require_equal = ["index"]
     require_close = {"llh": 1e-5, "E_in": 1e-4, "E_tot": 1e-2}
+    isclose_ignore_zeros = ["E_in", "E_tot"]
     pixel_type = np.dtype(
         [("index", int), ("llh", float), ("E_in", float), ("E_tot", float)]
     )
@@ -88,14 +89,15 @@ class ScanResult:
                 key: np.array_equal(sre[key], ore[key]) for key in self.require_equal
             }
             nside_close = {
-                # np.allclose() expects equal shapes so we need to check for that first
                 key: (
+                    # zip() "expects" equal shapes so we need to check for that first
                     sre[key].shape == ore[key].shape
-                    and np.allclose(
-                        sre[key],
-                        ore[key],
-                        equal_nan=equal_nan,
-                        rtol=rtol,
+                    and all(  # like 'np.allclose()' but w/ extra steps
+                        # check if ignoring zeros & whether that applies
+                        (key in self.isclose_ignore_zeros and (s == 0.0 or o == 0.0))
+                        # now compare
+                        or np.isclose(s, o, equal_nan=equal_nan, rtol=rtol)
+                        for s, o in zip(sre[key], ore[key])
                     )
                 )
                 for key, rtol in self.require_close.items()
@@ -122,7 +124,11 @@ class ScanResult:
 
         def diff_element(act, exp):
             if act is None or exp is None:
-                return None
+                return float("nan")
+            if act == 0 and exp == 0:
+                return 0  # absolute difference
+            if act == 0 or exp == 0:
+                return float("inf")
             return abs((act - exp) / exp)  # relative error
 
         for nside in self.result.keys() & expected.result.keys():  # think different
