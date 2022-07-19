@@ -29,7 +29,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     memory: str,
     accounting_group: str,
     # skymap scanner args
-    event_mqname: str,
+    mq_basename: str,
     gcd_dir: str,
     broker: str,
     auth_token: str,
@@ -54,7 +54,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
 
         # write
         args = (
-            f"--event-mqname {event_mqname} "
+            f"--mq-basename {mq_basename} "
             f"--gcd-dir {gcd_dir} "
             f"--broker {broker} "
             f"--auth-token {auth_token} "
@@ -136,9 +136,9 @@ def main() -> None:
 
     # skymap scanner args
     parser.add_argument(
-        "--event-mqname",
+        "--mq-basename",
         required=True,
-        help="Skymap Scanner: identifier to correspond to an event for MQ connections",
+        help="Skymap Scanner: base identifier to correspond to an event for its MQ connections",
     )
     parser.add_argument(
         "--gcd-dir",
@@ -194,7 +194,7 @@ def main() -> None:
         args.memory,
         args.accounting_group,
         # skymap scanner args
-        args.event_mqname,
+        args.mq_basename,
         args.gcd_dir,
         args.broker,
         args.auth_token,

@@ -59,9 +59,9 @@ jobs:
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
           ./scripts/launch_scripts/launch_server.sh \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
-            --event-mqname $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
             --output-dir $GITHUB_WORKSPACE \
+            --init-files-dir $GITHUB_WORKSPACE \
             --gcd-dir $SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
@@ -70,13 +70,16 @@ jobs:
             --max-nside 1 \
             &
 
+          qbasename=$(cat $GITHUB_WORKSPACE/skymap-scanner-queue-basename.txt)
+          echo $qbasename
+
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
-              --event-mqname $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
+              --mq-basename $qbasename \
               --gcd-dir $SKYSCAN_GCD_DIR \
               --broker $PULSAR_ADDRESS \
               --log DEBUG \

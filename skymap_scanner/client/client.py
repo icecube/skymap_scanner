@@ -159,9 +159,9 @@ def main() -> None:
 
     # "physics" args
     parser.add_argument(
-        "--event-mqname",
+        "--mq-basename",
         required=True,
-        help="identifier to correspond to an event for MQ connections",
+        help="base identifier to correspond to an event for its MQ connections",
     )
     parser.add_argument(
         # we aren't going to use this arg, but just check if it exists for incoming pixels
@@ -239,8 +239,8 @@ def main() -> None:
         consume_and_reply(
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
-            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            queue_to_clients=f"to-clients-{args.mq_basename}",
+            queue_from_clients=f"from-clients-{args.mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             debug_directory=args.debug_directory,
