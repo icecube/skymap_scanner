@@ -111,31 +111,37 @@ class ScanResult:
 
         return result
 
-    def dump_json_diff(self, other, json_fpath) -> dict:
+    def dump_json_diff(self, expected, json_fpath) -> dict:
         """Get a python-native dict of the diff of the two results."""
         diffs = dict()
 
-        def diff_element(i, j):
-            if i is None or j is None:
+        def diff_element(act, exp):
+            if act is None or exp is None:
                 return None
-            return i - j
+            return abs((act - exp) / exp)  # relative error
 
-        for nside in self.result.keys() & other.result.keys():
+        for nside in self.result.keys() & expected.result.keys():  # think different
             joined = []
-            for sre, ore in it.zip_longest(
+            for actual_pix, expect_pix in it.zip_longest(
                 self.result.get(nside, []),
-                other.result.get(nside, []),
+                expected.result.get(nside, []),
                 fillvalue=(None,) * len(self.result[nside][0]),
             ):
-                if not isinstance(sre, tuple):
-                    sre = tuple(sre.tolist())
-                if not isinstance(ore, tuple):
-                    ore = tuple(ore.tolist())
+                if not isinstance(actual_pix, tuple):
+                    actual_pix = tuple(actual_pix.tolist())
+                if not isinstance(expect_pix, tuple):
+                    expect_pix = tuple(expect_pix.tolist())
                 joined.append(
                     (
-                        sre,
-                        ore,
-                        tuple(map(lambda i, j: diff_element(i, j), sre, ore)),
+                        actual_pix,
+                        expect_pix,
+                        tuple(
+                            map(
+                                lambda i, j: diff_element(i, j),
+                                actual_pix,
+                                expect_pix,
+                            )
+                        ),
                     )
                 )
             diffs[nside] = joined
