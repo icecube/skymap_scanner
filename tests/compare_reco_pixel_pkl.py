@@ -25,17 +25,17 @@ def main():
 
     parser.add_argument(
         "-a",
-        "--alpha",
-        dest="alpha_in_out",
-        help="The first in-out couple of reco-pixel pkl files, ex: 123.456.in.pkl 123.456.out.pkl",
+        "--actual",
+        dest="actual_in_out",
+        help="The first (actual) in-out couple of reco-pixel pkl files, ex: 123.456.in.pkl 123.456.out.pkl",
         nargs=2,
         required=True,
     )
     parser.add_argument(
-        "-b",
-        "--beta",
-        dest="beta_in_out",
-        help="The second in-out couple of reco-pixel pkl files, ex: 789.321.in.pkl 789.321.out.pkl",
+        "-e",
+        "--expected",
+        dest="expected_in_out",
+        help="The second (expected) in-out couple of reco-pixel pkl files, ex: 789.321.in.pkl 789.321.out.pkl",
         nargs=2,
         required=True,
     )
@@ -68,20 +68,20 @@ def main():
             {0: [pixel_data]}  # 0 b/c this isn't a real nside value
         )
 
-    alpha = load_from_in_out_pkls(
-        Path(args.alpha_in_out[0]),
-        Path(args.alpha_in_out[1]),
+    actual = load_from_in_out_pkls(
+        Path(args.actual_in_out[0]),
+        Path(args.actual_in_out[1]),
     )
-    beta = load_from_in_out_pkls(
-        Path(args.beta_in_out[0]),
-        Path(args.beta_in_out[1]),
+    expected = load_from_in_out_pkls(
+        Path(args.expected_in_out[0]),
+        Path(args.expected_in_out[1]),
     )
 
     compare_then_exit(
-        alpha,
-        args.alpha_in_out[1],
-        beta,
-        args.beta_in_out[1],
+        actual,
+        Path(args.actual_in_out[1]),
+        expected,
+        Path(args.expected_in_out[1]),
         args.do_assert,
         args.diff_out_dir,
         logger,

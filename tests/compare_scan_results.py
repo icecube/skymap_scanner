@@ -21,7 +21,18 @@ def main():
     parser = argparse.ArgumentParser(description="Scan cache and dumps results to json")
 
     parser.add_argument(
-        "-f", "--files", help="Files to compare", nargs=2, required=True
+        "-a",
+        "--actual",
+        help="The first (actual) npz file",
+        required=True,
+        type=Path,
+    )
+    parser.add_argument(
+        "-e",
+        "--expected",
+        help="The second (expected) npz file",
+        required=True,
+        type=Path,
     )
     parser.add_argument(
         "-d",
@@ -39,14 +50,11 @@ def main():
 
     args = parser.parse_args()
 
-    results = [ScanResult.load(Path(f)) for f in args.files]
-    alpha, beta = results[0], results[1]
-
     compare_then_exit(
-        alpha,
-        args.files[0],
-        beta,
-        args.files[1],
+        ScanResult.load(args.actual),
+        args.actual,
+        ScanResult.load(args.expected),
+        args.expected,
         args.do_assert,
         args.diff_out_dir,
         logger,
@@ -54,27 +62,26 @@ def main():
 
 
 def compare_then_exit(
-    alpha: ScanResult,
-    alpha_fpath: str,
-    beta: ScanResult,
-    beta_fpath: str,
+    actual: ScanResult,
+    actual_fpath: Path,
+    expected: ScanResult,
+    expected_fpath: Path,
     do_assert: bool,
     diff_out_dir: str,
     logger: logging.Logger,
 ) -> None:
     # compare
-    close = alpha.is_close(beta)
-    equal = alpha == beta
+    close = actual.is_close(expected)
+    equal = actual == expected
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
 
     if equal or close:
         sys.exit(0)
     else:
-        alpha.dump_json_diff(
-            beta,
-            Path(diff_out_dir)
-            / f"{os.path.basename(alpha_fpath)}-{os.path.basename(beta_fpath)}.diff.json",
+        actual.dump_json_diff(
+            expected,
+            Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json",
         )
         if do_assert:
             assert False
