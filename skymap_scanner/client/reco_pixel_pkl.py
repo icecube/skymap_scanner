@@ -7,6 +7,7 @@ import datetime
 import logging
 import os
 import pickle
+from pathlib import Path
 from typing import Any, List, Tuple
 
 from I3Tray import I3Tray  # type: ignore[import]
@@ -99,7 +100,7 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
     return GCD_diff_base_handle
 
 
-def read_in_file(in_file: str) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
+def read_in_file(in_file: Path) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
     """Get event info and pixel from reading the in-file."""
     with open(in_file, "rb") as f:
         payload = pickle.load(f)
@@ -115,8 +116,8 @@ def reco_pixel(
     pframe: icetray.I3Frame,
     gcdqp_frames: List[icetray.I3Frame],
     GCD_diff_base_handle: str,
-    out_file: str,
-) -> str:
+    out_file: Path,
+) -> Path:
     """Actually do the reco."""
     LOGGER.info(f"Reco'ing pixel: {pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
@@ -220,7 +221,7 @@ def reco_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if os.path.exists(out_file):
+        if out_file.exists():
             raise FileExistsError(out_file)
         with open(out_file, "wb") as f:
             LOGGER.info(
@@ -243,7 +244,7 @@ def reco_pixel(
 
     # Check Output #####################################################
 
-    if not os.path.exists(out_file):
+    if not out_file.exists():
         raise FileNotFoundError(
             f"Out file was not written {pixel_to_tuple(pframe)}: {out_file}"
         )
@@ -266,11 +267,13 @@ def main() -> None:
         "--in-file",
         required=True,
         help="a file containing the pixel to reconstruct",
+        type=Path,
     )
     parser.add_argument(
         "--out-file",
         required=True,
         help="a file to write the reconstruction to",
+        type=Path,
     )
     parser.add_argument(
         "-l",

@@ -11,7 +11,7 @@ import os
 import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
 
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
@@ -849,7 +849,9 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+    T = TypeVar("T")
+
+    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
         """Validation `val` by checking `test` and raise `exc` if that is falsy."""
         if test:
             return val
@@ -861,26 +863,22 @@ def main() -> None:
         "--event-file",
         required=True,
         help="The file containing the event to scan (.pkl or .json)",
-        type=lambda x: Path(
-            _validate_arg(
-                x,
-                (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
-                argparse.ArgumentTypeError(
-                    f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
-                ),
-            )
+        type=lambda x: _validate_arg(
+            Path(x),
+            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
+            argparse.ArgumentTypeError(
+                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
+            ),
         ),
     )
     parser.add_argument(
         "--init-files-dir",
         required=True,
         help="The dir to save the files needed to spawn clients",
-        type=lambda x: Path(
-            _validate_arg(
-                x,
-                os.path.isdir(x),
-                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-            )
+        type=lambda x: _validate_arg(
+            Path(x),
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
     parser.add_argument(
@@ -888,12 +886,10 @@ def main() -> None:
         "--cache-dir",
         required=True,
         help="The cache directory to use",
-        type=lambda x: Path(
-            _validate_arg(
-                x,
-                os.path.isdir(x),
-                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-            )
+        type=lambda x: _validate_arg(
+            Path(x),
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
     parser.add_argument(
@@ -901,12 +897,10 @@ def main() -> None:
         "--output-dir",
         required=True,
         help="The directory to write out the .npz file",
-        type=lambda x: Path(
-            _validate_arg(
-                x,
-                os.path.isdir(x),
-                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-            )
+        type=lambda x: _validate_arg(
+            Path(x),
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
     parser.add_argument(
@@ -914,12 +908,10 @@ def main() -> None:
         "--gcd-dir",
         required=True,
         help="The GCD directory to use",
-        type=lambda x: Path(
-            _validate_arg(
-                x,
-                os.path.isdir(x),
-                argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-            )
+        type=lambda x: _validate_arg(
+            Path(x),
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
     parser.add_argument(

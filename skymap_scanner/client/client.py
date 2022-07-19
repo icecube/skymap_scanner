@@ -8,7 +8,8 @@ import pickle
 import subprocess
 import sys
 import time
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional, TypeVar
 
 import asyncstdlib as asl
 import mqclient_pulsar as mq
@@ -20,7 +21,7 @@ IN = "in_msg.pkl"
 LOGGER = logging.getLogger("skyscan-client")
 
 
-def inmsg_to_infile(in_msg: Any, debug_infile: str) -> str:
+def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> str:
     """Write the msg to the `IN` file.
 
     Also, dump to a file for debugging (if not "").
@@ -37,7 +38,7 @@ def inmsg_to_infile(in_msg: Any, debug_infile: str) -> str:
     return IN
 
 
-def outfile_to_outmsg(debug_outfile: str) -> Any:
+def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
     """Read the msg from the `OUT` file.
 
     Also, dump to a file for debugging (if not "").
@@ -62,7 +63,7 @@ async def consume_and_reply(
     queue_from_clients: str,  # for mq
     timeout_to_clients: int,  # for mq
     timeout_from_clients: int,  # for mq
-    debug_directory: str = "",
+    debug_directory: Optional[Path] = None,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
@@ -88,13 +89,11 @@ async def consume_and_reply(
             LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
 
             # debugging logic
+            debug_infile, debug_outfile = None, None
             if debug_directory:
                 debug_time = time.time()
-                debug_infile = os.path.join(debug_directory, f"{debug_time}.in.pkl")
-                debug_outfile = os.path.join(debug_directory, f"{debug_time}.out.pkl")
-            else:
-                debug_infile = ""
-                debug_outfile = ""
+                debug_infile = debug_directory / f"{debug_time}.in.pkl"
+                debug_outfile = debug_directory / f"{debug_time}.out.pkl"
 
             # write
             inmsg_to_infile(in_msg, debug_infile)
@@ -134,12 +133,16 @@ async def consume_and_reply(
 def main() -> None:
     """Start up Client service."""
 
-    def _create_dir(val: str) -> str:
-        if val:
-            os.makedirs(val, exist_ok=True)
-        return val
+    def _create_dir(val: str) -> Optional[Path]:
+        if not val:
+            return None
+        path = Path(val)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
-    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+    T = TypeVar("T")
+
+    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
         """Validation `val` by checking `test` and raise `exc` if that is falsy."""
         if test:
             return val
@@ -167,7 +170,7 @@ def main() -> None:
         required=True,
         help="The GCD directory to use",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
