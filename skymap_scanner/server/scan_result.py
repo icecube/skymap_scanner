@@ -3,7 +3,9 @@
 import itertools as it
 import json
 import logging
+import math
 from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -60,107 +62,107 @@ class ScanResult:
             for nside in (self.result.keys() & other.result.keys())  # think different
         )
 
-    def is_close(self, other, equal_nan=True) -> bool:
+    @classmethod
+    def get_diff_and_test_vals(
+        cls, s_val: float, o_val: float, field: str, equal_nan: bool
+    ) -> Tuple[float, bool]:
+        """Get the diff float-value and test truth-value for the 2 pixel datapoints."""
+        if field in cls.require_equal:
+            return s_val - o_val, s_val == o_val
+        if math.isnan(s_val) or math.isnan(o_val):
+            return float("nan"), False
+        if field in cls.isclose_ignore_zeros and (s_val == 0.0 or o_val == 0.0):
+            return float("nan"), True
+        return (
+            abs((s_val - o_val) / o_val),
+            bool(
+                np.isclose(
+                    s_val,
+                    o_val,
+                    equal_nan=equal_nan,
+                    rtol=cls.require_close[field],
+                )
+            ),
+        )
+
+    def is_close(
+        self,
+        other: "ScanResult",
+        equal_nan: bool = True,
+        dump_json_diff: Optional[Path] = None,
+    ) -> bool:
         """
         Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
-        """
-        close = dict()  # one bool for each nside value
 
-        # first check which nsides were used
-        if sorted(self.result.keys()) != sorted(other.result.keys()):
-            self.logger.warning(
-                f"Mismatched nsides: {sorted(self.result.keys())} vs {sorted(other.result.keys())}"
-            )
-            close["same-nsides"] = False
+        Optionally, pass a `Path` for `dump_json_diff` to get a json
+        file containing every diff at the pixel-data level.
+        """
+        close: Dict[str, bool] = {}  # one bool for each nside value
+        diffs = []  # a large (~4x size of self.results) list of dicts w/ per-pixel info
 
         # now check individual nside-iterations
-        for nside in sorted(self.result, reverse=True):
+        for nside in sorted(self.result.keys() & other.result.keys(), reverse=True):
             self.logger.debug(f"Comparing for nside={nside}")
-            sre, ore = self.result[nside], other.result[nside]  # brevity
 
-            if len(sre) != len(ore):
-                self.logger.warning(
-                    f"Mismatched ndarray lengths: {len(sre)} vs {len(ore)}"
+            # Q: why aren't we using np.array_equal and np.allclose?
+            # A: we want detailed pixel-level diffs w/out repeating detailed code
+
+            # zip-iterate each pixel-data
+            nside_diffs = []
+            for sre_pix, ore_pix in it.zip_longest(
+                self.result.get(nside, []),  # empty-list -> fillvalue
+                other.result.get(nside, []),  # empty-list -> fillvalue
+                fillvalue=(float("nan"),) * len(self.pixel_type.names),
+            ):
+                diff_and_test_vals = (
+                    self.get_diff_and_test_vals(s, o, field, equal_nan)
+                    for s, o, field in zip(sre_pix, ore_pix, self.pixel_type.names)
                 )
-                close[nside] = False
-                continue  # we can't go on
+                nside_diffs.append(
+                    [
+                        tuple(sre_pix.tolist()),
+                        tuple(ore_pix.tolist()),
+                        tuple(dat[0] for dat in diff_and_test_vals),  # diff float-value
+                        tuple(dat[1] for dat in diff_and_test_vals),  # test truth-value
+                    ]
+                )
 
+            if dump_json_diff:  # can be a lot of data, so only save it if we're dumping
+                diffs.append(nside_diffs)
+
+            # aggregate test-truth values
             nside_equal = {
-                key: np.array_equal(sre[key], ore[key]) for key in self.require_equal
+                field: all(
+                    d[3][self.pixel_type.names.index(field)] for d in nside_diffs
+                )
+                for field in self.require_equal
             }
             nside_close = {
-                key: (
-                    # zip() "expects" equal shapes so we need to check for that first
-                    sre[key].shape == ore[key].shape
-                    and all(  # like 'np.allclose()' but w/ extra steps
-                        # check if ignoring zeros & whether that applies
-                        (key in self.isclose_ignore_zeros and (s == 0.0 or o == 0.0))
-                        # now compare
-                        or np.isclose(s, o, equal_nan=equal_nan, rtol=rtol)
-                        for s, o in zip(sre[key], ore[key])
-                    )
+                field: all(
+                    d[3][self.pixel_type.names.index(field)] for d in nside_diffs
                 )
-                for key, rtol in self.require_close.items()
+                for field in self.require_close
             }
             close[nside] = all(nside_equal.values()) and all(nside_close.values())
 
-            # log results
+            # log results (test-truth values)
             if not all(nside_equal.values()):
                 self.logger.debug(f"Mismatched pixel indices for nside={nside}")
             if not all(nside_close.values()):
                 self.logger.debug(f"Mismatched numerical results for nside={nside}")
                 self.logger.debug(f"{nside_close}")
 
-        result = all(close.values())
+        # finish up
 
-        if not result:
-            self.logger.debug(f"Comparison result: {close}")
+        result = all(close.values())
+        self.logger.debug(f"Comparison result: {close}")
+
+        if dump_json_diff:
+            with open(dump_json_diff, "w") as f:
+                self.logger.info(f"Writing diff to {dump_json_diff}...")
+                json.dump(diffs, f, indent=3)
 
         return result
-
-    def dump_json_diff(self, expected, json_fpath) -> dict:
-        """Get a python-native dict of the diff of the two results."""
-        diffs = dict()
-
-        def diff_element(act, exp):
-            if act is None or exp is None:
-                return float("nan")
-            if act == 0 and exp == 0:
-                return 0  # absolute difference
-            if act == 0 or exp == 0:
-                return float("inf")
-            return abs((act - exp) / exp)  # relative error
-
-        for nside in self.result.keys() & expected.result.keys():  # think different
-            joined = []
-            for actual_pix, expect_pix in it.zip_longest(
-                self.result.get(nside, []),
-                expected.result.get(nside, []),
-                fillvalue=(None,) * len(self.result[nside][0]),
-            ):
-                if not isinstance(actual_pix, tuple):
-                    actual_pix = tuple(actual_pix.tolist())
-                if not isinstance(expect_pix, tuple):
-                    expect_pix = tuple(expect_pix.tolist())
-                joined.append(
-                    (
-                        actual_pix,
-                        expect_pix,
-                        tuple(
-                            map(
-                                lambda i, j: diff_element(i, j),
-                                actual_pix,
-                                expect_pix,
-                            )
-                        ),
-                    )
-                )
-            diffs[nside] = joined
-
-        with open(json_fpath, "w") as f:
-            self.logger.info(f"Writing diff to {json_fpath}...")
-            json.dump(diffs, f, indent=3)
-        return diffs
 
     """
     Auxiliary methods

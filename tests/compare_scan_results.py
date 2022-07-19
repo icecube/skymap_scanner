@@ -2,7 +2,6 @@
 
 import argparse
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -70,8 +69,13 @@ def compare_then_exit(
     diff_out_dir: str,
     logger: logging.Logger,
 ) -> None:
+    """Compare the results, dump a json diff file, and sys.exit."""
+    dump_json_diff = (
+        Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json"
+    )
+
     # compare
-    close = actual.is_close(expected)
+    close = actual.is_close(expected, dump_json_diff=dump_json_diff)
     equal = actual == expected
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
@@ -79,10 +83,6 @@ def compare_then_exit(
     if equal or close:
         sys.exit(0)
     else:
-        actual.dump_json_diff(
-            expected,
-            Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json",
-        )
         if do_assert:
             assert False
         sys.exit(1)
