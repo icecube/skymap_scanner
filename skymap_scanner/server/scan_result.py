@@ -130,12 +130,11 @@ class ScanResult:
         )
 
         for s_val, o_val, field in zip(sre_pix, ore_pix, self.PIXEL_TYPE.names):
+            s_val, o_val = float(s_val), float(o_val)
             if field in self.require_close:
                 # a "require close" datapoint (non-disqualified)
                 if not skip_all_requireclose_datapoints:
-                    diff, test = self.is_close_datapoint(
-                        float(s_val), float(o_val), field, equal_nan
-                    )
+                    diff, test = self.is_close_datapoint(s_val, o_val, field, equal_nan)
                 # a disqualified "require close" datapoint
                 else:
                     diff, test = float("nan"), True  # vacuously true
