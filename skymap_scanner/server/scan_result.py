@@ -50,7 +50,7 @@ class ScanResult:
         # bookkeeping for comparing values
         self.require_close = {  # w/ rtol values
             "llh": 1e-5,
-            "E_in": 1e-4,
+            "E_in": 1e-2,
             "E_tot": 1e-2,
         }
         self.require_equal = list(
