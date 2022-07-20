@@ -3,11 +3,12 @@
 import itertools as it
 import json
 import logging
-import math
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import numpy as np
+
+ATOL = 1.0e-8  # 1.0e-8 is the default used by np.isclose()
 
 
 class ScanResult:
@@ -72,7 +73,7 @@ class ScanResult:
         if field in cls.isclose_ignore_zeros and (s_val == 0.0 or o_val == 0.0):
             return float("nan"), True
         try:
-            rdiff = abs((s_val - o_val) / o_val)  # similar to what np.isclose uses
+            rdiff = (abs(s_val - o_val) - ATOL) / abs(o_val)  # used by np.isclose
         except ZeroDivisionError:
             rdiff = float("inf")
         return (
@@ -83,6 +84,7 @@ class ScanResult:
                     o_val,
                     equal_nan=equal_nan,
                     rtol=cls.require_close[field],
+                    atol=ATOL,
                 )
             ),
         )
