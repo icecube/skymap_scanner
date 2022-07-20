@@ -71,6 +71,7 @@ jobs:
             &
 
           until [ -e $GITHUB_WORKSPACE/mq-basename.txt ]; do sleep 5; done
+          cat $GITHUB_WORKSPACE/mq-basename.txt
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
