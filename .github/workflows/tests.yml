@@ -70,7 +70,15 @@ jobs:
             --max-nside 1 \
             &
 
-          until [ -e $GITHUB_WORKSPACE/mq-basename.txt ]; do sleep 5; done
+          # wait until the mq-basename.txt file exists (with a timeout)
+          endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
+          while [[ $(date -u +%s) -le $endtime ]]; do
+            if [ -e mq-basename.txt ]; then
+              break
+            fi
+            sleep 5
+          done
+
           cat $GITHUB_WORKSPACE/mq-basename.txt
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
