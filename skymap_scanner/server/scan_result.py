@@ -4,9 +4,13 @@ import itertools as it
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+
+
+class InvalidPixelValueError(Exception):
+    """Raised when a pixel-value is illegal."""
 
 
 class ScanResult:
@@ -49,14 +53,13 @@ class ScanResult:
 
         # bookkeeping for comparing values
         self.require_close = {  # w/ rtol values
+            # any field not here is assumed to require '==' for comparison
             "llh": 1e-5,
             "E_in": 1e-2,
             "E_tot": 1e-2,
         }
-        self.require_equal = list(
-            k for k in self.PIXEL_TYPE.names if k not in self.require_close
-        )
-        self.isclose_ignore_zeros = [  # if val is 0, then it is "close" to any
+        self.zeros_disqualify_pixel = [
+            # if field's val is 0, then all the pixel's numerical datapoints are "isclose"
             "E_in",
             "E_tot",
         ]
@@ -78,14 +81,17 @@ class ScanResult:
             for nside in self.result
         )
 
-    def get_diff_and_test_vals(
+    def is_close_datapoint(
         self, s_val: float, o_val: float, field: str, equal_nan: bool
     ) -> Tuple[float, bool]:
         """Get the diff float-value and test truth-value for the 2 pixel datapoints."""
-        if field in self.require_equal:
-            return s_val - o_val, s_val == o_val
-        if field in self.isclose_ignore_zeros and (s_val == 0.0 or o_val == 0.0):
-            return float("nan"), True
+        if field not in self.require_close:
+            raise ValueError(
+                f"Datapoint field ({field}) cannot be compared by "
+                f"'is_close_datapoint()', must use '=='"
+            )
+        if field in self.zeros_disqualify_pixel and (s_val == 0.0 or o_val == 0.0):
+            raise InvalidPixelValueError(f"field={field}, values={(s_val, o_val)}")
         try:
             rdiff = (abs(s_val - o_val) - self.ATOL) / abs(o_val)  # used by np.isclose
         except ZeroDivisionError:
@@ -102,6 +108,43 @@ class ScanResult:
                 )
             ),
         )
+
+    def diff_pixel_data(
+        self, sre_pix: np.ndarray, ore_pix: np.ndarray, equal_nan: bool
+    ) -> Tuple[List[float], List[bool]]:
+        """Get the diff float-values and test truth-values for the 2 pixel-data.
+
+        The datapoints are compared face-to-face. If there's a
+        invalid datapoint value in either array, all "require close"
+        datapoints are considered (vacuously) close enough.
+        """
+        diff_vals = []
+        test_vals = []
+
+        # is one of the pixel-datapoints is "so bad" it has
+        # disqualified all the other "require_close" datapoints?
+        skip_all_requireclose_datapoints = any(
+            sre_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
+            or ore_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
+            for f in self.zeros_disqualify_pixel
+        )
+
+        for s_val, o_val, field in zip(sre_pix, ore_pix, self.PIXEL_TYPE.names):
+            # a "require equal" datapoint
+            if field not in self.require_close:
+                diff, test = s_val - o_val, s_val == o_val
+            # a "require close" datapoint (non-disqualified)
+            elif not skip_all_requireclose_datapoints:
+                diff, test = self.is_close_datapoint(
+                    float(s_val), float(o_val), field, equal_nan
+                )
+            # a disqualified "require close" datapoint
+            else:
+                diff, test = float("nan"), True  # vacuously true
+            diff_vals.append(diff)
+            test_vals.append(test)
+
+        return diff_vals, test_vals
 
     def is_close(
         self,
@@ -120,7 +163,7 @@ class ScanResult:
 
         # now check individual nside-iterations
         for nside in sorted(self.result.keys() & other.result.keys(), reverse=True):
-            self.logger.debug(f"Comparing for nside={nside}")
+            self.logger.info(f"Comparing for nside={nside}")
 
             # Q: why aren't we using np.array_equal and np.allclose?
             # A: we want detailed pixel-level diffs w/out repeating detailed code
@@ -132,15 +175,12 @@ class ScanResult:
                 other.result.get(nside, []),  # empty-list -> fillvalue
                 fillvalue=np.full((len(self.PIXEL_TYPE.names),), np.nan),  # 1 vector
             ):
-                diff_and_test_vals = [
-                    self.get_diff_and_test_vals(float(s), float(o), field, equal_nan)
-                    for s, o, field in zip(sre_pix, ore_pix, self.PIXEL_TYPE.names)
-                ]
+                diff_vals, test_vals = self.diff_pixel_data(sre_pix, ore_pix, equal_nan)
                 pix_diff = [
                     tuple(sre_pix.tolist()),
                     tuple(ore_pix.tolist()),
-                    tuple(dat[0] for dat in diff_and_test_vals),  # diff float-value
-                    tuple(dat[1] for dat in diff_and_test_vals),  # test truth-value
+                    tuple(diff_vals),  # diff float-value
+                    tuple(test_vals),  # test truth-value
                 ]
                 for vals in pix_diff:
                     self.logger.debug(f"{nside}: {vals}")
@@ -154,7 +194,7 @@ class ScanResult:
                 field: all(
                     d[3][self.PIXEL_TYPE.names.index(field)] for d in nside_diffs
                 )
-                for field in self.require_equal
+                for field in set(self.PIXEL_TYPE.names) - set(self.require_close)
             }
             nside_close = {
                 field: all(
@@ -166,22 +206,20 @@ class ScanResult:
 
             # log results (test-truth values)
             if not all(nside_equal.values()):
-                self.logger.debug(f"Mismatched pixel indices for nside={nside}")
+                self.logger.info(f"Mismatched pixel indices for nside={nside}")
             if not all(nside_close.values()):
-                self.logger.debug(f"Mismatched numerical results for nside={nside}")
+                self.logger.info(f"Mismatched numerical results for nside={nside}")
                 self.logger.debug(f"{nside_close}")
 
         # finish up
-
-        result = all(close.values())
-        self.logger.debug(f"Comparison result: {close}")
+        self.logger.info(f"Comparison result: {close}")
 
         if dump_json_diff:
             with open(dump_json_diff, "w") as f:
                 self.logger.info(f"Writing diff to {dump_json_diff}...")
                 json.dump(diffs, f, indent=3)
 
-        return result
+        return all(close.values())
 
     """
     Auxiliary methods
