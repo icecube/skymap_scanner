@@ -61,7 +61,7 @@ jobs:
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
             --output-dir $GITHUB_WORKSPACE \
-            --init-files-dir $GITHUB_WORKSPACE \
+            --startup-files-dir $GITHUB_WORKSPACE \
             --gcd-dir $SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
@@ -73,7 +73,7 @@ jobs:
           # wait until the mq-basename.txt file exists (with a timeout)
           endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
           while [[ $(date -u +%s) -le $endtime ]]; do
-            if [ -e mq-basename.txt ]; then
+            if [ -e $GITHUB_WORKSPACE/mq-basename.txt ]; then
               break
             fi
             sleep 5

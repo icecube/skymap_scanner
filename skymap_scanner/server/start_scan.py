@@ -872,7 +872,7 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--init-files-dir",
+        "--startup-files-dir",
         required=True,
         help="The dir to save the files needed to spawn clients",
         type=lambda x: _validate_arg(
@@ -1019,7 +1019,7 @@ def main() -> None:
 
     # get MQ basename and write it to a file for client-spawning
     mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"  # TODO - make shorter
-    with open(args.init_files_dir / "mq-basename.txt", "w") as f:
+    with open(args.startup_files_dir / "mq-basename.txt", "w") as f:
         f.write(mq_basename)
 
     # go!

@@ -32,7 +32,7 @@ py_args, event = extract_opt(py_args, "--event-file")
 py_args, cache = extract_opt(py_args, "--cache-dir")
 py_args, output = extract_opt(py_args, "--output-dir")
 py_args, gcd = extract_opt(py_args, "--gcd-dir")
-py_args, init_files = extract_opt(py_args, "--init-files-dir")
+py_args, startup = extract_opt(py_args, "--startup-files-dir")
 
 dockermount_args = ""
 py_args += " "
@@ -49,9 +49,9 @@ if output:
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
-if init_files:
-    dockermount_args += f"--mount type=bind,source={init_files},target=/local/init-files "
-    py_args += f"--init-files-dir /local/init-files "
+if startup:
+    dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-files "
+    py_args += f"--startup-files-dir /local/startup-files "
 
 print(f"{dockermount_args}#{py_args}")
 ')
