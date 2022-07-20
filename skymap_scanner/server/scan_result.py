@@ -114,10 +114,10 @@ class ScanResult:
                 other.result.get(nside, []),  # empty-list -> fillvalue
                 fillvalue=(float("nan"),) * len(self.pixel_type.names),
             ):
-                diff_and_test_vals = (
+                diff_and_test_vals = [
                     self.get_diff_and_test_vals(s, o, field, equal_nan)
                     for s, o, field in zip(sre_pix, ore_pix, self.pixel_type.names)
-                )
+                ]
                 print(diff_and_test_vals)  # TODO: remove
                 nside_diffs.append(
                     [
