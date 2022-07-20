@@ -40,12 +40,13 @@ class ScanResult:
     TODO: implement FITS output.
     """
 
-    require_equal = ["index"]
-    require_close = {"llh": 1e-5, "E_in": 1e-4, "E_tot": 1e-2}
-    isclose_ignore_zeros = ["E_in", "E_tot"]
     pixel_type = np.dtype(
         [("index", int), ("llh", float), ("E_in", float), ("E_tot", float)]
     )
+    # bookkeeping for comparing values
+    require_close = {"llh": 1e-5, "E_in": 1e-4, "E_tot": 1e-2}  # rtol values
+    require_equal = list(k for k in pixel_type.names if k not in require_close)
+    isclose_ignore_zeros = ["E_in", "E_tot"]  # if val is 0, then it is "close" to any
 
     def __init__(self, result):
         self.logger = logging.getLogger(__name__)
