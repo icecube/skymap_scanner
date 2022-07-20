@@ -15,8 +15,8 @@ import asyncstdlib as asl
 import mqclient_pulsar as mq
 from wipac_dev_tools import logging_tools
 
-OUT = "out_msg.pkl"
-IN = "in_msg.pkl"
+OUT_PKL = "out_msg.pkl"
+IN_PKL = "in_msg.pkl"
 
 LOGGER = logging.getLogger("skyscan-client")
 
@@ -26,8 +26,8 @@ def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> str:
 
     Also, dump to a file for debugging (if not "").
     """
-    with open(IN, "wb") as f:
-        LOGGER.info(f"Pickle-dumping in-payload to file: {str(in_msg)} @ {IN}")
+    with open(IN_PKL, "wb") as f:
+        LOGGER.info(f"Pickle-dumping in-payload to file: {str(in_msg)} @ {IN_PKL}")
         pickle.dump(in_msg, f)
     if debug_infile:  # for debugging
         with open(debug_infile, "wb") as f:
@@ -35,7 +35,7 @@ def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> str:
                 f"Pickle-dumping in-payload to file: {str(in_msg)} @ {debug_infile}"
             )
             pickle.dump(in_msg, f)
-    return IN
+    return IN_PKL
 
 
 def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
@@ -43,10 +43,10 @@ def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
 
     Also, dump to a file for debugging (if not "").
     """
-    with open(OUT, "rb") as f:
+    with open(OUT_PKL, "rb") as f:
         out_msg = pickle.load(f)
-        LOGGER.info(f"Pickle-loaded out-payload from file: {str(out_msg)} @ {OUT}")
-    os.remove(OUT)
+        LOGGER.info(f"Pickle-loaded out-payload from file: {str(out_msg)} @ {OUT_PKL}")
+    os.remove(OUT_PKL)
     if debug_outfile:  # for debugging
         with open(debug_outfile, "wb") as f:
             LOGGER.info(
@@ -101,8 +101,8 @@ async def consume_and_reply(
             # call & check outputs
             cmd = (
                 f"python -m skymap_scanner.client.reco_pixel_pkl "
-                f"--in-file {IN} "
-                f"--out-file {OUT} "
+                f"--in-pkl {IN_PKL} "
+                f"--out-pkl {OUT_PKL} "
                 f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
             ).split()
             LOGGER.info(f"Executing: {cmd}")
@@ -111,7 +111,7 @@ async def consume_and_reply(
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
                 raise subprocess.CalledProcessError(result.returncode, cmd)
-            if not os.path.exists(OUT):
+            if not os.path.exists(OUT_PKL):
                 LOGGER.error("Out file was not written for in-payload")
                 raise RuntimeError("Out file was not written for in-payload")
 

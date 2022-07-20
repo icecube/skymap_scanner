@@ -11,6 +11,6 @@ docker run --network="host" --rm -i \
     --env PY_COLORS=1 \
     icecube/skymap_scanner:latest \
     python -m skymap_scanner.client.reco_pixel_pkl \
-    --in-file /local/$SKYSCAN_CLIENT_SCANNER_FILES_DIR/$SKYSCAN_CLIENT_SCANNER_IN_FILENAME \
-    --out-file /local/$SKYSCAN_CLIENT_SCANNER_FILES_DIR/$SKYSCAN_CLIENT_SCANNER_OUT_FILENAME \
+    --in-pkl /local/$SKYSCAN_CLIENT_SCANNER_FILES_DIR/$SKYSCAN_CLIENT_SCANNER_IN_FILENAME \
+    --out-pkl /local/$SKYSCAN_CLIENT_SCANNER_FILES_DIR/$SKYSCAN_CLIENT_SCANNER_OUT_FILENAME \
     --log DEBUG
