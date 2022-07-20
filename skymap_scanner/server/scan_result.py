@@ -112,13 +112,12 @@ class ScanResult:
             for sre_pix, ore_pix in it.zip_longest(
                 self.result.get(nside, []),  # empty-list -> fillvalue
                 other.result.get(nside, []),  # empty-list -> fillvalue
-                fillvalue=(float("nan"),) * len(self.pixel_type.names),
+                fillvalue=np.full((len(self.pixel_type.names),), np.nan),  # 1 vector
             ):
                 diff_and_test_vals = [
-                    self.get_diff_and_test_vals(s, o, field, equal_nan)
+                    self.get_diff_and_test_vals(float(s), float(o), field, equal_nan)
                     for s, o, field in zip(sre_pix, ore_pix, self.pixel_type.names)
                 ]
-                print(diff_and_test_vals)  # TODO: remove
                 nside_diffs.append(
                     [
                         tuple(sre_pix.tolist()),
