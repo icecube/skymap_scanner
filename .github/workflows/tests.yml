@@ -70,8 +70,7 @@ jobs:
             --max-nside 1 \
             &
 
-          qbasename=$(cat $GITHUB_WORKSPACE/skymap-scanner-queue-basename.txt)
-          echo $qbasename
+          until [ -e $GITHUB_WORKSPACE/mq-basename.txt ]; do sleep 5; done
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
@@ -79,7 +78,7 @@ jobs:
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
-              --mq-basename $qbasename \
+              --mq-basename $(cat $GITHUB_WORKSPACE/mq-basename.txt) \
               --gcd-dir $SKYSCAN_GCD_DIR \
               --broker $PULSAR_ADDRESS \
               --log DEBUG \

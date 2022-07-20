@@ -1019,7 +1019,7 @@ def main() -> None:
 
     # get MQ basename and write it to a file for client-spawning
     mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"  # TODO - make shorter
-    with open(args.init_files_dir / "skymap-scanner-queue-basename.txt", "w") as f:
+    with open(args.init_files_dir / "mq-basename.txt", "w") as f:
         f.write(mq_basename)
 
     # go!
