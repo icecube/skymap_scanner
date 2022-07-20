@@ -48,7 +48,7 @@ class ScanResult:
     require_equal = list(k for k in pixel_type.names if k not in require_close)
     isclose_ignore_zeros = ["E_in", "E_tot"]  # if val is 0, then it is "close" to any
 
-    def __init__(self, result):
+    def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
         self.result = result
 
@@ -56,12 +56,17 @@ class ScanResult:
     Comparison operators and methods
     """
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        """Are the two instance's result lists strictly equal?"""
+        if not isinstance(other, ScanResult):
+            return False
+        if self.result.keys() != other.result.keys():
+            return False
         # NOTE: will return false if NaN are present
         # numpy.array_equal() supports `equal_nan` option only from version 1.19
         return all(
             np.array_equal(self.result[nside], other.result[nside])
-            for nside in (self.result.keys() & other.result.keys())  # think different
+            for nside in self.result
         )
 
     @classmethod
