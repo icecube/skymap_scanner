@@ -8,8 +8,6 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 
-ATOL = 1.0e-8  # 1.0e-8 is the default used by np.isclose()
-
 
 class ScanResult:
     """
@@ -40,17 +38,28 @@ class ScanResult:
     TODO: implement FITS output.
     """
 
-    pixel_type = np.dtype(
+    PIXEL_TYPE = np.dtype(
         [("index", int), ("llh", float), ("E_in", float), ("E_tot", float)]
     )
-    # bookkeeping for comparing values
-    require_close = {"llh": 1e-5, "E_in": 1e-4, "E_tot": 1e-2}  # rtol values
-    require_equal = list(k for k in pixel_type.names if k not in require_close)
-    isclose_ignore_zeros = ["E_in", "E_tot"]  # if val is 0, then it is "close" to any
+    ATOL = 1.0e-8  # 1.0e-8 is the default used by np.isclose()
 
     def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
         self.result = result
+
+        # bookkeeping for comparing values
+        self.require_close = {  # w/ rtol values
+            "llh": 1e-5,
+            "E_in": 1e-4,
+            "E_tot": 1e-2,
+        }
+        self.require_equal = list(
+            k for k in self.PIXEL_TYPE.names if k not in self.require_close
+        )
+        self.isclose_ignore_zeros = [  # if val is 0, then it is "close" to any
+            "E_in",
+            "E_tot",
+        ]
 
     """
     Comparison operators and methods
@@ -69,17 +78,16 @@ class ScanResult:
             for nside in self.result
         )
 
-    @classmethod
     def get_diff_and_test_vals(
-        cls, s_val: float, o_val: float, field: str, equal_nan: bool
+        self, s_val: float, o_val: float, field: str, equal_nan: bool
     ) -> Tuple[float, bool]:
         """Get the diff float-value and test truth-value for the 2 pixel datapoints."""
-        if field in cls.require_equal:
+        if field in self.require_equal:
             return s_val - o_val, s_val == o_val
-        if field in cls.isclose_ignore_zeros and (s_val == 0.0 or o_val == 0.0):
+        if field in self.isclose_ignore_zeros and (s_val == 0.0 or o_val == 0.0):
             return float("nan"), True
         try:
-            rdiff = (abs(s_val - o_val) - ATOL) / abs(o_val)  # used by np.isclose
+            rdiff = (abs(s_val - o_val) - self.ATOL) / abs(o_val)  # used by np.isclose
         except ZeroDivisionError:
             rdiff = float("inf")
         return (
@@ -89,8 +97,8 @@ class ScanResult:
                     s_val,
                     o_val,
                     equal_nan=equal_nan,
-                    rtol=cls.require_close[field],
-                    atol=ATOL,
+                    rtol=self.require_close[field],
+                    atol=self.ATOL,
                 )
             ),
         )
@@ -122,11 +130,11 @@ class ScanResult:
             for sre_pix, ore_pix in it.zip_longest(
                 self.result.get(nside, []),  # empty-list -> fillvalue
                 other.result.get(nside, []),  # empty-list -> fillvalue
-                fillvalue=np.full((len(self.pixel_type.names),), np.nan),  # 1 vector
+                fillvalue=np.full((len(self.PIXEL_TYPE.names),), np.nan),  # 1 vector
             ):
                 diff_and_test_vals = [
                     self.get_diff_and_test_vals(float(s), float(o), field, equal_nan)
-                    for s, o, field in zip(sre_pix, ore_pix, self.pixel_type.names)
+                    for s, o, field in zip(sre_pix, ore_pix, self.PIXEL_TYPE.names)
                 ]
                 pix_diff = [
                     tuple(sre_pix.tolist()),
@@ -144,13 +152,13 @@ class ScanResult:
             # aggregate test-truth values
             nside_equal = {
                 field: all(
-                    d[3][self.pixel_type.names.index(field)] for d in nside_diffs
+                    d[3][self.PIXEL_TYPE.names.index(field)] for d in nside_diffs
                 )
                 for field in self.require_equal
             }
             nside_close = {
                 field: all(
-                    d[3][self.pixel_type.names.index(field)] for d in nside_diffs
+                    d[3][self.PIXEL_TYPE.names.index(field)] for d in nside_diffs
                 )
                 for field in self.require_close
             }
@@ -204,7 +212,7 @@ class ScanResult:
         for nside in nsides_dict:
 
             n = len(nsides_dict[nside])
-            v = np.zeros(n, dtype=cls.pixel_type)
+            v = np.zeros(n, dtype=cls.PIXEL_TYPE)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
