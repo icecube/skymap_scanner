@@ -73,7 +73,7 @@ jobs:
           # wait until the mq-basename.txt file exists (with a timeout)
           endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
           while [[ $(date -u +%s) -le $endtime ]]; do
-            if [ -e $GITHUB_WORKSPACE/mq-basename.txt ]; then
+            if [ -e $GITHUB_WORKSPACE/mq-basename.txt && -e $GITHUB_WORKSPACE/baseline_GCD_file.txt && -e $GITHUB_WORKSPACE/GCDQp_packet.pkl ]; then
               break
             fi
             sleep 5
@@ -88,6 +88,8 @@ jobs:
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
               --mq-basename $(cat $GITHUB_WORKSPACE/mq-basename.txt) \
+              --baseline-gcd-file $(cat $GITHUB_WORKSPACE/baseline_GCD_file.txt) \
+              --gcdqp-packet-pkl $GITHUB_WORKSPACE/GCDQp_packet.pkl \
               --gcd-dir $SKYSCAN_GCD_DIR \
               --broker $PULSAR_ADDRESS \
               --log DEBUG \

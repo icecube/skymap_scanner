@@ -30,6 +30,7 @@ def extract_opt(py_args, opt):
 
 py_args, debug_dir = extract_opt(py_args, "--debug-directory")
 py_args, gcd = extract_opt(py_args, "--gcd-dir")
+py_args, gcdqp = extract_opt(py_args, "--gcdqp-packet-pkl")
 
 dockermount_args = ""
 py_args += " "
@@ -40,6 +41,9 @@ if debug_dir:
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
+if gcdqp:
+    dockermount_args += f"--mount type=bind,source={os.path.dirname(gcdqp)},target=/local/gcdqp,readonly "
+    py_args += f"--gcdqp-packet-pkl /local/gcdqp/{os.path.basename(gcdqp)} "
 
 print(f"{dockermount_args}#{py_args}")
 ')

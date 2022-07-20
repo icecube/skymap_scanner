@@ -57,6 +57,7 @@ def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
 
 
 async def consume_and_reply(
+    cmd: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
@@ -99,18 +100,17 @@ async def consume_and_reply(
             inmsg_to_infile(in_msg, debug_infile)
 
             # call & check outputs
-            cmd = (
-                f"python -m skymap_scanner.client.reco_pixel_pkl "
-                f"--in-pkl {IN_PKL} "
-                f"--out-pkl {OUT_PKL} "
-                f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
-            ).split()
-            LOGGER.info(f"Executing: {cmd}")
-            result = subprocess.run(cmd, capture_output=True, check=False, text=True)
+            LOGGER.info(f"Executing: {cmd.split()}")
+            result = subprocess.run(
+                cmd.split(),
+                capture_output=True,
+                check=False,
+                text=True,
+            )
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
-                raise subprocess.CalledProcessError(result.returncode, cmd)
+                raise subprocess.CalledProcessError(result.returncode, cmd.split())
             if not os.path.exists(OUT_PKL):
                 LOGGER.error("Out file was not written for in-payload")
                 raise RuntimeError("Out file was not written for in-payload")
@@ -175,6 +175,20 @@ def main() -> None:
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
+    parser.add_argument(
+        "--gcdqp-packet-pkl",
+        dest="GCDQp_packet_pkl",
+        required=True,
+        help="a pkl file containing the GCDQp_packet (list of I3Frames)",
+        type=Path,
+    )
+    parser.add_argument(
+        "--baseline-gcd-file",
+        dest="baseline_GCD_file",
+        required=True,
+        help="the baseline_GCD_file string",
+        type=str,
+    )
 
     # mq args
     parser.add_argument(
@@ -233,10 +247,20 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    cmd = (
+        f"python -m skymap_scanner.client.reco_pixel_pkl "
+        f"--in-pkl {IN_PKL} "
+        f"--out-pkl {OUT_PKL} "
+        f"--gcdqp-packet-pkl {args.GCDQp_packet_pkl} "
+        f"--baseline-gcd-file {args.baseline_GCD_file} "
+        f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
+    )
+
     # go!
     LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.mq_basename=}")
     asyncio.get_event_loop().run_until_complete(
         consume_and_reply(
+            cmd=cmd,
             broker=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{args.mq_basename}",

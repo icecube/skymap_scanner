@@ -266,15 +266,33 @@ def main() -> None:
     parser.add_argument(
         "--in-pkl",
         required=True,
-        help="a file containing the pixel to reconstruct",
+        help="a pkl file containing the pixel to reconstruct",
         type=Path,
     )
     parser.add_argument(
         "--out-pkl",
         required=True,
-        help="a file to write the reconstruction to",
+        help="a pkl file to write the reconstruction to",
         type=Path,
     )
+
+    # extra "physics" args
+    parser.add_argument(
+        "--gcdqp-packet-pkl",
+        dest="GCDQp_packet_pkl",
+        required=True,
+        help="a pkl file containing the GCDQp_packet (list of I3Frames)",
+        type=Path,
+    )
+    parser.add_argument(
+        "--baseline-gcd-file",
+        dest="baseline_GCD_file",
+        required=True,
+        help="the baseline_GCD_file string",
+        type=str,
+    )
+
+    # logging args
     parser.add_argument(
         "-l",
         "--log",
@@ -296,11 +314,21 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    # get inputs
-    pframe, gcdqp_frames, GCD_diff_base_handle = read_in_pkl(args.in_pkl)
+    # get PFrame
+    pframe, GCDQp_packet, GCD_diff_base_handle = read_in_pkl(args.in_pkl)
+
+    # get GCDQp_packet
+    with open(args.GCDQp_packet_pkl, "rb") as f:
+        tmp = pickle.load(f)
+        assert GCDQp_packet == tmp
+        GCDQp_packet = tmp
+
+    # get GCD_diff_base_handle
+    assert GCD_diff_base_handle == get_GCD_diff_base_handle(args.baseline_GCD_file)
+    GCD_diff_base_handle = get_GCD_diff_base_handle(args.baseline_GCD_file)
 
     # go!
-    reco_pixel(pframe, gcdqp_frames, GCD_diff_base_handle, args.out_pkl)
+    reco_pixel(pframe, GCDQp_packet, GCD_diff_base_handle, args.out_pkl)
     LOGGER.info("Done reco'ing pixel.")
 
 
