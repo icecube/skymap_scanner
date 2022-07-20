@@ -1017,15 +1017,10 @@ def main() -> None:
         override_GCD_filename=str(args.gcd_dir),
     )
 
-    # write startup files for client-spawning
+    # get MQ basename and write it to a file for client-spawning
+    mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"  # TODO - make shorter
     with open(args.startup_files_dir / "mq-basename.txt", "w") as f:
-        # TODO: make string shorter
-        mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"
         f.write(mq_basename)
-    with open(args.startup_files_dir / "baseline_GCD_file.txt", "w") as f:
-        f.write(state_dict["baseline_GCD_file"])
-    with open(args.startup_files_dir / "GCDQp_packet.pkl", "wb") as f:
-        pickle.dump(state_dict["GCDQp_packet"], f)
 
     # go!
     asyncio.get_event_loop().run_until_complete(
