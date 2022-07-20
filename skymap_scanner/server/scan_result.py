@@ -123,14 +123,15 @@ class ScanResult:
                     self.get_diff_and_test_vals(float(s), float(o), field, equal_nan)
                     for s, o, field in zip(sre_pix, ore_pix, self.pixel_type.names)
                 ]
-                nside_diffs.append(
-                    [
-                        tuple(sre_pix.tolist()),
-                        tuple(ore_pix.tolist()),
-                        tuple(dat[0] for dat in diff_and_test_vals),  # diff float-value
-                        tuple(dat[1] for dat in diff_and_test_vals),  # test truth-value
-                    ]
-                )
+                pix_diff = [
+                    tuple(sre_pix.tolist()),
+                    tuple(ore_pix.tolist()),
+                    tuple(dat[0] for dat in diff_and_test_vals),  # diff float-value
+                    tuple(dat[1] for dat in diff_and_test_vals),  # test truth-value
+                ]
+                for vals in pix_diff:
+                    self.logger.debug(f"{nside}: {vals}")
+                nside_diffs.append(pix_diff)
 
             if dump_json_diff:  # can be a lot of data, so only save it if we're dumping
                 diffs.append(nside_diffs)
