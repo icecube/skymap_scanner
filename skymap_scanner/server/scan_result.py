@@ -69,12 +69,14 @@ class ScanResult:
         """Get the diff float-value and test truth-value for the 2 pixel datapoints."""
         if field in cls.require_equal:
             return s_val - o_val, s_val == o_val
-        if math.isnan(s_val) or math.isnan(o_val):
-            return float("nan"), False
         if field in cls.isclose_ignore_zeros and (s_val == 0.0 or o_val == 0.0):
             return float("nan"), True
+        try:
+            rdiff = abs((s_val - o_val) / o_val)  # similar to what np.isclose uses
+        except ZeroDivisionError:
+            rdiff = float("inf")
         return (
-            abs((s_val - o_val) / o_val),
+            rdiff,
             bool(
                 np.isclose(
                     s_val,
