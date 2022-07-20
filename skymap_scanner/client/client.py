@@ -234,7 +234,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # go!
-    LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.event_mqname=}")
+    LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.mq_basename=}")
     asyncio.get_event_loop().run_until_complete(
         consume_and_reply(
             broker=args.broker,
