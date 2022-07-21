@@ -315,17 +315,11 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get PFrame
-    pframe, GCDQp_packet, GCD_diff_base_handle = read_in_pkl(args.in_pkl)
+    pframe, _, GCD_diff_base_handle = read_in_pkl(args.in_pkl)
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_pkl, "rb") as f:
-        tmp = pickle.load(f)
-        for frame in GCDQp_packet:
-            logging.debug(str(frame))
-        for frame in tmp:
-            logging.debug(str(frame))
-        assert GCDQp_packet == tmp
-        GCDQp_packet = tmp
+        GCDQp_packet = pickle.load(f)
 
     # get GCD_diff_base_handle
     logging.debug(GCD_diff_base_handle)
