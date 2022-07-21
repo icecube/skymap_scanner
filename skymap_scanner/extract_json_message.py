@@ -109,7 +109,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
 
         # try to load the base file from the various possible input directories
         GCD_diff_base_handle = None
-        for GCD_base_dir in config.GCD_base_dirs:
+        for GCD_base_dir in config.GCD_BASE_DIRS:
             try:
                 read_url = os.path.join(GCD_base_dir, GCD_diff_base_filename)
                 print(("reading GCD from {0}".format( read_url )))

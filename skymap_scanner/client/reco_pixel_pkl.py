@@ -46,9 +46,9 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         if not self.pixel:
             raise RuntimeError("self.pixel is not set")
 
-        self.gcdqp_frames = self.GetParameter("GCDQpFrames")
-        if not self.gcdqp_frames:
-            raise RuntimeError("self.gcdqp_frames is empty")
+        self.GCDQp_packet = self.GetParameter("GCDQpFrames")
+        if not self.GCDQp_packet:
+            raise RuntimeError("self.GCDQp_packet is empty")
 
     def Process(self) -> None:
         """Push the given frames."""
@@ -59,7 +59,7 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
             self.RequestSuspension()
             return
 
-        for frame in self.gcdqp_frames:
+        for frame in self.GCDQp_packet:
             LOGGER.debug(f"Pushing GCDQP Frame: {frame_for_logging(frame)}")
             self.PushFrame(frame)
 
@@ -75,10 +75,10 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> Any:
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
-    if base_GCD_filename_url not in [None, "None"]:
-        for GCD_base_dir in config.GCD_base_dirs:
+    if baseline_GCD_file not in [None, "None"]:
+        for GCD_base_dir in config.GCD_BASE_DIRS:
             try:
-                read_url = os.path.join(GCD_base_dir, base_GCD_filename_url)
+                read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 LOGGER.debug("reading baseline GCD from {0}".format(read_url))
                 GCD_diff_base_handle = stagers.GetReadablePath(read_url)
                 if not os.path.isfile(str(GCD_diff_base_handle)):
@@ -93,7 +93,7 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> Any:
         if GCD_diff_base_handle is None:
             raise RuntimeError(
                 "Could not read the input GCD file '{0}' from any pre-configured location".format(
-                    base_GCD_filename_url
+                    baseline_GCD_file
                 )
             )
 
@@ -109,7 +109,7 @@ def reco_pixel(
     """Actually do the reco."""
     LOGGER.info(f"Reco'ing pixel: {pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
-    for frame in gcdqp_frames:
+    for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{str(GCD_diff_base_handle)=}")
 
@@ -151,7 +151,7 @@ def reco_pixel(
         LoadInitialFrames,
         "LoadInitialFrames",
         Pixel=pframe,
-        GCDQpFrames=gcdqp_frames,
+        GCDQpFrames=GCDQp_packet,
     )
 
     def makeSurePulsesExist(frame) -> None:

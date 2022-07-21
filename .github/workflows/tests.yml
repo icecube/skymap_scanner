@@ -1,6 +1,11 @@
 name: tests
 
-on: [push]
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
 
 env:
   PY_COLORS: "1"
@@ -8,9 +13,11 @@ env:
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CACHE_DIR: cache-dir
+  SKYSCAN_OUTPUT_DIR: output-dir
   PULSAR_ADDRESS: localhost:6650
   PULSAR_AUTH: ""
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
+  SKYSCAN_REPORT_INTERVAL_SEC: 60
 
 jobs:
 
@@ -57,6 +64,7 @@ jobs:
         run: |
 
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
+          mkdir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
           ./scripts/launch_scripts/launch_server.sh \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
@@ -102,17 +110,31 @@ jobs:
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
           done
-      # - name: Test Output
-      #   run: |
-      #     # docker run --rm -v $PWD:/mnt -i icecube/icetray:combo-stable-prod dataio-shovel -l millipede /mnt/test_event_01.i3
+      - name: Test Output Against Known Result (.npz)
+        run: |
+          ls $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR/*.npz)
+          echo $outfile
+
+          pip install .  # don't have to use the docker container for this
+          python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
+            --actual $outfile \
+            --expected $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
+            --disqualify-zero-energy-pixels \
+            --assert \
+            || (cat $(ls *.diff.json) && false)
 
 
   test-run-pixel-reco:
     runs-on: ubuntu-latest
-    env:
-      SKYSCAN_CLIENT_SCANNER_FILES_DIR: tests/data/reco_pixel_pkls
-      SKYSCAN_CLIENT_SCANNER_IN_FILENAME: in.pkl
-      SKYSCAN_CLIENT_SCANNER_OUT_FILENAME: out.pkl
+    strategy:
+      fail-fast: false
+      matrix:
+        pkl-prefix: [
+          "1657734371.72056",
+          "1657735973.0575783",
+          "1657739174.4579704",
+        ]
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
@@ -127,6 +149,18 @@ jobs:
           ./tests/docker_scripts/docker_local_build.sh
       - name: Run
         run: |
-          ./tests/docker_scripts/_launch_reco_pixel.sh
-      # - name: Test Output
+          ./tests/docker_scripts/_launch_reco_pixel.sh \
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.in.pkl
+      # - name: Test Output Against Known Result (.pkl)
       #   run: |
+      #     # we need to launch in docker conatiner b/c pickle needs icecube
+      #     docker run --network="host" --rm -i \
+      #       --mount type=bind,source=$GITHUB_WORKSPACE/tests/data/reco_pixel_pkls,target=/local/pkls \
+      #       icecube/skymap_scanner:latest \
+      #       python /local/tests/compare_reco_pixel_pkl.py \
+      #       --actual /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/${{ matrix.pkl-prefix }}.out.pkl \
+      #       --expected /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/out.pkl \
+      #       --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
+      #       --disqualify-zero-energy-pixels \
+      #       --assert \
+      #       || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json) && false)

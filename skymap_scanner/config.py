@@ -1,10 +1,18 @@
 """Configuration constants"""
 
-# TODO - what here would be useful as environment variables?
-
+import dataclasses as dc
 import os
+from typing import Final
 
-GCD_base_dirs = [
+from wipac_dev_tools import from_environment_as_dataclass
+
+# pylint:disable=invalid-name
+
+#
+# True constants
+#
+
+GCD_BASE_DIRS: Final = [
     os.path.join(
         os.environ["HOME"], "PoleBaseGCDs"
     ),  # why can't we reach anything from the followup nodes???
@@ -15,9 +23,30 @@ GCD_base_dirs = [
     "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
 ]
 
-slack_api_key = ""
-# slack_channel = "#test_messaging"
-slack_channel = "#gfu_live"
-# slack_channel = "#amon-alerts"
+#
+# Env var constants: set as constants & typecast
+#
 
-del os
+
+@dc.dataclass(frozen=True)
+class EnvConfig:
+    """For storing env vars, typed."""
+
+    SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
+    SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
+    SKYSCAN_SLACK_API_KEY: str = ""
+    SKYSCAN_SLACK_CHANNEL: str = "#gfu_live"
+
+    def __post_init__(self) -> None:
+        """Check values."""
+        if self.SKYSCAN_REPORT_INTERVAL_SEC <= 0:
+            raise ValueError(
+                f"Env Var: SKYSCAN_REPORT_INTERVAL_SEC is not positive: {self.SKYSCAN_REPORT_INTERVAL_SEC}"
+            )
+        if self.SKYSCAN_PLOT_INTERVAL_SEC <= 0:
+            raise ValueError(
+                f"Env Var: SKYSCAN_PLOT_INTERVAL_SEC is not positive: {self.SKYSCAN_PLOT_INTERVAL_SEC}"
+            )
+
+
+env = from_environment_as_dataclass(EnvConfig)

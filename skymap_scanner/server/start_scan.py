@@ -10,8 +10,7 @@ import logging
 import os
 import pickle
 import time
-from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
@@ -20,7 +19,7 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import extract_json_message
+from .. import config, extract_json_message
 from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
 from ..utils import (
     StateDict,
@@ -80,8 +79,6 @@ class ProgressReporter:
         max_nside: int,
         event_id: str,
         slack_interface: SlackInterface,
-        report_interval_in_seconds: int = 5 * 60,
-        skymap_plotting_interval_in_seconds: int = 30 * 60,
     ) -> None:
         """
         Arguments:
@@ -99,25 +96,15 @@ class ProgressReporter:
                 - the event id
             `slack_interface`
                 - a connection to Slack
-            `report_interval_in_seconds`
+
+        Environment Variables:
+            `REPORT_INTERVAL_SEC`
                 - make a report with this interval
-            `skymap_plotting_interval_in_seconds`
+            `PLOT_INTERVAL_SEC`
                 - make a skymap plot with this interval
         """
         self.state_dict = state_dict
         self.slack_interface = slack_interface
-
-        if report_interval_in_seconds <= 0:
-            raise ValueError(
-                f"report_interval_in_seconds is not positive: {report_interval_in_seconds}"
-            )
-        self.report_interval_in_seconds = report_interval_in_seconds
-
-        if skymap_plotting_interval_in_seconds <= 0:
-            raise ValueError(
-                f"skymap_plotting_interval_in_seconds is not positive: {skymap_plotting_interval_in_seconds}"
-            )
-        self.skymap_plotting_interval_in_seconds = skymap_plotting_interval_in_seconds
 
         if n_pixreco <= 0:
             raise ValueError(f"n_pixreco is not positive: {n_pixreco}")
@@ -169,7 +156,10 @@ class ProgressReporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported
-        if override_timestamp or elapsed_seconds > self.report_interval_in_seconds:
+        if (
+            override_timestamp
+            or elapsed_seconds > config.env.SKYSCAN_REPORT_INTERVAL_SEC
+        ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
             if self.slack_interface.active:
@@ -179,10 +169,7 @@ class ProgressReporter:
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         elapsed_seconds = current_time - self.last_time_reported_skymap
-        if (
-            override_timestamp
-            or elapsed_seconds > self.skymap_plotting_interval_in_seconds
-        ):
+        if override_timestamp or elapsed_seconds > config.env.SKYSCAN_PLOT_INTERVAL_SEC:
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
                 self.slack_interface.post_skymap_plot(self.state_dict)
@@ -210,7 +197,7 @@ class ProgressReporter:
         if self.pixreco_ct == 0:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {self.report_interval_in_seconds} seconds."
+            message += f"I will report back again in {config.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
 
         return message
 
@@ -541,13 +528,17 @@ class PixelRecoSaver:
         self,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: Path,
+        cache_dir: str,
     ) -> None:
         self.state_dict = state_dict
-        self.this_event_cache_dir = cache_dir / event_id
+        self.this_event_cache_dir = os.path.join(cache_dir, event_id)
 
     def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
-        """Save pixel-reco to disk as .i3 file at `self.this_event_cache_dir`.
+        """Save pixel-reco to state_dict and disk cache.
+
+        Locations:
+            state_dict: @ state_dict["nsides"][nside][pixel]
+            disk cache: @ `self.this_event_cache_dir` as .i3 file
 
         Raise errors for invalid frame or already saved pixel-reco.
 
@@ -562,7 +553,29 @@ class PixelRecoSaver:
 
         nside = frame["SCAN_HealpixNSide"].value
         pixel = frame["SCAN_HealpixPixel"].value
-        index = (nside,pixel)
+
+        # insert pixel data into state_dict
+        if nside not in self.state_dict["nsides"]:
+            self.state_dict["nsides"][nside] = {}
+        if pixel in self.state_dict["nsides"][nside]:
+            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
+        self.state_dict["nsides"][nside][pixel] = self.get_pixel_data(
+            self.state_dict["baseline_GCD_file"],
+            self.state_dict["GCDQp_packet"],
+            frame,
+        )
+
+        self.save_to_disk_cache(nside, pixel, frame)
+
+        return frame
+
+    @staticmethod
+    def get_pixel_data(
+        baseline_GCD_file: str,  # pylint:disable=invalid-name
+        GCDQp_packet: List[icetray.I3Frame],  # pylint:disable=invalid-name
+        frame: icetray.I3Frame
+    ) -> Dict[str, Any]:
+        """Get frame, llh, recoLossesInside, and recoLossesTotal packaged in a dict."""
 
         if "MillipedeStarting2ndPass" not in frame:
             raise RuntimeError("\"MillipedeStarting2ndPass\" not found in reconstructed frame")
@@ -572,37 +585,37 @@ class PixelRecoSaver:
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
 
-        """
-        Calculate reco losses, based on load_scan_state()
-        """
+        # Calculate reco losses, based on load_scan_state()
         # apparently baseline GCD is sufficient here
         # maybe filestager can be None
-        geometry = get_baseline_gcd_frames(self.state_dict, filestager=dataio.get_stagers())[0]
+        geometry = get_baseline_gcd_frames(
+            baseline_GCD_file,
+            GCDQp_packet,
+            filestager=dataio.get_stagers()
+        )[0]
 
         try:
             recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
-        except KeyError:
-            LOGGER.error(f"Missing attribute in Geometry frame: {KeyError}")
+        except KeyError as e:
+            LOGGER.error(f"Missing attribute in Geometry frame: {e}")
             LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
             raise
 
-        # insert pixel-reco into state_dict
-        if nside not in self.state_dict["nsides"]:
-            self.state_dict["nsides"][nside] = {}
-        if pixel in self.state_dict["nsides"][nside]:
-            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
-        self.state_dict["nsides"][nside][pixel] = dict(frame=frame, llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
+        return dict(
+            frame=frame,
+            llh=llh,
+            recoLossesInside=recoLossesInside,
+            recoLossesTotal=recoLossesTotal
+        )
 
-        # save this frame to the disk cache
-
-        nside_dir = self.this_event_cache_dir / "nside{0:06d}".format(nside)
+    def save_to_disk_cache(self, nside: int, pixel: int, frame: icetray.I3Frame) -> None:
+        """Save this frame to the disk cache."""
+        nside_dir = os.path.join(self.this_event_cache_dir, "nside{0:06d}".format(nside))
         if not os.path.exists(nside_dir):
             os.mkdir(nside_dir)
-        pixel_file_name = nside_dir / "pix{0:012d}.i3".format(pixel)
+        pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
 
-        save_GCD_frame_packet_to_file([frame], str(pixel_file_name))
-
-        return frame
+        save_GCD_frame_packet_to_file([frame], pixel_file_name)
 
 
 # fmt: on
@@ -617,7 +630,7 @@ class PixelRecoCollector:
         max_nside: int,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: Path,
+        cache_dir: str,
         global_start_time: float,
         slack_interface: SlackInterface,
     ) -> None:
@@ -637,8 +650,6 @@ class PixelRecoCollector:
             max_nside,
             event_id,
             slack_interface,
-            report_interval_in_seconds=5 * 60,
-            skymap_plotting_interval_in_seconds=30 * 60,
         )
         self.global_start_time = global_start_time
         self.pixrecos_received: List[Tuple[int, int, int]] = []
@@ -686,8 +697,8 @@ class PixelRecoCollector:
 async def serve(
     event_id: str,
     state_dict: StateDict,
-    cache_dir: Path,
-    output_dir: Path,
+    cache_dir: str,
+    output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
@@ -748,7 +759,7 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
-    result = ScanResult.from_state_dict(state_dict)
+    result = ScanResult.from_nsides_dict(state_dict["nsides"])
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
@@ -770,7 +781,7 @@ async def serve_scan_iteration(
     from_clients_queue: mq.Queue,
     event_id: str,
     state_dict: StateDict,
-    cache_dir: Path,
+    cache_dir: str,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -789,7 +800,13 @@ async def serve_scan_iteration(
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
-            await pub.send(pframe)
+            await pub.send(
+                {
+                    "Pixel_PFrame": pframe,
+                    "GCDQp_Frames": state_dict["GCDQp_packet"],
+                    "base_GCD_filename_url": state_dict["baseline_GCD_file"],
+                }
+            )
 
     # check if anything was actually processed
     try:
@@ -843,9 +860,7 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    T = TypeVar("T")
-
-    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
+    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
         """Validation `val` by checking `test` and raise `exc` if that is falsy."""
         if test:
             return val
@@ -858,7 +873,7 @@ def main() -> None:
         required=True,
         help="The file containing the event to scan (.pkl or .json)",
         type=lambda x: _validate_arg(
-            Path(x),
+            x,
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
             argparse.ArgumentTypeError(
                 f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
@@ -866,14 +881,9 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--startup-files-dir",
+        "--event-mqname",
         required=True,
-        help="The dir to save the files needed to spawn clients",
-        type=lambda x: _validate_arg(
-            Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-        ),
+        help="identifier to correspond to the event for MQ connections",
     )
     parser.add_argument(
         "-c",
@@ -881,7 +891,7 @@ def main() -> None:
         required=True,
         help="The cache directory to use",
         type=lambda x: _validate_arg(
-            Path(x),
+            x,
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
@@ -892,7 +902,7 @@ def main() -> None:
         required=True,
         help="The directory to write out the .npz file",
         type=lambda x: _validate_arg(
-            Path(x),
+            x,
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
@@ -903,7 +913,7 @@ def main() -> None:
         required=True,
         help="The GCD directory to use",
         type=lambda x: _validate_arg(
-            Path(x),
+            x,
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
@@ -993,8 +1003,7 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    # read event file
-    if args.event_file.suffix == ".json":
+    if args.event_file.endswith(".json"):
         # json
         with open(args.event_file, "r") as fj:
             event_contents = json.load(fj)
@@ -1007,19 +1016,9 @@ def main() -> None:
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
         filestager=dataio.get_stagers(),
-        cache_dir=str(args.cache_dir),
-        override_GCD_filename=str(args.gcd_dir),
+        cache_dir=args.cache_dir,
+        override_GCD_filename=args.gcd_dir,
     )
-
-    # write startup files for client-spawning
-    with open(args.startup_files_dir / "mq-basename.txt", "w") as f:
-        # TODO: make string shorter
-        mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"
-        f.write(mq_basename)
-    with open(args.startup_files_dir / "baseline_GCD_file.txt", "w") as f:
-        f.write(state_dict["baseline_GCD_file"])
-    with open(args.startup_files_dir / "GCDQp_packet.pkl", "wb") as f:
-        pickle.dump(state_dict["GCDQp_packet"], f)
 
     # go!
     asyncio.get_event_loop().run_until_complete(
@@ -1030,8 +1029,8 @@ def main() -> None:
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{mq_basename}",
-            queue_from_clients=f"from-clients-{mq_basename}",
+            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
+            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,

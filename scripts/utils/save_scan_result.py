@@ -1,13 +1,14 @@
+"""Create a .npz file from the cache dir (by loading a state_dict).
+
+This is only helpful for generating historical scans, as v3 scans
+already have a .npz file created.
+"""
+
 import argparse
 import logging
 
-from pathlib import Path
-
 from icecube import dataio
-
-# not sure why this still has the icecube prefix
-from icecube.skymap_scanner import load_cache_state
-
+from skymap_scanner import load_cache_state
 from skymap_scanner.server.scan_result import ScanResult
 
 
@@ -37,22 +38,10 @@ def main():
     """
     The output filename is partially built inside the ScanResult class.
     """
-    result = ScanResult.from_state_dict(state_dict)
-
+    result = ScanResult.from_nsides_dict(state_dict["nsides"])
     output_file = result.save(eventID, output_path=args.output_path)
 
-    result_check = ScanResult.load(output_file)
-
-    result_check = ScanResult.load(output_file)
-
-    close = result.is_close(result_check)
-    equal = result == result_check
-
-    logger.info(
-        f"The loaded file is close? ({close}) and/or equal? ({equal}) to the source data."
-    )
-
-    return equal or close
+    print(f"Saved to {output_file}")
 
 
 if __name__ == "__main__":

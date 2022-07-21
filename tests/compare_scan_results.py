@@ -1,42 +1,103 @@
+"""Testing script for comparing two scan results (.npz files)."""
+
 import argparse
 import logging
-
+import sys
 from pathlib import Path
-
-from numpy import append
-
 
 from skymap_scanner.server.scan_result import ScanResult
 
 
 def main():
     """
-    Loads two scan results in numpy format and return the outcome of the comparison.
+    Loads two scan results in numpy format and exit with the outcome of the comparison.
     """
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser(description="Scan cache and dumps results to json")
 
     parser.add_argument(
-        "-f", "--files", help="Files to compare", nargs=2, required=True
+        "-a",
+        "--actual",
+        help="The first (actual) npz file",
+        required=True,
+        type=Path,
+    )
+    parser.add_argument(
+        "-e",
+        "--expected",
+        help="The second (expected) npz file",
+        required=True,
+        type=Path,
+    )
+    parser.add_argument(
+        "-d",
+        "--diff-out-dir",
+        help="Which dir to save any resulting .diff.json file (only if diff exists)",
+        default=".",
+    )
+    parser.add_argument(
+        "--assert",
+        dest="do_assert",
+        default=False,
+        action="store_true",
+        help="'assert' the results",
+    )
+    parser.add_argument(  # TODO: remove?
+        "--disqualify-zero-energy-pixels",
+        default=False,
+        action="store_true",
+        help='whether a zero-energy pixel value "disqualifies" the entire pixel\'s numerical results',
     )
 
     args = parser.parse_args()
 
-    results = [ScanResult.load(Path(f)) for f in args.files]
+    compare_then_exit(
+        ScanResult.load(args.actual),
+        args.actual,
+        ScanResult.load(args.expected),
+        args.expected,
+        args.do_assert,
+        args.diff_out_dir,
+        logger,
+        args.disqualify_zero_energy_pixels,  # TODO: remove?
+    )
 
-    close = results[0].is_close(results[1])
-    equal = results[0] == results[1]
+
+def compare_then_exit(
+    actual: ScanResult,
+    actual_fpath: Path,
+    expected: ScanResult,
+    expected_fpath: Path,
+    do_assert: bool,
+    diff_out_dir: str,
+    logger: logging.Logger,
+    do_disqualify_zero_energy_pixels: bool,  # TODO: remove?
+) -> None:
+    """Compare the results, dump a json diff file, and sys.exit."""
+    dump_json_diff = (
+        Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json"
+    )
+
+    # compare
+    close = actual.is_close(
+        expected,
+        dump_json_diff=dump_json_diff,
+        do_disqualify_zero_energy_pixels=do_disqualify_zero_energy_pixels,  # TODO: remove?
+    )
+    equal = actual == expected
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
 
     if equal or close:
-        return 0
+        sys.exit(0)
     else:
-        return 1
+        if do_assert:
+            assert False
+        sys.exit(1)
 
 
 if __name__ == "__main__":

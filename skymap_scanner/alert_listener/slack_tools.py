@@ -28,14 +28,14 @@ def upload_file(file_handle, filename, title):
     response = requests.post(
         API_BASE_URL.format(api=api),
         timeout=60,
-        params={'token': config.slack_api_key},
+        params={'token': config.env.SKYSCAN_SLACK_API_KEY},
         data={
             # 'content': content,
             # 'filetype': filetype,
             'filename': filename,
             'title': title,
             # 'initial_comment': initial_comment,
-            'channels': config.slack_channel
+            'channels': config.env.SKYSCAN_SLACK_CHANNEL
         },
         files={'file': file_handle}
         )
@@ -54,10 +54,10 @@ def post_message(text):
     response = requests.post(
         API_BASE_URL.format(api=api),
         timeout=10,
-        params={'token': config.slack_api_key},
+        params={'token': config.env.SKYSCAN_SLACK_API_KEY},
         data={
             'text': text,
-            'channel': config.slack_channel,
+            'channel': config.env.SKYSCAN_SLACK_CHANNEL,
             'as_user': False,
             'username': 'Marvin-the-Paranoid-Android',
             'icon_emoji': ':disappointed:',
