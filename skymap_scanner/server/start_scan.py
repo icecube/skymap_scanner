@@ -789,13 +789,7 @@ async def serve_scan_iteration(
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
-            await pub.send(
-                {
-                    "Pixel_PFrame": pframe,
-                    "GCDQp_Frames": state_dict["GCDQp_packet"],
-                    "base_GCD_filename_url": state_dict["baseline_GCD_file"],
-                }
-            )
+            await pub.send(pframe)
 
     # check if anything was actually processed
     try:

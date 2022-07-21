@@ -100,18 +100,6 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
     return GCD_diff_base_handle
 
 
-def read_in_pkl(in_pkl: Path) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
-    """Get event info and pixel from reading the in-file."""
-    with open(in_pkl, "rb") as f:
-        payload = pickle.load(f)
-
-    pframe = payload["Pixel_PFrame"]
-    gcdqp_frames = payload["GCDQp_Frames"]
-    base_GCD_filename_url = payload["base_GCD_filename_url"]
-
-    return pframe, gcdqp_frames, get_GCD_diff_base_handle(base_GCD_filename_url)
-
-
 def reco_pixel(
     pframe: icetray.I3Frame,
     gcdqp_frames: List[icetray.I3Frame],
@@ -315,16 +303,14 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get PFrame
-    pframe, _, GCD_diff_base_handle = read_in_pkl(args.in_pkl)
+    with open(args.in_pkl, "rb") as f:
+        pframe = pickle.load(f)
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_pkl, "rb") as f:
         GCDQp_packet = pickle.load(f)
 
     # get GCD_diff_base_handle
-    logging.debug(GCD_diff_base_handle)
-    logging.debug(get_GCD_diff_base_handle(args.baseline_GCD_file))
-    assert GCD_diff_base_handle == get_GCD_diff_base_handle(args.baseline_GCD_file)
     GCD_diff_base_handle = get_GCD_diff_base_handle(args.baseline_GCD_file)
 
     # go!
