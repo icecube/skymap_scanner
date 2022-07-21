@@ -114,7 +114,7 @@ class ScanResult:
         sre_pix: np.ndarray,
         ore_pix: np.ndarray,
         equal_nan: bool,
-        do_disqualify_zero_energy_pixels: bool,
+        do_disqualify_zero_energy_pixels: bool,  # TODO: remove?
     ) -> Tuple[List[float], List[bool]]:
         """Get the diff float-values and test truth-values for the 2 pixel-data.
 
@@ -122,15 +122,15 @@ class ScanResult:
 
         If `do_disqualify_zero_energy_pixels=True` there's an
         invalid datapoint value in either array, all "require close"
-        datapoints are considered (vacuously) close enough.
+        datapoints are considered (vacuously) close enough. # TODO: remove?
         """
         diff_vals = []
         test_vals = []
 
         # is one of the pixel-datapoints is "so bad" it has
         # disqualified all the other "require_close" datapoints?
-        is_pixel_disqualified = False
-        if do_disqualify_zero_energy_pixels:
+        is_pixel_disqualified = False  # TODO: remove?
+        if do_disqualify_zero_energy_pixels:  # TODO: remove?
             is_pixel_disqualified = any(
                 sre_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
                 or ore_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
@@ -163,7 +163,7 @@ class ScanResult:
         other: "ScanResult",
         equal_nan: bool = True,
         dump_json_diff: Optional[Path] = None,
-        do_disqualify_zero_energy_pixels: bool = False,
+        do_disqualify_zero_energy_pixels: bool = False,  # TODO: remove?
     ) -> bool:
         """
         Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
