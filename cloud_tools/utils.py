@@ -94,7 +94,7 @@ def parse_event_id(event_id_string):
 
 def load_GCD_frame_packet_from_file(filename, filestager=None):
     read_url = filename
-    for GCD_base_dir in config.GCD_base_dirs:
+    for GCD_base_dir in config.GCD_BASE_DIRS:
         potential_read_url = os.path.join(GCD_base_dir, filename)
         if os.path.isfile( potential_read_url ):
             read_url = potential_read_url

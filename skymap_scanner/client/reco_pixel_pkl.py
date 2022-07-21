@@ -45,9 +45,9 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         if not self.pixel:
             raise RuntimeError("self.pixel is not set")
 
-        self.gcdqp_frames = self.GetParameter("GCDQpFrames")
-        if not self.gcdqp_frames:
-            raise RuntimeError("self.gcdqp_frames is empty")
+        self.GCDQp_packet = self.GetParameter("GCDQpFrames")
+        if not self.GCDQp_packet:
+            raise RuntimeError("self.GCDQp_packet is empty")
 
     def Process(self) -> None:
         """Push the given frames."""
@@ -58,7 +58,7 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
             self.RequestSuspension()
             return
 
-        for frame in self.gcdqp_frames:
+        for frame in self.GCDQp_packet:
             LOGGER.debug(f"Pushing GCDQP Frame: {frame_for_logging(frame)}")
             self.PushFrame(frame)
 
@@ -68,16 +68,16 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         self._frames_loaded = True
 
 
-def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
+def get_GCD_diff_base_handle(baseline_GCD_file: str) -> str:
     # find an available GCD base path
     stagers = dataio.get_stagers()
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
-    if base_GCD_filename_url not in [None, "None"]:
-        for GCD_base_dir in config.GCD_base_dirs:
+    if baseline_GCD_file not in [None, "None"]:
+        for GCD_base_dir in config.GCD_BASE_DIRS:
             try:
-                read_url = os.path.join(GCD_base_dir, base_GCD_filename_url)
+                read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 LOGGER.debug("reading baseline GCD from {0}".format(read_url))
                 GCD_diff_base_handle = stagers.GetReadablePath(read_url)
                 if not os.path.isfile(str(GCD_diff_base_handle)):
@@ -92,35 +92,37 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
         if GCD_diff_base_handle is None:
             raise RuntimeError(
                 "Could not read the input GCD file '{0}' from any pre-configured location".format(
-                    base_GCD_filename_url
+                    baseline_GCD_file
                 )
             )
 
     return GCD_diff_base_handle
 
 
-def read_in_file(in_file: str) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
+def read_from_in_pkl(
+    in_file: str,
+) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
     """Get event info and pixel from reading the in-file."""
     with open(in_file, "rb") as f:
         payload = pickle.load(f)
 
     pframe = payload["Pixel_PFrame"]
-    gcdqp_frames = payload["GCDQp_Frames"]
-    base_GCD_filename_url = payload["base_GCD_filename_url"]
+    GCDQp_packet = payload["GCDQp_Frames"]
+    baseline_GCD_file = payload["base_GCD_filename_url"]
 
-    return pframe, gcdqp_frames, get_GCD_diff_base_handle(base_GCD_filename_url)
+    return pframe, GCDQp_packet, baseline_GCD_file
 
 
 def reco_pixel(
     pframe: icetray.I3Frame,
-    gcdqp_frames: List[icetray.I3Frame],
+    GCDQp_packet: List[icetray.I3Frame],
     GCD_diff_base_handle: str,
     out_file: str,
 ) -> str:
     """Actually do the reco."""
     LOGGER.info(f"Reco'ing pixel: {pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
-    for frame in gcdqp_frames:
+    for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{str(GCD_diff_base_handle)=}")
 
@@ -162,7 +164,7 @@ def reco_pixel(
         LoadInitialFrames,
         "LoadInitialFrames",
         Pixel=pframe,
-        GCDQpFrames=gcdqp_frames,
+        GCDQpFrames=GCDQp_packet,
     )
 
     def makeSurePulsesExist(frame) -> None:
@@ -294,10 +296,15 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get inputs
-    pframe, gcdqp_frames, GCD_diff_base_handle = read_in_file(args.in_file)
+    pframe, GCDQp_packet, baseline_GCD_file = read_from_in_pkl(args.in_file)
 
     # go!
-    reco_pixel(pframe, gcdqp_frames, GCD_diff_base_handle, args.out_file)
+    reco_pixel(
+        pframe,
+        GCDQp_packet,
+        get_GCD_diff_base_handle(baseline_GCD_file),
+        args.out_file,
+    )
     LOGGER.info("Done reco'ing pixel.")
 
 
