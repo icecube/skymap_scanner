@@ -16,6 +16,6 @@ docker run --network="host" --rm -i \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     icecube/skymap_scanner:latest \
     python -m skymap_scanner.client.reco_pixel_pkl \
-    --in-file /local/pkls/$(basename $1) \
-    --out-file /local/pkls/out.pkl \
+    --in-pkl /local/pkls/$(basename $1) \
+    --out-pkl /local/pkls/out.pkl \
     --log DEBUG

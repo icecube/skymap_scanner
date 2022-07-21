@@ -8,7 +8,7 @@ import logging
 import os
 import pickle
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any, List
 
 from I3Tray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -69,7 +69,7 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         self._frames_loaded = True
 
 
-def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> Any:
+def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
     """Find an available GCD base path."""
     stagers = dataio.get_stagers()
 
@@ -102,7 +102,7 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> Any:
 
 def reco_pixel(
     pframe: icetray.I3Frame,
-    gcdqp_frames: List[icetray.I3Frame],
+    GCDQp_packet: List[icetray.I3Frame],
     GCD_diff_base_handle: Any,
     out_pkl: Path,
 ) -> Path:
