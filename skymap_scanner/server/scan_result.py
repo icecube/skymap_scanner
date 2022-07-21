@@ -172,7 +172,7 @@ class ScanResult:
         file containing every diff at the pixel-data level.
         """
         close: Dict[str, bool] = {}  # one bool for each nside value
-        diffs = []  # a large (~4x size of self.results) list of dicts w/ per-pixel info
+        diffs: Dict[str, list] = {}  # (~4x size of self.results) w/ per-pixel info
 
         # now check individual nside-iterations
         for nside in sorted(self.result.keys() & other.result.keys(), reverse=True):
@@ -202,7 +202,7 @@ class ScanResult:
                 nside_diffs.append(pix_diff)
 
             if dump_json_diff:  # can be a lot of data, so only save it if we're dumping
-                diffs.append(nside_diffs)
+                diffs[nside] = nside_diffs
 
             # aggregate test-truth values
             nside_equal = {
