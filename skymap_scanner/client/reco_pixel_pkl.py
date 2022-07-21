@@ -69,8 +69,8 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         self._frames_loaded = True
 
 
-def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
-    # find an available GCD base path
+def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> Any:
+    """Find an available GCD base path."""
     stagers = dataio.get_stagers()
 
     # try to load the base file from the various possible input directories
@@ -103,7 +103,7 @@ def get_GCD_diff_base_handle(base_GCD_filename_url: str) -> str:
 def reco_pixel(
     pframe: icetray.I3Frame,
     gcdqp_frames: List[icetray.I3Frame],
-    GCD_diff_base_handle: str,
+    GCD_diff_base_handle: Any,
     out_pkl: Path,
 ) -> Path:
     """Actually do the reco."""
