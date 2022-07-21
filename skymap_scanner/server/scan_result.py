@@ -58,7 +58,7 @@ class ScanResult:
             "E_in": 1e-2,
             "E_tot": 1e-2,
         }
-        self.zeros_disqualify_pixel = [
+        self.cannot_be_zero_fields = [
             # if field's val is 0, then all the pixel's numerical datapoints are "isclose"
             "E_in",
             "E_tot",
@@ -90,7 +90,7 @@ class ScanResult:
                 f"Datapoint field ({field}) cannot be compared by "
                 f"'is_close_datapoint()', must use '=='"
             )
-        if field in self.zeros_disqualify_pixel and (s_val == 0.0 or o_val == 0.0):
+        if field in self.cannot_be_zero_fields and (s_val == 0.0 or o_val == 0.0):
             raise InvalidPixelValueError(f"field={field}, values={(s_val, o_val)}")
         try:
             rdiff = (abs(s_val - o_val) - self.ATOL) / abs(o_val)  # used by np.isclose
@@ -110,11 +110,17 @@ class ScanResult:
         )
 
     def diff_pixel_data(
-        self, sre_pix: np.ndarray, ore_pix: np.ndarray, equal_nan: bool
+        self,
+        sre_pix: np.ndarray,
+        ore_pix: np.ndarray,
+        equal_nan: bool,
+        do_disqualify_zero_energy_pixels: bool,
     ) -> Tuple[List[float], List[bool]]:
         """Get the diff float-values and test truth-values for the 2 pixel-data.
 
-        The datapoints are compared face-to-face. If there's a
+        The datapoints are compared face-to-face (zipped).
+
+        If `do_disqualify_zero_energy_pixels=True` there's an
         invalid datapoint value in either array, all "require close"
         datapoints are considered (vacuously) close enough.
         """
@@ -123,22 +129,27 @@ class ScanResult:
 
         # is one of the pixel-datapoints is "so bad" it has
         # disqualified all the other "require_close" datapoints?
-        skip_all_requireclose_datapoints = any(
-            sre_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
-            or ore_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
-            for f in self.zeros_disqualify_pixel
-        )
+        is_pixel_disqualified = False
+        if do_disqualify_zero_energy_pixels:
+            is_pixel_disqualified = any(
+                sre_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
+                or ore_pix[self.PIXEL_TYPE.names.index(f)] == 0.0
+                for f in self.cannot_be_zero_fields
+            )
 
         for s_val, o_val, field in zip(sre_pix, ore_pix, self.PIXEL_TYPE.names):
             s_val, o_val = float(s_val), float(o_val)
-            if field in self.require_close:
-                # a "require close" datapoint (non-disqualified)
-                if not skip_all_requireclose_datapoints:
+
+            # CASE 1: a disqualified-pixel "require close" datapoint
+            if field in self.require_close and is_pixel_disqualified:
+                diff, test = float("nan"), True  # vacuously true
+            # CASE 2: a "require close" datapoint (not disqualified-pixel)
+            elif field in self.require_close:
+                try:
                     diff, test = self.is_close_datapoint(s_val, o_val, field, equal_nan)
-                # a disqualified "require close" datapoint
-                else:
-                    diff, test = float("nan"), True  # vacuously true
-            # a "require equal" datapoint
+                except InvalidPixelValueError:
+                    diff, test = float("nan"), True
+            # CASE 3: a "require equal" datapoint
             else:
                 diff, test = s_val - o_val, s_val == o_val
 
@@ -152,6 +163,7 @@ class ScanResult:
         other: "ScanResult",
         equal_nan: bool = True,
         dump_json_diff: Optional[Path] = None,
+        do_disqualify_zero_energy_pixels: bool = False,
     ) -> bool:
         """
         Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
@@ -176,7 +188,9 @@ class ScanResult:
                 other.result.get(nside, []),  # empty-list -> fillvalue
                 fillvalue=np.full((len(self.PIXEL_TYPE.names),), np.nan),  # 1 vector
             ):
-                diff_vals, test_vals = self.diff_pixel_data(sre_pix, ore_pix, equal_nan)
+                diff_vals, test_vals = self.diff_pixel_data(
+                    sre_pix, ore_pix, equal_nan, do_disqualify_zero_energy_pixels
+                )
                 pix_diff = [
                     tuple(sre_pix.tolist()),
                     tuple(ore_pix.tolist()),
