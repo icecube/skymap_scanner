@@ -320,10 +320,16 @@ def main() -> None:
     # get GCDQp_packet
     with open(args.GCDQp_packet_pkl, "rb") as f:
         tmp = pickle.load(f)
+        for frame in GCDQp_packet:
+            logging.debug(str(frame))
+        for frame in tmp:
+            logging.debug(str(frame))
         assert GCDQp_packet == tmp
         GCDQp_packet = tmp
 
     # get GCD_diff_base_handle
+    logging.debug(GCD_diff_base_handle)
+    logging.debug(get_GCD_diff_base_handle(args.baseline_GCD_file))
     assert GCD_diff_base_handle == get_GCD_diff_base_handle(args.baseline_GCD_file)
     GCD_diff_base_handle = get_GCD_diff_base_handle(args.baseline_GCD_file)
 
