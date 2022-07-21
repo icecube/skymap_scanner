@@ -52,6 +52,12 @@ def main():
         action="store_true",
         help="'assert' the results",
     )
+    parser.add_argument(
+        "--disqualify-zero-energy-pixels",
+        default=False,
+        action="store_true",
+        help='whether a zero-energy pixel value "disqualifies" the entire pixel\'s numerical results',
+    )
 
     args = parser.parse_args()
 
@@ -85,6 +91,7 @@ def main():
         args.do_assert,
         args.diff_out_dir,
         logger,
+        args.disqualify_zero_energy_pixels,
     )
 
 

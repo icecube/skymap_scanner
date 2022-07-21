@@ -46,6 +46,12 @@ def main():
         action="store_true",
         help="'assert' the results",
     )
+    parser.add_argument(
+        "--disqualify-zero-energy-pixels",
+        default=False,
+        action="store_true",
+        help='whether a zero-energy pixel value "disqualifies" the entire pixel\'s numerical results',
+    )
 
     args = parser.parse_args()
 
@@ -57,6 +63,7 @@ def main():
         args.do_assert,
         args.diff_out_dir,
         logger,
+        args.disqualify_zero_energy_pixels,
     )
 
 
@@ -68,6 +75,7 @@ def compare_then_exit(
     do_assert: bool,
     diff_out_dir: str,
     logger: logging.Logger,
+    do_disqualify_zero_energy_pixels: bool,
 ) -> None:
     """Compare the results, dump a json diff file, and sys.exit."""
     dump_json_diff = (
@@ -75,7 +83,11 @@ def compare_then_exit(
     )
 
     # compare
-    close = actual.is_close(expected, dump_json_diff=dump_json_diff)
+    close = actual.is_close(
+        expected,
+        dump_json_diff=dump_json_diff,
+        do_disqualify_zero_energy_pixels=do_disqualify_zero_energy_pixels,
+    )
     equal = actual == expected
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")

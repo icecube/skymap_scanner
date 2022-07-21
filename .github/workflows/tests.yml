@@ -107,6 +107,7 @@ jobs:
           python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
             --actual $outfile \
             --expected $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
+            --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls *.diff.json) && false)
 
@@ -147,5 +148,6 @@ jobs:
       #       --actual /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/${{ matrix.pkl-prefix }}.out.pkl \
       #       --expected /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/out.pkl \
       #       --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
+      #       --disqualify-zero-energy-pixels \
       #       --assert \
       #       || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json) && false)
