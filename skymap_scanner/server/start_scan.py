@@ -10,7 +10,8 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
 
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
@@ -528,10 +529,10 @@ class PixelRecoSaver:
         self,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: str,
+        cache_dir: Path,
     ) -> None:
         self.state_dict = state_dict
-        self.this_event_cache_dir = os.path.join(cache_dir, event_id)
+        self.this_event_cache_dir = cache_dir / event_id
 
     def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
         """Save pixel-reco to state_dict and disk cache.
@@ -610,7 +611,7 @@ class PixelRecoSaver:
 
     def save_to_disk_cache(self, nside: int, pixel: int, frame: icetray.I3Frame) -> None:
         """Save this frame to the disk cache."""
-        nside_dir = os.path.join(self.this_event_cache_dir, "nside{0:06d}".format(nside))
+        nside_dir = os.path.join(str(self.this_event_cache_dir), "nside{0:06d}".format(nside))
         if not os.path.exists(nside_dir):
             os.mkdir(nside_dir)
         pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
@@ -630,7 +631,7 @@ class PixelRecoCollector:
         max_nside: int,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: str,
+        cache_dir: Path,
         global_start_time: float,
         slack_interface: SlackInterface,
     ) -> None:
@@ -781,7 +782,7 @@ async def serve_scan_iteration(
     from_clients_queue: mq.Queue,
     event_id: str,
     state_dict: StateDict,
-    cache_dir: str,
+    cache_dir: Path,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -800,13 +801,7 @@ async def serve_scan_iteration(
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
-            await pub.send(
-                {
-                    "Pixel_PFrame": pframe,
-                    "GCDQp_Frames": state_dict["GCDQp_packet"],
-                    "base_GCD_filename_url": state_dict["baseline_GCD_file"],
-                }
-            )
+            await pub.send(pframe)
 
     # check if anything was actually processed
     try:
@@ -860,7 +855,9 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+    T = TypeVar("T")
+
+    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
         """Validation `val` by checking `test` and raise `exc` if that is falsy."""
         if test:
             return val
@@ -873,7 +870,7 @@ def main() -> None:
         required=True,
         help="The file containing the event to scan (.pkl or .json)",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
             argparse.ArgumentTypeError(
                 f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
@@ -881,9 +878,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--event-mqname",
+        "--startup-files-dir",
         required=True,
-        help="identifier to correspond to the event for MQ connections",
+        help="The dir to save the files needed to spawn clients",
+        type=lambda x: _validate_arg(
+            Path(x),
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
     )
     parser.add_argument(
         "-c",
@@ -902,7 +904,7 @@ def main() -> None:
         required=True,
         help="The directory to write out the .npz file",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
@@ -913,7 +915,7 @@ def main() -> None:
         required=True,
         help="The GCD directory to use",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
@@ -1003,22 +1005,33 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    if args.event_file.endswith(".json"):
+    # read event file
+    if args.event_file.suffix == ".json":
         # json
-        with open(args.event_file, "r") as fj:
-            event_contents = json.load(fj)
+        with open(args.event_file, "r") as f:
+            event_contents = json.load(f)
     else:
         # pickle
-        with open(args.event_file, "rb") as fp:
-            event_contents = pickle.load(fp)
+        with open(args.event_file, "rb") as f:
+            event_contents = pickle.load(f)
 
     # get inputs (load event_id + state_dict cache)
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
         filestager=dataio.get_stagers(),
-        cache_dir=args.cache_dir,
-        override_GCD_filename=args.gcd_dir,
+        cache_dir=str(args.cache_dir),
+        override_GCD_filename=str(args.gcd_dir),
     )
+
+    # write startup files for client-spawning
+    with open(args.startup_files_dir / "mq-basename.txt", "w") as f:
+        # TODO: make string shorter
+        mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"
+        f.write(mq_basename)
+    with open(args.startup_files_dir / "baseline_GCD_file.txt", "w") as f:
+        f.write(state_dict["baseline_GCD_file"])
+    with open(args.startup_files_dir / "GCDQp_packet.pkl", "wb") as f:
+        pickle.dump(state_dict["GCDQp_packet"], f)
 
     # go!
     asyncio.get_event_loop().run_until_complete(
@@ -1029,8 +1042,8 @@ def main() -> None:
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
-            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            queue_to_clients=f"to-clients-{mq_basename}",
+            queue_from_clients=f"from-clients-{mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,
