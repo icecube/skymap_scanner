@@ -81,7 +81,7 @@ jobs:
           # wait until the mq-basename.txt file exists (with a timeout)
           endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
           while [[ $(date -u +%s) -le $endtime ]]; do
-            if [ -e $GITHUB_WORKSPACE/mq-basename.txt && -e $GITHUB_WORKSPACE/baseline_GCD_file.txt && -e $GITHUB_WORKSPACE/GCDQp_packet.pkl ]; then
+            if [[ -e $GITHUB_WORKSPACE/mq-basename.txt && -e $GITHUB_WORKSPACE/baseline_GCD_file.txt && -e $GITHUB_WORKSPACE/GCDQp_packet.pkl ]]; then
               break
             fi
             sleep 5
