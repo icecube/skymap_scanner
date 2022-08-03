@@ -18,6 +18,7 @@ env:
   PULSAR_AUTH: ""
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_REPORT_INTERVAL_SEC: 60
+  CI_TESTING_USE_LOCAL_DOCKER: 1
 
 jobs:
 
@@ -41,7 +42,6 @@ jobs:
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
-      CI_TESTING_USE_LOCAL_DOCKER: 1
     steps:
       - uses: actions/checkout@v3
       - uses: cvmfs-contrib/github-action-cvmfs@v2
