@@ -84,6 +84,7 @@ jobs:
             if [[ -e $GITHUB_WORKSPACE/mq-basename.txt && -e $GITHUB_WORKSPACE/baseline_GCD_file.txt && -e $GITHUB_WORKSPACE/GCDQp_packet.pkl ]]; then
               break
             fi
+            echo "waiting for startup files..."
             sleep 5
           done
 
