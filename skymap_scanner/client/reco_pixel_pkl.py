@@ -21,7 +21,8 @@ from icecube.frame_object_diff.segments import uncompress  # type: ignore[import
 from wipac_dev_tools import logging_tools
 
 from .. import config
-from ..utils import pixel_to_tuple
+from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
+from ..utils import PixelReco, pixel_to_tuple, save_GCD_frame_packet_to_file
 from .millipede_traysegment import millipede_traysegment
 
 LOGGER = logging.getLogger("skyscan-client-reco")
@@ -69,6 +70,53 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         self._frames_loaded = True
 
 
+def get_pixelreco(
+    baseline_GCD_file: str,
+    GCDQp_packet: List[icetray.I3Frame],
+    frame: icetray.I3Frame,
+) -> PixelReco:
+    """Get self as a PixelReco instance."""
+
+    # Calculate reco losses, based on load_scan_state()
+    # apparently baseline GCD is sufficient here
+    # maybe filestager can be None
+    geometry = get_baseline_gcd_frames(
+        baseline_GCD_file, GCDQp_packet, filestager=dataio.get_stagers()
+    )[0]
+
+    try:
+        reco_losses_inside, reco_losses_total = get_reco_losses_inside(
+            p_frame=frame, g_frame=geometry
+        )
+    except KeyError as e:
+        LOGGER.error(f"Missing attribute in Geometry frame: {e}")
+        LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
+        raise
+
+    return PixelReco(
+        nside=frame["SCAN_HealpixNSide"].value,
+        pixel=frame["SCAN_HealpixPixel"].value,
+        llh=frame["SCAN_LLH_Value"],
+        reco_losses_inside=reco_losses_inside,
+        reco_losses_total=reco_losses_total,
+        pos_var_index=frame["SCAN_PositionVariationIndex"].value,
+    )
+
+
+def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
+    """Save this frame to the disk cache."""
+    nside = frame["SCAN_HealpixNSide"].value
+    pixel = frame["SCAN_HealpixPixel"].value
+
+    nside_dir = save_dir / "nside{0:06d}".format(nside)
+    nside_dir.mkdir(parents=True, exist_ok=True)
+
+    pixel_file_name = nside_dir / "pix{0:012d}.i3".format(pixel)
+
+    save_GCD_frame_packet_to_file([frame], str(pixel_file_name))
+    return pixel_file_name
+
+
 def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
     """Find an available GCD base path."""
     stagers = dataio.get_stagers()
@@ -103,7 +151,7 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
 def reco_pixel(
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
-    GCD_diff_base_handle: Any,
+    baseline_GCD_file: str,
     out_pkl: Path,
 ) -> Path:
     """Actually do the reco."""
@@ -111,7 +159,7 @@ def reco_pixel(
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
-    LOGGER.info(f"{str(GCD_diff_base_handle)=}")
+    LOGGER.info(f"{baseline_GCD_file=}")
 
     # Constants ########################################################
 
@@ -181,12 +229,12 @@ def reco_pixel(
             base_filename=base_GCD_filename,
         )
 
-    if GCD_diff_base_handle is not None:
+    if GCD_diff_base_handle := get_GCD_diff_base_handle(baseline_GCD_file):
         tray.Add(
             UncompressGCD,
             "GCD_uncompress",
             base_GCD_path="",
-            base_GCD_filename=str(GCD_diff_base_handle),
+            base_GCD_filename=GCD_diff_base_handle,
         )
 
     # TODO (FUTURE DEV) - change reco algo based on some pkl attribute
@@ -211,12 +259,13 @@ def reco_pixel(
             return
         if out_pkl.exists():
             raise FileExistsError(out_pkl)
+        save_to_disk_cache(frame, out_pkl.parent)
         with open(out_pkl, "wb") as f:
             LOGGER.info(
                 f"Pickle-dumping reco {pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            pickle.dump(frame, f)
+            pickle.dump(get_pixelreco(baseline_GCD_file, GCDQp_packet, frame), f)
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
@@ -312,11 +361,8 @@ def main() -> None:
     with open(args.GCDQp_packet_pkl, "rb") as f:
         GCDQp_packet = pickle.load(f)
 
-    # get GCD_diff_base_handle
-    GCD_diff_base_handle = get_GCD_diff_base_handle(args.baseline_GCD_file)
-
     # go!
-    reco_pixel(pframe, GCDQp_packet, GCD_diff_base_handle, args.out_pkl)
+    reco_pixel(pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)
     LOGGER.info("Done reco'ing pixel.")
 
 

@@ -1,5 +1,6 @@
 """The Skymap Scanner Server."""
 
+# pylint: disable=invalid-name
 
 import argparse
 import asyncio
@@ -21,13 +22,7 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import config, extract_json_message
-from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
-from ..utils import (
-    StateDict,
-    get_event_mjd,
-    pixel_to_tuple,
-    save_GCD_frame_packet_to_file,
-)
+from ..utils import PixelReco, StateDict, get_event_mjd, pixel_to_tuple
 from .choose_new_pixels_to_scan import (
     MAX_NSIDE_DEFAULT,
     MIN_NSIDE_DEFAULT,
@@ -453,6 +448,7 @@ class PixelsToReco:
             yield p_frame
 
 
+# fmt: on
 class BestPixelRecoFinder:
     """Facilitate finding the best reco result for any pixel."""
 
@@ -464,48 +460,32 @@ class BestPixelRecoFinder:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
 
-        self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
+        self.pixelNumToFramesMap: Dict[NSidePixelPair, List[PixelReco]] = {}
 
-    def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
-        """Add frame to internal cache and possibly return the best reco for pixel.
+    def cache_and_get_best(self, pixreco: PixelReco) -> Optional[PixelReco]:
+        """Add pixreco to internal cache and possibly return the best reco for pixel.
 
         If all the recos for the embedded pixel have be received,
         return the best one. Otherwise, return None.
         """
-        if "SCAN_HealpixNSide" not in frame:
-            raise RuntimeError("SCAN_HealpixNSide not in frame")
-        if "SCAN_HealpixPixel" not in frame:
-            raise RuntimeError("SCAN_HealpixPixel not in frame")
-        if "SCAN_PositionVariationIndex" not in frame:
-            raise RuntimeError("SCAN_PositionVariationIndex not in frame")
-
-        nside = frame["SCAN_HealpixNSide"].value
-        pixel = frame["SCAN_HealpixPixel"].value
-        index = (nside,pixel)
-        posVarIndex = frame["SCAN_PositionVariationIndex"].value
+        index = (pixreco.nside, pixreco.pixel)
 
         if index not in self.pixelNumToFramesMap:
             self.pixelNumToFramesMap[index] = []
-        self.pixelNumToFramesMap[index].append(frame)
+        self.pixelNumToFramesMap[index].append(pixreco)
 
         if len(self.pixelNumToFramesMap[index]) >= self.n_posvar:
-            bestFrame = None
-            bestFrameLLH = None
-            for frame in self.pixelNumToFramesMap[index]:
-                if "MillipedeStarting2ndPass_millipedellh" in frame:
-                    thisLLH = frame["MillipedeStarting2ndPass_millipedellh"].logl
-                else:
-                    thisLLH = numpy.nan
-                if (bestFrame is None) or ((thisLLH < bestFrameLLH) and (not numpy.isnan(thisLLH))):
-                    bestFrame=frame
-                    bestFrameLLH=thisLLH
+            # find minimum llh
+            best = None
+            for this in self.pixelNumToFramesMap[index]:
+                if (not best) or (this.llh < best.llh and not numpy.isnan(this.llh)):
+                    best = this
+            if best is None:
+                # just push the first if all of them are nan
+                best = self.pixelNumToFramesMap[index][0]
 
-            if bestFrame is None:
-                # just push the first frame if all of them are nan
-                bestFrame = self.pixelNumToFramesMap[index][0]
-
-            del self.pixelNumToFramesMap[index]
-            return bestFrame
+            del self.pixelNumToFramesMap[index]  # del list
+            return best
 
         return None
 
@@ -522,104 +502,6 @@ class BestPixelRecoFinder:
             )
 
 
-class PixelRecoSaver:
-    """Facilitate saving pixel-reco results to disk."""
-
-    def __init__(
-        self,
-        state_dict: StateDict,
-        event_id: str,
-        cache_dir: Path,
-    ) -> None:
-        self.state_dict = state_dict
-        self.this_event_cache_dir = cache_dir / event_id
-
-    def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
-        """Save pixel-reco to state_dict and disk cache.
-
-        Locations:
-            state_dict: @ state_dict["nsides"][nside][pixel]
-            disk cache: @ `self.this_event_cache_dir` as .i3 file
-
-        Raise errors for invalid frame or already saved pixel-reco.
-
-        Makes dirs as needed.
-        """
-        if "SCAN_HealpixNSide" not in frame:
-            raise RuntimeError("SCAN_HealpixNSide not in frame")
-        if "SCAN_HealpixPixel" not in frame:
-            raise RuntimeError("SCAN_HealpixPixel not in frame")
-        if "SCAN_PositionVariationIndex" not in frame:
-            raise RuntimeError("SCAN_PositionVariationIndex not in frame")
-
-        nside = frame["SCAN_HealpixNSide"].value
-        pixel = frame["SCAN_HealpixPixel"].value
-
-        # insert pixel data into state_dict
-        if nside not in self.state_dict["nsides"]:
-            self.state_dict["nsides"][nside] = {}
-        if pixel in self.state_dict["nsides"][nside]:
-            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
-        self.state_dict["nsides"][nside][pixel] = self.get_pixel_data(
-            self.state_dict["baseline_GCD_file"],
-            self.state_dict["GCDQp_packet"],
-            frame,
-        )
-
-        self.save_to_disk_cache(nside, pixel, frame)
-
-        return frame
-
-    @staticmethod
-    def get_pixel_data(
-        baseline_GCD_file: str,  # pylint:disable=invalid-name
-        GCDQp_packet: List[icetray.I3Frame],  # pylint:disable=invalid-name
-        frame: icetray.I3Frame
-    ) -> Dict[str, Any]:
-        """Get frame, llh, recoLossesInside, and recoLossesTotal packaged in a dict."""
-
-        if "MillipedeStarting2ndPass" not in frame:
-            raise RuntimeError("\"MillipedeStarting2ndPass\" not found in reconstructed frame")
-        if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            llh = numpy.nan
-            # raise RuntimeError("\"MillipedeStarting2ndPass_millipedellh\" not found in reconstructed frame")
-        else:
-            llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
-
-        # Calculate reco losses, based on load_scan_state()
-        # apparently baseline GCD is sufficient here
-        # maybe filestager can be None
-        geometry = get_baseline_gcd_frames(
-            baseline_GCD_file,
-            GCDQp_packet,
-            filestager=dataio.get_stagers()
-        )[0]
-
-        try:
-            recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
-        except KeyError as e:
-            LOGGER.error(f"Missing attribute in Geometry frame: {e}")
-            LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
-            raise
-
-        return dict(
-            frame=frame,
-            llh=llh,
-            recoLossesInside=recoLossesInside,
-            recoLossesTotal=recoLossesTotal
-        )
-
-    def save_to_disk_cache(self, nside: int, pixel: int, frame: icetray.I3Frame) -> None:
-        """Save this frame to the disk cache."""
-        nside_dir = os.path.join(str(self.this_event_cache_dir), "nside{0:06d}".format(nside))
-        if not os.path.exists(nside_dir):
-            os.mkdir(nside_dir)
-        pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
-
-        save_GCD_frame_packet_to_file([frame], pixel_file_name)
-
-
-# fmt: on
 class PixelRecoCollector:
     """Manage the collecting, filtering, reporting, and saving of pixel-reco results."""
 
@@ -631,17 +513,11 @@ class PixelRecoCollector:
         max_nside: int,
         state_dict: StateDict,
         event_id: str,
-        cache_dir: Path,
         global_start_time: float,
         slack_interface: SlackInterface,
     ) -> None:
         self.finder = BestPixelRecoFinder(
             n_posvar=n_posvar,
-        )
-        self.saver = PixelRecoSaver(
-            state_dict=state_dict,
-            event_id=event_id,
-            cache_dir=cache_dir,
         )
         self.progress_reporter = ProgressReporter(
             state_dict,
@@ -652,8 +528,9 @@ class PixelRecoCollector:
             event_id,
             slack_interface,
         )
+        self.state_dict = state_dict
         self.global_start_time = global_start_time
-        self.pixrecos_received: List[Tuple[int, int, int]] = []
+        self.pixreco_ids_received: List[Tuple[int, int, int]] = []
 
     def __enter__(self) -> "PixelRecoCollector":
         self.progress_reporter.initial_report(self.global_start_time)
@@ -663,33 +540,32 @@ class PixelRecoCollector:
         self.progress_reporter.finish()
         self.finder.finish()
 
-    def collect(self, pixreco: icetray.I3Frame) -> None:
+    def collect(self, pixreco: PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
-        LOGGER.debug(f"{self.saver.state_dict=}")
+        LOGGER.debug(f"{self.state_dict=}")
 
-        pixreco_tuple = pixel_to_tuple(pixreco)
-        if pixreco_tuple in self.pixrecos_received:
+        if pixreco.id_tuple in self.pixreco_ids_received:
             raise DuplicatePixelRecoException(
-                f"Pixel-reco has already been received: {pixreco_tuple}"
+                f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
-        self.pixrecos_received.append(pixreco_tuple)
-        pixreco_id = f"S#{len(self.pixrecos_received) - 1}"
-        LOGGER.info(f"Got a pixel-reco {pixreco_id} {pixreco}")
+        self.pixreco_ids_received.append(pixreco.id_tuple)
+        logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
+        LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
         best = self.finder.cache_and_get_best(pixreco)
-        LOGGER.info(f"Cached pixel-reco {pixreco_tuple}")
+        LOGGER.info(f"Cached pixel-reco {pixreco.id_tuple} {pixreco}")
 
         # save best pixreco (if we got it)
         if not best:
-            LOGGER.debug(f"Best pixel-reco not yet found ({pixreco_tuple}")
+            LOGGER.debug(f"Best pixel-reco not yet found ({pixreco.id_tuple} {pixreco}")
         else:
             LOGGER.info(
-                f"Saving a BEST pixel-reco (found {pixreco_id}): "
-                f"{pixel_to_tuple(best)} {best}"
+                f"Saving a BEST pixel-reco (found {logging_id}): "
+                f"{best.id_tuple} {best}"
             )
-            self.saver.save(best)
-            LOGGER.debug(f"Saved (found during {pixreco_id}): {pixel_to_tuple(best)}")
+            self.state_dict["nsides"][best.nside][best.pixel] = best
+            LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
         self.progress_reporter.record_pixreco()
@@ -698,7 +574,6 @@ class PixelRecoCollector:
 async def serve(
     event_id: str,
     state_dict: StateDict,
-    cache_dir: Path,
     output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
@@ -746,7 +621,6 @@ async def serve(
             from_clients_queue,
             event_id,
             state_dict,
-            cache_dir,
             global_start_time,
             pixeler,
             slack_interface,
@@ -782,7 +656,6 @@ async def serve_scan_iteration(
     from_clients_queue: mq.Queue,
     event_id: str,
     state_dict: StateDict,
-    cache_dir: Path,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -822,7 +695,6 @@ async def serve_scan_iteration(
         max_nside=pixeler.max_nside,
         state_dict=state_dict,
         event_id=event_id,
-        cache_dir=cache_dir,
         global_start_time=global_start_time,
         slack_interface=slack_interface,
     )
@@ -832,12 +704,14 @@ async def serve_scan_iteration(
     with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
             async for pixreco in sub:
+                if not isinstance(PixelReco, pixreco):
+                    raise ValueError(f"Message not {PixelReco}: {type(pixreco)}")
                 try:
                     col.collect(pixreco)
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if len(col.pixrecos_received) == n_pixreco:
+                if len(col.pixreco_ids_received) == n_pixreco:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
@@ -1040,7 +914,6 @@ def main() -> None:
         serve(
             event_id=event_id,
             state_dict=state_dict,
-            cache_dir=args.cache_dir,
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,

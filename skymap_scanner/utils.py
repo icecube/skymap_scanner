@@ -3,6 +3,7 @@
 # fmt: off
 # pylint: skip-file
 
+import dataclasses
 import hashlib
 import os
 from typing import Any, Dict, List, Tuple
@@ -149,6 +150,8 @@ def extract_MC_truth(state_dict):
 
 
 # fmt: on
+
+
 def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
     """Get a tuple representing a pixel PFrame for logging."""
     return (
@@ -156,6 +159,20 @@ def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
         pixel["SCAN_HealpixPixel"].value,
         pixel["SCAN_PositionVariationIndex"].value,
     )
+
+
+@dataclasses.dataclass
+class PixelReco:
+    nside: int
+    pixel: int
+    llh: float
+    reco_losses_inside: float
+    reco_losses_total: float
+    pos_var_index: int
+    id_tuple: Tuple[int, int, int] = dataclasses.field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
 
 
 # fmt: off

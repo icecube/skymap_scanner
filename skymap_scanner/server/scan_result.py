@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+from ..utils import PixelReco
+
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
@@ -270,18 +272,21 @@ class ScanResult:
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
             for i, pixel in enumerate(sorted(nsides_dict[nside])):
-                pixel_data = nsides_dict[nside][pixel]
-                try:
-                    llh = pixel_data["llh"]
-                    E_in = pixel_data["recoLossesInside"]
-                    E_tot = pixel_data["recoLossesTotal"]
-                except KeyError:
-                    logger.warning(KeyError)
-                    logger.warning(
-                        f"Missing data for pixel {pixel} having keys {pixel_data.keys()}"
-                    )
-                    raise
-                v[i] = (pixel, llh, E_in, E_tot)
+                pixreco = nsides_dict[nside][pixel]
+                if (
+                    not isinstance(pixreco, PixelReco)
+                    or nside != pixreco.nside
+                    or pixel != pixreco.pixel
+                ):
+                    msg = f"Invalid {PixelReco} for {(nside,pixel)}: {pixreco}"
+                    logging.error(msg)
+                    raise ValueError(msg)
+                v[i] = (
+                    pixel,  # index
+                    pixreco.llh,  # llh
+                    pixreco.reco_losses_inside,  # E_in
+                    pixreco.reco_losses_total,  # E_tot
+                )
             key = cls.format_nside(nside)
             out[key] = v
 
@@ -309,7 +314,7 @@ class ScanResult:
             result[key] = npz[key]
         return cls(result=result)
 
-    def save(self, event_id, output_path=None):
+    def save(self, event_id, output_path=None) -> Path:
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
