@@ -698,7 +698,7 @@ class PixelRecoCollector:
 async def serve(
     event_id: str,
     state_dict: StateDict,
-    cache_dir: str,
+    cache_dir: Path,
     output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
@@ -893,7 +893,7 @@ def main() -> None:
         required=True,
         help="The cache directory to use",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
