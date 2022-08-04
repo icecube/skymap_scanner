@@ -68,7 +68,7 @@ jobs:
           ./scripts/launch_scripts/launch_server.sh \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
-            --output-dir $GITHUB_WORKSPACE \
+            --output-dir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR \
             --startup-files-dir $GITHUB_WORKSPACE \
             --gcd-dir $SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
