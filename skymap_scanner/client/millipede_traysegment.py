@@ -107,11 +107,11 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
     tray.AddModule(notify2, "notify2")
 
     def settle_llh_value(frame):
-        """Set 'SCAN_LLH_Value'."""
+        """Set 'LLH_Value'."""
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            frame["SCAN_LLH_Value"] = numpy.nan
+            frame["LLH_Value"] = numpy.nan
         else:
-            frame["SCAN_LLH_Value"] = frame["MillipedeStarting2ndPass_millipedellh"].logl
-        logger.debug(f"Settled LLH value: {frame['SCAN_LLH_Value']}")
+            frame["LLH_Value"] = frame["MillipedeStarting2ndPass_millipedellh"].logl
+        logger.debug(f"Settled LLH value: {frame['LLH_Value']}")
 
     tray.AddModule(settle_llh_value, "settle_llh_value")
