@@ -3,7 +3,7 @@
 # fmt: off
 # pylint: skip-file
 
-import dataclasses
+import dataclasses as dc
 import hashlib
 import os
 from typing import Any, Dict, List, Tuple
@@ -161,7 +161,7 @@ def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
     )
 
 
-@dataclasses.dataclass
+@dc.dataclass
 class PixelReco:
     nside: int
     pixel: int
@@ -169,7 +169,7 @@ class PixelReco:
     reco_losses_inside: float
     reco_losses_total: float
     pos_var_index: int
-    id_tuple: Tuple[int, int, int] = dataclasses.field(init=False, repr=False)
+    id_tuple: Tuple[int, int, int] = dc.field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
