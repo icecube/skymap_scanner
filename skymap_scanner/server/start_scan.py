@@ -863,20 +863,7 @@ def main() -> None:
             return val
         raise exc
 
-    # "physics" args
-    parser.add_argument(
-        "-e",
-        "--event-file",
-        required=True,
-        help="The file containing the event to scan (.pkl or .json)",
-        type=lambda x: _validate_arg(
-            Path(x),
-            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
-            argparse.ArgumentTypeError(
-                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
-            ),
-        ),
-    )
+    # directory args
     parser.add_argument(
         "--startup-files-dir",
         required=True,
@@ -907,6 +894,21 @@ def main() -> None:
             Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+
+    # "physics" args
+    parser.add_argument(
+        "-e",
+        "--event-file",
+        required=True,
+        help="The file containing the event to scan (.pkl or .json)",
+        type=lambda x: _validate_arg(
+            Path(x),
+            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
+            argparse.ArgumentTypeError(
+                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
+            ),
         ),
     )
     parser.add_argument(

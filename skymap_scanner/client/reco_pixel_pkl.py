@@ -251,6 +251,8 @@ def main() -> None:
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    # input/output args
     parser.add_argument(
         "--in-pkl",
         required=True,

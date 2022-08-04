@@ -159,11 +159,6 @@ def main() -> None:
 
     # "physics" args
     parser.add_argument(
-        "--mq-basename",
-        required=True,
-        help="base identifier to correspond to an event for its MQ connections",
-    )
-    parser.add_argument(
         # we aren't going to use this arg, but just check if it exists for incoming pixels
         "-g",
         "--gcd-dir",
@@ -191,6 +186,11 @@ def main() -> None:
     )
 
     # mq args
+    parser.add_argument(
+        "--mq-basename",
+        required=True,
+        help="base identifier to correspond to an event for its MQ connections",
+    )
     parser.add_argument(
         "-b",
         "--broker",
