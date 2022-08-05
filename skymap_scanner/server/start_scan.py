@@ -151,10 +151,9 @@ class ProgressReporter:
 
         # check if we need to send a report to the logger
         current_time = time.time()
-        elapsed_seconds = current_time - self.last_time_reported
-        if (
-            override_timestamp
-            or elapsed_seconds > config.env.SKYSCAN_REPORT_INTERVAL_SEC
+        if override_timestamp or (
+            current_time - self.last_time_reported
+            > config.env.SKYSCAN_REPORT_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
@@ -164,8 +163,10 @@ class ProgressReporter:
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
-        elapsed_seconds = current_time - self.last_time_reported_skymap
-        if override_timestamp or elapsed_seconds > config.env.SKYSCAN_PLOT_INTERVAL_SEC:
+        if override_timestamp or (
+            current_time - self.last_time_reported_skymap
+            > config.env.SKYSCAN_PLOT_INTERVAL_SEC
+        ):
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
                 self.slack_interface.post_skymap_plot(self.state_dict)
