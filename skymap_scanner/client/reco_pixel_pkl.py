@@ -234,7 +234,7 @@ def reco_pixel(
             UncompressGCD,
             "GCD_uncompress",
             base_GCD_path="",
-            base_GCD_filename=GCD_diff_base_handle,
+            base_GCD_filename=str(GCD_diff_base_handle),
         )
 
     # TODO (FUTURE DEV) - change reco algo based on some pkl attribute
