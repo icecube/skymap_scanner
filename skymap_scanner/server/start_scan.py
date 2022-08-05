@@ -417,8 +417,6 @@ class PixelsToReco:
                     time = coarser_particle.time
                     energy = coarser_particle.energy
 
-        logging.critical(f"{type(position)=}, {type(time)=}, {type(energy)=}") # TODO: remove
-
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)

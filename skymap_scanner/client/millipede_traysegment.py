@@ -108,6 +108,7 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
 
     def settle_llh_value(frame):
         """Set 'LLH_Value'."""
+        logger.critical(f'{type(frame["MillipedeStarting2ndPass_millipedellh"].logl)}=') # TODO: remove
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
             frame["LLH_Value"] = numpy.nan
         else:
