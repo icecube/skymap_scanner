@@ -108,9 +108,9 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
     def set_PixelReco_values(frame):
         """Set 'PixelReco_*' values."""
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            frame["PixelReco_llh"] = icetray.I3Float(float("nan"))
+            frame["PixelReco_llh"] = icetray.I3Double(float("nan"))
         else:
-            frame["PixelReco_llh"] = icetray.I3Float(frame["MillipedeStarting2ndPass_millipedellh"].logl)
+            frame["PixelReco_llh"] = icetray.I3Double(frame["MillipedeStarting2ndPass_millipedellh"].logl)
 
         frame["PixelReco_position"] = frame["MillipedeStarting2ndPass"].pos
         frame["PixelReco_time"] = frame["MillipedeStarting2ndPass"].time
