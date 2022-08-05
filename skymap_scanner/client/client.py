@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import logging
-import os
 import pickle
 import subprocess
 import sys
@@ -15,13 +14,13 @@ import asyncstdlib as asl
 import mqclient_pulsar as mq
 from wipac_dev_tools import logging_tools
 
-OUT_PKL = "out_msg.pkl"
-IN_PKL = "in_msg.pkl"
+OUT_PKL = Path("out_msg.pkl")
+IN_PKL = Path("in_msg.pkl")
 
 LOGGER = logging.getLogger("skyscan-client")
 
 
-def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> str:
+def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> Path:
     """Write the msg to the `IN` file.
 
     Also, dump to a file for debugging (if not "").
@@ -29,12 +28,16 @@ def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> str:
     with open(IN_PKL, "wb") as f:
         LOGGER.info(f"Pickle-dumping in-payload to file: {str(in_msg)} @ {IN_PKL}")
         pickle.dump(in_msg, f)
+    LOGGER.info(f"File Size: {IN_PKL} = {IN_PKL.stat().st_size} bytes")
+
     if debug_infile:  # for debugging
         with open(debug_infile, "wb") as f:
             LOGGER.info(
                 f"Pickle-dumping in-payload to file: {str(in_msg)} @ {debug_infile}"
             )
             pickle.dump(in_msg, f)
+        LOGGER.info(f"File Size: {debug_infile} = {debug_infile.stat().st_size} bytes")
+
     return IN_PKL
 
 
@@ -46,13 +49,19 @@ def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
     with open(OUT_PKL, "rb") as f:
         out_msg = pickle.load(f)
         LOGGER.info(f"Pickle-loaded out-payload from file: {str(out_msg)} @ {OUT_PKL}")
-    os.remove(OUT_PKL)
+    LOGGER.info(f"File Size: {OUT_PKL} = {OUT_PKL.stat().st_size} bytes")
+    OUT_PKL.unlink()  # rm
+
     if debug_outfile:  # for debugging
         with open(debug_outfile, "wb") as f:
             LOGGER.info(
                 f"Pickle-dumping out-payload to file: {str(out_msg)} @ {debug_outfile}"
             )
             pickle.dump(out_msg, f)
+        LOGGER.info(
+            f"File Size: {debug_outfile} = {debug_outfile.stat().st_size} bytes"
+        )
+
     return out_msg
 
 
@@ -111,7 +120,7 @@ async def consume_and_reply(
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
                 raise subprocess.CalledProcessError(result.returncode, cmd.split())
-            if not os.path.exists(OUT_PKL):
+            if not OUT_PKL.exists():
                 LOGGER.error("Out file was not written for in-payload")
                 raise RuntimeError("Out file was not written for in-payload")
 
@@ -166,7 +175,7 @@ def main() -> None:
         help="The GCD directory to use",
         type=lambda x: _validate_arg(
             Path(x),
-            os.path.isdir(x),
+            Path(x).is_dir(),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
     )
