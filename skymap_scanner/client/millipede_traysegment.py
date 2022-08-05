@@ -113,7 +113,7 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
             frame["PixelReco_llh"] = dataclasses.I3Double(frame["MillipedeStarting2ndPass_millipedellh"].logl)
 
         frame["PixelReco_position"] = frame["MillipedeStarting2ndPass"].pos
-        frame["PixelReco_time"] = frame["MillipedeStarting2ndPass"].time
-        frame["PixelReco_energy"] = frame["MillipedeStarting2ndPass"].energy
+        frame["PixelReco_time"] = dataclasses.I3Double(frame["MillipedeStarting2ndPass"].time)
+        frame["PixelReco_energy"] = dataclasses.I3Double(frame["MillipedeStarting2ndPass"].energy)
 
     tray.AddModule(set_PixelReco_values, "set_PixelReco_values")
