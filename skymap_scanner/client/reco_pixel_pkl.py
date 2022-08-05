@@ -265,7 +265,9 @@ def reco_pixel(
                 f"Pickle-dumping reco {pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            pickle.dump(get_pixelreco(baseline_GCD_file, GCDQp_packet, frame), f)
+            pixreco = get_pixelreco(baseline_GCD_file, GCDQp_packet, frame)
+            LOGGER.info(f"PixelReco: {pixreco}")
+            pickle.dump(pixreco, f)
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
