@@ -96,10 +96,13 @@ def get_pixelreco(
     return PixelReco(
         nside=frame["SCAN_HealpixNSide"].value,
         pixel=frame["SCAN_HealpixPixel"].value,
-        llh=frame["LLH_I3Float"].value,
+        llh=frame["PixelReco_llh"].value,
         reco_losses_inside=reco_losses_inside,
         reco_losses_total=reco_losses_total,
         pos_var_index=frame["SCAN_PositionVariationIndex"].value,
+        position=frame["PixelReco_position"],
+        time=frame["PixelReco_time"].value,
+        energy=frame["PixelReco_energy"].value,
     )
 
 

@@ -105,12 +105,15 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
 
     tray.AddModule(notify2, "notify2")
 
-    def settle_LLH_I3Float(frame):
-        """Set 'LLH_I3Float'."""
+    def set_PixelReco_values(frame):
+        """Set 'PixelReco_*' values."""
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            frame["LLH_I3Float"] = icetray.I3Float(float("nan"))
+            frame["PixelReco_llh"] = icetray.I3Float(float("nan"))
         else:
-            frame["LLH_I3Float"] = icetray.I3Float(frame["MillipedeStarting2ndPass_millipedellh"].logl)
-        logger.debug(f"Settled LLH value: {frame['LLH_I3Float']}")
+            frame["PixelReco_llh"] = icetray.I3Float(frame["MillipedeStarting2ndPass_millipedellh"].logl)
 
-    tray.AddModule(settle_LLH_I3Float, "settle_LLH_I3Float")
+        frame["PixelReco_position"] = frame["MillipedeStarting2ndPass"].pos
+        frame["PixelReco_time"] = frame["MillipedeStarting2ndPass"].time
+        frame["PixelReco_energy"] = frame["MillipedeStarting2ndPass"].energy
+
+    tray.AddModule(set_PixelReco_values, "set_PixelReco_values")

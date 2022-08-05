@@ -170,6 +170,9 @@ class PixelReco:
     reco_losses_total: float
     pos_var_index: int
     id_tuple: Tuple[int, int, int] = dc.field(init=False, repr=False)
+    position: dataclasses.I3Position
+    time: float
+    energy: float
 
     def __post_init__(self) -> None:
         self.id_tuple = (self.nside, self.pixel, self.pos_var_index)

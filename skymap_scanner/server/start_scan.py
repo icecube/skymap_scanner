@@ -405,17 +405,15 @@ class PixelsToReco:
                 time = self.fallback_time
                 energy = self.fallback_energy
             else:
-                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
+                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel].llh):
                     # coarser reconstruction failed
                     position = self.fallback_position
                     time = self.fallback_time
                     energy = self.fallback_energy
                 else:
-                    coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
-                    coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
-                    position = coarser_particle.pos
-                    time = coarser_particle.time
-                    energy = coarser_particle.energy
+                    position = self.state_dict["nsides"][coarser_nside][coarser_pixel].position
+                    time = self.state_dict["nsides"][coarser_nside][coarser_pixel].time
+                    energy = self.state_dict["nsides"][coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
