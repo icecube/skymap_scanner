@@ -319,4 +319,4 @@ class ScanResult:
         if output_path is not None:
             filename = output_path / Path(filename)
         np.savez(filename, **self.result)
-        return filename
+        return Path(filename)

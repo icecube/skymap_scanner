@@ -249,11 +249,12 @@ def main() -> None:
 
     cmd = (
         f"python -m skymap_scanner.client.reco_pixel_pkl "
-        f"--in-pkl {IN_PKL} "
-        f"--out-pkl {OUT_PKL} "
-        f"--gcdqp-packet-pkl {args.GCDQp_packet_pkl} "
-        f"--baseline-gcd-file {args.baseline_GCD_file} "
-        f"--log {logging.getLevelName(LOGGER.getEffectiveLevel())}"
+        f" --in-pkl {IN_PKL}"
+        f" --out-pkl {OUT_PKL}"
+        f" --gcdqp-packet-pkl {args.GCDQp_packet_pkl}"
+        f" --baseline-gcd-file {args.baseline_GCD_file}"
+        f" --log {args.log}"
+        f" --log-third-party {args.log_third_party}"
     )
 
     # go!
