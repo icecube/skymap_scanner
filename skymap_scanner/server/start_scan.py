@@ -563,6 +563,13 @@ class PixelRecoCollector:
                 f"Saving a BEST pixel-reco (found {logging_id}): "
                 f"{best.id_tuple} {best}"
             )
+            # insert pixreco into state_dict
+            if best.nside not in self.state_dict["nsides"]:
+                self.state_dict["nsides"][best.nside] = {}
+            if best.pixel in self.state_dict["nsides"][best.nside]:
+                raise DuplicatePixelRecoException(
+                    f"NSide {best.nside} / Pixel {best.pixel} is already in state_dict"
+                )
             self.state_dict["nsides"][best.nside][best.pixel] = best
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
