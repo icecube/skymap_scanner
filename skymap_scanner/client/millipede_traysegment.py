@@ -5,7 +5,6 @@
 
 import datetime
 
-import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
@@ -106,13 +105,12 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
 
     tray.AddModule(notify2, "notify2")
 
-    def settle_llh_value(frame):
-        """Set 'LLH_Value'."""
-        logger.critical(f'{type(frame["MillipedeStarting2ndPass_millipedellh"].logl)}=') # TODO: remove
+    def settle_LLH_I3Float(frame):
+        """Set 'LLH_I3Float'."""
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            frame["LLH_Value"] = numpy.nan
+            frame["LLH_I3Float"] = icetray.I3Float(float("nan"))
         else:
-            frame["LLH_Value"] = frame["MillipedeStarting2ndPass_millipedellh"].logl
-        logger.debug(f"Settled LLH value: {frame['LLH_Value']}")
+            frame["LLH_I3Float"] = icetray.I3Float(frame["MillipedeStarting2ndPass_millipedellh"].logl)
+        logger.debug(f"Settled LLH value: {frame['LLH_I3Float']}")
 
-    tray.AddModule(settle_llh_value, "settle_llh_value")
+    tray.AddModule(settle_LLH_I3Float, "settle_LLH_I3Float")

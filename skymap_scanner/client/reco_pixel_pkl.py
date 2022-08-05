@@ -96,7 +96,7 @@ def get_pixelreco(
     return PixelReco(
         nside=frame["SCAN_HealpixNSide"].value,
         pixel=frame["SCAN_HealpixPixel"].value,
-        llh=frame["LLH_Value"],
+        llh=frame["LLH_I3Float"].value,
         reco_losses_inside=reco_losses_inside,
         reco_losses_total=reco_losses_total,
         pos_var_index=frame["SCAN_PositionVariationIndex"].value,
