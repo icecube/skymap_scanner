@@ -10,7 +10,7 @@ import healpy  # type: ignore[import]
 import numpy
 from icecube import icetray  # type: ignore[import]
 
-from ..load_scan_state import load_cache_state
+from ..utils.load_scan_state import load_cache_state
 
 # test-case-scan: only change in this script is substituting in every place where nside = 8 was hard-coded
 # for nside = min_nside.
