@@ -143,6 +143,6 @@ def extract_MC_truth(state_dict):
     dec = float(dec)
     dec = dec
 
-    state_dict['MCradec'] = (ra, dec)
+    state_dict[cfg.STATEDICT_MCRADEC] = (ra, dec)
 
     return state_dict

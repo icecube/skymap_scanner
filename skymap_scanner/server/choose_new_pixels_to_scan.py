@@ -125,7 +125,7 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_
 
 
 def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*numpy.pi/180.):
-    ra, dec = state_dict["MCradec"]
+    ra, dec = state_dict[cfg.STATEDICT_MCRADEC]
 
     # MC true pixel
     true_pix = healpy.ang2pix(nside, dec+numpy.pi/2., ra)
@@ -172,7 +172,7 @@ def choose_new_pixels_to_scan(
     """Get the next set of pixels to scan/refine by searching the state_dict."""
 
     # special case if we have MC truth
-    if "MCradec" in state_dict:
+    if cfg.STATEDICT_MCRADEC in state_dict:
         # scan only at max_nside around the true minimum
         return choose_new_pixels_to_scan_around_MCtruth(state_dict, nside=max_nside, angular_dist=ang_dist*numpy.pi/180.)
 
