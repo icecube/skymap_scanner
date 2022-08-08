@@ -127,7 +127,7 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-  test-run-all-1-2:
+  test-run-all-1-512:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -173,7 +173,7 @@ jobs:
             --log-third-party INFO \
             --mini-test-variations \
             --min-nside 1 \
-            --max-nside 2 \
+            --max-nside 512 \
             &
 
           # wait until the mq-basename.txt file exists (with a timeout)
