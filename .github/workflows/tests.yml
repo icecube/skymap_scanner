@@ -127,6 +127,102 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
+  test-run-all-1-2:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        eventfile: [
+          hese_event_01.json,
+          run00136766-evt000007637140-GOLD.pkl,
+          run00136662-evt000035405932-BRONZE.pkl
+        ]
+    env:
+      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cvmfs-contrib/github-action-cvmfs@v2
+        with:
+          cvmfs_backoff_init: 2
+          cvmfs_max_retries: 3
+          cvmfs_dns_retries: 3
+      - name: Test CernVM-FS
+        run: ls $SKYSCAN_GCD_DIR
+      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
+        run: |
+          ./scripts/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+      - name: Build Skymap Scanner Docker Image
+        run: |
+          ./tests/docker_scripts/docker_local_build.sh
+      - name: Configure Pulsar Server
+        run: |
+          ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+      - name: Run
+        run: |
+
+          mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
+          mkdir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
+          ./scripts/launch_scripts/launch_server.sh \
+            --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
+            --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
+            --output-dir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR \
+            --startup-files-dir $GITHUB_WORKSPACE \
+            --gcd-dir $SKYSCAN_GCD_DIR \
+            --broker $PULSAR_ADDRESS \
+            --log DEBUG \
+            --log-third-party INFO \
+            --mini-test-variations \
+            --min-nside 1 \
+            --max-nside 2 \
+            &
+
+          # wait until the mq-basename.txt file exists (with a timeout)
+          endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
+          while [[ $(date -u +%s) -le $endtime ]]; do
+            if [[ -e $GITHUB_WORKSPACE/mq-basename.txt && -e $GITHUB_WORKSPACE/baseline_GCD_file.txt && -e $GITHUB_WORKSPACE/GCDQp_packet.pkl ]]; then
+              break
+            fi
+            echo "waiting for startup files..."
+            sleep 5
+          done
+
+          cat $GITHUB_WORKSPACE/mq-basename.txt
+
+          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          echo "Launching $nclients clients"
+          mkdir $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          for i in $( seq 1 $nclients ); do
+            ./scripts/launch_scripts/launch_client.sh \
+              --mq-basename $(cat $GITHUB_WORKSPACE/mq-basename.txt) \
+              --baseline-gcd-file $(cat $GITHUB_WORKSPACE/baseline_GCD_file.txt) \
+              --gcdqp-packet-pkl $GITHUB_WORKSPACE/GCDQp_packet.pkl \
+              --gcd-dir $SKYSCAN_GCD_DIR \
+              --broker $PULSAR_ADDRESS \
+              --log DEBUG \
+              --log-third-party INFO \
+              --debug-directory $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR \
+              &
+            echo -e "\t$i clients launched"
+          done
+
+          wait -n  # for server
+          for i in $( seq 1 $nclients ); do
+            wait -n  # for client
+          done
+      - name: Test Output Against Known Result (.npz)
+        run: |
+          ls $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR/*.npz)
+          echo $outfile
+
+          pip install .  # don't have to use the docker container for this
+          python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
+            --actual $outfile \
+            --expected $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
+            --disqualify-zero-energy-pixels \
+            --assert \
+            || (cat $(ls *.diff.json) && false)
 
   test-run-pixel-reco:
     runs-on: ubuntu-latest
