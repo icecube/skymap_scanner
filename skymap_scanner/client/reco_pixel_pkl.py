@@ -271,8 +271,7 @@ def reco_pixel(
             )
             pixreco = get_pixelreco(baseline_GCD_file, GCDQp_packet, frame)
             LOGGER.info(f"PixelReco: {pixreco}")
-            # pickle.dump(pixreco, f)
-            pickle.dump(frame, f)  # TODO: remove
+            pickle.dump(pixreco, f)
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
