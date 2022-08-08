@@ -712,15 +712,16 @@ async def serve_scan_iteration(
     with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
             async for pixreco in sub:
-                if not isinstance(pixreco, PixelReco):
-                    raise ValueError(f"Message not {PixelReco}: {type(pixreco)}")
-                try:
-                    col.collect(pixreco)
-                except DuplicatePixelRecoException as e:
-                    logging.error(e)
-                # if we've got all the pixrecos, no need to wait for queue's timeout
-                if len(col.pixreco_ids_received) == n_pixreco:
-                    break
+                continue  # TODO: remove
+                # if not isinstance(pixreco, PixelReco):
+                #     raise ValueError(f"Message not {PixelReco}: {type(pixreco)}")
+                # try:
+                #     col.collect(pixreco)
+                # except DuplicatePixelRecoException as e:
+                #     logging.error(e)
+                # # if we've got all the pixrecos, no need to wait for queue's timeout
+                # if len(col.pixreco_ids_received) == n_pixreco:
+                #     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
     return n_pixreco
