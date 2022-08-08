@@ -6,8 +6,8 @@ import pickle
 from pathlib import Path
 
 from skymap_scanner.client.reco_pixel_pkl import read_from_in_pkl
-from skymap_scanner.server.scan_result import ScanResult
 from skymap_scanner.server.start_scan import PixelRecoSaver
+from skymap_scanner.utils.scan_result import ScanResult
 
 from compare_scan_results import compare_then_exit
 
