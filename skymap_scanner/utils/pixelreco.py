@@ -4,6 +4,8 @@
 import dataclasses as dc
 from typing import Any, Tuple
 
+from .. import config as cfg
+
 try:  # these are only used for typehints, so mock imports are fine
     import icecube.dataclasses as i3dataclasses  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
@@ -15,9 +17,9 @@ except ImportError:
 def pixel_to_tuple(pixel: I3Frame) -> Tuple[int, int, int]:
     """Get a tuple representing a pixel PFrame for logging."""
     return (
-        pixel["SCAN_HealpixNSide"].value,
-        pixel["SCAN_HealpixPixel"].value,
-        pixel["SCAN_PositionVariationIndex"].value,
+        pixel[cfg.I3FRAME_NSIDE].value,
+        pixel[cfg.I3FRAME_PIXEL].value,
+        pixel[cfg.I3FRAME_POSVAR].value,
     )
 
 

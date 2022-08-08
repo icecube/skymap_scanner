@@ -23,6 +23,16 @@ GCD_BASE_DIRS: Final = [
     "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
 ]
 
+# For commonly used keys
+I3FRAME_NSIDE: Final = "SCAN_HealpixNSide"
+I3FRAME_PIXEL: Final = "SCAN_HealpixPixel"
+I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
+I3FRAME_RECO_I3POSITION: Final = "PixelReco_position"
+I3FRAME_RECO_TIME: Final = "PixelReco_time"
+I3FRAME_RECO_LLH: Final = "PixelReco_llh"
+I3FRAME_RECO_ENERGY: Final = "PixelReco_energy"
+
+
 #
 # Env var constants: set as constants & typecast
 #

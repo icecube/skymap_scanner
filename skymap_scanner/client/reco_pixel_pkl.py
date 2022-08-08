@@ -20,7 +20,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import config
+from .. import config as cfg
 from ..utils.load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
 from ..utils.pixelreco import PixelReco, pixel_to_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -95,30 +95,27 @@ def get_pixelreco(
         raise
 
     return PixelReco(
-        nside=frame["SCAN_HealpixNSide"].value,
-        pixel=frame["SCAN_HealpixPixel"].value,
-        llh=frame["PixelReco_llh"].value,
+        nside=frame[cfg.I3FRAME_NSIDE].value,
+        pixel=frame[cfg.I3FRAME_PIXEL].value,
+        llh=frame[cfg.I3FRAME_RECO_LLH].value,
         reco_losses_inside=reco_losses_inside,
         reco_losses_total=reco_losses_total,
-        pos_var_index=frame["SCAN_PositionVariationIndex"].value,
-        position=frame["PixelReco_position"],
-        time=frame["PixelReco_time"].value,
-        energy=frame["PixelReco_energy"].value,
+        pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
+        position=frame[cfg.I3FRAME_RECO_I3POSITION],
+        time=frame[cfg.I3FRAME_RECO_TIME].value,
+        energy=frame[cfg.I3FRAME_RECO_ENERGY].value,
     )
 
 
 def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     """Save this frame to the disk cache."""
-    nside = frame["SCAN_HealpixNSide"].value
-    pixel = frame["SCAN_HealpixPixel"].value
-
-    nside_dir = save_dir / "nside{0:06d}".format(nside)
+    nside_dir = save_dir / "nside{0:06d}".format(frame[cfg.I3FRAME_NSIDE].value)
     nside_dir.mkdir(parents=True, exist_ok=True)
 
-    pixel_file_name = nside_dir / "pix{0:012d}.i3".format(pixel)
+    pixel_fname = nside_dir / "pix{0:012d}.i3".format(frame[cfg.I3FRAME_PIXEL].value)
 
-    save_GCD_frame_packet_to_file([frame], str(pixel_file_name))
-    return pixel_file_name
+    save_GCD_frame_packet_to_file([frame], str(pixel_fname))
+    return pixel_fname
 
 
 def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
@@ -128,7 +125,7 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
     if baseline_GCD_file not in [None, "None"]:
-        for GCD_base_dir in config.GCD_BASE_DIRS:
+        for GCD_base_dir in cfg.GCD_BASE_DIRS:
             try:
                 read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 LOGGER.debug("reading baseline GCD from {0}".format(read_url))

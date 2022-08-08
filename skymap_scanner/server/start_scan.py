@@ -21,7 +21,7 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import config
+from .. import config as cfg
 from ..utils import extract_json_message
 from ..utils.pixelreco import PixelReco, pixel_to_tuple
 from ..utils.scan_result import ScanResult
@@ -152,8 +152,7 @@ class ProgressReporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         if override_timestamp or (
-            current_time - self.last_time_reported
-            > config.env.SKYSCAN_REPORT_INTERVAL_SEC
+            current_time - self.last_time_reported > cfg.env.SKYSCAN_REPORT_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
@@ -165,7 +164,7 @@ class ProgressReporter:
         current_time = time.time()
         if override_timestamp or (
             current_time - self.last_time_reported_skymap
-            > config.env.SKYSCAN_PLOT_INTERVAL_SEC
+            > cfg.env.SKYSCAN_PLOT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
@@ -194,7 +193,7 @@ class ProgressReporter:
         if self.pixreco_ct == 0:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {config.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
+            message += f"I will report back again in {cfg.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
 
         return message
 
@@ -436,9 +435,9 @@ class PixelsToReco:
             eventHeader.sub_event_stream = "SCAN_nside%04u_pixel%04u_posvar%04u" % (nside, pixel, i)
             eventHeader.sub_event_id = int(pixel)
             p_frame["I3EventHeader"] = eventHeader
-            p_frame["SCAN_HealpixPixel"] = icetray.I3Int(int(pixel))
-            p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
-            p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
+            p_frame[cfg.I3FRAME_PIXEL] = icetray.I3Int(int(pixel))
+            p_frame[cfg.I3FRAME_NSIDE] = icetray.I3Int(int(nside))
+            p_frame[cfg.I3FRAME_POSVAR] = icetray.I3Int(int(i))
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
