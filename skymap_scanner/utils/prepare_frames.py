@@ -13,6 +13,8 @@ from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import icetray  # type: ignore[import]
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 
+from .. import config as cfg
+
 
 class FrameArraySource(icetray.I3Module):
     def __init__(self, ctx):
@@ -110,8 +112,8 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         VertexThreshold=2,
         Pulses=nominalPulsesName+'HLC',
         OutputBool='HESE_VHESelfVeto',
-        OutputVertexTime='HESE_VHESelfVetoVertexTime',
-        OutputVertexPos='HESE_VHESelfVetoVertexPos',
+        OutputVertexTime=cfg.INPUT_TIME_NAME,
+        OutputVertexPos=cfg.INPUT_POS_NAME,
         If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
     # make sure the script doesn't fail because some objects alreadye exist

@@ -612,9 +612,12 @@ async def serve(
 
     pixeler = PixelsToReco(
         state_dict=state_dict,
-        mini_test_variations=mini_test_variations,
         min_nside=min_nside,
         max_nside=max_nside,
+        input_time_name=cfg.INPUT_TIME_NAME,
+        input_pos_name=cfg.INPUT_POS_NAME,
+        output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
+        mini_test_variations=mini_test_variations,
     )
 
     slack_interface = SlackInterface()

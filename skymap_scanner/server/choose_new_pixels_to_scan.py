@@ -4,7 +4,7 @@
 # pylint: skip-file
 
 import random
-from typing import Tuple
+from typing import List, Tuple
 
 import healpy  # type: ignore[import]
 import numpy

@@ -26,6 +26,11 @@ GCD_BASE_DIRS: Final = [
 MIN_NSIDE_DEFAULT: Final = 8
 MAX_NSIDE_DEFAULT: Final = 512
 
+# physics strings
+INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
+INPUT_POS_NAME: Final = "HESE_VHESelfVetoVertexPos"
+OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
+
 # For commonly used keys
 I3FRAME_NSIDE: Final = "SCAN_HealpixNSide"
 I3FRAME_PIXEL: Final = "SCAN_HealpixPixel"

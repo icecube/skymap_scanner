@@ -60,7 +60,7 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
         )
 
     tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-        FirstGuesses=['MillipedeSeedParticle'],
+        FirstGuesses=[cfg.OUTPUT_PARTICLE_NAME],
         TimeShiftType='TNone',
         PositionShiftType='None')
 
