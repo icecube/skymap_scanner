@@ -28,7 +28,7 @@ def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> Path:
     with open(IN_PKL, "wb") as f:
         LOGGER.info(f"Pickle-dumping in-payload to file: {str(in_msg)} @ {IN_PKL}")
         pickle.dump(in_msg, f)
-    LOGGER.info(f"Pixel Pickle File: {IN_PKL} ({IN_PKL.stat().st_size} bytes)")
+    LOGGER.info(f"Pickle File:: {IN_PKL} ({IN_PKL.stat().st_size} bytes)")
 
     if debug_infile:  # for debugging
         with open(debug_infile, "wb") as f:
@@ -37,7 +37,7 @@ def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> Path:
             )
             pickle.dump(in_msg, f)
         LOGGER.info(
-            f"Pixel Pickle File: {debug_infile} ({debug_infile.stat().st_size} bytes)"
+            f"Pickle File:: {debug_infile} ({debug_infile.stat().st_size} bytes)"
         )
 
     return IN_PKL
@@ -51,7 +51,7 @@ def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
     with open(OUT_PKL, "rb") as f:
         out_msg = pickle.load(f)
         LOGGER.info(f"Pickle-loaded out-payload from file: {str(out_msg)} @ {OUT_PKL}")
-    LOGGER.info(f"Pixel Pickle File: {OUT_PKL} ({OUT_PKL.stat().st_size} bytes)")
+    LOGGER.info(f"Pickle File:: {OUT_PKL} ({OUT_PKL.stat().st_size} bytes)")
     OUT_PKL.unlink()  # rm
 
     if debug_outfile:  # for debugging
@@ -61,7 +61,7 @@ def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
             )
             pickle.dump(out_msg, f)
         LOGGER.info(
-            f"Pixel Pickle File: {debug_outfile} ({debug_outfile.stat().st_size} bytes)"
+            f"Pickle File:: {debug_outfile} ({debug_outfile.stat().st_size} bytes)"
         )
 
     return out_msg
