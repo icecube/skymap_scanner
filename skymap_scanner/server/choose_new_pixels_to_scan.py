@@ -75,7 +75,7 @@ def find_global_min_pixel(state_dict):
     for nside in list(state_dict[cfg.STATEDICT_NSIDES].keys()):
         pixels_dict = state_dict[cfg.STATEDICT_NSIDES][nside]
         for p in list(pixels_dict.keys()):
-            this_llh = pixels_dict[p]['llh']
+            this_llh = pixels_dict[p].llh
             if min_llh is None or ((not numpy.isnan(this_llh)) and (this_llh < min_llh)):
                 global_min_pix_index=(nside,p)
                 min_llh=this_llh
@@ -93,14 +93,14 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_
 
     # refine pixels that have neighbors with a high likelihood ratio
     for pixel in list(pixels_dict.keys()):
-        pixel_llh = pixels_dict[pixel]["llh"]
+        pixel_llh = pixels_dict[pixel].llh
         if numpy.isnan(pixel_llh): continue # do not refine nan pixels
         neighbors = healpy.get_all_neighbours(nside, pixel)
 
         for neighbor in neighbors:
             if neighbor==-1: continue
             if neighbor not in pixels_dict: continue
-            neighbor_llh = pixels_dict[neighbor]["llh"]
+            neighbor_llh = pixels_dict[neighbor].llh
 
             llh_diff = 2.*numpy.abs(pixel_llh-neighbor_llh) # Wilk's theorem
             if llh_diff > llh_diff_to_trigger_refinement:
