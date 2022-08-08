@@ -232,15 +232,19 @@ class ProgressReporter:
     def get_state_dict_report(self) -> str:
         """Get a multi-line progress report of the state_dict's nside contents."""
         msg = "Iterations with Saved Pixels:\n"
-        if not self.state_dict["nsides"]:
+        if not self.state_dict[cfg.STATEDICT_NSIDES]:
             msg += " - no pixels are done yet\n"
         else:
 
             def nside_line(nside: int, npixels: int) -> str:
                 return f" - {npixels} pixels, nside={nside}\n"
 
-            for nside in sorted(self.state_dict["nsides"]):  # sorted by nside
-                msg += nside_line(nside, len(self.state_dict["nsides"][nside]))
+            for nside in sorted(
+                self.state_dict[cfg.STATEDICT_NSIDES]
+            ):  # sorted by nside
+                msg += nside_line(
+                    nside, len(self.state_dict[cfg.STATEDICT_NSIDES][nside])
+                )
 
         return msg
 
@@ -267,10 +271,10 @@ class PixelsToReco:
         state_dict: StateDict,
         min_nside: int,
         max_nside: int,
-        input_time_name: str = "HESE_VHESelfVetoVertexTime",
-        input_pos_name: str = "HESE_VHESelfVetoVertexPos",
-        output_particle_name: str = "MillipedeSeedParticle",
-        mini_test_variations: bool = False,
+        input_time_name: str,
+        input_pos_name: str,
+        output_particle_name: str,
+        mini_test_variations: bool,
     ) -> None:
         """
         Arguments:
@@ -320,16 +324,16 @@ class PixelsToReco:
         self.max_nside = max_nside
 
         # Validate & read state_dict
-        if "GCDQp_packet" not in self.state_dict:
-            raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
+        if cfg.STATEDICT_GCDQP_PACKET not in self.state_dict:
+            raise RuntimeError(f"'{cfg.STATEDICT_GCDQP_PACKET}' not in state_dict.")
 
-        if "baseline_GCD_file" not in self.state_dict:
-            raise RuntimeError("\"baseline_GCD_file\" not in state_dict.")
+        if cfg.STATEDICT_BASELINE_GCD_FILE not in self.state_dict:
+            raise RuntimeError(f"'{cfg.STATEDICT_BASELINE_GCD_FILE}' not in state_dict.")
 
-        if "nsides" not in self.state_dict:
-            self.state_dict["nsides"] = {}
+        if cfg.STATEDICT_NSIDES not in self.state_dict:
+            self.state_dict[cfg.STATEDICT_NSIDES] = {}
 
-        p_frame = self.state_dict["GCDQp_packet"][-1]
+        p_frame = self.state_dict[cfg.STATEDICT_GCDQP_PACKET][-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
 
@@ -353,8 +357,8 @@ class PixelsToReco:
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
         # sanity check state_dict
-        for nside in self.state_dict["nsides"]:
-            for pixel in self.state_dict["nsides"][nside]:
+        for nside in self.state_dict[cfg.STATEDICT_NSIDES]:
+            for pixel in self.state_dict[cfg.STATEDICT_NSIDES][nside]:
                 if (nside,pixel) in pixels_to_refine:
                     raise RuntimeError("pixel to refine is already done processing")
 
@@ -393,8 +397,8 @@ class PixelsToReco:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
-                if coarser_nside in self.state_dict["nsides"]:
-                    if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
+                if coarser_nside in self.state_dict[cfg.STATEDICT_NSIDES]:
+                    if coarser_pixel in self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside]:
                         # coarser pixel found
                         break
 
@@ -404,15 +408,15 @@ class PixelsToReco:
                 time = self.fallback_time
                 energy = self.fallback_energy
             else:
-                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel].llh):
+                if numpy.isnan(self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].llh):
                     # coarser reconstruction failed
                     position = self.fallback_position
                     time = self.fallback_time
                     energy = self.fallback_energy
                 else:
-                    position = self.state_dict["nsides"][coarser_nside][coarser_pixel].position
-                    time = self.state_dict["nsides"][coarser_nside][coarser_pixel].time
-                    energy = self.state_dict["nsides"][coarser_nside][coarser_pixel].energy
+                    position = self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].position
+                    time = self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].time
+                    energy = self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
@@ -565,13 +569,13 @@ class PixelRecoCollector:
                 f"{best.id_tuple} {best}"
             )
             # insert pixreco into state_dict
-            if best.nside not in self.state_dict["nsides"]:
-                self.state_dict["nsides"][best.nside] = {}
-            if best.pixel in self.state_dict["nsides"][best.nside]:
+            if best.nside not in self.state_dict[cfg.STATEDICT_NSIDES]:
+                self.state_dict[cfg.STATEDICT_NSIDES][best.nside] = {}
+            if best.pixel in self.state_dict[cfg.STATEDICT_NSIDES][best.nside]:
                 raise DuplicatePixelRecoException(
                     f"NSide {best.nside} / Pixel {best.pixel} is already in state_dict"
                 )
-            self.state_dict["nsides"][best.nside][best.pixel] = best
+            self.state_dict[cfg.STATEDICT_NSIDES][best.nside][best.pixel] = best
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
@@ -641,7 +645,7 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
-    result = ScanResult.from_nsides_dict(state_dict["nsides"])
+    result = ScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
@@ -950,8 +954,8 @@ def main() -> None:
         event_id,
         args.min_nside,
         args.max_nside,
-        state_dict["baseline_GCD_file"],
-        state_dict["GCDQp_packet"],
+        state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
+        state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
 
     # go!

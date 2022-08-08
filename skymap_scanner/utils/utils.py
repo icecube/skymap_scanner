@@ -9,15 +9,15 @@ from typing import Any, Dict, List
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from .. import config
+from .. import config as cfg
 
 StateDict = Dict[str, Any]
 
 
 def get_event_mjd(state_dict):
-    if "GCDQp_packet" not in state_dict:
+    if cfg.STATEDICT_GCDQP_PACKET not in state_dict:
         raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
+    frame_packet = state_dict[cfg.STATEDICT_GCDQP_PACKET]
 
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
@@ -51,7 +51,7 @@ def parse_event_id(event_id_string):
 
 def load_GCD_frame_packet_from_file(filename, filestager=None):
     read_url = filename
-    for GCD_base_dir in config.GCD_BASE_DIRS:
+    for GCD_base_dir in cfg.GCD_BASE_DIRS:
         potential_read_url = os.path.join(GCD_base_dir, filename)
         if os.path.isfile( potential_read_url ):
             read_url = potential_read_url
@@ -105,9 +105,9 @@ def rewrite_frame_stop(input_frame, new_stream):
 
 
 def extract_MC_truth(state_dict):
-    if "GCDQp_packet" not in state_dict:
+    if cfg.STATEDICT_GCDQP_PACKET not in state_dict:
         raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
+    frame_packet = state_dict[cfg.STATEDICT_GCDQP_PACKET]
 
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Stream('p') and p_frame.Stop != icetray.I3Frame.Physics:

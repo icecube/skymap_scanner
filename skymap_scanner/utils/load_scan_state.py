@@ -11,7 +11,7 @@ import numpy
 from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio
 
-from .. import config
+from .. import config as cfg
 from .utils import StateDict, hash_frame_packet, load_GCD_frame_packet_from_file
 
 
@@ -99,7 +99,7 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
             print(" -> success")
 
         if baseline_GCD_frames is None:
-            for GCD_base_dir in config.GCD_BASE_DIRS:
+            for GCD_base_dir in cfg.GCD_BASE_DIRS:
                 read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 print(("trying to read GCD from {0}".format( read_url )))
                 try:
@@ -125,8 +125,8 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
 def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/"):
     
     baseline_GCD_frames = get_baseline_gcd_frames(
-        state_dict.get("baseline_GCD_file"),
-        state_dict.get("GCDQp_packet"),
+        state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
+        state_dict.get(cfg.STATEDICT_GCDQP_PACKET),
         filestager,
     )
 
@@ -137,9 +137,13 @@ def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/")
     # get all directories
     nsides = [(int(d[5:]), os.path.join(this_event_cache_dir, d)) for d in os.listdir(this_event_cache_dir) if os.path.isdir(os.path.join(this_event_cache_dir, d)) and d.startswith("nside")]
 
-    if "nsides" not in state_dict: state_dict["nsides"] = dict()
+    if cfg.STATEDICT_NSIDES not in state_dict:
+        state_dict[cfg.STATEDICT_NSIDES] = dict()
+
     for nside, nside_dir in nsides:
-        if nside not in state_dict["nsides"]: state_dict["nsides"][nside] = dict()
+        if nside not in state_dict[cfg.STATEDICT_NSIDES]:
+            state_dict[cfg.STATEDICT_NSIDES][nside] = dict()
+
         pixels = [(int(d[3:-3]), os.path.join(nside_dir, d)) for d in os.listdir(nside_dir) if os.path.isfile(os.path.join(nside_dir, d)) and d.startswith("pix") and d.endswith(".i3")]
 
         for pixel, pixel_file in pixels:
@@ -154,11 +158,11 @@ def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/")
 
             recoLossesInside, recoLossesTotal = get_reco_losses_inside(loaded_frames[0], baseline_GCD_frames[0])
 
-            state_dict["nsides"][nside][pixel] = dict(frame=loaded_frames[0], llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
+            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = dict(frame=loaded_frames[0], llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
 
         # get rid of empty dicts
-        if len(state_dict["nsides"][nside]) == 0:
-            del state_dict["nsides"][nside]
+        if len(state_dict[cfg.STATEDICT_NSIDES][nside]) == 0:
+            del state_dict[cfg.STATEDICT_NSIDES][nside]
 
     return (event_id, state_dict)
 
@@ -193,7 +197,7 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         else:
             if filestager is None:
                 orig_packet = None
-                for GCD_base_dir in config.GCD_BASE_DIRS:
+                for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
                         read_path = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
                         print(("reading GCD from {0}".format( read_url )))
@@ -206,7 +210,7 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
             else:
                 # try to load the base file from the various possible input directories
                 GCD_diff_base_handle = None
-                for GCD_base_dir in config.GCD_BASE_DIRS:
+                for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
                         read_url = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
                         print(("reading GCD from {0}".format( read_url )))
