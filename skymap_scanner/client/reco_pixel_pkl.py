@@ -21,8 +21,9 @@ from icecube.frame_object_diff.segments import uncompress  # type: ignore[import
 from wipac_dev_tools import logging_tools
 
 from .. import config
-from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
-from ..utils import PixelReco, pixel_to_tuple, save_GCD_frame_packet_to_file
+from ..utils.load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
+from ..utils.pixelreco import PixelReco, pixel_to_tuple
+from ..utils.utils import save_GCD_frame_packet_to_file
 from .millipede_traysegment import millipede_traysegment
 
 LOGGER = logging.getLogger("skyscan-client-reco")

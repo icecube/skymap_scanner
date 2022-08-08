@@ -7,9 +7,9 @@ import json
 import os
 
 import numpy as np
-from icecube import dataio, full_event_followup, icetray
+from icecube import dataio, full_event_followup, icetray  # type: ignore[import]
 
-from . import config
+from .. import config
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
 from .utils import (

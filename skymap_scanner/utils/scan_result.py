@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from ..utils import PixelReco
+from .pixelreco import PixelReco
 
 
 class InvalidPixelValueError(Exception):

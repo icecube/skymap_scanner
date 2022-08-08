@@ -11,7 +11,7 @@ import numpy
 from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio
 
-from . import config
+from .. import config
 from .utils import StateDict, hash_frame_packet, load_GCD_frame_packet_from_file
 
 

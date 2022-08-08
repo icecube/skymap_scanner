@@ -9,9 +9,9 @@ import copy
 import os
 
 import numpy
-from I3Tray import I3Tray, I3Units
-from icecube import icetray
-from icecube.frame_object_diff.segments import uncompress
+from I3Tray import I3Tray, I3Units  # type: ignore[import]
+from icecube import icetray  # type: ignore[import]
+from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 
 
 class FrameArraySource(icetray.I3Module):

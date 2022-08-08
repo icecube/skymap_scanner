@@ -1,6 +1,6 @@
 """The Skymap Scanner Server."""
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,import-error
 
 import argparse
 import asyncio
@@ -21,16 +21,16 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import config, extract_json_message
-from ..utils import PixelReco, StateDict, get_event_mjd, pixel_to_tuple
+from .. import config
+from ..utils import extract_json_message
+from ..utils.pixelreco import PixelReco, pixel_to_tuple
+from ..utils.scan_result import ScanResult
+from ..utils.utils import StateDict, get_event_mjd
 from .choose_new_pixels_to_scan import (
     MAX_NSIDE_DEFAULT,
     MIN_NSIDE_DEFAULT,
     choose_new_pixels_to_scan,
 )
-from .scan_result import ScanResult
-
-NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
 
 LOGGER = logging.getLogger("skyscan-server")
 
@@ -459,7 +459,9 @@ class BestPixelRecoFinder:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
 
-        self.pixelNumToFramesMap: Dict[NSidePixelPair, List[PixelReco]] = {}
+        self.pixelNumToFramesMap: Dict[
+            Tuple[icetray.I3Int, icetray.I3Int], List[PixelReco]
+        ] = {}
 
     def cache_and_get_best(self, pixreco: PixelReco) -> Optional[PixelReco]:
         """Add pixreco to internal cache and possibly return the best reco for pixel.

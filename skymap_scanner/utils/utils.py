@@ -3,14 +3,13 @@
 # fmt: off
 # pylint: skip-file
 
-import dataclasses as dc
 import hashlib
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from . import config
+from .. import config
 
 StateDict = Dict[str, Any]
 
@@ -147,35 +146,3 @@ def extract_MC_truth(state_dict):
     state_dict['MCradec'] = (ra, dec)
 
     return state_dict
-
-
-# fmt: on
-
-
-def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
-    """Get a tuple representing a pixel PFrame for logging."""
-    return (
-        pixel["SCAN_HealpixNSide"].value,
-        pixel["SCAN_HealpixPixel"].value,
-        pixel["SCAN_PositionVariationIndex"].value,
-    )
-
-
-@dc.dataclass
-class PixelReco:
-    nside: int
-    pixel: int
-    llh: float
-    reco_losses_inside: float
-    reco_losses_total: float
-    pos_var_index: int
-    id_tuple: Tuple[int, int, int] = dc.field(init=False, repr=False)
-    position: dataclasses.I3Position
-    time: float
-    energy: float
-
-    def __post_init__(self) -> None:
-        self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
-
-
-# fmt: off
