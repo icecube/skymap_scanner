@@ -7,10 +7,10 @@ from typing import Any, Tuple
 from .. import config as cfg
 
 try:  # these are only used for typehints, so mock imports are fine
-    import icecube.dataclasses as i3dataclasses  # type: ignore[import]
+    from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
 except ImportError:
-    i3dataclasses = Any
+    I3Position = Any
     I3Frame = Any
 
 
@@ -34,7 +34,7 @@ class PixelReco:
     reco_losses_total: float
     pos_var_index: int
     id_tuple: Tuple[int, int, int] = dc.field(init=False, repr=False)
-    position: i3dataclasses.I3Position
+    position: I3Position
     time: float
     energy: float
 
