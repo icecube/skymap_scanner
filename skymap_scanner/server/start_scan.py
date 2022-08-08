@@ -26,11 +26,7 @@ from ..utils import extract_json_message
 from ..utils.pixelreco import PixelReco, pixel_to_tuple
 from ..utils.scan_result import ScanResult
 from ..utils.utils import StateDict, get_event_mjd
-from .choose_new_pixels_to_scan import (
-    MAX_NSIDE_DEFAULT,
-    MIN_NSIDE_DEFAULT,
-    choose_new_pixels_to_scan,
-)
+from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 LOGGER = logging.getLogger("skyscan-server")
 
@@ -847,7 +843,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--min-nside",
-        default=MIN_NSIDE_DEFAULT,
+        default=cfg.MIN_NSIDE_DEFAULT,
         help="The first scan-iteration's nside value",
         type=lambda x: int(
             _validate_arg(
@@ -861,7 +857,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--max-nside",
-        default=MAX_NSIDE_DEFAULT,
+        default=cfg.MAX_NSIDE_DEFAULT,
         help="The final scan-iteration's nside value",
         type=lambda x: int(
             _validate_arg(

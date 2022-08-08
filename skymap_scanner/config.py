@@ -23,6 +23,9 @@ GCD_BASE_DIRS: Final = [
     "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
 ]
 
+MIN_NSIDE_DEFAULT: Final = 8
+MAX_NSIDE_DEFAULT: Final = 512
+
 # For commonly used keys
 I3FRAME_NSIDE: Final = "SCAN_HealpixNSide"
 I3FRAME_PIXEL: Final = "SCAN_HealpixPixel"

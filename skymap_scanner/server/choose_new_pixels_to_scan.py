@@ -13,13 +13,6 @@ from icecube import icetray  # type: ignore[import]
 from .. import config as cfg
 from ..utils.load_scan_state import load_cache_state
 
-# test-case-scan: only change in this script is substituting in every place where nside = 8 was hard-coded
-# for nside = min_nside.
-# TODO: Should double-check if this makes sense in all cases
-
-MIN_NSIDE_DEFAULT = 8
-MAX_NSIDE_DEFAULT = 512
-
 
 def __healpix_pixel_upgrade(nside, pix):
     pix_nested = healpy.ring2nest(nside, pix)
@@ -172,10 +165,10 @@ def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*
 
 def choose_new_pixels_to_scan(
     state_dict,
-    max_nside=MAX_NSIDE_DEFAULT,
+    max_nside=cfg.MAX_NSIDE_DEFAULT,
     ang_dist=2.,
-    min_nside=MIN_NSIDE_DEFAULT,
-) -> Tuple[icetray.I3Int, icetray.I3Int]:
+    min_nside=cfg.MIN_NSIDE_DEFAULT,
+) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
     """Get the next set of pixels to scan/refine by searching the state_dict."""
 
     # special case if we have MC truth
