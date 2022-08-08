@@ -23,6 +23,8 @@ def pixel_to_tuple(pixel: I3Frame) -> Tuple[int, int, int]:
 
 @dc.dataclass
 class PixelReco:
+    """A *lightweight* dataclass representing a pixel reconstruction."""
+
     nside: int
     pixel: int
     llh: float

@@ -726,6 +726,44 @@ async def serve_scan_iteration(
     return n_pixreco
 
 
+def write_startup_files(
+    startup_files_dir: Path,
+    event_id: str,
+    min_nside: int,
+    max_nside: int,
+    baseline_GCD_file: str,
+    GCDQp_packet: List[icetray.I3Frame],
+) -> str:
+    """Write startup files for client-spawning.
+
+    Return the mq_basename string.
+    """
+    mq_basename_txt = startup_files_dir / "mq-basename.txt"
+    with open(mq_basename_txt, "w") as f:
+        # TODO: make string shorter
+        mq_basename = f"{event_id}-{min_nside}-{max_nside}"
+        f.write(mq_basename)
+    LOGGER.info(
+        f"Startup File: {mq_basename_txt} ({mq_basename_txt.stat().st_size} bytes)"
+    )
+
+    baseline_GCD_file_txt = startup_files_dir / "baseline_GCD_file.txt"
+    with open(baseline_GCD_file_txt, "w") as f:
+        f.write(baseline_GCD_file)
+    LOGGER.info(
+        f"Startup File: {baseline_GCD_file_txt} ({baseline_GCD_file_txt.stat().st_size} bytes)"
+    )
+
+    GCDQp_packet_pkl = startup_files_dir / "GCDQp_packet.pkl"
+    with open(GCDQp_packet_pkl, "wb") as f:
+        pickle.dump(GCDQp_packet, f)
+    LOGGER.info(
+        f"Startup File: {GCDQp_packet_pkl} ({GCDQp_packet_pkl.stat().st_size} bytes)"
+    )
+
+    return mq_basename
+
+
 def main() -> None:
     """Get command-line arguments and perform event scan via clients."""
     parser = argparse.ArgumentParser(
@@ -908,14 +946,14 @@ def main() -> None:
     )
 
     # write startup files for client-spawning
-    with open(args.startup_files_dir / "mq-basename.txt", "w") as f:
-        # TODO: make string shorter
-        mq_basename = f"{event_id}-{args.min_nside}-{args.max_nside}"
-        f.write(mq_basename)
-    with open(args.startup_files_dir / "baseline_GCD_file.txt", "w") as f:
-        f.write(state_dict["baseline_GCD_file"])
-    with open(args.startup_files_dir / "GCDQp_packet.pkl", "wb") as f:
-        pickle.dump(state_dict["GCDQp_packet"], f)
+    mq_basename = write_startup_files(
+        args.startup_files_dir,
+        event_id,
+        args.min_nside,
+        args.max_nside,
+        state_dict["baseline_GCD_file"],
+        state_dict["GCDQp_packet"],
+    )
 
     # go!
     asyncio.get_event_loop().run_until_complete(
