@@ -9,7 +9,6 @@ on:
 
 env:
   PY_COLORS: "1"
-  SKYSCAN_GCD_DIR: /cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs/
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CACHE_DIR: cache-dir
@@ -44,13 +43,6 @@ jobs:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
       - uses: actions/checkout@v3
-      - uses: cvmfs-contrib/github-action-cvmfs@v2
-        with:
-          cvmfs_backoff_init: 2
-          cvmfs_max_retries: 3
-          cvmfs_dns_retries: 3
-      - name: Test CernVM-FS
-        run: ls $SKYSCAN_GCD_DIR
       - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
         run: |
           ./scripts/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
@@ -70,7 +62,6 @@ jobs:
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
             --output-dir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR \
             --startup-files-dir $GITHUB_WORKSPACE \
-            --gcd-dir $SKYSCAN_GCD_DIR \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
@@ -100,7 +91,6 @@ jobs:
               --mq-basename $(cat $GITHUB_WORKSPACE/mq-basename.txt) \
               --baseline-gcd-file $(cat $GITHUB_WORKSPACE/baseline_GCD_file.txt) \
               --gcdqp-packet-pkl $GITHUB_WORKSPACE/GCDQp_packet.pkl \
-              --gcd-dir $SKYSCAN_GCD_DIR \
               --broker $PULSAR_ADDRESS \
               --log DEBUG \
               --log-third-party INFO \
@@ -139,13 +129,6 @@ jobs:
         ]
     steps:
       - uses: actions/checkout@v3
-      - uses: cvmfs-contrib/github-action-cvmfs@v2
-        with:
-          cvmfs_backoff_init: 2
-          cvmfs_max_retries: 3
-          cvmfs_dns_retries: 3
-      - name: Test CernVM-FS
-        run: ls $SKYSCAN_GCD_DIR
       - name: Build Skymap Scanner Docker Image
         run: |
           ./tests/docker_scripts/docker_local_build.sh
