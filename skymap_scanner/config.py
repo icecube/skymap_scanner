@@ -2,6 +2,7 @@
 
 import dataclasses as dc
 import os
+from pathlib import Path
 from typing import Final
 
 from wipac_dev_tools import from_environment_as_dataclass
@@ -22,6 +23,8 @@ GCD_BASE_DIRS: Final = [
     "http://icecube:skua@convey.icecube.wisc.edu/data/exp/IceCube/2016/internal-system/PoleBaseGCDs",
     "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
 ]
+
+DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
 MIN_NSIDE_DEFAULT: Final = 8
 MAX_NSIDE_DEFAULT: Final = 512
@@ -54,7 +57,7 @@ STATEDICT_MCRADEC: Final = "MCradec"
 
 @dc.dataclass(frozen=True)
 class EnvConfig:
-    """For storing env vars, typed."""
+    """For storing environment variables, typed."""
 
     SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
     SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60

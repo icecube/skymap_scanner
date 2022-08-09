@@ -836,13 +836,9 @@ def main() -> None:
     parser.add_argument(
         "-g",
         "--gcd-dir",
-        required=True,
+        default=cfg.DEFAULT_GCD_DIR,
         help="The GCD directory to use",
-        type=lambda x: _validate_arg(
-            Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-        ),
+        type=Path,
     )
     parser.add_argument(
         "--min-nside",
@@ -928,6 +924,10 @@ def main() -> None:
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
+
+    # check if Baseline GCD directory is reachable (also checks default value)
+    if not Path(args.gcd_dir).is_dir():
+        raise NotADirectoryError(args.gcd_dir)
 
     # read event file
     if args.event_file.suffix == ".json":

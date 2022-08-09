@@ -14,6 +14,8 @@ import asyncstdlib as asl
 import mqclient_pulsar as mq
 from wipac_dev_tools import logging_tools
 
+from .. import config as cfg
+
 OUT_PKL = Path("out_msg.pkl")
 IN_PKL = Path("in_msg.pkl")
 
@@ -151,14 +153,6 @@ def main() -> None:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    T = TypeVar("T")
-
-    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
-        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
-        if test:
-            return val
-        raise exc
-
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform reco scans on pixels "
@@ -173,13 +167,9 @@ def main() -> None:
         # we aren't going to use this arg, but just check if it exists for incoming pixels
         "-g",
         "--gcd-dir",
-        required=True,
+        default=cfg.DEFAULT_GCD_DIR,
         help="The GCD directory to use",
-        type=lambda x: _validate_arg(
-            Path(x),
-            Path(x).is_dir(),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-        ),
+        type=Path,
     )
     parser.add_argument(
         "--gcdqp-packet-pkl",
@@ -257,6 +247,10 @@ def main() -> None:
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
+
+    # check if Baseline GCD directory is reachable (also checks default value)
+    if not Path(args.gcd_dir).is_dir():
+        raise NotADirectoryError(args.gcd_dir)
 
     cmd = (
         f"python -m skymap_scanner.client.reco_pixel_pkl "
