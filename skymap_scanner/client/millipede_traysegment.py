@@ -108,7 +108,7 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
     tray.AddModule(notify2, "notify2")
 
     def set_PixelReco_values(frame):
-        """Set 'PixelReco_*' values."""
+        """Set `cfg.I3FRAME_RECO_*` ('PixelReco_*') values."""
         if "MillipedeStarting2ndPass_millipedellh" not in frame:
             frame[cfg.I3FRAME_RECO_LLH] = dataclasses.I3Double(float("nan"))
         else:
