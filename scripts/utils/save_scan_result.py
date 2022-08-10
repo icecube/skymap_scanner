@@ -8,8 +8,8 @@ import argparse
 import logging
 
 from icecube import dataio
-from skymap_scanner import load_cache_state
-from skymap_scanner.server.scan_result import ScanResult
+from skymap_scanner.utils.load_scan_state import load_cache_state
+from skymap_scanner.utils.scan_result import ScanResult
 
 
 def main():
