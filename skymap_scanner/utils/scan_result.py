@@ -17,19 +17,14 @@ class InvalidPixelValueError(Exception):
 
 class ScanResult:
     """
-    This class parses a nsides_dict (`state_dict[cfg.STATEDICT_NSIDES]`) and stores
+    This class parses a nsides_dict and stores
     the relevant numeric result of the scan. Ideally it should serve as
     the basic data structure for plotting / processing / transmission of
     the scan result.
 
-    The `state_dict` as produced by `load_cache_state()` is currently structured as follows:
-    - cfg.STATEDICT_GCDQP_PACKET ('GCDQp_packet')
-    - cfg.STATEDICT_BASELINE_GCD_FILE ('baseline_GCD_file')
-    - cfg.STATEDICT_NSIDES ('nsides')
-
-    nsides_dict (`state_dict[cfg.STATEDICT_NSIDES]`) is a dictionary having per
-    indices the 'nside' values for which a scan result is available
-    (e.g. 8, 64, 512). The scan result is a dictionary:
+    nsides_dict is a dictionary keyed by 'nside' values for which a scan
+    result is available (e.g. 8, 64, 512).
+    The scan result is a dictionary:
     - i (pixel index, integer) ->
         'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
 
@@ -253,7 +248,7 @@ class ScanResult:
     @classmethod
     def from_nsides_dict(cls, nsides_dict) -> "ScanResult":
         """
-        Factory method for nsides_dict (`state_dict[cfg.STATEDICT_NSIDES]`)
+        Factory method for nsides_dict
         """
         result = cls.load_pixels(nsides_dict)
         return cls(result)

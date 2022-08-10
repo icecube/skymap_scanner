@@ -47,7 +47,6 @@ I3FRAME_RECO_ENERGY: Final = "PixelReco_energy"
 STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
 STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
 STATEDICT_NSIDES: Final = "nsides"
-STATEDICT_MCRADEC: Final = "MCradec"
 
 
 #
