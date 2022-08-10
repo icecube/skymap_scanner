@@ -24,7 +24,7 @@ fonttools==4.34.4
     # via matplotlib
 grpcio==1.27.2
     # via apache-bookkeeper-client
-healpy==1.16.0
+healpy==1.16.1
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
@@ -47,7 +47,7 @@ packaging==21.3
     #   matplotlib
 pillow==9.2.0
     # via matplotlib
-protobuf==4.21.2
+protobuf==4.21.5
     # via apache-bookkeeper-client
 pulsar-client==2.10.1
     # via wipac-mqclient-pulsar
@@ -67,7 +67,7 @@ pyyaml==6.0
     # via astropy
 requests==2.28.1
     # via wipac-dev-tools
-scipy==1.8.1
+scipy==1.9.0
     # via healpy
 six==1.16.0
     # via
@@ -77,15 +77,15 @@ six==1.16.0
     #   python-dateutil
 typing-extensions==4.3.0
     # via wipac-dev-tools
-urllib3==1.26.10
+urllib3==1.26.11
     # via requests
 wipac-dev-tools[coloredlogs]==1.3.1
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient-pulsar
-wipac-mqclient==0.5.0
+wipac-mqclient==0.5.1
     # via wipac-mqclient-pulsar
-wipac-mqclient-pulsar==0.4.2
+wipac-mqclient-pulsar==0.4.3
     # via skymap-scanner (setup.py)
 
 # The following packages are considered to be unsafe in a requirements file:
