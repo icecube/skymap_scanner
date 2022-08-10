@@ -2,7 +2,11 @@
 
 import dataclasses as dc
 import os
-from typing import Final
+
+try:
+    from typing import Final
+except ImportError:
+    from typing_extensions import Final
 
 from wipac_dev_tools import from_environment_as_dataclass
 
