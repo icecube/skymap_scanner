@@ -23,9 +23,9 @@ from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
 from ..utils import extract_json_message
-from ..utils.pixelreco import PixelReco, pixel_to_tuple
+from ..utils.pixelreco import NSidesDict, PixelReco, pixel_to_tuple
 from ..utils.scan_result import ScanResult
-from ..utils.utils import StateDict, get_event_mjd
+from ..utils.utils import get_event_mjd
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 LOGGER = logging.getLogger("skyscan-server")
@@ -64,7 +64,7 @@ class ProgressReporter:
 
     def __init__(
         self,
-        state_dict: StateDict,
+        nsides_dict: NSidesDict,
         n_pixreco: int,
         n_posvar: int,
         min_nside: int,
@@ -74,8 +74,8 @@ class ProgressReporter:
     ) -> None:
         """
         Arguments:
-            `state_dict`
-                - the state_dict
+            `nsides_dict`
+                - the nsides_dict
             `n_pixreco`
                 - number of expected pixel-recos
             `n_posvar`
@@ -95,7 +95,7 @@ class ProgressReporter:
             `PLOT_INTERVAL_SEC`
                 - make a skymap plot with this interval
         """
-        self.state_dict = state_dict
+        self.nsides_dict = nsides_dict
         self.slack_interface = slack_interface
 
         if n_pixreco <= 0:
@@ -164,7 +164,7 @@ class ProgressReporter:
         ):
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
-                self.slack_interface.post_skymap_plot(self.state_dict)
+                self.slack_interface.post_skymap_plot(self.nsides_dict)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -176,7 +176,7 @@ class ProgressReporter:
             message = "I am starting up the next scan iteration...\n\n"
 
         message += (
-            f"{self.get_state_dict_report()}"  # ends w/ '\n'
+            f"{self.get_nsides_dict_report()}"  # ends w/ '\n'
             "Config:\n"
             f" - event: {self.event_id}\n"
             f" - min nside: {self.min_nside}\n"
@@ -225,22 +225,18 @@ class ProgressReporter:
         )
         return msg
 
-    def get_state_dict_report(self) -> str:
-        """Get a multi-line progress report of the state_dict's nside contents."""
+    def get_nsides_dict_report(self) -> str:
+        """Get a multi-line progress report of the nsides_dict's contents."""
         msg = "Iterations with Saved Pixels:\n"
-        if not self.state_dict[cfg.STATEDICT_NSIDES]:
+        if not self.nsides_dict:
             msg += " - no pixels are done yet\n"
         else:
 
             def nside_line(nside: int, npixels: int) -> str:
                 return f" - {npixels} pixels, nside={nside}\n"
 
-            for nside in sorted(
-                self.state_dict[cfg.STATEDICT_NSIDES]
-            ):  # sorted by nside
-                msg += nside_line(
-                    nside, len(self.state_dict[cfg.STATEDICT_NSIDES][nside])
-                )
+            for nside in sorted(self.nsides_dict):  # sorted by nside
+                msg += nside_line(nside, len(self.nsides_dict[nside]))
 
         return msg
 
@@ -264,7 +260,8 @@ class PixelsToReco:
 
     def __init__(
         self,
-        state_dict: StateDict,
+        nsides_dict: Optional[NSidesDict],
+        GCDQp_packet: List[icetray.I3Frame],
         min_nside: int,
         max_nside: int,
         input_time_name: str,
@@ -274,8 +271,10 @@ class PixelsToReco:
     ) -> None:
         """
         Arguments:
-            `state_dict`
-                - the state_dict
+            `nsides_dict`
+                - the nsides_dict
+            `GCDQp_packet`
+                - the GCDQp frame packet
             `min_nside`
                 - min nside value
             `max_nside`
@@ -289,7 +288,6 @@ class PixelsToReco:
             `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
         """
-        self.state_dict = state_dict
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
@@ -306,7 +304,7 @@ class PixelsToReco:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
                 dataclasses.I3Position(-variation_distance,0.,0.),
-                dataclasses.I3Position( variation_distance,0.,0.),
+                dataclasses.I3Position(variation_distance,0.,0.),
                 dataclasses.I3Position(0.,-variation_distance,0.),
                 dataclasses.I3Position(0., variation_distance,0.),
                 dataclasses.I3Position(0.,0.,-variation_distance),
@@ -319,42 +317,39 @@ class PixelsToReco:
         self.min_nside = min_nside
         self.max_nside = max_nside
 
-        # Validate & read state_dict
-        if cfg.STATEDICT_GCDQP_PACKET not in self.state_dict:
-            raise RuntimeError(f"'{cfg.STATEDICT_GCDQP_PACKET}' not in state_dict.")
+        if not nsides_dict:
+            self.nsides_dict = {}
+        else:
+            self.nsides_dict = nsides_dict
 
-        if cfg.STATEDICT_BASELINE_GCD_FILE not in self.state_dict:
-            raise RuntimeError(f"'{cfg.STATEDICT_BASELINE_GCD_FILE}' not in state_dict.")
-
-        if cfg.STATEDICT_NSIDES not in self.state_dict:
-            self.state_dict[cfg.STATEDICT_NSIDES] = {}
-
-        p_frame = self.state_dict[cfg.STATEDICT_GCDQP_PACKET][-1]
+        # Validate & read GCDQp_packet
+        p_frame = GCDQp_packet[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
+        self.GCDQp_packet = GCDQp_packet
 
         self.fallback_position = p_frame[self.input_pos_name]
         self.fallback_time = p_frame[self.input_time_name].value
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(self.state_dict)  # type: ignore[no-untyped-call]
+        self.event_mjd = get_event_mjd(self.GCDQp_packet)
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd."""
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
-            self.state_dict, min_nside=self.min_nside, max_nside=self.max_nside
+            self.nsides_dict, min_nside=self.min_nside, max_nside=self.max_nside
         )
         if len(pixels_to_refine) == 0:
             LOGGER.info("There are no pixels to refine.")
             return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
-        # sanity check state_dict
-        for nside in self.state_dict[cfg.STATEDICT_NSIDES]:
-            for pixel in self.state_dict[cfg.STATEDICT_NSIDES][nside]:
+        # sanity check nsides_dict
+        for nside in self.nsides_dict:
+            for pixel in self.nsides_dict[nside]:
                 if (nside,pixel) in pixels_to_refine:
                     raise RuntimeError("pixel to refine is already done processing")
 
@@ -393,8 +388,8 @@ class PixelsToReco:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
-                if coarser_nside in self.state_dict[cfg.STATEDICT_NSIDES]:
-                    if coarser_pixel in self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside]:
+                if coarser_nside in self.nsides_dict:
+                    if coarser_pixel in self.nsides_dict[coarser_nside]:
                         # coarser pixel found
                         break
 
@@ -404,15 +399,15 @@ class PixelsToReco:
                 time = self.fallback_time
                 energy = self.fallback_energy
             else:
-                if numpy.isnan(self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].llh):
+                if numpy.isnan(self.nsides_dict[coarser_nside][coarser_pixel].llh):
                     # coarser reconstruction failed
                     position = self.fallback_position
                     time = self.fallback_time
                     energy = self.fallback_energy
                 else:
-                    position = self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].position
-                    time = self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].time
-                    energy = self.state_dict[cfg.STATEDICT_NSIDES][coarser_nside][coarser_pixel].energy
+                    position = self.nsides_dict[coarser_nside][coarser_pixel].position
+                    time = self.nsides_dict[coarser_nside][coarser_pixel].time
+                    energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
@@ -511,7 +506,7 @@ class PixelRecoCollector:
         n_pixreco: int,  # Number of expected pixel-reconstructions
         min_nside: int,
         max_nside: int,
-        state_dict: StateDict,
+        nsides_dict: NSidesDict,
         event_id: str,
         global_start_time: float,
         slack_interface: SlackInterface,
@@ -520,7 +515,7 @@ class PixelRecoCollector:
             n_posvar=n_posvar,
         )
         self.progress_reporter = ProgressReporter(
-            state_dict,
+            nsides_dict,
             n_pixreco,
             n_posvar,
             min_nside,
@@ -528,7 +523,7 @@ class PixelRecoCollector:
             event_id,
             slack_interface,
         )
-        self.state_dict = state_dict
+        self.nsides_dict = nsides_dict
         self.global_start_time = global_start_time
         self.pixreco_ids_received: List[Tuple[int, int, int]] = []
 
@@ -542,7 +537,7 @@ class PixelRecoCollector:
 
     def collect(self, pixreco: PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
-        LOGGER.debug(f"{self.state_dict=}")
+        LOGGER.debug(f"{self.nsides_dict=}")
 
         if pixreco.id_tuple in self.pixreco_ids_received:
             raise DuplicatePixelRecoException(
@@ -564,14 +559,14 @@ class PixelRecoCollector:
                 f"Saving a BEST pixel-reco (found {logging_id}): "
                 f"{best.id_tuple} {best}"
             )
-            # insert pixreco into state_dict
-            if best.nside not in self.state_dict[cfg.STATEDICT_NSIDES]:
-                self.state_dict[cfg.STATEDICT_NSIDES][best.nside] = {}
-            if best.pixel in self.state_dict[cfg.STATEDICT_NSIDES][best.nside]:
+            # insert pixreco into nsides_dict
+            if best.nside not in self.nsides_dict:
+                self.nsides_dict[best.nside] = {}
+            if best.pixel in self.nsides_dict[best.nside]:
                 raise DuplicatePixelRecoException(
-                    f"NSide {best.nside} / Pixel {best.pixel} is already in state_dict"
+                    f"NSide {best.nside} / Pixel {best.pixel} is already in nsides_dict"
                 )
-            self.state_dict[cfg.STATEDICT_NSIDES][best.nside][best.pixel] = best
+            self.nsides_dict[best.nside][best.pixel] = best
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
@@ -580,7 +575,8 @@ class PixelRecoCollector:
 
 async def serve(
     event_id: str,
-    state_dict: StateDict,
+    nsides_dict: NSidesDict,
+    GCDQp_packet: List[icetray.I3Frame],
     output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
@@ -611,7 +607,8 @@ async def serve(
     )
 
     pixeler = PixelsToReco(
-        state_dict=state_dict,
+        nsides_dict=nsides_dict,
+        GCDQp_packet=GCDQp_packet,
         min_nside=min_nside,
         max_nside=max_nside,
         input_time_name=cfg.INPUT_TIME_NAME,
@@ -630,7 +627,7 @@ async def serve(
             to_clients_queue,
             from_clients_queue,
             event_id,
-            state_dict,
+            nsides_dict,
             global_start_time,
             pixeler,
             slack_interface,
@@ -644,7 +641,7 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
-    result = ScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
+    result = ScanResult.from_nsides_dict(nsides_dict)
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
@@ -658,14 +655,14 @@ async def serve(
     LOGGER.info(final_message)
     if slack_interface.active:
         slack_interface.post(final_message)
-        slack_interface.post_skymap_plot(state_dict)
+        slack_interface.post_skymap_plot(nsides_dict)
 
 
 async def serve_scan_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     event_id: str,
-    state_dict: StateDict,
+    nsides_dict: NSidesDict,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -703,7 +700,7 @@ async def serve_scan_iteration(
         n_pixreco=n_pixreco,
         min_nside=pixeler.min_nside,
         max_nside=pixeler.max_nside,
-        state_dict=state_dict,
+        nsides_dict=nsides_dict,
         event_id=event_id,
         global_start_time=global_start_time,
         slack_interface=slack_interface,
@@ -961,7 +958,8 @@ def main() -> None:
     asyncio.get_event_loop().run_until_complete(
         serve(
             event_id=event_id,
-            state_dict=state_dict,
+            nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
+            GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,

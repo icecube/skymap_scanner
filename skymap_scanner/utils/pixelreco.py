@@ -2,7 +2,7 @@
 
 
 import dataclasses as dc
-from typing import Any, Tuple
+from typing import Any, Dict, Tuple
 
 from .. import config as cfg
 
@@ -40,3 +40,6 @@ class PixelReco:
 
     def __post_init__(self) -> None:
         self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
+
+
+NSidesDict = Dict[int, Dict[int, PixelReco]]

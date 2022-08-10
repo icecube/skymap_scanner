@@ -4,7 +4,7 @@
 # pylint: skip-file
 
 import random
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import healpy  # type: ignore[import]
 import numpy
@@ -12,6 +12,7 @@ from icecube import icetray  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.load_scan_state import load_cache_state
+from ..utils.pixelreco import NSidesDict
 
 
 def __healpix_pixel_upgrade(nside, pix):
@@ -68,12 +69,12 @@ def pixel_dist(from_nside, from_pix, to_nside, to_pix):
     return space_angle
 
 
-def find_global_min_pixel(state_dict):
+def find_global_min_pixel(nsides_dict: NSidesDict) -> Tuple[Optional[int], Optional[int]]:
     global_min_pix_index = (None, None)
     min_llh = None
 
-    for nside in list(state_dict[cfg.STATEDICT_NSIDES].keys()):
-        pixels_dict = state_dict[cfg.STATEDICT_NSIDES][nside]
+    for nside in list(nsides_dict.keys()):
+        pixels_dict = nsides_dict[nside]
         for p in list(pixels_dict.keys()):
             this_llh = pixels_dict[p].llh
             if min_llh is None or ((not numpy.isnan(this_llh)) and (this_llh < min_llh)):
@@ -83,11 +84,17 @@ def find_global_min_pixel(state_dict):
     return global_min_pix_index
 
 
-def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_extension_number=24, llh_diff_to_trigger_refinement=200000):
-    if nside not in state_dict[cfg.STATEDICT_NSIDES]:
+def find_pixels_to_refine(
+    nsides_dict: NSidesDict,
+    nside: int,
+    total_pixels_for_this_nside: int,
+    pixel_extension_number: int = 24,
+    llh_diff_to_trigger_refinement: int = 200000,
+) -> List[int]:
+    if nside not in nsides_dict:
         return []
 
-    pixels_dict = state_dict[cfg.STATEDICT_NSIDES][nside]
+    pixels_dict = nsides_dict[nside]
 
     pixels_to_refine = set()
 
@@ -124,8 +131,13 @@ def find_pixels_to_refine(state_dict, nside, total_pixels_for_this_nside, pixel_
     return [x for x in pixels_to_refine]
 
 
-def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*numpy.pi/180.):
-    ra, dec = state_dict[cfg.STATEDICT_MCRADEC]
+def choose_new_pixels_to_scan_around_MCtruth(
+    nsides_dict: Optional[NSidesDict],
+    mc_ra_dec: Tuple[float, float],
+    nside: int,
+    angular_dist: float = 2.*numpy.pi/180.,
+) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
+    ra, dec = mc_ra_dec
 
     # MC true pixel
     true_pix = healpy.ang2pix(nside, dec+numpy.pi/2., ra)
@@ -144,13 +156,13 @@ def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*
     # pixels, sorted by distance from the requested pixel
     sorted_pixels = pixels[numpy.argsort(pixel_space_angles)].tolist()
 
-    if cfg.STATEDICT_NSIDES not in state_dict:
+    if not nsides_dict:
         existing_pixels = []
     else:
-        if nside not in state_dict[cfg.STATEDICT_NSIDES]:
+        if nside not in nsides_dict:
             existing_pixels = []
         else:
-            existing_pixels = list(state_dict[cfg.STATEDICT_NSIDES][nside].keys())
+            existing_pixels = list(nsides_dict[nside].keys())
 
     scan_pixels = []
 
@@ -164,32 +176,38 @@ def choose_new_pixels_to_scan_around_MCtruth(state_dict, nside, angular_dist=2.*
 
 
 def choose_new_pixels_to_scan(
-    state_dict,
-    max_nside=cfg.MAX_NSIDE_DEFAULT,
-    ang_dist=2.,
-    min_nside=cfg.MIN_NSIDE_DEFAULT,
+    nsides_dict: Optional[NSidesDict],
+    max_nside: int = cfg.MAX_NSIDE_DEFAULT,
+    ang_dist: float = 2.,
+    min_nside: int = cfg.MIN_NSIDE_DEFAULT,
+    mc_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
-    """Get the next set of pixels to scan/refine by searching the state_dict."""
+    """Get the next set of pixels to scan/refine by searching the nsides_dict."""
 
     # special case if we have MC truth
-    if cfg.STATEDICT_MCRADEC in state_dict:
+    if mc_ra_dec:
         # scan only at max_nside around the true minimum
-        return choose_new_pixels_to_scan_around_MCtruth(state_dict, nside=max_nside, angular_dist=ang_dist*numpy.pi/180.)
+        return choose_new_pixels_to_scan_around_MCtruth(
+            nsides_dict,
+            mc_ra_dec=mc_ra_dec,
+            nside=max_nside,
+            angular_dist=ang_dist*numpy.pi/180.
+        )
 
     # first check if any pixels with nside=8 are missing (we need all of them)
-    if cfg.STATEDICT_NSIDES not in state_dict:
+    if not nsides_dict:
         # print("nsides is missing - scan all pixels at nside=8")
         scan_pixels = list(range(healpy.nside2npix(min_nside)))
         random.shuffle(scan_pixels)
         return [(min_nside, pix) for pix in scan_pixels]
-    if min_nside not in state_dict[cfg.STATEDICT_NSIDES]:
+    if min_nside not in nsides_dict:
         # print("nsides=8 is missing - scan all pixels at nside=8")
         scan_pixels = list(range(healpy.nside2npix(min_nside)))
         random.shuffle(scan_pixels)
         return [(min_nside, pix) for pix in scan_pixels]
 
     scan_pixels = []
-    existing_pixels = list(state_dict[cfg.STATEDICT_NSIDES][min_nside].keys())
+    existing_pixels = list(nsides_dict[min_nside].keys())
     for i in range(healpy.nside2npix(min_nside)):
         if i not in existing_pixels:
             scan_pixels.append(i)
@@ -223,13 +241,13 @@ def choose_new_pixels_to_scan(
             break # no more pixels to scan
 
         total_pixels_scanning_and_existing = set()
-        if current_nside in state_dict[cfg.STATEDICT_NSIDES]:
-            total_pixels_scanning_and_existing.update(list(state_dict[cfg.STATEDICT_NSIDES][current_nside].keys()))
+        if current_nside in nsides_dict:
+            total_pixels_scanning_and_existing.update(list(nsides_dict[current_nside].keys()))
         for __n, __p in all_pixels_to_refine:
             if __n == current_nside: total_pixels_scanning_and_existing.add(__p)
         total_pixels_scanning_and_existing = len(total_pixels_scanning_and_existing)
 
-        pixels_to_refine = find_pixels_to_refine(state_dict, nside=current_nside, total_pixels_for_this_nside=total_pixels_scanning_and_existing,
+        pixels_to_refine = find_pixels_to_refine(nsides_dict, nside=current_nside, total_pixels_for_this_nside=total_pixels_scanning_and_existing,
         pixel_extension_number = pixel_extension_number)
         if len(pixels_to_refine) > 0:
             # have the list of pixels to refine - find their subdivisions
@@ -240,8 +258,8 @@ def choose_new_pixels_to_scan(
                 upgraded_pixels_to_refine.extend(u)
 
             # only scan non-existent pixels
-            if next_nside in state_dict[cfg.STATEDICT_NSIDES]:
-                existing_pixels = set(state_dict[cfg.STATEDICT_NSIDES][next_nside].keys())
+            if next_nside in nsides_dict:
+                existing_pixels = set(nsides_dict[next_nside].keys())
                 upgraded_pixels_to_refine_nonexisting = [pix for pix in upgraded_pixels_to_refine if pix not in existing_pixels]
             else:
                 upgraded_pixels_to_refine_nonexisting = upgraded_pixels_to_refine
@@ -270,7 +288,7 @@ if __name__ == "__main__":
     eventID = args[0]
 
     state_dict = load_cache_state(eventID, cache_dir=options.CACHEDIR)[1]
-    pixels = choose_new_pixels_to_scan(state_dict)
+    pixels = choose_new_pixels_to_scan(state_dict[cfg.STATEDICT_NSIDES])
 
     print(("got", pixels))
     print(("number of pixels to scan is", len(pixels)))

@@ -12,14 +12,14 @@ from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio
 
 from .. import config as cfg
-from .utils import StateDict, hash_frame_packet, load_GCD_frame_packet_from_file
+from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
 
 def load_cache_state(
     event_id: str,
     filestager=None,
     cache_dir: str = "./cache/",
-) -> Tuple[str, StateDict]:
+) -> Tuple[str, dict]:
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
         raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
