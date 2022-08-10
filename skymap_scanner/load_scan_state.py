@@ -9,6 +9,7 @@ from typing import Tuple
 
 import numpy
 from I3Tray import I3Units
+from icecube import millipede
 from icecube import VHESelfVeto, dataclasses, dataio
 
 from . import config
