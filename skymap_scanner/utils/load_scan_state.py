@@ -244,7 +244,13 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         print(" - does not seem to contain frame diff packet")
         GCD_diff_base_filename = None
 
-    return (event_id, dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename))
+    return (
+        event_id,
+        {
+            cfg.STATEDICT_GCDQP_PACKET: frame_packet,
+            cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename,
+        },
+    )
 
 
 if __name__ == "__main__":

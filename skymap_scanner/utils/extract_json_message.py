@@ -9,7 +9,7 @@ import os
 import numpy as np
 from icecube import dataio, full_event_followup, icetray  # type: ignore[import]
 
-from .. import config
+from .. import config as cfg
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
 from .utils import (
@@ -109,7 +109,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
 
         # try to load the base file from the various possible input directories
         GCD_diff_base_handle = None
-        for GCD_base_dir in config.GCD_BASE_DIRS:
+        for GCD_base_dir in cfg.GCD_BASE_DIRS:
             try:
                 read_url = os.path.join(GCD_base_dir, GCD_diff_base_filename)
                 print(("reading GCD from {0}".format( read_url )))
@@ -211,7 +211,15 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         # no GCD exists yet
         save_GCD_frame_packet_to_file(frame_packet, GCDQp_filename)
         print(("wrote GCDQp dependency frames to {0}".format(GCDQp_filename)))
-    return (this_event_cache_dir, event_id_string, dict(GCDQp_packet=frame_packet, baseline_GCD_file=GCD_diff_base_filename))
+
+    return (
+        this_event_cache_dir,
+        event_id_string,
+        {
+            cfg.STATEDICT_GCDQP_PACKET: frame_packet,
+            cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename
+        },
+    )
 
 
 def extract_json_messages(filenames, filestager, cache_dir="./cache", override_GCD_filename=None):
