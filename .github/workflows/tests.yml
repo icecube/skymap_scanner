@@ -109,7 +109,7 @@ jobs:
           outfile=$(ls -d $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-          pip install .  # don't have to use the docker container for this
+          pip install .  # don't need icecube, so no docker container needed
           python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
             --actual $outfile \
             --expected $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
@@ -135,17 +135,19 @@ jobs:
       - name: Run
         run: |
           ./tests/docker_scripts/_launch_reco_pixel.sh \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.in.pkl
-      # - name: Test Output Against Known Result (.pkl)
-      #   run: |
-      #     # we need to launch in docker conatiner b/c pickle needs icecube
-      #     docker run --network="host" --rm -i \
-      #       --mount type=bind,source=$GITHUB_WORKSPACE/tests/data/reco_pixel_pkls,target=/local/pkls \
-      #       icecube/skymap_scanner:latest \
-      #       python /local/tests/compare_reco_pixel_pkl.py \
-      #       --actual /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/${{ matrix.pkl-prefix }}.out.pkl \
-      #       --expected /local/pkls/${{ matrix.pkl-prefix }}.in.pkl /local/pkls/out.pkl \
-      #       --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
-      #       --disqualify-zero-energy-pixels \
-      #       --assert \
-      #       || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json) && false)
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.in.pkl \
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/gcdqp-packet.pkl \
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/baseline-gcd-file.txt \
+      - name: Test Output Against Known Result (.pkl)
+        run: |
+          ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls
+
+          pip install .  # don't need icecube, so no docker container needed
+          python $GITHUB_WORKSPACE/tests/compare_reco_pixel_pkl.py \
+            --actual $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.out.pkl \
+            --expected $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/out.pkl \
+            --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
+            --disqualify-zero-energy-pixels \
+            --assert \
+            || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json) && false)
+

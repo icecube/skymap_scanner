@@ -10,12 +10,14 @@ fi
 
 docker run --network="host" --rm -i \
     --shm-size=6gb \
-    --mount type=bind,source=$SKYSCAN_GCD_DIR,target=/local/gcd \
     --mount type=bind,source=$(dirname $1),target=/local/pkls \
+    --mount type=bind,source=$(dirname $2),target=/local/gcdqp-packet \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     icecube/skymap_scanner:latest \
     python -m skymap_scanner.client.reco_pixel_pkl \
     --in-pkl /local/pkls/$(basename $1) \
+    --gcdqp-packet-pkl /local/gcdqp-packet/$(basename $2) \
+    --baseline-gcd-file $(cat $3) \
     --out-pkl /local/pkls/out.pkl \
     --log DEBUG
