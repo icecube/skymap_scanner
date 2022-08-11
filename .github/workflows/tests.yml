@@ -58,6 +58,7 @@ jobs:
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
           mkdir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
           ./scripts/launch_scripts/launch_server.sh \
+            --reco-algo millipede \
             --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
             --output-dir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR \
