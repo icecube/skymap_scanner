@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .pixelreco import PixelReco
+from .pixelreco import NSidesDict, PixelReco
 
 
 class InvalidPixelValueError(Exception):
@@ -23,7 +23,7 @@ class ScanResult:
     the scan result.
 
     nsides_dict is a dictionary keyed by 'nside' values for which a scan
-    result is available (e.g. 8, 64, 512).
+    result is available (e.g. 8, 64, 512), see `pixelreco.NSidesDict`.
     The scan result is a dictionary:
     - i (pixel index, integer) ->
         'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
@@ -246,7 +246,7 @@ class ScanResult:
         return int(key.split("nside-")[1])
 
     @classmethod
-    def from_nsides_dict(cls, nsides_dict) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict) -> "ScanResult":
         """
         Factory method for nsides_dict
         """
@@ -254,7 +254,7 @@ class ScanResult:
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, nsides_dict):
+    def load_pixels(cls, nsides_dict: NSidesDict):
         logger = logging.getLogger(__name__)
 
         out = dict()

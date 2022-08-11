@@ -5,18 +5,20 @@
 # pylint: skip-file
 
 import os
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy
 from I3Tray import I3Units
-from icecube import VHESelfVeto, dataclasses, dataio
+from icecube import VHESelfVeto, dataclasses, dataio, icetray
 
 from .. import config as cfg
+from .pixelreco import PixelReco
 from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
 
 def load_cache_state(
     event_id: str,
+    reco_algo: cfg.RecoAlgo,
     filestager=None,
     cache_dir: str = "./cache/",
 ) -> Tuple[str, dict]:
@@ -28,25 +30,38 @@ def load_cache_state(
     state_dict = load_GCDQp_state(event_id, filestager=filestager, cache_dir=cache_dir)[1]
 
     # update with scans
-    state_dict = load_scan_state(event_id, state_dict, filestager=filestager, cache_dir=cache_dir)[1]
+    state_dict = load_scan_state(event_id, state_dict, reco_algo, filestager=filestager, cache_dir=cache_dir)[1]
 
     return (event_id, state_dict)
 
 
-def get_reco_losses_inside(p_frame, g_frame):
-    if "MillipedeStarting2ndPass" not in p_frame: return numpy.nan, numpy.nan
-    recoParticle = p_frame["MillipedeStarting2ndPass"]
+def get_reco_losses_inside(p_frame, g_frame, reco_algo: cfg.RecoAlgo) -> Tuple[float, float]:
 
-    if "MillipedeStarting2ndPassParams" not in p_frame: return numpy.nan, numpy.nan
-    
-    def getRecoLosses(vecParticles):
-        losses = []
-        for p in vecParticles:
-            if not p.is_cascade: continue
-            if p.energy==0.: continue
-            losses.append([p.time, p.energy])
-        return losses
-    recoLosses = getRecoLosses(p_frame["MillipedeStarting2ndPassParams"])
+    if reco_algo == cfg.RecoAlgo.MILLIPEDE:
+        if "MillipedeStarting2ndPass" not in p_frame:
+            return numpy.nan, numpy.nan
+        recoParticle = p_frame["MillipedeStarting2ndPass"]
+
+        if "MillipedeStarting2ndPassParams" not in p_frame:
+            return numpy.nan, numpy.nan
+
+        def getRecoLosses(vecParticles):
+            losses = []
+            for p in vecParticles:
+                if not p.is_cascade:
+                    continue
+                if p.energy == 0.:
+                    continue
+                losses.append([p.time, p.energy])
+            return losses
+        recoLosses = getRecoLosses(p_frame["MillipedeStarting2ndPassParams"])
+
+    # elif ...:  # TODO (FUTURE DEV) - add other algos
+    #     pass
+    else:
+        raise RuntimeError(
+            f"Requested unsupported reconstruction algorithm: {reco_algo}"
+        )
 
     intersectionPoints = VHESelfVeto.IntersectionsWithInstrumentedVolume(g_frame["I3Geometry"], recoParticle)
     intersectionTimes = []
@@ -57,13 +72,14 @@ def get_reco_losses_inside(p_frame, g_frame):
         
         prod = vecX*recoParticle.dir.x + vecY*recoParticle.dir.y + vecZ*recoParticle.dir.z
         dist = numpy.sqrt(vecX**2 + vecY**2 + vecZ**2)
-        if prod < 0.: dist *= -1.
+        if prod < 0.:
+            dist *= -1.
         intersectionTimes.append(dist/dataclasses.I3Constants.c + recoParticle.time)
 
     entryTime = None
     exitTime = None
     intersectionTimes = sorted(intersectionTimes)
-    if len(intersectionTimes)==0:
+    if len(intersectionTimes) == 0:
         return 0., 0.
         
     entryTime = intersectionTimes[0]-60.*I3Units.m/dataclasses.I3Constants.c
@@ -75,8 +91,10 @@ def get_reco_losses_inside(p_frame, g_frame):
     totalRecoLossesInside = 0.
     for entry in recoLosses:
         totalRecoLosses += entry[1]
-        if entryTime is not None and entry[0] < entryTime: continue
-        if exitTime  is not None and entry[0] > exitTime:  continue
+        if entryTime is not None and entry[0] < entryTime:
+            continue
+        if exitTime is not None and entry[0] > exitTime:
+            continue
         totalRecoLossesInside += entry[1]
 
     return totalRecoLossesInside, totalRecoLosses
@@ -85,7 +103,7 @@ def get_reco_losses_inside(p_frame, g_frame):
 """
 Code extracted from load_scan_state()
 """    
-def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
+def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List[icetray.I3Frame]:
 
     if baseline_GCD_file is not None:
           
@@ -113,7 +131,7 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
                     break
 
             if baseline_GCD_frames is None:
-                 raise RuntimeError("Could not load basline GCD file from any location")
+                raise RuntimeError("Could not load basline GCD file from any location")
     else:
         # assume we have full non-diff GCD frames in the packet
         baseline_GCD_frames = [GCDQp_packet[0]]
@@ -122,13 +140,13 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager):
     return baseline_GCD_frames
 
 
-def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/"):
+def load_scan_state(event_id, state_dict, reco_algo: cfg.RecoAlgo, filestager=None, cache_dir="./cache/"):
     
-    baseline_GCD_frames = get_baseline_gcd_frames(
+    geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
         state_dict.get(cfg.STATEDICT_GCDQP_PACKET),
         filestager,
-    )
+    )[0]
 
     this_event_cache_dir = os.path.join(cache_dir, event_id)
     if not os.path.isdir(this_event_cache_dir):
@@ -148,17 +166,15 @@ def load_scan_state(event_id, state_dict, filestager=None, cache_dir="./cache/")
 
         for pixel, pixel_file in pixels:
             loaded_frames = load_GCD_frame_packet_from_file(pixel_file)
-            if len(loaded_frames)==0: continue # skip empty files
+            if len(loaded_frames) == 0:
+                continue  # skip empty files
             if len(loaded_frames) > 1:
                 raise RuntimeError("Pixel file \"{0}\" has more than one frame in it.")
-            if "MillipedeStarting2ndPass_millipedellh" in loaded_frames[0]:
-                llh = loaded_frames[0]["MillipedeStarting2ndPass_millipedellh"].logl
-            else:
-                llh = numpy.nan
 
-            recoLossesInside, recoLossesTotal = get_reco_losses_inside(loaded_frames[0], baseline_GCD_frames[0])
-
-            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = dict(frame=loaded_frames[0], llh=llh, recoLossesInside=recoLossesInside, recoLossesTotal=recoLossesTotal)
+            # add PixelReco to pixel-dict
+            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = PixelReco.from_i3frame(
+                loaded_frames[0], geometry, reco_algo
+            )
 
         # get rid of empty dicts
         if len(state_dict[cfg.STATEDICT_NSIDES][nside]) == 0:
@@ -273,6 +289,11 @@ if __name__ == "__main__":
     stagers = dataio.get_stagers()
 
     # do the work
-    packets = load_cache_state(eventID, filestager=stagers, cache_dir=options.CACHEDIR)
+    packets = load_cache_state(
+        eventID,
+        cfg.RecoAlgo[args.reco_algo.upper()],  # TODO: add --reco-algo (see start_scan.py)
+        filestager=stagers,
+        cache_dir=options.CACHEDIR
+    )
 
     print(("got:", packets))

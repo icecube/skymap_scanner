@@ -44,7 +44,7 @@ def extract_GCD_diff_base_filename(frame_packet):
     
     return GCD_diff_base_filename
 
-def extract_json_message(json_data, filestager, cache_dir="./cache/", override_GCD_filename=None):
+def extract_json_message(json_data, reco_algo: cfg.RecoAlgo, filestager, cache_dir="./cache/", override_GCD_filename=None):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
@@ -58,7 +58,7 @@ def extract_json_message(json_data, filestager, cache_dir="./cache/", override_G
     state_dict = r[2]
 
     # try to load existing pixels if there are any
-    return load_scan_state(event_id, state_dict, cache_dir=cache_dir)
+    return load_scan_state(event_id, state_dict, reco_algo, cache_dir=cache_dir)
 
 def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
     if not os.path.exists(cache_dir):
@@ -222,7 +222,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
     )
 
 
-def extract_json_messages(filenames, filestager, cache_dir="./cache", override_GCD_filename=None):
+def extract_json_messages(filenames, reco_algo: cfg.RecoAlgo, filestager, cache_dir="./cache", override_GCD_filename=None):
     all_messages = []
     return_packets = dict()
 
@@ -233,11 +233,11 @@ def extract_json_messages(filenames, filestager, cache_dir="./cache", override_G
         if isinstance(json_data, list):
             # interpret as a list of messages
             for m in json_data:
-                name, packet = extract_json_message(m, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
+                name, packet = extract_json_message(m, reco_algo, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
                 return_packets[name] = packet
         elif isinstance(json_data, dict):
             # interpret as a single message
-            name, packet = extract_json_message(json_data, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
+            name, packet = extract_json_message(json_data, reco_algo, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
             return_packets[name] = packet
         else:
             raise RuntimeError("Cannot interpret JSON data in {0}".format(filename))
@@ -269,6 +269,12 @@ if __name__ == "__main__":
     stagers = dataio.get_stagers()
 
     # do the work
-    packets = extract_json_messages(filenames, filestager=stagers, cache_dir=options.CACHEDIR, override_GCD_filename=options.OVERRIDEGCDFILENAME)
+    packets = extract_json_messages(
+        filenames,
+        cfg.RecoAlgo[args.reco_algo.upper()],  # TODO: add --reco-algo (see start_scan.py)
+        filestager=stagers,
+        cache_dir=options.CACHEDIR,
+        override_GCD_filename=options.OVERRIDEGCDFILENAME
+    )
 
     print(("got:", packets))

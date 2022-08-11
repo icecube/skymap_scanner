@@ -1,6 +1,7 @@
 """Configuration constants"""
 
 import dataclasses as dc
+import enum
 import os
 from pathlib import Path
 from typing import Final
@@ -39,14 +40,18 @@ I3FRAME_NSIDE: Final = "SCAN_HealpixNSide"
 I3FRAME_PIXEL: Final = "SCAN_HealpixPixel"
 I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
 #
-I3FRAME_RECO_I3POSITION: Final = "PixelReco_position"
-I3FRAME_RECO_TIME: Final = "PixelReco_time"
-I3FRAME_RECO_LLH: Final = "PixelReco_llh"
-I3FRAME_RECO_ENERGY: Final = "PixelReco_energy"
-#
 STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
 STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
 STATEDICT_NSIDES: Final = "nsides"
+#
+MSG_KEY_RECO_ALGO: Final = "reco_algo"
+MSG_KEY_PFRAME: Final = "pframe"
+
+
+class RecoAlgo(enum.Enum):
+    """The supported reconstruction algorithms."""
+
+    MILLIPEDE = enum.auto()
 
 
 #

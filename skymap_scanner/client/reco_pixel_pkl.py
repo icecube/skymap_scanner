@@ -21,7 +21,7 @@ from icecube.frame_object_diff.segments import uncompress  # type: ignore[import
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
-from ..utils.load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
+from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixelreco import PixelReco, pixel_to_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
 from .millipede_traysegment import millipede_traysegment
@@ -71,42 +71,6 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         self._frames_loaded = True
 
 
-def get_pixelreco(
-    baseline_GCD_file: str,
-    GCDQp_packet: List[icetray.I3Frame],
-    frame: icetray.I3Frame,
-) -> PixelReco:
-    """Get self as a PixelReco instance."""
-
-    # Calculate reco losses, based on load_scan_state()
-    # apparently baseline GCD is sufficient here
-    # maybe filestager can be None
-    geometry = get_baseline_gcd_frames(
-        baseline_GCD_file, GCDQp_packet, filestager=dataio.get_stagers()
-    )[0]
-
-    try:
-        reco_losses_inside, reco_losses_total = get_reco_losses_inside(
-            p_frame=frame, g_frame=geometry
-        )
-    except KeyError as e:
-        LOGGER.error(f"Missing attribute in Geometry frame: {e}")
-        LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
-        raise
-
-    return PixelReco(
-        nside=frame[cfg.I3FRAME_NSIDE].value,
-        pixel=frame[cfg.I3FRAME_PIXEL].value,
-        llh=frame[cfg.I3FRAME_RECO_LLH].value,
-        reco_losses_inside=reco_losses_inside,
-        reco_losses_total=reco_losses_total,
-        pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
-        position=frame[cfg.I3FRAME_RECO_I3POSITION],
-        time=frame[cfg.I3FRAME_RECO_TIME].value,
-        energy=frame[cfg.I3FRAME_RECO_ENERGY].value,
-    )
-
-
 def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     """Save this frame to the disk cache."""
     nside_dir = save_dir / "nside{0:06d}".format(frame[cfg.I3FRAME_NSIDE].value)
@@ -150,6 +114,7 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
 
 
 def reco_pixel(
+    reco_algo: cfg.RecoAlgo,
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
@@ -238,17 +203,23 @@ def reco_pixel(
             base_GCD_filename=str(GCD_diff_base_handle),
         )
 
-    # TODO (FUTURE DEV) - change reco algo based on some pkl attribute
     # perform fit
-    tray.AddSegment(
-        millipede_traysegment,
-        "millipede_traysegment",
-        muon_service=muon_service,
-        cascade_service=cascade_service,
-        ExcludedDOMs=ExcludedDOMs,
-        pulsesName=pulsesName,
-        logger=LOGGER,
-    )
+    if reco_algo == cfg.RecoAlgo.MILLIPEDE:
+        tray.AddSegment(
+            millipede_traysegment,
+            "millipede_traysegment",
+            muon_service=muon_service,
+            cascade_service=cascade_service,
+            ExcludedDOMs=ExcludedDOMs,
+            pulsesName=pulsesName,
+            logger=LOGGER,
+        )
+    # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
+    #     pass
+    else:
+        raise RuntimeError(
+            f"Requested unsupported reconstruction algorithm: {reco_algo}"
+        )
 
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:
@@ -266,7 +237,13 @@ def reco_pixel(
                 f"Pickle-dumping reco {pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            pixreco = get_pixelreco(baseline_GCD_file, GCDQp_packet, frame)
+            # apparently baseline GCD is sufficient here, maybe filestager can be None
+            geometry = get_baseline_gcd_frames(
+                baseline_GCD_file,
+                GCDQp_packet,
+                filestager=dataio.get_stagers(),
+            )[0]
+            pixreco = PixelReco.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")
             pickle.dump(pixreco, f)
 
@@ -358,14 +335,16 @@ def main() -> None:
 
     # get PFrame
     with open(args.in_pkl, "rb") as f:
-        pframe = pickle.load(f)
+        msg = pickle.load(f)
+        reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
+        pframe = msg[cfg.MSG_KEY_PFRAME]
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_pkl, "rb") as f:
         GCDQp_packet = pickle.load(f)
 
     # go!
-    reco_pixel(pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)
+    reco_pixel(reco_algo, pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)
     LOGGER.info("Done reco'ing pixel.")
 
 

@@ -574,6 +574,7 @@ class PixelRecoCollector:
 
 
 async def serve(
+    reco_algo: cfg.RecoAlgo,
     event_id: str,
     nsides_dict: NSidesDict,
     GCDQp_packet: List[icetray.I3Frame],
@@ -626,6 +627,7 @@ async def serve(
         n_pixreco = await serve_scan_iteration(
             to_clients_queue,
             from_clients_queue,
+            reco_algo,
             event_id,
             nsides_dict,
             global_start_time,
@@ -661,6 +663,7 @@ async def serve(
 async def serve_scan_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
+    reco_algo: cfg.RecoAlgo,
     event_id: str,
     nsides_dict: NSidesDict,
     global_start_time: float,
@@ -681,7 +684,12 @@ async def serve_scan_iteration(
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
-            await pub.send(pframe)
+            await pub.send(
+                {
+                    cfg.MSG_KEY_RECO_ALGO: reco_algo,
+                    cfg.MSG_KEY_PFRAME: pframe,
+                }
+            )
 
     # check if anything was actually processed
     try:
@@ -817,6 +825,11 @@ def main() -> None:
     )
 
     # "physics" args
+    parser.add_argument(
+        "--reco-algo",
+        choices=[en.name.lower() for en in cfg.RecoAlgo],
+        help="The reconstruction algorithm to use",
+    )
     parser.add_argument(
         "-e",
         "--event-file",
@@ -957,6 +970,7 @@ def main() -> None:
     # go!
     asyncio.get_event_loop().run_until_complete(
         serve(
+            reco_algo=cfg.RecoAlgo[args.reco_algo.upper()],
             event_id=event_id,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
             GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],

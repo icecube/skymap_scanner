@@ -7,6 +7,7 @@ already have a .npz file created.
 import argparse
 import logging
 
+import skymap_scanner.config as cfg
 from icecube import dataio
 from skymap_scanner.utils.load_scan_state import load_cache_state
 from skymap_scanner.utils.scan_result import ScanResult
@@ -26,19 +27,26 @@ def main():
     parser.add_argument("-c", "--cache", help="Cache directory", required=True)
     parser.add_argument("-e", "--event", help="Event ID", required=True)
     parser.add_argument("-o", "--output_path", help="Output path", required=False)
-
+    parser.add_argument(
+        "--reco-algo",
+        choices=[en.name.lower() for en in cfg.RecoAlgo],
+        help="The reconstruction algorithm to use",
+    )
     args = parser.parse_args()
 
     stagers = dataio.get_stagers()
 
     eventID, state_dict = load_cache_state(
-        args.event, filestager=stagers, cache_dir=args.cache
+        args.event,
+        cfg.RecoAlgo[args.reco_algo.upper()],
+        filestager=stagers,
+        cache_dir=args.cache,
     )
 
     """
     The output filename is partially built inside the ScanResult class.
     """
-    result = ScanResult.from_nsides_dict(state_dict["nsides"])
+    result = ScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
     output_file = result.save(eventID, output_path=args.output_path)
 
     print(f"Saved to {output_file}")

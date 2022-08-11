@@ -106,16 +106,3 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
         logger.debug(f"MillipedeStarting2ndPass: {frame['MillipedeStarting2ndPass']}")
 
     tray.AddModule(notify2, "notify2")
-
-    def set_PixelReco_values(frame):
-        """Set `cfg.I3FRAME_RECO_*` ('PixelReco_*') values."""
-        if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            frame[cfg.I3FRAME_RECO_LLH] = dataclasses.I3Double(float("nan"))
-        else:
-            frame[cfg.I3FRAME_RECO_LLH] = dataclasses.I3Double(frame["MillipedeStarting2ndPass_millipedellh"].logl)
-
-        frame[cfg.I3FRAME_RECO_I3POSITION] = frame["MillipedeStarting2ndPass"].pos
-        frame[cfg.I3FRAME_RECO_TIME] = dataclasses.I3Double(frame["MillipedeStarting2ndPass"].time)
-        frame[cfg.I3FRAME_RECO_ENERGY] = dataclasses.I3Double(frame["MillipedeStarting2ndPass"].energy)
-
-    tray.AddModule(set_PixelReco_values, "set_PixelReco_values")
