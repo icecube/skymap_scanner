@@ -61,7 +61,7 @@ pyparsing==3.0.9
     #   packaging
 python-dateutil==2.8.2
     # via matplotlib
-pytz==2022.1
+pytz==2022.2
     # via apache-bookkeeper-client
 pyyaml==6.0
     # via astropy
