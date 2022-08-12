@@ -76,9 +76,7 @@ class PixelReco:
         # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
         #     pass
         else:
-            raise RuntimeError(
-                f"Requested unsupported reconstruction algorithm: {reco_algo}"
-            )
+            raise cfg.UnsupportedRecoAlgoException(reco_algo)
 
 
 NSidesDict = Dict[int, Dict[int, PixelReco]]

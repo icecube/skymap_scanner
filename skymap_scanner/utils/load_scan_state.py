@@ -59,9 +59,7 @@ def get_reco_losses_inside(p_frame, g_frame, reco_algo: cfg.RecoAlgo) -> Tuple[f
     # elif ...:  # TODO (FUTURE DEV) - add other algos
     #     pass
     else:
-        raise RuntimeError(
-            f"Requested unsupported reconstruction algorithm: {reco_algo}"
-        )
+        raise cfg.UnsupportedRecoAlgoException(reco_algo)
 
     intersectionPoints = VHESelfVeto.IntersectionsWithInstrumentedVolume(g_frame["I3Geometry"], recoParticle)
     intersectionTimes = []

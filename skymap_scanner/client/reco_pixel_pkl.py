@@ -217,9 +217,7 @@ def reco_pixel(
     # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
     #     pass
     else:
-        raise RuntimeError(
-            f"Requested unsupported reconstruction algorithm: {reco_algo}"
-        )
+        raise cfg.UnsupportedRecoAlgoException(reco_algo)
 
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:

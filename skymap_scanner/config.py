@@ -4,7 +4,7 @@ import dataclasses as dc
 import enum
 import os
 from pathlib import Path
-from typing import Final
+from typing import Any, Final, Union
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -52,6 +52,13 @@ class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""
 
     MILLIPEDE = enum.auto()
+
+
+class UnsupportedRecoAlgoException(Exception):
+    """Raise when a reconstruction algorithm is not supported fora given operation."""
+
+    def __init__(self, reco_algo: Union[RecoAlgo, Any]):
+        super().__init__(f"Requested unsupported reconstruction algorithm: {reco_algo}")
 
 
 #
