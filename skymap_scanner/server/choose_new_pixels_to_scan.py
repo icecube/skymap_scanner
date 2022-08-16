@@ -13,6 +13,7 @@ from icecube import icetray  # type: ignore[import]
 from .. import config as cfg
 from ..utils.load_scan_state import load_cache_state
 from ..utils.pixelreco import NSidesDict
+from . import LOGGER
 
 
 def __healpix_pixel_upgrade(nside, pix):
@@ -186,6 +187,7 @@ def choose_new_pixels_to_scan(
 
     # special case if we have MC truth
     if mc_ra_dec:
+        LOGGER.debug("Getting pixels around MC truth...")
         # scan only at max_nside around the true minimum
         return choose_new_pixels_to_scan_around_MCtruth(
             nsides_dict,
@@ -194,34 +196,39 @@ def choose_new_pixels_to_scan(
             angular_dist=ang_dist*numpy.pi/180.
         )
 
-    # first check if any pixels with nside=8 are missing (we need all of them)
+    # first check if any pixels with nside=min_nside are missing (we need all of them)
     if not nsides_dict:
-        # print("nsides is missing - scan all pixels at nside=8")
+        LOGGER.debug(f"No previous nsides_dict, getting pixels for min_nside={min_nside}...")
+        # print("nsides is missing - scan all pixels at nside=min_nside")
         scan_pixels = list(range(healpy.nside2npix(min_nside)))
         random.shuffle(scan_pixels)
         return [(min_nside, pix) for pix in scan_pixels]
     if min_nside not in nsides_dict:
-        # print("nsides=8 is missing - scan all pixels at nside=8")
+        LOGGER.debug(f"Missing min_nside in previous nsides_dict, getting pixels for min_nside={min_nside}...")
+        # print("nsides=min_nside is missing - scan all pixels at nside=min_nside")
         scan_pixels = list(range(healpy.nside2npix(min_nside)))
         random.shuffle(scan_pixels)
         return [(min_nside, pix) for pix in scan_pixels]
 
+    # Find any unfinished pixels for min_nside (LEGACY CODE)
     scan_pixels = []
-    existing_pixels = list(nsides_dict[min_nside].keys())
     for i in range(healpy.nside2npix(min_nside)):
-        if i not in existing_pixels:
+        if i not in nsides_dict[min_nside].keys():
             scan_pixels.append(i)
-
     if len(scan_pixels) > 0:
         random.shuffle(scan_pixels)
-        scan_pixels = [(min_nside, pix) for pix in scan_pixels]
+        all_pixels_to_refine = [(min_nside, pix) for pix in scan_pixels]
+        LOGGER.debug(
+            f"Found {len(all_pixels_to_refine)} unfinished pixels for min_nside={min_nside} ({all_pixels_to_refine})..."
+        )
+    else:
+        all_pixels_to_refine = []
 
-    # some or all 768 pixels with nside 8 exist
+    # some or all 768 pixels with nside min_nside exist
+    # start w/ min
     current_nside = min_nside
 
-    all_pixels_to_refine = scan_pixels
-
-    # first iteration will upgrade from nside=8 to nside=16, next one from 16 to 32, ...
+    # first iteration will upgrade from nside=min_nside to nside=16, next one from 16 to 32, ...
     while True:
         pixel_extension_number = 12
         if current_nside < 64:
@@ -236,19 +243,31 @@ def choose_new_pixels_to_scan(
             # should not get here, max_nside is 1024
             next_nside = current_nside*8
             pixel_extension_number = 12
+        LOGGER.debug(
+            f"Attempting to get pixels for ("
+            f"current_nside={current_nside}, "
+            f"pixel_extension_number={pixel_extension_number}, "
+            f"next_nside={next_nside})..."
+        )
 
         if next_nside > max_nside:
+            LOGGER.debug(f"No more pixels to scan: (next_nside={next_nside} > max_nside={max_nside})")
             break # no more pixels to scan
 
         total_pixels_scanning_and_existing = set()
         if current_nside in nsides_dict:
             total_pixels_scanning_and_existing.update(list(nsides_dict[current_nside].keys()))
         for __n, __p in all_pixels_to_refine:
-            if __n == current_nside: total_pixels_scanning_and_existing.add(__p)
-        total_pixels_scanning_and_existing = len(total_pixels_scanning_and_existing)
+            if __n == current_nside:
+                total_pixels_scanning_and_existing.add(__p)
 
-        pixels_to_refine = find_pixels_to_refine(nsides_dict, nside=current_nside, total_pixels_for_this_nside=total_pixels_scanning_and_existing,
-        pixel_extension_number = pixel_extension_number)
+        pixels_to_refine = find_pixels_to_refine(
+            nsides_dict,
+            nside=current_nside,
+            total_pixels_for_this_nside=len(total_pixels_scanning_and_existing),
+            pixel_extension_number=pixel_extension_number
+        )
+        LOGGER.debug(f"Found {len(pixels_to_refine)} pixels to refine: {pixels_to_refine}...")
         if len(pixels_to_refine) > 0:
             # have the list of pixels to refine - find their subdivisions
 
@@ -259,15 +278,20 @@ def choose_new_pixels_to_scan(
 
             # only scan non-existent pixels
             if next_nside in nsides_dict:
-                existing_pixels = set(nsides_dict[next_nside].keys())
-                upgraded_pixels_to_refine_nonexisting = [pix for pix in upgraded_pixels_to_refine if pix not in existing_pixels]
+                upgraded_pixels_to_refine_nonexisting = [
+                    pix for pix in upgraded_pixels_to_refine
+                    if pix not in nsides_dict[next_nside].keys()
+                ]
             else:
                 upgraded_pixels_to_refine_nonexisting = upgraded_pixels_to_refine
 
-            all_pixels_to_refine.extend([(next_nside, pix) for pix in upgraded_pixels_to_refine_nonexisting])
+            to_extend = [(next_nside, pix) for pix in upgraded_pixels_to_refine_nonexisting]
+            LOGGER.debug(f"Extending list of pixels by {len(to_extend)} ({to_extend})...")
+            all_pixels_to_refine.extend(to_extend)
 
         current_nside = next_nside # test the next nside
 
+    LOGGER.debug(f"Search Complete: Got {len(all_pixels_to_refine)} pixels to refine: {all_pixels_to_refine}.")
     return all_pixels_to_refine
 
 

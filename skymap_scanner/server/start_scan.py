@@ -26,9 +26,8 @@ from ..utils import extract_json_message
 from ..utils.pixelreco import NSidesDict, PixelReco, pixel_to_tuple
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
+from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
-
-LOGGER = logging.getLogger("skyscan-server")
 
 
 class DuplicatePixelRecoException(Exception):
