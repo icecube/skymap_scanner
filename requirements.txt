@@ -20,7 +20,7 @@ coloredlogs==15.0.1
     # via wipac-dev-tools
 cycler==0.11.0
     # via matplotlib
-fonttools==4.34.4
+fonttools==4.35.0
     # via matplotlib
 grpcio==1.27.2
     # via apache-bookkeeper-client
@@ -34,7 +34,7 @@ kiwisolver==1.4.4
     # via matplotlib
 matplotlib==3.5.3
     # via healpy
-numpy==1.23.1
+numpy==1.23.2
     # via
     #   astropy
     #   healpy
@@ -61,7 +61,7 @@ pyparsing==3.0.9
     #   packaging
 python-dateutil==2.8.2
     # via matplotlib
-pytz==2022.2
+pytz==2022.2.1
     # via apache-bookkeeper-client
 pyyaml==6.0
     # via astropy
