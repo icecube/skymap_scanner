@@ -952,6 +952,7 @@ def main() -> None:
     # get inputs (load event_id + state_dict cache)
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
+        reco_algo=cfg.RecoAlgo[args.reco_algo.upper()],
         filestager=dataio.get_stagers(),
         cache_dir=str(args.cache_dir),
         override_GCD_filename=str(args.gcd_dir),
