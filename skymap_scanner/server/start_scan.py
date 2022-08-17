@@ -259,7 +259,7 @@ class PixelsToReco:
 
     def __init__(
         self,
-        nsides_dict: Optional[NSidesDict],
+        nsides_dict: NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         min_nside: int,
         max_nside: int,
@@ -287,6 +287,7 @@ class PixelsToReco:
             `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
         """
+        self.nsides_dict = nsides_dict
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
@@ -315,11 +316,6 @@ class PixelsToReco:
             raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
         self.min_nside = min_nside
         self.max_nside = max_nside
-
-        if not nsides_dict:
-            self.nsides_dict = {}
-        else:
-            self.nsides_dict = nsides_dict
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -575,7 +571,7 @@ class PixelRecoCollector:
 async def serve(
     reco_algo: cfg.RecoAlgo,
     event_id: str,
-    nsides_dict: NSidesDict,
+    nsides_dict: Optional[NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     output_dir: str,
     broker: str,  # for mq
@@ -587,10 +583,13 @@ async def serve(
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
-) -> None:
+) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to disk."""
     global_start_time = time.time()
     LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
+
+    if not nsides_dict:
+        nsides_dict = {}
 
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
@@ -657,6 +656,8 @@ async def serve(
     if slack_interface.active:
         slack_interface.post(final_message)
         slack_interface.post_skymap_plot(nsides_dict)
+
+    return nsides_dict
 
 
 async def serve_scan_iteration(

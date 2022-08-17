@@ -133,7 +133,7 @@ def find_pixels_to_refine(
 
 
 def choose_new_pixels_to_scan_around_MCtruth(
-    nsides_dict: Optional[NSidesDict],
+    nsides_dict: NSidesDict,
     mc_ra_dec: Tuple[float, float],
     nside: int,
     angular_dist: float = 2.*numpy.pi/180.,
@@ -177,7 +177,7 @@ def choose_new_pixels_to_scan_around_MCtruth(
 
 
 def choose_new_pixels_to_scan(
-    nsides_dict: Optional[NSidesDict],
+    nsides_dict: NSidesDict,
     max_nside: int = cfg.MAX_NSIDE_DEFAULT,
     ang_dist: float = 2.,
     min_nside: int = cfg.MIN_NSIDE_DEFAULT,
