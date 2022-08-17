@@ -145,7 +145,7 @@ jobs:
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:latest \
             python -m skymap_scanner.client.reco_pixel_pkl \
-            --in-pkl /local/pkls/$(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl) \
+            --in-pkl /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)) \
             --gcdqp-packet-pkl /local/pkls/GCDQp_packet.pkl \
             --baseline-gcd-file $(cat tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt) \
             --out-pkl /local/pkls/out.pkl \
@@ -165,7 +165,7 @@ jobs:
             icecube/skymap_scanner:latest \
             (python tests/compare_reco_pixel_pkl.py \
               --actual /local/pkls/out.pkl \
-              --expected /local/pkls/$(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl) \
+              --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)) \
               --diff-out-dir /local/pkls/ \
               --disqualify-zero-energy-pixels \
               --assert \
