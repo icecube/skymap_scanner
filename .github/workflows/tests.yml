@@ -123,10 +123,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkl-prefix: [
-          "1660759716.46013",
-          "1660761104.474899",
-          "1660761707.623653",
+        dir: [
+          "BRONZE",
+          "GOLD",
+          "JSON",
         ]
     steps:
       - uses: actions/checkout@v3
@@ -135,20 +135,22 @@ jobs:
           ./tests/docker_scripts/docker_local_build.sh
       - name: Run
         run: |
+          in_pkl=$(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
           ./tests/docker_scripts/_launch_reco_pixel.sh \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.in.pkl \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/gcdqp-packet.pkl \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/baseline-gcd-file.txt \
+            in_pkl \
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/GCDQp_packet.pkl \
+            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt \
       - name: Test Output Against Known Result (.pkl)
         run: |
           ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls
+          out_pkl=$(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)
 
           pip install .  # don't need icecube, so no docker container needed
           python $GITHUB_WORKSPACE/tests/compare_reco_pixel_pkl.py \
-            --actual $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.pkl-prefix }}.out.pkl \
-            --expected $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/out.pkl \
-            --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls \
+            --actual $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/out.pkl \
+            --expected out_pkl \
+            --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }} \
             --disqualify-zero-energy-pixels \
             --assert \
-            || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/*.diff.json) && false)
+            || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
 
