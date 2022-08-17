@@ -55,14 +55,14 @@ jobs:
       - name: Run
         run: |
 
-          mkdir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR
-          mkdir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
+          mkdir $SKYSCAN_CACHE_DIR
+          mkdir $SKYSCAN_OUTPUT_DIR
           ./scripts/launch_scripts/launch_server.sh \
             --reco-algo millipede \
-            --event-file $GITHUB_WORKSPACE/$REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
-            --cache-dir $GITHUB_WORKSPACE/$SKYSCAN_CACHE_DIR \
-            --output-dir $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR \
-            --startup-files-dir $GITHUB_WORKSPACE \
+            --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
+            --cache-dir $SKYSCAN_CACHE_DIR \
+            --output-dir $SKYSCAN_OUTPUT_DIR \
+            --startup-files-dir . \
             --broker $PULSAR_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
@@ -74,28 +74,28 @@ jobs:
           # wait until the mq-basename.txt file exists (with a timeout)
           endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
           while [[ $(date -u +%s) -le $endtime ]]; do
-            if [[ -e $GITHUB_WORKSPACE/mq-basename.txt && -e $GITHUB_WORKSPACE/baseline_GCD_file.txt && -e $GITHUB_WORKSPACE/GCDQp_packet.pkl ]]; then
+            if [[ -e mq-basename.txt && -e baseline_GCD_file.txt && -e GCDQp_packet.pkl ]]; then
               break
             fi
             echo "waiting for startup files..."
             sleep 5
           done
 
-          cat $GITHUB_WORKSPACE/mq-basename.txt
+          cat mq-basename.txt
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
-          mkdir $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR
+          mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
-              --mq-basename $(cat $GITHUB_WORKSPACE/mq-basename.txt) \
-              --baseline-gcd-file $(cat $GITHUB_WORKSPACE/baseline_GCD_file.txt) \
-              --gcdqp-packet-pkl $GITHUB_WORKSPACE/GCDQp_packet.pkl \
+              --mq-basename $(cat mq-basename.txt) \
+              --baseline-gcd-file $(cat baseline_GCD_file.txt) \
+              --gcdqp-packet-pkl GCDQp_packet.pkl \
               --broker $PULSAR_ADDRESS \
               --log DEBUG \
               --log-third-party INFO \
-              --debug-directory $GITHUB_WORKSPACE/$SKYSCAN_DEBUG_DIR \
+              --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\t$i clients launched"
           done
@@ -106,14 +106,14 @@ jobs:
           done
       - name: Test Output Against Known Result (.npz)
         run: |
-          ls $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $GITHUB_WORKSPACE/$SKYSCAN_OUTPUT_DIR/*.npz)
+          ls $SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
           pip install .  # don't need icecube, so no docker container needed
-          python $GITHUB_WORKSPACE/tests/compare_scan_results.py \
+          python tests/compare_scan_results.py \
             --actual $outfile \
-            --expected $GITHUB_WORKSPACE/tests/data/results_npz/$(basename $outfile) \
+            --expected tests/data/results_npz/$(basename $outfile) \
             --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls *.diff.json) && false)
@@ -135,22 +135,22 @@ jobs:
           ./tests/docker_scripts/docker_local_build.sh
       - name: Run
         run: |
-          in_pkl=$(ls -d $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
+          in_pkl=$(ls -d tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
           ./tests/docker_scripts/_launch_reco_pixel.sh \
             in_pkl \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/GCDQp_packet.pkl \
-            $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt \
+            tests/data/reco_pixel_pkls/${{ matrix.dir }}/GCDQp_packet.pkl \
+            tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt \
       - name: Test Output Against Known Result (.pkl)
         run: |
-          ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls
-          out_pkl=$(ls -d $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)
+          ls tests/data/reco_pixel_pkls
+          out_pkl=$(ls -d tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)
 
           pip install .  # don't need icecube, so no docker container needed
-          python $GITHUB_WORKSPACE/tests/compare_reco_pixel_pkl.py \
-            --actual $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/out.pkl \
+          python tests/compare_reco_pixel_pkl.py \
+            --actual tests/data/reco_pixel_pkls/${{ matrix.dir }}/out.pkl \
             --expected out_pkl \
-            --diff-out-dir $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }} \
+            --diff-out-dir tests/data/reco_pixel_pkls/${{ matrix.dir }} \
             --disqualify-zero-energy-pixels \
             --assert \
-            || (cat $(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
+            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
 

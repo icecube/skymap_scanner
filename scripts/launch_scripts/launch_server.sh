@@ -41,16 +41,16 @@ if event:
     dockermount_args += f"--mount type=bind,source={os.path.dirname(event)},target=/local/event,readonly "
     py_args += f"--event-file /local/event/{os.path.basename(event)} "
 if cache:
-    dockermount_args += f"--mount type=bind,source={cache},target=/local/cache "
+    dockermount_args += f"--mount type=bind,source={os.path.abspath(cache)},target=/local/cache "
     py_args += f"--cache-dir /local/cache "
 if output:
-    dockermount_args += f"--mount type=bind,source={output},target=/local/output "
+    dockermount_args += f"--mount type=bind,source={os.path.abspath(output)},target=/local/output "
     py_args += f"--output-dir /local/output "
 if gcd:
-    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
+    dockermount_args += f"--mount type=bind,source={os.path.abspath(gcd)},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
 if startup:
-    dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-files "
+    dockermount_args += f"--mount type=bind,source={os.path.abspath(startup)},target=/local/startup-files "
     py_args += f"--startup-files-dir /local/startup-files "
 
 print(f"{dockermount_args}#{py_args}")
