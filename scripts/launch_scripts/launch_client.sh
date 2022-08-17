@@ -17,29 +17,31 @@ DOCKER_PY_ARGS=$(python3 -c '
 import os
 py_args = os.getenv("ARGS")
 
-def extract_opt(py_args, opt):
+def extract_opt_path(py_args, opt):
     if opt not in py_args:
-        return py_args, ""
+        return py_args, None
     before, after = py_args.split(opt, 1)
     before, after = before.strip(), after.strip()
     if " " in after:
         val, after = after.split(" ", 1)
     else:  # for arg at end of string
         val, after = after, ""
-    return f"{before} {after}", val
+    if val:
+        return f"{before} {after}", os.path.abspath(val)
+    return f"{before} {after}", None
 
-py_args, debug_dir = extract_opt(py_args, "--debug-directory")
-py_args, gcd = extract_opt(py_args, "--gcd-dir")
-py_args, gcdqp = extract_opt(py_args, "--gcdqp-packet-pkl")
+py_args, debug_dir = extract_opt_path(py_args, "--debug-directory")
+py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
+py_args, gcdqp = extract_opt_path(py_args, "--gcdqp-packet-pkl")
 
 dockermount_args = ""
 py_args += " "
 
 if debug_dir:
-    dockermount_args += f"--mount type=bind,source={os.path.abspath(debug_dir)},target=/local/debug "
+    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/debug "
     py_args += f"--debug-directory /local/debug "
 if gcd:
-    dockermount_args += f"--mount type=bind,source={os.path.abspath(gcd)},target=/local/gcd,readonly "
+    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
 if gcdqp:
     dockermount_args += f"--mount type=bind,source={os.path.dirname(gcdqp)},target=/local/gcdqp,readonly "
