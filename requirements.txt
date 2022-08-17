@@ -20,7 +20,7 @@ coloredlogs==15.0.1
     # via wipac-dev-tools
 cycler==0.11.0
     # via matplotlib
-fonttools==4.35.0
+fonttools==4.36.0
     # via matplotlib
 grpcio==1.27.2
     # via apache-bookkeeper-client
