@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from skymap_scanner.utils.scan_result import ScanResult
+from wipac_dev_tools import logging_tools
 
 
 def main():
@@ -54,6 +55,7 @@ def main():
     )
 
     args = parser.parse_args()
+    logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
     compare_then_exit(
         ScanResult.load(args.actual),

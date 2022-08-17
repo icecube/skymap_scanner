@@ -6,6 +6,7 @@ import pickle
 from pathlib import Path
 
 from skymap_scanner.utils.scan_result import ScanResult
+from wipac_dev_tools import logging_tools
 
 from compare_scan_results import compare_then_exit
 
@@ -56,8 +57,9 @@ def main():
     )
 
     args = parser.parse_args()
+    logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    def load_from_in_out_pkls(out_pkl_fpath: Path) -> ScanResult:
+    def load_from_out_pkl(out_pkl_fpath: Path) -> ScanResult:
         """Load a ScanResult from the "out" pkl file."""
         with open(out_pkl_fpath, "rb") as f:
             pixreco = pickle.load(f)
@@ -66,8 +68,8 @@ def main():
             {0: [pixreco]}  # 0 b/c this isn't a real nside value
         )
 
-    actual = load_from_in_out_pkls(args.actual)
-    expected = load_from_in_out_pkls(args.expected)
+    actual = load_from_out_pkl(args.actual)
+    expected = load_from_out_pkl(args.expected)
 
     compare_then_exit(
         actual,
