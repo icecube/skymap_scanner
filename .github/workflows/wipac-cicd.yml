@@ -45,7 +45,6 @@ jobs:
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
       fail-fast: false
       matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
@@ -56,6 +55,9 @@ jobs:
       - run: |
           pip install --upgrade pip wheel setuptools
           pip install .
+      - run: |
+        pip install --upgrade pip wheel setuptools
+        pip install skymap_scanner.utils
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
