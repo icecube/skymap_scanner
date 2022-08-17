@@ -135,7 +135,7 @@ jobs:
           ./tests/docker_scripts/docker_local_build.sh
       - name: Run
         run: |
-          in_pkl=$(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
+          in_pkl=$(ls -d $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
           ./tests/docker_scripts/_launch_reco_pixel.sh \
             in_pkl \
             $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/GCDQp_packet.pkl \
@@ -143,7 +143,7 @@ jobs:
       - name: Test Output Against Known Result (.pkl)
         run: |
           ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls
-          out_pkl=$(ls $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)
+          out_pkl=$(ls -d $GITHUB_WORKSPACE/tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)
 
           pip install .  # don't need icecube, so no docker container needed
           python $GITHUB_WORKSPACE/tests/compare_reco_pixel_pkl.py \
