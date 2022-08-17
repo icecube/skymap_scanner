@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker Image
         run: |
-          ./tests/docker_scripts/docker_local_build.sh
+          docker build --no-cache -t icecube/skymap_scanner .
 
   test-run-all:
     runs-on: ubuntu-latest
@@ -48,10 +48,13 @@ jobs:
           ./scripts/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
       - name: Build Skymap Scanner Docker Image
         run: |
-          ./tests/docker_scripts/docker_local_build.sh
+          docker build --no-cache -t icecube/skymap_scanner .
       - name: Configure Pulsar Server
         run: |
-          ./tests/docker_scripts/pulsar_config.sh $PULSAR_CONTAINER
+          export DOCKERIZE_VERSION=v0.3.0
+          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          dockerize -wait tcp://localhost:8080 -timeout 1m
+          dockerize -wait tcp://localhost:6650 -timeout 1m
       - name: Run
         run: |
 
@@ -132,14 +135,26 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Skymap Scanner Docker Image
         run: |
-          ./tests/docker_scripts/docker_local_build.sh
+          docker build --no-cache -t icecube/skymap_scanner .
       - name: Run
         run: |
           in_pkl=$(ls -d tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
-          ./tests/docker_scripts/_launch_reco_pixel.sh \
-            in_pkl \
-            tests/data/reco_pixel_pkls/${{ matrix.dir }}/GCDQp_packet.pkl \
-            tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt \
+
+          docker run --network="host" --rm -i \
+            --shm-size=6gb \
+            --mount type=bind,source=$(dirname $(readlink -f $in_pkl)),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/gcdqp-dir \
+            --env PY_COLORS=1 \
+            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
+            icecube/skymap_scanner:latest \
+            python -m skymap_scanner.client.reco_pixel_pkl \
+            --in-pkl /local/pkls/$(basename $in_pkl) \
+            --gcdqp-packet-pkl /local/gcdqp-dir/GCDQp_packet.pkl \
+            --baseline-gcd-file $(cat tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt) \
+            --out-pkl /local/pkls/out.pkl \
+            --log DEBUG
+
+
       - name: Test Output Against Known Result (.pkl)
         run: |
           ls tests/data/reco_pixel_pkls
