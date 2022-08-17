@@ -138,18 +138,15 @@ jobs:
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Run
         run: |
-          in_pkl=$(ls -d tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)
-
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(dirname $(readlink -f $in_pkl)),target=/local/pkls \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/gcdqp-dir \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:latest \
             python -m skymap_scanner.client.reco_pixel_pkl \
-            --in-pkl /local/pkls/$(basename $in_pkl) \
-            --gcdqp-packet-pkl /local/gcdqp-dir/GCDQp_packet.pkl \
+            --in-pkl /local/pkls/$(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl) \
+            --gcdqp-packet-pkl /local/pkls/GCDQp_packet.pkl \
             --baseline-gcd-file $(cat tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt) \
             --out-pkl /local/pkls/out.pkl \
             --log DEBUG
@@ -157,15 +154,20 @@ jobs:
 
       - name: Test Output Against Known Result (.pkl)
         run: |
-          ls tests/data/reco_pixel_pkls
-          out_pkl=$(ls -d tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)
+          ls tests/data/reco_pixel_pkls/${{ matrix.dir }}
 
-          pip install .  # don't need icecube, so no docker container needed
-          python tests/compare_reco_pixel_pkl.py \
-            --actual tests/data/reco_pixel_pkls/${{ matrix.dir }}/out.pkl \
-            --expected out_pkl \
-            --diff-out-dir tests/data/reco_pixel_pkls/${{ matrix.dir }} \
-            --disqualify-zero-energy-pixels \
-            --assert \
-            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
+          # need icecube for depickling, so docker container needed
+          docker run --network="host" --rm -i \
+            --shm-size=6gb \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
+            --env PY_COLORS=1 \
+            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
+            icecube/skymap_scanner:latest \
+            (python tests/compare_reco_pixel_pkl.py \
+              --actual /local/pkls/out.pkl \
+              --expected /local/pkls/$(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl) \
+              --diff-out-dir /local/pkls/ \
+              --disqualify-zero-energy-pixels \
+              --assert \
+              || (cat $(ls /local/pkls/*.diff.json) && false))
 
