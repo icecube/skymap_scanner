@@ -64,9 +64,7 @@ def main():
         with open(out_pkl_fpath, "rb") as f:
             pixreco = pickle.load(f)
 
-        return ScanResult.from_nsides_dict(
-            {0: {0: pixreco}}  # 0s b/c this isn't a real nside_dict
-        )
+        return ScanResult.from_nsides_dict({pixreco.nside: {pixreco.pixel_id: pixreco}})
 
     actual = load_from_out_pkl(args.actual)
     expected = load_from_out_pkl(args.expected)
