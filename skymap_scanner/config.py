@@ -1,8 +1,10 @@
 """Configuration constants"""
 
 import dataclasses as dc
+import enum
 import os
-from typing import Final
+from pathlib import Path
+from typing import Any, Final, Union
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -23,6 +25,42 @@ GCD_BASE_DIRS: Final = [
     "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
 ]
 
+DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
+
+MIN_NSIDE_DEFAULT: Final = 8
+MAX_NSIDE_DEFAULT: Final = 512
+
+# physics strings
+INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
+INPUT_POS_NAME: Final = "HESE_VHESelfVetoVertexPos"
+OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
+
+# For commonly used keys
+I3FRAME_NSIDE: Final = "SCAN_HealpixNSide"
+I3FRAME_PIXEL: Final = "SCAN_HealpixPixel"
+I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
+#
+STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
+STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
+STATEDICT_NSIDES: Final = "nsides"
+#
+MSG_KEY_RECO_ALGO: Final = "reco_algo"
+MSG_KEY_PFRAME: Final = "pframe"
+
+
+class RecoAlgo(enum.Enum):
+    """The supported reconstruction algorithms."""
+
+    MILLIPEDE = enum.auto()
+
+
+class UnsupportedRecoAlgoException(Exception):
+    """Raise when a reconstruction algorithm is not supported fora given operation."""
+
+    def __init__(self, reco_algo: Union[RecoAlgo, Any]):
+        super().__init__(f"Requested unsupported reconstruction algorithm: {reco_algo}")
+
+
 #
 # Env var constants: set as constants & typecast
 #
@@ -30,7 +68,7 @@ GCD_BASE_DIRS: Final = [
 
 @dc.dataclass(frozen=True)
 class EnvConfig:
-    """For storing env vars, typed."""
+    """For storing environment variables, typed."""
 
     SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
     SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60

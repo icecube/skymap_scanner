@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+from .pixelreco import NSidesDict, PixelReco
+
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
@@ -15,19 +17,14 @@ class InvalidPixelValueError(Exception):
 
 class ScanResult:
     """
-    This class parses a nsides_dict (`state_dict["nsides"]`) and stores
+    This class parses a nsides_dict and stores
     the relevant numeric result of the scan. Ideally it should serve as
     the basic data structure for plotting / processing / transmission of
     the scan result.
 
-    The `state_dict` as produced by `load_cache_state()` is currently structured as follows:
-    - 'GCDQp_packet'
-    - 'baseline_GCD_file'
-    - 'nsides'
-
-    nsides_dict (`state_dict['nsides']`) is a dictionary having per
-    indices the 'nside' values for which a scan result is available
-    (e.g. 8, 64, 512). The scan result is a dictionary:
+    nsides_dict is a dictionary keyed by 'nside' values for which a scan
+    result is available (e.g. 8, 64, 512), see `pixelreco.NSidesDict`.
+    The scan result is a dictionary:
     - i (pixel index, integer) ->
         'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
 
@@ -249,39 +246,40 @@ class ScanResult:
         return int(key.split("nside-")[1])
 
     @classmethod
-    def from_nsides_dict(cls, nsides_dict) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict) -> "ScanResult":
         """
-        Factory method for nsides_dict (`state_dict["nsides"]`)
+        Factory method for nsides_dict
         """
         result = cls.load_pixels(nsides_dict)
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, nsides_dict):
+    def load_pixels(cls, nsides_dict: NSidesDict):
         logger = logging.getLogger(__name__)
 
         out = dict()
 
-        for nside in nsides_dict:
-
-            n = len(nsides_dict[nside])
+        for nside, pixel_dict in nsides_dict.items():
+            n = len(pixel_dict)
             v = np.zeros(n, dtype=cls.PIXEL_TYPE)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
-            for i, pixel in enumerate(sorted(nsides_dict[nside])):
-                pixel_data = nsides_dict[nside][pixel]
-                try:
-                    llh = pixel_data["llh"]
-                    E_in = pixel_data["recoLossesInside"]
-                    E_tot = pixel_data["recoLossesTotal"]
-                except KeyError:
-                    logger.warning(KeyError)
-                    logger.warning(
-                        f"Missing data for pixel {pixel} having keys {pixel_data.keys()}"
-                    )
-                    raise
-                v[i] = (pixel, llh, E_in, E_tot)
+            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
+                if (
+                    not isinstance(pixreco, PixelReco)
+                    or nside != pixreco.nside
+                    or pixel_id != pixreco.pixel
+                ):
+                    msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
+                    logging.error(msg)
+                    raise ValueError(msg)
+                v[i] = (
+                    pixreco.pixel,  # index
+                    pixreco.llh,  # llh
+                    pixreco.reco_losses_inside,  # E_in
+                    pixreco.reco_losses_total,  # E_tot
+                )
             key = cls.format_nside(nside)
             out[key] = v
 
@@ -309,9 +307,9 @@ class ScanResult:
             result[key] = npz[key]
         return cls(result=result)
 
-    def save(self, event_id, output_path=None):
+    def save(self, event_id, output_path=None) -> Path:
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
         np.savez(filename, **self.result)
-        return filename
+        return Path(filename)

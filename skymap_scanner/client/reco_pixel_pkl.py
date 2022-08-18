@@ -7,7 +7,8 @@ import datetime
 import logging
 import os
 import pickle
-from typing import Any, List, Tuple
+from pathlib import Path
+from typing import Any, List
 
 from I3Tray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -19,8 +20,10 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import config
-from ..utils import pixel_to_tuple
+from .. import config as cfg
+from ..utils.load_scan_state import get_baseline_gcd_frames
+from ..utils.pixelreco import PixelReco, pixel_to_tuple
+from ..utils.utils import save_GCD_frame_packet_to_file
 from .millipede_traysegment import millipede_traysegment
 
 LOGGER = logging.getLogger("skyscan-client-reco")
@@ -68,14 +71,25 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
         self._frames_loaded = True
 
 
-def get_GCD_diff_base_handle(baseline_GCD_file: str) -> str:
-    # find an available GCD base path
+def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
+    """Save this frame to the disk cache."""
+    nside_dir = save_dir / "nside{0:06d}".format(frame[cfg.I3FRAME_NSIDE].value)
+    nside_dir.mkdir(parents=True, exist_ok=True)
+
+    pixel_fname = nside_dir / "pix{0:012d}.i3".format(frame[cfg.I3FRAME_PIXEL].value)
+
+    save_GCD_frame_packet_to_file([frame], str(pixel_fname))
+    return pixel_fname
+
+
+def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
+    """Find an available GCD base path."""
     stagers = dataio.get_stagers()
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
     if baseline_GCD_file not in [None, "None"]:
-        for GCD_base_dir in config.GCD_BASE_DIRS:
+        for GCD_base_dir in cfg.GCD_BASE_DIRS:
             try:
                 read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
                 LOGGER.debug("reading baseline GCD from {0}".format(read_url))
@@ -99,32 +113,19 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> str:
     return GCD_diff_base_handle
 
 
-def read_from_in_pkl(
-    in_file: str,
-) -> Tuple[icetray.I3Frame, List[icetray.I3Frame], str]:
-    """Get event info and pixel from reading the in-file."""
-    with open(in_file, "rb") as f:
-        payload = pickle.load(f)
-
-    pframe = payload["Pixel_PFrame"]
-    GCDQp_packet = payload["GCDQp_Frames"]
-    baseline_GCD_file = payload["base_GCD_filename_url"]
-
-    return pframe, GCDQp_packet, baseline_GCD_file
-
-
 def reco_pixel(
+    reco_algo: cfg.RecoAlgo,
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
-    GCD_diff_base_handle: str,
-    out_file: str,
-) -> str:
+    baseline_GCD_file: str,
+    out_pkl: Path,
+) -> Path:
     """Actually do the reco."""
     LOGGER.info(f"Reco'ing pixel: {pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
-    LOGGER.info(f"{str(GCD_diff_base_handle)=}")
+    LOGGER.info(f"{baseline_GCD_file=}")
 
     # Constants ########################################################
 
@@ -194,7 +195,7 @@ def reco_pixel(
             base_filename=base_GCD_filename,
         )
 
-    if GCD_diff_base_handle is not None:
+    if GCD_diff_base_handle := get_GCD_diff_base_handle(baseline_GCD_file):
         tray.Add(
             UncompressGCD,
             "GCD_uncompress",
@@ -202,17 +203,21 @@ def reco_pixel(
             base_GCD_filename=str(GCD_diff_base_handle),
         )
 
-    # TODO (FUTURE DEV) - change reco algo based on some pkl attribute
     # perform fit
-    tray.AddSegment(
-        millipede_traysegment,
-        "millipede_traysegment",
-        muon_service=muon_service,
-        cascade_service=cascade_service,
-        ExcludedDOMs=ExcludedDOMs,
-        pulsesName=pulsesName,
-        logger=LOGGER,
-    )
+    if reco_algo == cfg.RecoAlgo.MILLIPEDE:
+        tray.AddSegment(
+            millipede_traysegment,
+            "millipede_traysegment",
+            muon_service=muon_service,
+            cascade_service=cascade_service,
+            ExcludedDOMs=ExcludedDOMs,
+            pulsesName=pulsesName,
+            logger=LOGGER,
+        )
+    # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
+    #     pass
+    else:
+        raise cfg.UnsupportedRecoAlgoException(reco_algo)
 
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:
@@ -222,14 +227,23 @@ def reco_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if os.path.exists(out_file):
-            raise FileExistsError(out_file)
-        with open(out_file, "wb") as f:
+        if out_pkl.exists():
+            raise FileExistsError(out_pkl)
+        save_to_disk_cache(frame, out_pkl.parent)
+        with open(out_pkl, "wb") as f:
             LOGGER.info(
                 f"Pickle-dumping reco {pixel_to_tuple(frame)}: "
-                f"{frame_for_logging(frame)} to {out_file}."
+                f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            pickle.dump(frame, f)
+            # apparently baseline GCD is sufficient here, maybe filestager can be None
+            geometry = get_baseline_gcd_frames(
+                baseline_GCD_file,
+                GCDQp_packet,
+                filestager=dataio.get_stagers(),
+            )[0]
+            pixreco = PixelReco.from_i3frame(frame, geometry, reco_algo)
+            LOGGER.info(f"PixelReco: {pixreco}")
+            pickle.dump(pixreco, f)
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
@@ -245,11 +259,11 @@ def reco_pixel(
 
     # Check Output #####################################################
 
-    if not os.path.exists(out_file):
+    if not out_pkl.exists():
         raise FileNotFoundError(
-            f"Out file was not written {pixel_to_tuple(pframe)}: {out_file}"
+            f"Out file was not written {pixel_to_tuple(pframe)}: {out_pkl}"
         )
-    return out_file
+    return out_pkl
 
 
 # fmt: on
@@ -258,22 +272,44 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Perform reconstruction on a pixel "
-            "by reading `--in-file FILE` and writing result to "
-            "`--out-file FILE`."
+            "by reading `--in-pkl FILE` and writing result to "
+            "`--out-pkl FILE`."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    # input/output args
     parser.add_argument(
-        "--in-file",
+        "--in-pkl",
         required=True,
-        help="a file containing the pixel to reconstruct",
+        help="a pkl file containing the pixel to reconstruct",
+        type=Path,
     )
     parser.add_argument(
-        "--out-file",
+        "--out-pkl",
         required=True,
-        help="a file to write the reconstruction to",
+        help="a pkl file to write the reconstruction to",
+        type=Path,
     )
+
+    # extra "physics" args
+    parser.add_argument(
+        "--gcdqp-packet-pkl",
+        dest="GCDQp_packet_pkl",
+        required=True,
+        help="a pkl file containing the GCDQp_packet (list of I3Frames)",
+        type=Path,
+    )
+    parser.add_argument(
+        "--baseline-gcd-file",
+        dest="baseline_GCD_file",
+        required=True,
+        help="the baseline_GCD_file string",
+        type=str,
+    )
+
+    # logging args
     parser.add_argument(
         "-l",
         "--log",
@@ -295,16 +331,18 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    # get inputs
-    pframe, GCDQp_packet, baseline_GCD_file = read_from_in_pkl(args.in_file)
+    # get PFrame
+    with open(args.in_pkl, "rb") as f:
+        msg = pickle.load(f)
+        reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
+        pframe = msg[cfg.MSG_KEY_PFRAME]
+
+    # get GCDQp_packet
+    with open(args.GCDQp_packet_pkl, "rb") as f:
+        GCDQp_packet = pickle.load(f)
 
     # go!
-    reco_pixel(
-        pframe,
-        GCDQp_packet,
-        get_GCD_diff_base_handle(baseline_GCD_file),
-        args.out_file,
-    )
+    reco_pixel(reco_algo, pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)
     LOGGER.info("Done reco'ing pixel.")
 
 

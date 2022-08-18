@@ -1,5 +1,6 @@
 """The Skymap Scanner Server."""
 
+# pylint: disable=invalid-name,import-error
 
 import argparse
 import asyncio
@@ -10,7 +11,8 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
 
 import healpy  # type: ignore[import]
 import mqclient_pulsar as mq
@@ -19,24 +21,13 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
-from .. import config, extract_json_message
-from ..load_scan_state import get_baseline_gcd_frames, get_reco_losses_inside
-from ..utils import (
-    StateDict,
-    get_event_mjd,
-    pixel_to_tuple,
-    save_GCD_frame_packet_to_file,
-)
-from .choose_new_pixels_to_scan import (
-    MAX_NSIDE_DEFAULT,
-    MIN_NSIDE_DEFAULT,
-    choose_new_pixels_to_scan,
-)
-from .scan_result import ScanResult
-
-NSidePixelPair = Tuple[icetray.I3Int, icetray.I3Int]
-
-LOGGER = logging.getLogger("skyscan-server")
+from .. import config as cfg
+from ..utils import extract_json_message
+from ..utils.pixelreco import NSidesDict, PixelReco, pixel_to_tuple
+from ..utils.scan_result import ScanResult
+from ..utils.utils import get_event_mjd
+from . import LOGGER
+from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 
 class DuplicatePixelRecoException(Exception):
@@ -72,7 +63,7 @@ class ProgressReporter:
 
     def __init__(
         self,
-        state_dict: StateDict,
+        nsides_dict: NSidesDict,
         n_pixreco: int,
         n_posvar: int,
         min_nside: int,
@@ -82,8 +73,8 @@ class ProgressReporter:
     ) -> None:
         """
         Arguments:
-            `state_dict`
-                - the state_dict
+            `nsides_dict`
+                - the nsides_dict
             `n_pixreco`
                 - number of expected pixel-recos
             `n_posvar`
@@ -103,7 +94,7 @@ class ProgressReporter:
             `PLOT_INTERVAL_SEC`
                 - make a skymap plot with this interval
         """
-        self.state_dict = state_dict
+        self.nsides_dict = nsides_dict
         self.slack_interface = slack_interface
 
         if n_pixreco <= 0:
@@ -155,10 +146,8 @@ class ProgressReporter:
 
         # check if we need to send a report to the logger
         current_time = time.time()
-        elapsed_seconds = current_time - self.last_time_reported
-        if (
-            override_timestamp
-            or elapsed_seconds > config.env.SKYSCAN_REPORT_INTERVAL_SEC
+        if override_timestamp or (
+            current_time - self.last_time_reported > cfg.env.SKYSCAN_REPORT_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
@@ -168,11 +157,13 @@ class ProgressReporter:
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
-        elapsed_seconds = current_time - self.last_time_reported_skymap
-        if override_timestamp or elapsed_seconds > config.env.SKYSCAN_PLOT_INTERVAL_SEC:
+        if override_timestamp or (
+            current_time - self.last_time_reported_skymap
+            > cfg.env.SKYSCAN_PLOT_INTERVAL_SEC
+        ):
             self.last_time_reported_skymap = current_time
             if self.slack_interface.active:
-                self.slack_interface.post_skymap_plot(self.state_dict)
+                self.slack_interface.post_skymap_plot(self.nsides_dict)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -184,7 +175,7 @@ class ProgressReporter:
             message = "I am starting up the next scan iteration...\n\n"
 
         message += (
-            f"{self.get_state_dict_report()}"  # ends w/ '\n'
+            f"{self.get_nsides_dict_report()}"  # ends w/ '\n'
             "Config:\n"
             f" - event: {self.event_id}\n"
             f" - min nside: {self.min_nside}\n"
@@ -197,7 +188,7 @@ class ProgressReporter:
         if self.pixreco_ct == 0:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {config.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
+            message += f"I will report back again in {cfg.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
 
         return message
 
@@ -233,18 +224,18 @@ class ProgressReporter:
         )
         return msg
 
-    def get_state_dict_report(self) -> str:
-        """Get a multi-line progress report of the state_dict's nside contents."""
+    def get_nsides_dict_report(self) -> str:
+        """Get a multi-line progress report of the nsides_dict's contents."""
         msg = "Iterations with Saved Pixels:\n"
-        if not self.state_dict["nsides"]:
+        if not self.nsides_dict:
             msg += " - no pixels are done yet\n"
         else:
 
             def nside_line(nside: int, npixels: int) -> str:
                 return f" - {npixels} pixels, nside={nside}\n"
 
-            for nside in sorted(self.state_dict["nsides"]):  # sorted by nside
-                msg += nside_line(nside, len(self.state_dict["nsides"][nside]))
+            for nside in sorted(self.nsides_dict):  # sorted by nside
+                msg += nside_line(nside, len(self.nsides_dict[nside]))
 
         return msg
 
@@ -268,18 +259,21 @@ class PixelsToReco:
 
     def __init__(
         self,
-        state_dict: StateDict,
+        nsides_dict: NSidesDict,
+        GCDQp_packet: List[icetray.I3Frame],
         min_nside: int,
         max_nside: int,
-        input_time_name: str = "HESE_VHESelfVetoVertexTime",
-        input_pos_name: str = "HESE_VHESelfVetoVertexPos",
-        output_particle_name: str = "MillipedeSeedParticle",
-        mini_test_variations: bool = False,
+        input_time_name: str,
+        input_pos_name: str,
+        output_particle_name: str,
+        mini_test_variations: bool,
     ) -> None:
         """
         Arguments:
-            `state_dict`
-                - the state_dict
+            `nsides_dict`
+                - the nsides_dict
+            `GCDQp_packet`
+                - the GCDQp frame packet
             `min_nside`
                 - min nside value
             `max_nside`
@@ -293,7 +287,7 @@ class PixelsToReco:
             `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
         """
-        self.state_dict = state_dict
+        self.nsides_dict = nsides_dict
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
@@ -310,7 +304,7 @@ class PixelsToReco:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
                 dataclasses.I3Position(-variation_distance,0.,0.),
-                dataclasses.I3Position( variation_distance,0.,0.),
+                dataclasses.I3Position(variation_distance,0.,0.),
                 dataclasses.I3Position(0.,-variation_distance,0.),
                 dataclasses.I3Position(0., variation_distance,0.),
                 dataclasses.I3Position(0.,0.,-variation_distance),
@@ -323,42 +317,34 @@ class PixelsToReco:
         self.min_nside = min_nside
         self.max_nside = max_nside
 
-        # Validate & read state_dict
-        if "GCDQp_packet" not in self.state_dict:
-            raise RuntimeError("\"GCDQp_packet\" not in state_dict.")
-
-        if "baseline_GCD_file" not in self.state_dict:
-            raise RuntimeError("\"baseline_GCD_file\" not in state_dict.")
-
-        if "nsides" not in self.state_dict:
-            self.state_dict["nsides"] = {}
-
-        p_frame = self.state_dict["GCDQp_packet"][-1]
+        # Validate & read GCDQp_packet
+        p_frame = GCDQp_packet[-1]
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
+        self.GCDQp_packet = GCDQp_packet
 
         self.fallback_position = p_frame[self.input_pos_name]
         self.fallback_time = p_frame[self.input_time_name].value
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(self.state_dict)  # type: ignore[no-untyped-call]
+        self.event_mjd = get_event_mjd(self.GCDQp_packet)
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd."""
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
-            self.state_dict, min_nside=self.min_nside, max_nside=self.max_nside
+            self.nsides_dict, min_nside=self.min_nside, max_nside=self.max_nside
         )
         if len(pixels_to_refine) == 0:
             LOGGER.info("There are no pixels to refine.")
             return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
-        # sanity check state_dict
-        for nside in self.state_dict["nsides"]:
-            for pixel in self.state_dict["nsides"][nside]:
+        # sanity check nsides_dict
+        for nside in self.nsides_dict:
+            for pixel in self.nsides_dict[nside]:
                 if (nside,pixel) in pixels_to_refine:
                     raise RuntimeError("pixel to refine is already done processing")
 
@@ -397,8 +383,8 @@ class PixelsToReco:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
-                if coarser_nside in self.state_dict["nsides"]:
-                    if coarser_pixel in self.state_dict["nsides"][coarser_nside]:
+                if coarser_nside in self.nsides_dict:
+                    if coarser_pixel in self.nsides_dict[coarser_nside]:
                         # coarser pixel found
                         break
 
@@ -408,17 +394,15 @@ class PixelsToReco:
                 time = self.fallback_time
                 energy = self.fallback_energy
             else:
-                if numpy.isnan(self.state_dict["nsides"][coarser_nside][coarser_pixel]["llh"]):
+                if numpy.isnan(self.nsides_dict[coarser_nside][coarser_pixel].llh):
                     # coarser reconstruction failed
                     position = self.fallback_position
                     time = self.fallback_time
                     energy = self.fallback_energy
                 else:
-                    coarser_frame = self.state_dict["nsides"][coarser_nside][coarser_pixel]["frame"]
-                    coarser_particle = coarser_frame["MillipedeStarting2ndPass"]
-                    position = coarser_particle.pos
-                    time = coarser_particle.time
-                    energy = coarser_particle.energy
+                    position = self.nsides_dict[coarser_nside][coarser_pixel].position
+                    time = self.nsides_dict[coarser_nside][coarser_pixel].time
+                    energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
@@ -441,9 +425,9 @@ class PixelsToReco:
             eventHeader.sub_event_stream = "SCAN_nside%04u_pixel%04u_posvar%04u" % (nside, pixel, i)
             eventHeader.sub_event_id = int(pixel)
             p_frame["I3EventHeader"] = eventHeader
-            p_frame["SCAN_HealpixPixel"] = icetray.I3Int(int(pixel))
-            p_frame["SCAN_HealpixNSide"] = icetray.I3Int(int(nside))
-            p_frame["SCAN_PositionVariationIndex"] = icetray.I3Int(int(i))
+            p_frame[cfg.I3FRAME_PIXEL] = icetray.I3Int(int(pixel))
+            p_frame[cfg.I3FRAME_NSIDE] = icetray.I3Int(int(nside))
+            p_frame[cfg.I3FRAME_POSVAR] = icetray.I3Int(int(i))
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
@@ -452,6 +436,7 @@ class PixelsToReco:
             yield p_frame
 
 
+# fmt: on
 class BestPixelRecoFinder:
     """Facilitate finding the best reco result for any pixel."""
 
@@ -463,48 +448,34 @@ class BestPixelRecoFinder:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
 
-        self.pixelNumToFramesMap: Dict[NSidePixelPair, icetray.I3Frame] = {}
+        self.pixelNumToFramesMap: Dict[
+            Tuple[icetray.I3Int, icetray.I3Int], List[PixelReco]
+        ] = {}
 
-    def cache_and_get_best(self, frame: icetray.I3Frame) -> Optional[icetray.I3Frame]:
-        """Add frame to internal cache and possibly return the best reco for pixel.
+    def cache_and_get_best(self, pixreco: PixelReco) -> Optional[PixelReco]:
+        """Add pixreco to internal cache and possibly return the best reco for pixel.
 
         If all the recos for the embedded pixel have be received,
         return the best one. Otherwise, return None.
         """
-        if "SCAN_HealpixNSide" not in frame:
-            raise RuntimeError("SCAN_HealpixNSide not in frame")
-        if "SCAN_HealpixPixel" not in frame:
-            raise RuntimeError("SCAN_HealpixPixel not in frame")
-        if "SCAN_PositionVariationIndex" not in frame:
-            raise RuntimeError("SCAN_PositionVariationIndex not in frame")
-
-        nside = frame["SCAN_HealpixNSide"].value
-        pixel = frame["SCAN_HealpixPixel"].value
-        index = (nside,pixel)
-        posVarIndex = frame["SCAN_PositionVariationIndex"].value
+        index = (pixreco.nside, pixreco.pixel)
 
         if index not in self.pixelNumToFramesMap:
             self.pixelNumToFramesMap[index] = []
-        self.pixelNumToFramesMap[index].append(frame)
+        self.pixelNumToFramesMap[index].append(pixreco)
 
         if len(self.pixelNumToFramesMap[index]) >= self.n_posvar:
-            bestFrame = None
-            bestFrameLLH = None
-            for frame in self.pixelNumToFramesMap[index]:
-                if "MillipedeStarting2ndPass_millipedellh" in frame:
-                    thisLLH = frame["MillipedeStarting2ndPass_millipedellh"].logl
-                else:
-                    thisLLH = numpy.nan
-                if (bestFrame is None) or ((thisLLH < bestFrameLLH) and (not numpy.isnan(thisLLH))):
-                    bestFrame=frame
-                    bestFrameLLH=thisLLH
+            # find minimum llh
+            best = None
+            for this in self.pixelNumToFramesMap[index]:
+                if (not best) or (this.llh < best.llh and not numpy.isnan(this.llh)):
+                    best = this
+            if best is None:
+                # just push the first if all of them are nan
+                best = self.pixelNumToFramesMap[index][0]
 
-            if bestFrame is None:
-                # just push the first frame if all of them are nan
-                bestFrame = self.pixelNumToFramesMap[index][0]
-
-            del self.pixelNumToFramesMap[index]
-            return bestFrame
+            del self.pixelNumToFramesMap[index]  # del list
+            return best
 
         return None
 
@@ -521,104 +492,6 @@ class BestPixelRecoFinder:
             )
 
 
-class PixelRecoSaver:
-    """Facilitate saving pixel-reco results to disk."""
-
-    def __init__(
-        self,
-        state_dict: StateDict,
-        event_id: str,
-        cache_dir: str,
-    ) -> None:
-        self.state_dict = state_dict
-        self.this_event_cache_dir = os.path.join(cache_dir, event_id)
-
-    def save(self, frame: icetray.I3Frame) -> icetray.I3Frame:
-        """Save pixel-reco to state_dict and disk cache.
-
-        Locations:
-            state_dict: @ state_dict["nsides"][nside][pixel]
-            disk cache: @ `self.this_event_cache_dir` as .i3 file
-
-        Raise errors for invalid frame or already saved pixel-reco.
-
-        Makes dirs as needed.
-        """
-        if "SCAN_HealpixNSide" not in frame:
-            raise RuntimeError("SCAN_HealpixNSide not in frame")
-        if "SCAN_HealpixPixel" not in frame:
-            raise RuntimeError("SCAN_HealpixPixel not in frame")
-        if "SCAN_PositionVariationIndex" not in frame:
-            raise RuntimeError("SCAN_PositionVariationIndex not in frame")
-
-        nside = frame["SCAN_HealpixNSide"].value
-        pixel = frame["SCAN_HealpixPixel"].value
-
-        # insert pixel data into state_dict
-        if nside not in self.state_dict["nsides"]:
-            self.state_dict["nsides"][nside] = {}
-        if pixel in self.state_dict["nsides"][nside]:
-            raise RuntimeError("NSide {0} / Pixel {1} is already in state_dict".format(nside, pixel))
-        self.state_dict["nsides"][nside][pixel] = self.get_pixel_data(
-            self.state_dict["baseline_GCD_file"],
-            self.state_dict["GCDQp_packet"],
-            frame,
-        )
-
-        self.save_to_disk_cache(nside, pixel, frame)
-
-        return frame
-
-    @staticmethod
-    def get_pixel_data(
-        baseline_GCD_file: str,  # pylint:disable=invalid-name
-        GCDQp_packet: List[icetray.I3Frame],  # pylint:disable=invalid-name
-        frame: icetray.I3Frame
-    ) -> Dict[str, Any]:
-        """Get frame, llh, recoLossesInside, and recoLossesTotal packaged in a dict."""
-
-        if "MillipedeStarting2ndPass" not in frame:
-            raise RuntimeError("\"MillipedeStarting2ndPass\" not found in reconstructed frame")
-        if "MillipedeStarting2ndPass_millipedellh" not in frame:
-            llh = numpy.nan
-            # raise RuntimeError("\"MillipedeStarting2ndPass_millipedellh\" not found in reconstructed frame")
-        else:
-            llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
-
-        # Calculate reco losses, based on load_scan_state()
-        # apparently baseline GCD is sufficient here
-        # maybe filestager can be None
-        geometry = get_baseline_gcd_frames(
-            baseline_GCD_file,
-            GCDQp_packet,
-            filestager=dataio.get_stagers()
-        )[0]
-
-        try:
-            recoLossesInside, recoLossesTotal = get_reco_losses_inside(p_frame=frame, g_frame=geometry)
-        except KeyError as e:
-            LOGGER.error(f"Missing attribute in Geometry frame: {e}")
-            LOGGER.info(f"Frame contains the following keys {geometry.keys()}")
-            raise
-
-        return dict(
-            frame=frame,
-            llh=llh,
-            recoLossesInside=recoLossesInside,
-            recoLossesTotal=recoLossesTotal
-        )
-
-    def save_to_disk_cache(self, nside: int, pixel: int, frame: icetray.I3Frame) -> None:
-        """Save this frame to the disk cache."""
-        nside_dir = os.path.join(self.this_event_cache_dir, "nside{0:06d}".format(nside))
-        if not os.path.exists(nside_dir):
-            os.mkdir(nside_dir)
-        pixel_file_name = os.path.join(nside_dir, "pix{0:012d}.i3".format(pixel))
-
-        save_GCD_frame_packet_to_file([frame], pixel_file_name)
-
-
-# fmt: on
 class PixelRecoCollector:
     """Manage the collecting, filtering, reporting, and saving of pixel-reco results."""
 
@@ -628,22 +501,16 @@ class PixelRecoCollector:
         n_pixreco: int,  # Number of expected pixel-reconstructions
         min_nside: int,
         max_nside: int,
-        state_dict: StateDict,
+        nsides_dict: NSidesDict,
         event_id: str,
-        cache_dir: str,
         global_start_time: float,
         slack_interface: SlackInterface,
     ) -> None:
         self.finder = BestPixelRecoFinder(
             n_posvar=n_posvar,
         )
-        self.saver = PixelRecoSaver(
-            state_dict=state_dict,
-            event_id=event_id,
-            cache_dir=cache_dir,
-        )
         self.progress_reporter = ProgressReporter(
-            state_dict,
+            nsides_dict,
             n_pixreco,
             n_posvar,
             min_nside,
@@ -651,8 +518,9 @@ class PixelRecoCollector:
             event_id,
             slack_interface,
         )
+        self.nsides_dict = nsides_dict
         self.global_start_time = global_start_time
-        self.pixrecos_received: List[Tuple[int, int, int]] = []
+        self.pixreco_ids_received: List[Tuple[int, int, int]] = []
 
     def __enter__(self) -> "PixelRecoCollector":
         self.progress_reporter.initial_report(self.global_start_time)
@@ -662,42 +530,49 @@ class PixelRecoCollector:
         self.progress_reporter.finish()
         self.finder.finish()
 
-    def collect(self, pixreco: icetray.I3Frame) -> None:
+    def collect(self, pixreco: PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
-        LOGGER.debug(f"{self.saver.state_dict=}")
+        LOGGER.debug(f"{self.nsides_dict=}")
 
-        pixreco_tuple = pixel_to_tuple(pixreco)
-        if pixreco_tuple in self.pixrecos_received:
+        if pixreco.id_tuple in self.pixreco_ids_received:
             raise DuplicatePixelRecoException(
-                f"Pixel-reco has already been received: {pixreco_tuple}"
+                f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
-        self.pixrecos_received.append(pixreco_tuple)
-        pixreco_id = f"S#{len(self.pixrecos_received) - 1}"
-        LOGGER.info(f"Got a pixel-reco {pixreco_id} {pixreco}")
+        self.pixreco_ids_received.append(pixreco.id_tuple)
+        logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
+        LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
         best = self.finder.cache_and_get_best(pixreco)
-        LOGGER.info(f"Cached pixel-reco {pixreco_tuple}")
+        LOGGER.info(f"Cached pixel-reco {pixreco.id_tuple} {pixreco}")
 
         # save best pixreco (if we got it)
         if not best:
-            LOGGER.debug(f"Best pixel-reco not yet found ({pixreco_tuple}")
+            LOGGER.debug(f"Best pixel-reco not yet found ({pixreco.id_tuple} {pixreco}")
         else:
             LOGGER.info(
-                f"Saving a BEST pixel-reco (found {pixreco_id}): "
-                f"{pixel_to_tuple(best)} {best}"
+                f"Saving a BEST pixel-reco (found {logging_id}): "
+                f"{best.id_tuple} {best}"
             )
-            self.saver.save(best)
-            LOGGER.debug(f"Saved (found during {pixreco_id}): {pixel_to_tuple(best)}")
+            # insert pixreco into nsides_dict
+            if best.nside not in self.nsides_dict:
+                self.nsides_dict[best.nside] = {}
+            if best.pixel in self.nsides_dict[best.nside]:
+                raise DuplicatePixelRecoException(
+                    f"NSide {best.nside} / Pixel {best.pixel} is already in nsides_dict"
+                )
+            self.nsides_dict[best.nside][best.pixel] = best
+            LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
         self.progress_reporter.record_pixreco()
 
 
 async def serve(
+    reco_algo: cfg.RecoAlgo,
     event_id: str,
-    state_dict: StateDict,
-    cache_dir: str,
+    nsides_dict: Optional[NSidesDict],
+    GCDQp_packet: List[icetray.I3Frame],
     output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
@@ -708,10 +583,13 @@ async def serve(
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
-) -> None:
+) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to disk."""
     global_start_time = time.time()
     LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
+
+    if not nsides_dict:
+        nsides_dict = {}
 
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
@@ -728,10 +606,14 @@ async def serve(
     )
 
     pixeler = PixelsToReco(
-        state_dict=state_dict,
-        mini_test_variations=mini_test_variations,
+        nsides_dict=nsides_dict,
+        GCDQp_packet=GCDQp_packet,
         min_nside=min_nside,
         max_nside=max_nside,
+        input_time_name=cfg.INPUT_TIME_NAME,
+        input_pos_name=cfg.INPUT_POS_NAME,
+        output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
+        mini_test_variations=mini_test_variations,
     )
 
     slack_interface = SlackInterface()
@@ -743,9 +625,9 @@ async def serve(
         n_pixreco = await serve_scan_iteration(
             to_clients_queue,
             from_clients_queue,
+            reco_algo,
             event_id,
-            state_dict,
-            cache_dir,
+            nsides_dict,
             global_start_time,
             pixeler,
             slack_interface,
@@ -759,7 +641,7 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
-    result = ScanResult.from_nsides_dict(state_dict["nsides"])
+    result = ScanResult.from_nsides_dict(nsides_dict)
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
@@ -773,15 +655,17 @@ async def serve(
     LOGGER.info(final_message)
     if slack_interface.active:
         slack_interface.post(final_message)
-        slack_interface.post_skymap_plot(state_dict)
+        slack_interface.post_skymap_plot(nsides_dict)
+
+    return nsides_dict
 
 
 async def serve_scan_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
+    reco_algo: cfg.RecoAlgo,
     event_id: str,
-    state_dict: StateDict,
-    cache_dir: str,
+    nsides_dict: NSidesDict,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -802,9 +686,8 @@ async def serve_scan_iteration(
             LOGGER.info(f"Sending message M#{i} ({pixel_to_tuple(pframe)})...")
             await pub.send(
                 {
-                    "Pixel_PFrame": pframe,
-                    "GCDQp_Frames": state_dict["GCDQp_packet"],
-                    "base_GCD_filename_url": state_dict["baseline_GCD_file"],
+                    cfg.MSG_KEY_RECO_ALGO: reco_algo,
+                    cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
 
@@ -825,9 +708,8 @@ async def serve_scan_iteration(
         n_pixreco=n_pixreco,
         min_nside=pixeler.min_nside,
         max_nside=pixeler.max_nside,
-        state_dict=state_dict,
+        nsides_dict=nsides_dict,
         event_id=event_id,
-        cache_dir=cache_dir,
         global_start_time=global_start_time,
         slack_interface=slack_interface,
     )
@@ -837,16 +719,56 @@ async def serve_scan_iteration(
     with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
             async for pixreco in sub:
+                if not isinstance(pixreco, PixelReco):
+                    raise ValueError(f"Message not {PixelReco}: {type(pixreco)}")
                 try:
                     col.collect(pixreco)
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if len(col.pixrecos_received) == n_pixreco:
+                if len(col.pixreco_ids_received) == n_pixreco:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
     return n_pixreco
+
+
+def write_startup_files(
+    startup_files_dir: Path,
+    event_id: str,
+    min_nside: int,
+    max_nside: int,
+    baseline_GCD_file: str,
+    GCDQp_packet: List[icetray.I3Frame],
+) -> str:
+    """Write startup files for client-spawning.
+
+    Return the mq_basename string.
+    """
+    mq_basename_txt = startup_files_dir / "mq-basename.txt"
+    with open(mq_basename_txt, "w") as f:
+        # TODO: make string shorter
+        mq_basename = f"{event_id}-{min_nside}-{max_nside}"
+        f.write(mq_basename)
+    LOGGER.info(
+        f"Startup File: {mq_basename_txt} ({mq_basename_txt.stat().st_size} bytes)"
+    )
+
+    baseline_GCD_file_txt = startup_files_dir / "baseline_GCD_file.txt"
+    with open(baseline_GCD_file_txt, "w") as f:
+        f.write(baseline_GCD_file)
+    LOGGER.info(
+        f"Startup File: {baseline_GCD_file_txt} ({baseline_GCD_file_txt.stat().st_size} bytes)"
+    )
+
+    GCDQp_packet_pkl = startup_files_dir / "GCDQp_packet.pkl"
+    with open(GCDQp_packet_pkl, "wb") as f:
+        pickle.dump(GCDQp_packet, f)
+    LOGGER.info(
+        f"Startup File: {GCDQp_packet_pkl} ({GCDQp_packet_pkl.stat().st_size} bytes)"
+    )
+
+    return mq_basename
 
 
 def main() -> None:
@@ -860,30 +782,24 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    def _validate_arg(val: str, test: bool, exc: Exception) -> str:
+    T = TypeVar("T")
+
+    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
         """Validation `val` by checking `test` and raise `exc` if that is falsy."""
         if test:
             return val
         raise exc
 
-    # "physics" args
+    # directory args
     parser.add_argument(
-        "-e",
-        "--event-file",
+        "--startup-files-dir",
         required=True,
-        help="The file containing the event to scan (.pkl or .json)",
+        help="The dir to save the files needed to spawn clients",
         type=lambda x: _validate_arg(
-            x,
-            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
-            argparse.ArgumentTypeError(
-                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
-            ),
+            Path(x),
+            os.path.isdir(x),
+            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
-    )
-    parser.add_argument(
-        "--event-mqname",
-        required=True,
-        help="identifier to correspond to the event for MQ connections",
     )
     parser.add_argument(
         "-c",
@@ -891,7 +807,7 @@ def main() -> None:
         required=True,
         help="The cache directory to use",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
         ),
@@ -902,25 +818,41 @@ def main() -> None:
         required=True,
         help="The directory to write out the .npz file",
         type=lambda x: _validate_arg(
-            x,
+            Path(x),
             os.path.isdir(x),
             argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+        ),
+    )
+
+    # "physics" args
+    parser.add_argument(
+        "--reco-algo",
+        choices=[en.name.lower() for en in cfg.RecoAlgo],
+        help="The reconstruction algorithm to use",
+    )
+    parser.add_argument(
+        "-e",
+        "--event-file",
+        required=True,
+        help="The file containing the event to scan (.pkl or .json)",
+        type=lambda x: _validate_arg(
+            Path(x),
+            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
+            argparse.ArgumentTypeError(
+                f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
+            ),
         ),
     )
     parser.add_argument(
         "-g",
         "--gcd-dir",
-        required=True,
+        default=cfg.DEFAULT_GCD_DIR,
         help="The GCD directory to use",
-        type=lambda x: _validate_arg(
-            x,
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
-        ),
+        type=Path,
     )
     parser.add_argument(
         "--min-nside",
-        default=MIN_NSIDE_DEFAULT,
+        default=cfg.MIN_NSIDE_DEFAULT,
         help="The first scan-iteration's nside value",
         type=lambda x: int(
             _validate_arg(
@@ -934,7 +866,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--max-nside",
-        default=MAX_NSIDE_DEFAULT,
+        default=cfg.MAX_NSIDE_DEFAULT,
         help="The final scan-iteration's nside value",
         type=lambda x: int(
             _validate_arg(
@@ -1003,34 +935,51 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    if args.event_file.endswith(".json"):
+    # check if Baseline GCD directory is reachable (also checks default value)
+    if not Path(args.gcd_dir).is_dir():
+        raise NotADirectoryError(args.gcd_dir)
+
+    # read event file
+    if args.event_file.suffix == ".json":
         # json
-        with open(args.event_file, "r") as fj:
-            event_contents = json.load(fj)
+        with open(args.event_file, "r") as f:
+            event_contents = json.load(f)
     else:
         # pickle
-        with open(args.event_file, "rb") as fp:
-            event_contents = pickle.load(fp)
+        with open(args.event_file, "rb") as f:
+            event_contents = pickle.load(f)
 
     # get inputs (load event_id + state_dict cache)
     event_id, state_dict = extract_json_message.extract_json_message(
         event_contents,
+        reco_algo=cfg.RecoAlgo[args.reco_algo.upper()],
         filestager=dataio.get_stagers(),
-        cache_dir=args.cache_dir,
-        override_GCD_filename=args.gcd_dir,
+        cache_dir=str(args.cache_dir),
+        override_GCD_filename=str(args.gcd_dir),
+    )
+
+    # write startup files for client-spawning
+    mq_basename = write_startup_files(
+        args.startup_files_dir,
+        event_id,
+        args.min_nside,
+        args.max_nside,
+        state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
+        state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
 
     # go!
     asyncio.get_event_loop().run_until_complete(
         serve(
+            reco_algo=cfg.RecoAlgo[args.reco_algo.upper()],
             event_id=event_id,
-            state_dict=state_dict,
-            cache_dir=args.cache_dir,
+            nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
+            GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{os.path.basename(args.event_mqname)}",
-            queue_from_clients=f"from-clients-{os.path.basename(args.event_mqname)}",
+            queue_to_clients=f"to-clients-{mq_basename}",
+            queue_from_clients=f"from-clients-{mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,

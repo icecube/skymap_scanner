@@ -5,20 +5,15 @@
 
 import hashlib
 import os
-from typing import Any, Dict, List, Tuple
+from typing import List, Optional, Tuple
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from . import config
+from .. import config as cfg
+from . import LOGGER
 
-StateDict = Dict[str, Any]
 
-
-def get_event_mjd(state_dict):
-    if "GCDQp_packet" not in state_dict:
-        raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
-
+def get_event_mjd(frame_packet: List[icetray.I3Frame]):
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("no p-frame found at the end of the GCDQp packet")
@@ -51,7 +46,7 @@ def parse_event_id(event_id_string):
 
 def load_GCD_frame_packet_from_file(filename, filestager=None):
     read_url = filename
-    for GCD_base_dir in config.GCD_BASE_DIRS:
+    for GCD_base_dir in cfg.GCD_BASE_DIRS:
         potential_read_url = os.path.join(GCD_base_dir, filename)
         if os.path.isfile( potential_read_url ):
             read_url = potential_read_url
@@ -104,10 +99,7 @@ def rewrite_frame_stop(input_frame, new_stream):
     return new_frame
 
 
-def extract_MC_truth(state_dict):
-    if "GCDQp_packet" not in state_dict:
-        raise RuntimeError("GCDQp_packet not found in state_dict")
-    frame_packet = state_dict["GCDQp_packet"]
+def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[float, float]]:
 
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Stream('p') and p_frame.Stop != icetray.I3Frame.Physics:
@@ -118,7 +110,7 @@ def extract_MC_truth(state_dict):
         raise RuntimeError("second to last frame of GCDQp is not type Q")
 
     if "I3MCTree_preMuonProp" not in q_frame:
-        return state_dict
+        return None
     mc_tree = q_frame["I3MCTree_preMuonProp"]
 
     # find the muon
@@ -126,36 +118,20 @@ def extract_MC_truth(state_dict):
     for particle in mc_tree:
         if particle.type not in [dataclasses.I3Particle.ParticleType.MuPlus, dataclasses.I3Particle.ParticleType.MuMinus]: continue
         if muon is not None:
-            print("More than one muon in MCTree")
+            LOGGER.debug("More than one muon in MCTree")
             if particle.energy < muon.energy: continue
         muon = particle
 
     if muon is None:
         # must be NC
-        return state_dict
+        return None
 
     # get event time
-    mjd = get_event_mjd(state_dict)
+    mjd = get_event_mjd(frame_packet)
 
     # convert to RA and dec
     ra, dec = astro.dir_to_equa( muon.dir.zenith, muon.dir.azimuth, mjd )
     ra = float(ra)
     dec = float(dec)
-    dec = dec
 
-    state_dict['MCradec'] = (ra, dec)
-
-    return state_dict
-
-
-# fmt: on
-def pixel_to_tuple(pixel: icetray.I3Frame) -> Tuple[int, int, int]:
-    """Get a tuple representing a pixel PFrame for logging."""
-    return (
-        pixel["SCAN_HealpixNSide"].value,
-        pixel["SCAN_HealpixPixel"].value,
-        pixel["SCAN_PositionVariationIndex"].value,
-    )
-
-
-# fmt: off
+    return (ra, dec)

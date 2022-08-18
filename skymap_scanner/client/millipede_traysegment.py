@@ -19,6 +19,8 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     simclasses,
 )
 
+from .. import config as cfg
+
 
 @icetray.traysegment
 def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOMs, pulsesName, logger):
@@ -58,7 +60,7 @@ def millipede_traysegment(tray, name, muon_service, cascade_service, ExcludedDOM
         )
 
     tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-        FirstGuesses=['MillipedeSeedParticle'],
+        FirstGuesses=[cfg.OUTPUT_PARTICLE_NAME],
         TimeShiftType='TNone',
         PositionShiftType='None')
 
