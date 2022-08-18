@@ -65,7 +65,7 @@ def main():
             pixreco = pickle.load(f)
 
         return ScanResult.from_nsides_dict(
-            {0: [pixreco]}  # 0 b/c this isn't a real nside value
+            {0: {0: pixreco}}  # 0s b/c this isn't a real nside_dict
         )
 
     actual = load_from_out_pkl(args.actual)
