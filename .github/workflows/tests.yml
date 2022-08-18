@@ -159,5 +159,5 @@ jobs:
             --diff-out-dir /local/pkls/ \
             --disqualify-zero-energy-pixels \
             --assert \
-            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false))
+            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
 
