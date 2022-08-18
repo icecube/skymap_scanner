@@ -74,17 +74,7 @@ jobs:
             --max-nside 1 \
             &
 
-          # wait until the mq-basename.txt file exists (with a timeout)
-          endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
-          while [[ $(date -u +%s) -le $endtime ]]; do
-            if [[ -e mq-basename.txt && -e baseline_GCD_file.txt && -e GCDQp_packet.pkl ]]; then
-              break
-            fi
-            echo "waiting for startup files..."
-            sleep 5
-          done
-
-          cat mq-basename.txt
+          ./scripts/launch_scripts/wait_for_startup_files.sh
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
