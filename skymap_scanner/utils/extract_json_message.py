@@ -10,6 +10,7 @@ import numpy as np
 from icecube import dataio, full_event_followup, icetray  # type: ignore[import]
 
 from .. import config as cfg
+from . import LOGGER
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
 from .utils import (
@@ -39,7 +40,7 @@ def extract_GCD_diff_base_filename(frame_packet):
                 raise RuntimeError("inconsistent frame diff base GCD file names. expected {0}, got {1}".format(GCD_diff_base_filename, frame[key].base_filename))
     
     if GCD_diff_base_filename == "current-gcd":
-        print(" **** WARNING: baseline GCD file is \"current-gcd\". replacing with \"2016_01_08_Run127381.i3\".")
+        LOGGER.warning(" **** WARNING: baseline GCD file is \"current-gcd\". replacing with \"2016_01_08_Run127381.i3\".")
         GCD_diff_base_filename = "2016_01_08_Run127381.i3"
     
     return GCD_diff_base_filename
@@ -81,7 +82,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         raise RuntimeError("No I3EventHeader in Physics frame")
     header = physics_frame["I3EventHeader"]
     event_id_string = create_event_id(header.run_id, header.event_id)
-    print(("event ID is {0}".format(event_id_string)))
+    LOGGER.debug("event ID is {0}".format(event_id_string))
 
     # create the cache directory if necessary
     this_event_cache_dir = os.path.join(cache_dir, event_id_string)
@@ -94,33 +95,33 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
     GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
     if np.logical_and(GCD_diff_base_filename is not None, override_GCD_filename is not None):
         new_GCD_diff_base_filename = os.path.join(override_GCD_filename, GCD_diff_base_filename)
-        print(("Trying GCD file: {0}".format(new_GCD_diff_base_filename)))
+        LOGGER.debug("Trying GCD file: {0}".format(new_GCD_diff_base_filename))
         if os.path.isfile(new_GCD_diff_base_filename):
             GCD_diff_base_filename = new_GCD_diff_base_filename
             override_GCD_filename = new_GCD_diff_base_filename
 
     if GCD_diff_base_filename is not None:
         if override_GCD_filename is not None and GCD_diff_base_filename != override_GCD_filename:
-            print(("** WARNING: user chose to override the GCD base filename. Message references \"{0}\", user chose \"{1}\".".format(GCD_diff_base_filename, override_GCD_filename)))
+            LOGGER.warning("** WARNING: user chose to override the GCD base filename. Message references \"{0}\", user chose \"{1}\".".format(GCD_diff_base_filename, override_GCD_filename))
             GCD_diff_base_filename = override_GCD_filename
 
         # seems to be a GCD diff
-        print(("packet needs GCD diff based on file \"{0}\"".format(GCD_diff_base_filename)))
+        LOGGER.debug("packet needs GCD diff based on file \"{0}\"".format(GCD_diff_base_filename))
 
         # try to load the base file from the various possible input directories
         GCD_diff_base_handle = None
         for GCD_base_dir in cfg.GCD_BASE_DIRS:
             try:
                 read_url = os.path.join(GCD_base_dir, GCD_diff_base_filename)
-                print(("reading GCD from {0}".format( read_url )))
+                LOGGER.debug("reading GCD from {0}".format( read_url ))
                 GCD_diff_base_handle = filestager.GetReadablePath( read_url )
                 if not os.path.isfile( str(GCD_diff_base_handle) ):
                     raise RuntimeError("file does not exist (or is not a file)")
             except:
-                print(" -> failed")
+                LOGGER.debug(" -> failed")
                 GCD_diff_base_handle=None
             if GCD_diff_base_handle is not None:
-                print(" -> success")
+                LOGGER.debug(" -> success")
                 break
         
         if GCD_diff_base_handle is None:
@@ -137,10 +138,10 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
                 # print "existing:", existing_packet_hash
                 # print "this_frame:", this_packet_hash
                 raise RuntimeError("existing baseline GCD in cache (SHA1 {0}) and packet from input (SHA1 {1}) differ.".format(diff_in_cache_hash, diff_referenced_hash))
-                print("checked baseline GCD against existing data in cache - consistent")
+            LOGGER.debug("checked baseline GCD against existing data in cache - consistent")
         else:
             save_GCD_frame_packet_to_file(diff_referenced, new_GCD_base_filename)
-            print(("wrote baseline GCD frames to {0}".format(new_GCD_base_filename)))
+            LOGGER.debug("wrote baseline GCD frames to {0}".format(new_GCD_base_filename))
 
         # save the GCD filename
         original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, "original_base_GCD_for_diff_filename.txt")
@@ -155,7 +156,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         with open(original_GCD_diff_base_filename, "w") as text_file:
             text_file.write(GCD_diff_base_filename)
     else:
-        print("packet does not need a GCD diff")
+        LOGGER.debug("packet does not need a GCD diff")
 
     # special case for old EHE alerts with empty GCD frames
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
@@ -175,9 +176,9 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
 
         override_GCD_filename = os.path.join(override_GCD_filename, latest)
 
-        print((available_GCDs, run))
-        print("********** old EHE packet with empty GCD frames. need to replace all geometry. ********")
-        print(("By process of elimination using run numbers, using {0}".format(override_GCD_filename)))
+        LOGGER.debug((available_GCDs, run))
+        LOGGER.debug("********** old EHE packet with empty GCD frames. need to replace all geometry. ********")
+        LOGGER.debug("By process of elimination using run numbers, using {0}".format(override_GCD_filename))
         if override_GCD_filename is None:
             raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD EHE event. Please set override_GCD_filename.")
         ehe_override_gcd = load_GCD_frame_packet_from_file(override_GCD_filename)
@@ -191,7 +192,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
     else:
         frame_packet, ExcludedDOMs = prepare_frames(frame_packet, None, pulsesName=pulsesName)
 
-    print(("ExcludedDOMs is", ExcludedDOMs))
+    LOGGER.debug(f"ExcludedDOMs is {ExcludedDOMs}")
 
     # move the last packet frame from Physics to the 'p' stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
@@ -206,11 +207,11 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
             # print "existing:", existing_packet_hash
             # print "this_frame:", this_packet_hash
             raise RuntimeError("existing GCDQp packet in cache (SHA1 {0}) and packet from input (SHA1 {1}) differ.".format(existing_packet_hash, this_packet_hash))
-        print("checked dependency against existing data in cache - consistent")
+        LOGGER.debug("checked dependency against existing data in cache - consistent")
     else:
         # no GCD exists yet
         save_GCD_frame_packet_to_file(frame_packet, GCDQp_filename)
-        print(("wrote GCDQp dependency frames to {0}".format(GCDQp_filename)))
+        LOGGER.debug("wrote GCDQp dependency frames to {0}".format(GCDQp_filename))
 
     return (
         this_event_cache_dir,

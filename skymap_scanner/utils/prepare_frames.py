@@ -14,6 +14,7 @@ from icecube import icetray  # type: ignore[import]
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 
 from .. import config as cfg
+from . import LOGGER
 
 
 class FrameArraySource(icetray.I3Module):
@@ -94,7 +95,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         def copyPulseName(frame, old_name, new_name):
             mask = dataclasses.I3RecoPulseSeriesMapMask(frame, old_name)
             if new_name in frame:
-                print("** WARNING: {0} was already in frame. overwritten".format(new_name))
+                LOGGER.warning("** WARNING: {0} was already in frame. overwritten".format(new_name))
                 del frame[new_name]
             frame[new_name] = mask
             frame[new_name+"TimeRange"] = copy.deepcopy(frame[old_name+"TimeRange"])

@@ -12,6 +12,7 @@ from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio, icetray
 
 from .. import config as cfg
+from . import LOGGER
 from .pixelreco import PixelReco
 from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
@@ -105,27 +106,27 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List
 
     if baseline_GCD_file is not None:
           
-        print("trying to read GCD from {0}".format(baseline_GCD_file))
+        LOGGER.debug("trying to read GCD from {0}".format(baseline_GCD_file))
         try:
             baseline_GCD_frames = load_GCD_frame_packet_from_file(baseline_GCD_file, filestager=filestager)
         except:
             baseline_GCD_frames = None
-            print(" -> failed")
+            LOGGER.debug(" -> failed")
         if baseline_GCD_frames is not None:
-            print(" -> success")
+            LOGGER.debug(" -> success")
 
         if baseline_GCD_frames is None:
             for GCD_base_dir in cfg.GCD_BASE_DIRS:
                 read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
-                print(("trying to read GCD from {0}".format( read_url )))
+                LOGGER.debug("trying to read GCD from {0}".format(read_url))
                 try:
                     baseline_GCD_frames = load_GCD_frame_packet_from_file(read_url, filestager=filestager)                
                 except:
-                    print(" -> failed")
+                    LOGGER.debug(" -> failed")
                     baseline_GCD_frames=None
 
                 if baseline_GCD_frames is not None:
-                    print(" -> success")
+                    LOGGER.debug(" -> success")
                     break
 
             if baseline_GCD_frames is None:
@@ -198,13 +199,13 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, GCDQp_filename))
 
     frame_packet = load_GCD_frame_packet_from_file(GCDQp_filename)
-    print(("loaded frame packet from {0}".format(GCDQp_filename)))
+    LOGGER.debug("loaded frame packet from {0}".format(GCDQp_filename))
 
     if os.path.isfile(potential_GCD_diff_base_filename):
         if potential_original_GCD_diff_base_filename is None:
             # load and throw away to make sure it is readable
             load_GCD_frame_packet_from_file(potential_GCD_diff_base_filename)
-            print((" - has a frame diff packet at {0}".format(potential_GCD_diff_base_filename)))
+            LOGGER.debug(" - has a frame diff packet at {0}".format(potential_GCD_diff_base_filename))
             GCD_diff_base_filename = potential_GCD_diff_base_filename
             
             raise RuntimeError("Cache state seems to require a GCD diff baseline file (it contains a cached version), but the cache does not have \"original_base_GCD_for_diff_filename.txt\". This is a bug or corrupted data.")
@@ -214,10 +215,10 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
                 for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
                         read_path = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
-                        print(("reading GCD from {0}".format( read_url )))
+                        LOGGER.debug("reading GCD from {0}".format(read_path))
                         orig_packet = load_GCD_frame_packet_from_file(read_path)
                     except:
-                        print(" -> failed")
+                        LOGGER.debug(" -> failed")
                         orig_packet = None
                     if orig_packet is None:
                         raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(potential_original_GCD_diff_base_filename))
@@ -227,15 +228,15 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
                 for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
                         read_url = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
-                        print(("reading GCD from {0}".format( read_url )))
+                        LOGGER.debug("reading GCD from {0}".format( read_url ))
                         GCD_diff_base_handle = filestager.GetReadablePath( read_url )
                         if not os.path.isfile( str(GCD_diff_base_handle) ):
                             raise RuntimeError("file does not exist (or is not a file)")
                     except:
-                        print(" -> failed")
+                        LOGGER.debug(" -> failed")
                         GCD_diff_base_handle=None
                     if GCD_diff_base_handle is not None:
-                        print(" -> success")
+                        LOGGER.debug(" -> success")
                         break
                 
                 if GCD_diff_base_handle is None:
@@ -252,10 +253,10 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
             del orig_packet
             del this_packet
             
-            print((" - has a frame diff packet at {0} (using original copy)".format(os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename))))
+            LOGGER.debug(" - has a frame diff packet at {0} (using original copy)".format(os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)))
             GCD_diff_base_filename = potential_original_GCD_diff_base_filename
     else:
-        print(" - does not seem to contain frame diff packet")
+        LOGGER.debug(" - does not seem to contain frame diff packet")
         GCD_diff_base_filename = None
 
     return (

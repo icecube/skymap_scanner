@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
 from .. import config as cfg
+from . import LOGGER
 
 
 def get_event_mjd(frame_packet: List[icetray.I3Frame]):
@@ -117,7 +118,7 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
     for particle in mc_tree:
         if particle.type not in [dataclasses.I3Particle.ParticleType.MuPlus, dataclasses.I3Particle.ParticleType.MuMinus]: continue
         if muon is not None:
-            print("More than one muon in MCTree")
+            LOGGER.debug("More than one muon in MCTree")
             if particle.energy < muon.energy: continue
         muon = particle
 
