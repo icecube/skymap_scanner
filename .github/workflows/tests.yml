@@ -74,7 +74,7 @@ jobs:
             --max-nside 1 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_files.sh
+          ./scripts/launch_scripts/wait_for_startup_files.sh .
 
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
