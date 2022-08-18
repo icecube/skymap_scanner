@@ -269,13 +269,13 @@ class ScanResult:
                 if (
                     not isinstance(pixreco, PixelReco)
                     or nside != pixreco.nside
-                    or pixel_id != pixreco.pixel_id
+                    or pixel_id != pixreco.pixel
                 ):
                     msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
                     logging.error(msg)
                     raise ValueError(msg)
                 v[i] = (
-                    pixreco.pixel_id,  # index
+                    pixreco.pixel,  # index
                     pixreco.llh,  # llh
                     pixreco.reco_losses_inside,  # E_in
                     pixreco.reco_losses_total,  # E_tot

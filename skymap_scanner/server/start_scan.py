@@ -458,7 +458,7 @@ class BestPixelRecoFinder:
         If all the recos for the embedded pixel have be received,
         return the best one. Otherwise, return None.
         """
-        index = (pixreco.nside, pixreco.pixel_id)
+        index = (pixreco.nside, pixreco.pixel)
 
         if index not in self.pixelNumToFramesMap:
             self.pixelNumToFramesMap[index] = []
@@ -557,11 +557,11 @@ class PixelRecoCollector:
             # insert pixreco into nsides_dict
             if best.nside not in self.nsides_dict:
                 self.nsides_dict[best.nside] = {}
-            if best.pixel_id in self.nsides_dict[best.nside]:
+            if best.pixel in self.nsides_dict[best.nside]:
                 raise DuplicatePixelRecoException(
-                    f"NSide {best.nside} / Pixel {best.pixel_id} is already in nsides_dict"
+                    f"NSide {best.nside} / Pixel {best.pixel} is already in nsides_dict"
                 )
-            self.nsides_dict[best.nside][best.pixel_id] = best
+            self.nsides_dict[best.nside][best.pixel] = best
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
