@@ -4,7 +4,7 @@
 #
 # Launch the Skymap Scanner server
 #
-# Pass in the arguments as if this were just the python script
+# Pass in the arguments as if this were just the python sub-module
 #
 ########################################################################
 

@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional
 
 import asyncstdlib as asl
 import mqclient_pulsar as mq
