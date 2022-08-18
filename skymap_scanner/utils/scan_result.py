@@ -259,25 +259,23 @@ class ScanResult:
 
         out = dict()
 
-        for nside in nsides_dict:
-
-            n = len(nsides_dict[nside])
+        for nside, pixel_dict in nsides_dict.items():
+            n = len(pixel_dict)
             v = np.zeros(n, dtype=cls.PIXEL_TYPE)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
-            for i, pixel in enumerate(sorted(nsides_dict[nside])):
-                pixreco = nsides_dict[nside][pixel]
+            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
                 if (
                     not isinstance(pixreco, PixelReco)
                     or nside != pixreco.nside
-                    or pixel != pixreco.pixel
+                    or pixel_id != pixreco.pixel_id
                 ):
-                    msg = f"Invalid {PixelReco} for {(nside,pixel)}: {pixreco}"
+                    msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
                     logging.error(msg)
                     raise ValueError(msg)
                 v[i] = (
-                    pixel,  # index
+                    pixreco.pixel_id,  # index
                     pixreco.llh,  # llh
                     pixreco.reco_losses_inside,  # E_in
                     pixreco.reco_losses_total,  # E_tot

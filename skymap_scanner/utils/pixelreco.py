@@ -28,7 +28,7 @@ class PixelReco:
     """A *lightweight* dataclass representing a pixel reconstruction."""
 
     nside: int
-    pixel: int
+    pixel_id: int
     llh: float
     reco_losses_inside: float
     reco_losses_total: float
@@ -39,7 +39,7 @@ class PixelReco:
     energy: float
 
     def __post_init__(self) -> None:
-        self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
+        self.id_tuple = (self.nside, self.pixel_id, self.pos_var_index)
 
     @staticmethod
     def from_i3frame(
@@ -64,7 +64,7 @@ class PixelReco:
                 llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
             return PixelReco(
                 nside=frame[cfg.I3FRAME_NSIDE].value,
-                pixel=frame[cfg.I3FRAME_PIXEL].value,
+                pixel_id=frame[cfg.I3FRAME_PIXEL].value,
                 llh=llh,
                 reco_losses_inside=reco_losses_inside,
                 reco_losses_total=reco_losses_total,
