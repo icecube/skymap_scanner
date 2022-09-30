@@ -141,7 +141,7 @@ def main() -> None:
     asyncio.get_event_loop().run_until_complete(
         ewms_pilot.consume_and_reply(
             cmd=cmd,
-            broker_client=args.broker_client,
+            broker_client=cfg.env.SKYSCAN_BROKER_CLIENT,
             broker_address=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{args.mq_basename}",
