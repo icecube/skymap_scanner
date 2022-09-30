@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        broker: ["", pulsar, rabbitmq, gcp, nats]
+        broker: [default, pulsar, rabbitmq, gcp, nats]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
@@ -55,7 +55,7 @@ jobs:
           set -x
 
           # Pulsar
-          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+          if [ "${{ matrix.broker }}" = "default" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
             ./MQClient/resources/docker-pulsar.sh
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
@@ -68,7 +68,10 @@ jobs:
           elif [ "${{ matrix.broker }}" = "nats" ]; then
             ./MQClient/resources/local-nats-js.sh
           fi
-          export SKYSCAN_BROKER_CLIENT="${{ matrix.broker }}"
+
+          if [ "${{ matrix.broker }}" != "default" ]; then
+            export SKYSCAN_BROKER_CLIENT="${{ matrix.broker }}"
+          fi
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
