@@ -32,12 +32,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        broker: ["", pulsar, rabbitmq, gcp, nats]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
-        broker: ["", pulsar, rabbitmq, gcp, nats]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
