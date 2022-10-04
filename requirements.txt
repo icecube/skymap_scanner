@@ -133,7 +133,7 @@ typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools[coloredlogs]==1.5.1
+wipac-dev-tools[coloredlogs]==1.5.3
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient
