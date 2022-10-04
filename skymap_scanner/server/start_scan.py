@@ -939,7 +939,7 @@ def main() -> None:
         first_party_loggers=[LOGGER],
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
-        future_third_parties=["apache", "google", "pika"],  # only one will be used
+        future_third_parties=["google", "pika"],  # at most only one will be used
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
