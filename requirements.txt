@@ -137,7 +137,7 @@ wipac-dev-tools[coloredlogs]==1.5.3
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient
-wipac-mqclient[all,pulsar]==0.6.1
+wipac-mqclient[all,pulsar]==0.6.2
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
