@@ -91,7 +91,8 @@ jobs:
 
           ./scripts/launch_scripts/wait_for_startup_files.sh .
 
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          # nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          nclients=1
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
