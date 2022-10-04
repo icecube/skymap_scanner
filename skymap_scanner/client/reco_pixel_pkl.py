@@ -26,7 +26,7 @@ from ..utils.pixelreco import PixelReco, pixel_to_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
 from .millipede_traysegment import millipede_traysegment
 
-LOGGER = logging.getLogger("skyscan-client-reco")
+LOGGER = logging.getLogger("skyscan.client.reco")
 
 
 def frame_for_logging(frame: icetray.I3Frame) -> str:
@@ -325,7 +325,7 @@ def main() -> None:
     args = parser.parse_args()
     logging_tools.set_level(
         args.log,
-        first_party_loggers=[LOGGER],
+        first_party_loggers="skyscan",
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
     )
