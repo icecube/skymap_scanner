@@ -115,10 +115,11 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log.upper(),
+        args.log,
         first_party_loggers=[LOGGER, ewms_pilot.pilot.LOGGER],
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
+        future_third_parties=["apache", "google", "pika"],  # only one will be used
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 

@@ -324,7 +324,7 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log.upper(),
+        args.log,
         first_party_loggers=[LOGGER],
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
