@@ -11,9 +11,6 @@ from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
 
-OUT_PKL = Path("out_msg.pkl")
-IN_PKL = Path("in_msg.pkl")
-
 LOGGER = logging.getLogger("skyscan.client")
 
 
@@ -129,8 +126,8 @@ def main() -> None:
 
     cmd = (
         f"python -m skymap_scanner.client.reco_pixel_pkl "
-        f" --in-pkl {IN_PKL}"
-        f" --out-pkl {OUT_PKL}"
+        f" --in-pkl in.pkl"
+        f" --out-pkl out.pkl"
         f" --gcdqp-packet-pkl {args.GCDQp_packet_pkl}"
         f" --baseline-gcd-file {args.baseline_GCD_file}"
         f" --log {args.log}"
