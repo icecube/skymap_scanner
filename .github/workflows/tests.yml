@@ -80,7 +80,7 @@ jobs:
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
-            --startup-files-dir . \
+            --startup-json-dir . \
             --broker $BROKER_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
@@ -89,7 +89,7 @@ jobs:
             --max-nside 1 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_files.sh .
+          ./scripts/launch_scripts/wait_for_startup_json.sh .
 
           # nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           nclients=1
@@ -98,9 +98,7 @@ jobs:
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
-              --mq-basename $(cat mq-basename.txt) \
-              --baseline-gcd-file $(cat baseline_GCD_file.txt) \
-              --gcdqp-packet-pkl GCDQp_packet.pkl \
+              --startup-json-dir . \
               --broker $BROKER_ADDRESS \
               --log DEBUG \
               --log-third-party INFO \

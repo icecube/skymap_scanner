@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 from pathlib import Path
 from typing import Optional
@@ -33,6 +34,16 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
+    # startup.json
+    parser.add_argument(
+        "--startup-json-dir",
+        help=(
+            "The directory with the 'startup.json' file to startup the client "
+            "(has keys 'mq_basename', 'baseline_GCD_file', and 'GCDQp_packet')"
+        ),
+        type=Path,
+    )
+
     # "physics" args
     parser.add_argument(
         # we aren't going to use this arg, but just check if it exists for incoming pixels
@@ -42,27 +53,8 @@ def main() -> None:
         help="The GCD directory to use",
         type=Path,
     )
-    parser.add_argument(
-        "--gcdqp-packet-pkl",
-        dest="GCDQp_packet_pkl",
-        required=True,
-        help="a pkl file containing the GCDQp_packet (list of I3Frames)",
-        type=Path,
-    )
-    parser.add_argument(
-        "--baseline-gcd-file",
-        dest="baseline_GCD_file",
-        required=True,
-        help="the baseline_GCD_file string",
-        type=str,
-    )
 
     # mq args
-    parser.add_argument(
-        "--mq-basename",
-        required=True,
-        help="base identifier to correspond to an event for its MQ connections",
-    )
     parser.add_argument(
         "-b",
         "--broker",
@@ -124,26 +116,34 @@ def main() -> None:
     if not Path(args.gcd_dir).is_dir():
         raise NotADirectoryError(args.gcd_dir)
 
+    # read startup.json
+    with open(args.startup_json_dir / "startup.json", "rb") as f:
+        startup_json_dict = json.load(f)
+    with open("GCDQp_packet.pkl", "wb") as f:
+        f.write(startup_json_dict["GCDQp_packet"])
+
     cmd = (
         f"python -m skymap_scanner.client.reco_pixel_pkl "
         f" --in-pkl in.pkl"
         f" --out-pkl out.pkl"
-        f" --gcdqp-packet-pkl {args.GCDQp_packet_pkl}"
-        f" --baseline-gcd-file {args.baseline_GCD_file}"
+        f" --gcdqp-packet-pkl GCDQp_packet.pkl"
+        f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
         f" --log {args.log}"
         f" --log-third-party {args.log_third_party}"
     )
 
     # go!
-    LOGGER.info(f"Starting up a Skymap Scanner client for event: {args.mq_basename=}")
+    LOGGER.info(
+        f"Starting up a Skymap Scanner client for event: {startup_json_dict['mq_basename']=}"
+    )
     asyncio.get_event_loop().run_until_complete(
         ewms_pilot.consume_and_reply(
             cmd=cmd,
             broker_client=cfg.env.SKYSCAN_BROKER_CLIENT,
             broker_address=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{args.mq_basename}",
-            queue_from_clients=f"from-clients-{args.mq_basename}",
+            queue_to_clients=f"to-clients-{startup_json_dict['mq_basename']}",
+            queue_from_clients=f"from-clients-{startup_json_dict['mq_basename']}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             debug_dir=args.debug_directory,

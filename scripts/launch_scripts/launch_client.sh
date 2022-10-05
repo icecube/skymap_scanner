@@ -43,9 +43,9 @@ if debug_dir:
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
-if gcdqp:
-    dockermount_args += f"--mount type=bind,source={os.path.dirname(gcdqp)},target=/local/gcdqp,readonly "
-    py_args += f"--gcdqp-packet-pkl /local/gcdqp/{os.path.basename(gcdqp)} "
+if startup:
+    dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-json-dir "
+    py_args += f"--startup-json-dir /local/startup-json-dir "
 
 print(f"{dockermount_args}#{py_args}")
 ')
