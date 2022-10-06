@@ -12,7 +12,7 @@ env:
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
-  BROKER_ADDRESS: localhost
+  BROKER_ADDRESS: localhost:6650
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_REPORT_INTERVAL_SEC: 60
   CI_TESTING_USE_LOCAL_DOCKER: 1
