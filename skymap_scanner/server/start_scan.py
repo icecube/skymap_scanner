@@ -760,7 +760,7 @@ def write_startup_json(
     json_file = startup_json_dir / "startup.json"
 
     json_dict = {
-        "mq_basename": f"{event_id}-{min_nside}-{max_nside}",  # TODO: make string shorter,
+        "mq_basename": f"{event_id}-{min_nside}-{max_nside}-{int(time.time())}",  # TODO: make string shorter,
         "baseline_GCD_file": baseline_GCD_file,
         "GCDQp_packet": json.loads(
             full_event_followup.frame_packet_to_i3live_json(
