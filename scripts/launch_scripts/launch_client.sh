@@ -32,7 +32,7 @@ def extract_opt_path(py_args, opt):
 
 py_args, debug_dir = extract_opt_path(py_args, "--debug-directory")
 py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
-py_args, gcdqp = extract_opt_path(py_args, "--gcdqp-packet-pkl")
+py_args, startup = extract_opt_path(py_args, "--startup-json-dir")
 
 dockermount_args = ""
 py_args += " "
