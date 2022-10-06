@@ -142,6 +142,8 @@ jobs:
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Run
         run: |
+          jq '.GCDQp_packet' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json > tests/data/reco_pixel_pkls/${{ matrix.dir }}//GCDQp_packet.json
+
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
@@ -151,7 +153,7 @@ jobs:
             python -m skymap_scanner.client.reco_pixel_pkl \
             --in-pkl /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)) \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
-            --baseline-gcd-file $(cat tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt) \
+            --baseline-gcd-file $(jq '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl \
             --log DEBUG
 
