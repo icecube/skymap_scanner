@@ -119,7 +119,7 @@ def main() -> None:
     # read startup.json
     with open(args.startup_json_dir / "startup.json", "rb") as f:
         startup_json_dict = json.load(f)
-    with open("GCDQp_packet.json", "wb") as f:
+    with open("GCDQp_packet.json", "w") as f:
         json.dump(startup_json_dict["GCDQp_packet"], f)
 
     cmd = (
