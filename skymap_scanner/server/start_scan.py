@@ -767,6 +767,7 @@ def write_startup_json(
 
     with open(json_file, "w") as f:
         json.dump(json_dict, f)
+        LOGGER.debug(f"startup.json: {json_dict}")
     LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
 
     return json_dict["mq_basename"]
