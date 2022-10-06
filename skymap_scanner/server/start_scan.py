@@ -759,7 +759,7 @@ def write_startup_json(
         "GCDQp_packet": pickle.dumps(GCDQp_packet),
     }
 
-    with open(json_file, "wb") as f:
+    with open(json_file, "w") as f:
         json.dump(json_dict, f)
     LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
 
