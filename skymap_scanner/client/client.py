@@ -119,14 +119,14 @@ def main() -> None:
     # read startup.json
     with open(args.startup_json_dir / "startup.json", "rb") as f:
         startup_json_dict = json.load(f)
-    with open("GCDQp_packet.pkl", "wb") as f:
-        f.write(startup_json_dict["GCDQp_packet"])
+    with open("GCDQp_packet.json", "wb") as f:
+        json.dump(startup_json_dict["GCDQp_packet"], f)
 
     cmd = (
         f"python -m skymap_scanner.client.reco_pixel_pkl "
         f" --in-pkl in.pkl"
         f" --out-pkl out.pkl"
-        f" --gcdqp-packet-pkl GCDQp_packet.pkl"
+        f" --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
         f" --log {args.log}"
         f" --log-third-party {args.log_third_party}"

@@ -14,6 +14,7 @@ from I3Tray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataio,
     frame_object_diff,
+    full_event_followup,
     icetray,
     photonics_service,
 )
@@ -295,10 +296,10 @@ def main() -> None:
 
     # extra "physics" args
     parser.add_argument(
-        "--gcdqp-packet-pkl",
-        dest="GCDQp_packet_pkl",
+        "--gcdqp-packet-json",
+        dest="GCDQp_packet_json",
         required=True,
-        help="a pkl file containing the GCDQp_packet (list of I3Frames)",
+        help="a JSON file containing the GCDQp_packet (list of I3Frames)",
         type=Path,
     )
     parser.add_argument(
@@ -338,8 +339,8 @@ def main() -> None:
         pframe = msg[cfg.MSG_KEY_PFRAME]
 
     # get GCDQp_packet
-    with open(args.GCDQp_packet_pkl, "rb") as f:
-        GCDQp_packet = pickle.load(f)
+    with open(args.GCDQp_packet_json, "r") as f:
+        GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(f.read())
 
     # go!
     reco_pixel(reco_algo, pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)

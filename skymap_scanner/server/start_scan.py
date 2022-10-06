@@ -18,7 +18,13 @@ import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
-from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
+from icecube import (  # type: ignore[import]
+    astro,
+    dataclasses,
+    dataio,
+    full_event_followup,
+    icetray,
+)
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
@@ -756,7 +762,7 @@ def write_startup_json(
     json_dict = {
         "mq_basename": f"{event_id}-{min_nside}-{max_nside}",  # TODO: make string shorter,
         "baseline_GCD_file": baseline_GCD_file,
-        "GCDQp_packet": pickle.dumps(GCDQp_packet),
+        "GCDQp_packet": full_event_followup.frame_packet_to_i3live_json(GCDQp_packet),
     }
 
     with open(json_file, "w") as f:

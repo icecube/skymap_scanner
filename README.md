@@ -36,7 +36,7 @@ Each on a different CPU:
 ./scripts/launch_scripts/launch_client.sh \
     --mq-basename $(cat <STARTUP_JSON_DIR>/mq-basename.txt) \
     --baseline-gcd-file $(cat <STARTUP_JSON_DIR>/baseline_GCD_file.txt) \
-    --gcdqp-packet-pkl <STARTUP_JSON_DIR>/GCDQp_packet.pkl \
+    --gcdqp-packet-json <STARTUP_JSON_DIR>/GCDQp_packet.json \
     --broker <BROKER_ADDRESS> \
     --auth-token `cat ~/skyscan-broker.token` \
     --log DEBUG \
