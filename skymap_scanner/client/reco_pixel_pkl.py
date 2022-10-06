@@ -340,7 +340,9 @@ def main() -> None:
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_json, "r") as f:
-        GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(f.read())
+        GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
+            f.read(), pnf_framing=False
+        )
 
     # go!
     reco_pixel(reco_algo, pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)
