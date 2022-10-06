@@ -762,7 +762,9 @@ def write_startup_json(
     json_dict = {
         "mq_basename": f"{event_id}-{min_nside}-{max_nside}",  # TODO: make string shorter,
         "baseline_GCD_file": baseline_GCD_file,
-        "GCDQp_packet": full_event_followup.frame_packet_to_i3live_json(GCDQp_packet),
+        "GCDQp_packet": json.loads(
+            full_event_followup.frame_packet_to_i3live_json(GCDQp_packet)  # gives str
+        ),
     }
 
     with open(json_file, "w") as f:
