@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
 
 import healpy  # type: ignore[import]
-import mqclient_pulsar as mq
+import mqclient as mq
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
@@ -31,10 +31,11 @@ from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
 
 class DuplicatePixelRecoException(Exception):
-    """Raised when a pixel-reco (message) is received that is semantically equivalent to a prior.
+    """Raised when a pixel-reco (message) is received that is semantically
+    equivalent to a prior.
 
-    For example, a pixel-reco (message) that has the same NSide, Pixel ID, and
-    Variation ID as an already received message.
+    For example, a pixel-reco (message) that has the same NSide, Pixel
+    ID, and Variation ID as an already received message.
     """
 
 
@@ -453,10 +454,11 @@ class BestPixelRecoFinder:
         ] = {}
 
     def cache_and_get_best(self, pixreco: PixelReco) -> Optional[PixelReco]:
-        """Add pixreco to internal cache and possibly return the best reco for pixel.
+        """Add pixreco to internal cache and possibly return the best reco for
+        pixel.
 
-        If all the recos for the embedded pixel have be received,
-        return the best one. Otherwise, return None.
+        If all the recos for the embedded pixel have be received, return
+        the best one. Otherwise, return None.
         """
         index = (pixreco.nside, pixreco.pixel)
 
@@ -482,8 +484,8 @@ class BestPixelRecoFinder:
     def finish(self) -> None:
         """Check if all the pixel-recos were received.
 
-        If an entire pixel (and all its pixel-recos) was dropped by client(s),
-        this will not catch it.
+        If an entire pixel (and all its pixel-recos) was dropped by
+        client(s), this will not catch it.
         """
         if len(self.pixelNumToFramesMap) != 0:
             raise RuntimeError(
@@ -493,7 +495,8 @@ class BestPixelRecoFinder:
 
 
 class PixelRecoCollector:
-    """Manage the collecting, filtering, reporting, and saving of pixel-reco results."""
+    """Manage the collecting, filtering, reporting, and saving of pixel-reco
+    results."""
 
     def __init__(
         self,
@@ -584,7 +587,8 @@ async def serve(
     min_nside: int,
     max_nside: int,
 ) -> NSidesDict:
-    """Send pixels to be reco'd by client(s), then collect results and save to disk."""
+    """Send pixels to be reco'd by client(s), then collect results and save to
+    disk."""
     global_start_time = time.time()
     LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
 
@@ -593,12 +597,14 @@ async def serve(
 
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
+        broker_client="pulsar",
         address=broker,
         name=queue_to_clients,
         auth_token=auth_token,
         timeout=timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
+        broker_client="pulsar",
         address=broker,
         name=queue_from_clients,
         auth_token=auth_token,
@@ -785,7 +791,8 @@ def main() -> None:
     T = TypeVar("T")
 
     def _validate_arg(val: T, test: bool, exc: Exception) -> T:
-        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
+        """Validation `val` by checking `test` and raise `exc` if that is
+        falsy."""
         if test:
             return val
         raise exc
