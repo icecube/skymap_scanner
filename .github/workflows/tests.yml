@@ -11,11 +11,9 @@ on:
 env:
   PY_COLORS: "1"
   REALTIME_EVENTS_DIR: tests/data/realtime_events
-  PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
-  PULSAR_ADDRESS: localhost:6650
-  PULSAR_AUTH: ""
+  BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_REPORT_INTERVAL_SEC: 60
   CI_TESTING_USE_LOCAL_DOCKER: 1
@@ -44,20 +42,19 @@ jobs:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
       - uses: actions/checkout@v3
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          ./scripts/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+      - name: Checkout MQClient repo (for broker startup scripts)
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
       - name: Build Skymap Scanner Docker Image
         run: |
           docker build --no-cache -t icecube/skymap_scanner .
-      - name: Configure Pulsar Server
-        run: |
-          export DOCKERIZE_VERSION=v0.3.0
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
       - name: Run
         run: |
+          set -x
+
+          ./MQClient/resources/docker-pulsar.sh
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
@@ -66,8 +63,8 @@ jobs:
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
-            --startup-files-dir . \
-            --broker $PULSAR_ADDRESS \
+            --startup-json-dir . \
+            --broker $BROKER_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
             --mini-test-variations \
@@ -75,18 +72,17 @@ jobs:
             --max-nside 1 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_files.sh .
+          ./scripts/launch_scripts/wait_for_startup_json.sh .
 
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          # nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          nclients=1
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
-              --mq-basename $(cat mq-basename.txt) \
-              --baseline-gcd-file $(cat baseline_GCD_file.txt) \
-              --gcdqp-packet-pkl GCDQp_packet.pkl \
-              --broker $PULSAR_ADDRESS \
+              --startup-json-dir . \
+              --broker $BROKER_ADDRESS \
               --log DEBUG \
               --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
@@ -129,6 +125,8 @@ jobs:
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Run
         run: |
+          jq '.GCDQp_packet' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json > tests/data/reco_pixel_pkls/${{ matrix.dir }}//GCDQp_packet.json
+
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
@@ -137,8 +135,8 @@ jobs:
             icecube/skymap_scanner:latest \
             python -m skymap_scanner.client.reco_pixel_pkl \
             --in-pkl /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)) \
-            --gcdqp-packet-pkl /local/pkls/GCDQp_packet.pkl \
-            --baseline-gcd-file $(cat tests/data/reco_pixel_pkls/${{ matrix.dir }}/baseline_GCD_file.txt) \
+            --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
+            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl \
             --log DEBUG
 

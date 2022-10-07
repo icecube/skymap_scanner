@@ -18,7 +18,13 @@ import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
-from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
+from icecube import (  # type: ignore[import]
+    astro,
+    dataclasses,
+    dataio,
+    full_event_followup,
+    icetray,
+)
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
@@ -597,14 +603,14 @@ async def serve(
 
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
-        broker_client="pulsar",
+        "pulsar",
         address=broker,
         name=queue_to_clients,
         auth_token=auth_token,
         timeout=timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
-        broker_client="pulsar",
+        "pulsar",
         address=broker,
         name=queue_from_clients,
         auth_token=auth_token,
@@ -739,42 +745,35 @@ async def serve_scan_iteration(
     return n_pixreco
 
 
-def write_startup_files(
-    startup_files_dir: Path,
+def write_startup_json(
+    startup_json_dir: Path,
     event_id: str,
     min_nside: int,
     max_nside: int,
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> str:
-    """Write startup files for client-spawning.
+    """Write startup JSON file for client-spawning.
 
     Return the mq_basename string.
     """
-    mq_basename_txt = startup_files_dir / "mq-basename.txt"
-    with open(mq_basename_txt, "w") as f:
-        # TODO: make string shorter
-        mq_basename = f"{event_id}-{min_nside}-{max_nside}"
-        f.write(mq_basename)
-    LOGGER.info(
-        f"Startup File: {mq_basename_txt} ({mq_basename_txt.stat().st_size} bytes)"
-    )
+    json_file = startup_json_dir / "startup.json"
 
-    baseline_GCD_file_txt = startup_files_dir / "baseline_GCD_file.txt"
-    with open(baseline_GCD_file_txt, "w") as f:
-        f.write(baseline_GCD_file)
-    LOGGER.info(
-        f"Startup File: {baseline_GCD_file_txt} ({baseline_GCD_file_txt.stat().st_size} bytes)"
-    )
+    json_dict = {
+        "mq_basename": f"{event_id}-{min_nside}-{max_nside}-{int(time.time())}",  # TODO: make string shorter,
+        "baseline_GCD_file": baseline_GCD_file,
+        "GCDQp_packet": json.loads(
+            full_event_followup.frame_packet_to_i3live_json(
+                GCDQp_packet, pnf_framing=False
+            )
+        ),
+    }
 
-    GCDQp_packet_pkl = startup_files_dir / "GCDQp_packet.pkl"
-    with open(GCDQp_packet_pkl, "wb") as f:
-        pickle.dump(GCDQp_packet, f)
-    LOGGER.info(
-        f"Startup File: {GCDQp_packet_pkl} ({GCDQp_packet_pkl.stat().st_size} bytes)"
-    )
+    with open(json_file, "w") as f:
+        json.dump(json_dict, f)
+    LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
 
-    return mq_basename
+    return json_dict["mq_basename"]
 
 
 def main() -> None:
@@ -799,9 +798,9 @@ def main() -> None:
 
     # directory args
     parser.add_argument(
-        "--startup-files-dir",
+        "--startup-json-dir",
         required=True,
-        help="The dir to save the files needed to spawn clients",
+        help="The dir to save the JSON needed to spawn clients",
         type=lambda x: _validate_arg(
             Path(x),
             os.path.isdir(x),
@@ -904,7 +903,7 @@ def main() -> None:
     parser.add_argument(
         "-a",
         "--auth-token",
-        default=None,
+        default="",
         help="The MQ authentication token to use",
     )
     parser.add_argument(
@@ -935,10 +934,11 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log.upper(),
-        first_party_loggers=[LOGGER],
+        args.log,
+        first_party_loggers="skyscan",
         third_party_level=args.log_third_party,
         use_coloredlogs=True,
+        future_third_parties=["google", "pika"],  # at most only one will be used
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
@@ -966,8 +966,8 @@ def main() -> None:
     )
 
     # write startup files for client-spawning
-    mq_basename = write_startup_files(
-        args.startup_files_dir,
+    mq_basename = write_startup_json(
+        args.startup_json_dir,
         event_id,
         args.min_nside,
         args.max_nside,

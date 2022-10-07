@@ -3,4 +3,4 @@
 
 import logging
 
-LOGGER = logging.getLogger("skyscan-utils")
+LOGGER = logging.getLogger("skyscan.utils")

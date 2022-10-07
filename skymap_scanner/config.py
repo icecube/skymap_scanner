@@ -1,4 +1,4 @@
-"""Configuration constants"""
+"""Configuration constants."""
 
 import dataclasses as dc
 import enum
@@ -55,7 +55,8 @@ class RecoAlgo(enum.Enum):
 
 
 class UnsupportedRecoAlgoException(Exception):
-    """Raise when a reconstruction algorithm is not supported fora given operation."""
+    """Raise when a reconstruction algorithm is not supported fora given
+    operation."""
 
     def __init__(self, reco_algo: Union[RecoAlgo, Any]):
         super().__init__(f"Requested unsupported reconstruction algorithm: {reco_algo}")
