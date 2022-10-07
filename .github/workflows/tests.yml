@@ -47,14 +47,16 @@ jobs:
         with:
           repository: WIPACrepo/MQClient
           path: MQClient
+      - name: Start Broker
+        run: |
+          set -x
+          ./MQClient/resources/docker-pulsar.sh
       - name: Build Skymap Scanner Docker Image
         run: |
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Run
         run: |
           set -x
-
-          ./MQClient/resources/docker-pulsar.sh
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
