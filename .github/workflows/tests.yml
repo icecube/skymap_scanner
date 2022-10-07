@@ -73,8 +73,6 @@ jobs:
             export SKYSCAN_BROKER_CLIENT="${{ matrix.broker }}"
           fi
 
-          sleep 600
-
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
           ./scripts/launch_scripts/launch_server.sh \
