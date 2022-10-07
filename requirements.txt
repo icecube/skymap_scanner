@@ -4,6 +4,8 @@
 #
 #    pip-compile
 #
+apache-bookkeeper-client==4.15.1
+    # via skymap-scanner (setup.py)
 astropy==5.1
     # via healpy
 asyncstdlib==3.10.5
@@ -22,6 +24,8 @@ cycler==0.11.0
     # via matplotlib
 fonttools==4.37.4
     # via matplotlib
+grpcio==1.27.2
+    # via apache-bookkeeper-client
 healpy==1.16.1
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
@@ -46,16 +50,22 @@ packaging==21.3
     #   matplotlib
 pillow==9.2.0
     # via matplotlib
+protobuf==4.21.7
+    # via apache-bookkeeper-client
 pulsar-client==2.10.1
     # via wipac-mqclient
 pyerfa==2.0.0.1
     # via astropy
+pymmh3==0.0.5
+    # via apache-bookkeeper-client
 pyparsing==3.0.9
     # via
     #   matplotlib
     #   packaging
 python-dateutil==2.8.2
     # via matplotlib
+pytz==2022.4
+    # via apache-bookkeeper-client
 pyyaml==6.0
     # via astropy
 requests==2.28.1
@@ -64,6 +74,8 @@ scipy==1.9.1
     # via healpy
 six==1.16.0
     # via
+    #   apache-bookkeeper-client
+    #   grpcio
     #   pulsar-client
     #   python-dateutil
 typing-extensions==4.4.0
@@ -76,3 +88,6 @@ wipac-dev-tools[coloredlogs]==1.5.6
     #   wipac-mqclient
 wipac-mqclient[pulsar]==0.6.2
     # via skymap-scanner (setup.py)
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
