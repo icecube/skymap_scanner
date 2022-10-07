@@ -10,11 +10,9 @@ on:
 env:
   PY_COLORS: "1"
   REALTIME_EVENTS_DIR: tests/data/realtime_events
-  PULSAR_CONTAINER: pulsar_local
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
-  PULSAR_ADDRESS: localhost:6650
-  PULSAR_AUTH: ""
+  BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_REPORT_INTERVAL_SEC: 60
   CI_TESTING_USE_LOCAL_DOCKER: 1
@@ -34,6 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        broker: [default, pulsar, rabbitmq, gcp, nats]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
@@ -43,20 +42,36 @@ jobs:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
       - uses: actions/checkout@v3
-      - name: Run Pulsar Server Docker Container (starts up during skymap scanner image build)
-        run: |
-          ./scripts/launch_scripts/pulsar_run.sh $PULSAR_CONTAINER
+      - name: Checkout MQClient repo (for broker startup scripts)
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
       - name: Build Skymap Scanner Docker Image
         run: |
           docker build --no-cache -t icecube/skymap_scanner .
-      - name: Configure Pulsar Server
-        run: |
-          export DOCKERIZE_VERSION=v0.3.0
-          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          dockerize -wait tcp://localhost:8080 -timeout 1m
-          dockerize -wait tcp://localhost:6650 -timeout 1m
       - name: Run
         run: |
+          set -x
+
+          # Pulsar
+          if [ "${{ matrix.broker }}" = "default" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+            ./MQClient/resources/docker-pulsar.sh
+          # RabbitMQ
+          elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
+            ./MQClient/resources/docker-rabbitmq.sh
+          # GCP
+          elif [ "${{ matrix.broker }}" = "gcp" ]; then
+            export PUBSUB_EMULATOR_HOST=localhost:8085
+            ./MQClient/resources/local-gcp-emulator.sh
+          # NATS
+          elif [ "${{ matrix.broker }}" = "nats" ]; then
+            ./MQClient/resources/local-nats-js.sh
+          fi
+
+          if [ "${{ matrix.broker }}" != "default" ]; then
+            export SKYSCAN_BROKER_CLIENT="${{ matrix.broker }}"
+          fi
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
@@ -66,7 +81,7 @@ jobs:
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
-            --broker $PULSAR_ADDRESS \
+            --broker $BROKER_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
             --mini-test-variations \
@@ -84,7 +99,7 @@ jobs:
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/launch_client.sh \
               --startup-json-dir . \
-              --broker $PULSAR_ADDRESS \
+              --broker $BROKER_ADDRESS \
               --log DEBUG \
               --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
