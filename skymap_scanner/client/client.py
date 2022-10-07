@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import asyncstdlib as asl
-import mqclient_pulsar as mq
+import mqclient as mq
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
@@ -83,6 +83,7 @@ async def consume_and_reply(
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # if there's an error, have the cluster try again (probably a system error)
     in_queue = mq.Queue(
+        broker_client="pulsar",
         address=broker,
         name=queue_to_clients,
         auth_token=auth_token,
@@ -90,6 +91,7 @@ async def consume_and_reply(
         timeout=timeout_to_clients,
     )
     out_queue = mq.Queue(
+        broker_client="pulsar",
         address=broker,
         name=queue_from_clients,
         auth_token=auth_token,
