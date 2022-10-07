@@ -86,7 +86,7 @@ wipac-dev-tools[coloredlogs]==1.5.6
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient
-wipac-mqclient[pulsar]==0.6.2
+wipac-mqclient[pulsar]==0.6.3
     # via skymap-scanner (setup.py)
 
 # The following packages are considered to be unsafe in a requirements file:
