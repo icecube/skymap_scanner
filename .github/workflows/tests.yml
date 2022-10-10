@@ -24,16 +24,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: |
+      - name: Apptainer/Singularity Deps
+        run: |
+          echo "Free space:"
+          df -h
           sudo apt-get -y install squashfuse fuse2fs
       - uses: eWaterCycle/setup-apptainer@v1
         with:
           apptainer-version: 1.1.2
       - name: Build Docker Image
         run: |
+          echo "Free space:"
+          df -h
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Build Singularity Container
         run: |
+          echo "Free space:"
+          df -h
           sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
 
   test-run-all:
