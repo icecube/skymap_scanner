@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          apt-get -y install shashfuse fuse2fs
+          sudo apt-get -y install shashfuse fuse2fs
       - uses: eWaterCycle/setup-apptainer@v1
         with:
           apptainer-version: 1.1.2
