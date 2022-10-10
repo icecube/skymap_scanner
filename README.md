@@ -10,7 +10,7 @@ Distributed likelihood scan of event directions for real-time alerts using inter
 ## How to Run
 ***There are two\* important helper scripts that will make this easy***: `scripts/launch_scripts/launch_server.sh` and `scripts/launch_scripts/launch_client.sh`. Pass in arguments like you would for the desired python sub-module. These will launch docker containers, auto-manage file transfer/binding, and copy over `SKYSCAN_*` [environment variables](#environment-variables) for you!
 
-\* _Another useful script is `scripts/launch_scripts/wait_for_startup_files.sh`. Use this before launching each client to eliminate file-writing race conditions._
+\* _Another useful script is `scripts/launch_scripts/wait_for_startup_json.sh`. Use this before launching each client to eliminate file-writing race conditions._
 
 ### Example Startup
 #### 1. Launch the Server
@@ -20,7 +20,7 @@ Distributed likelihood scan of event directions for real-time alerts using inter
     --event-file `pwd`/run00136662-evt000035405932-BRONZE.pkl \  # could also be a .json file
     --cache-dir `pwd`/server_cache \
     --output-dir `pwd` \
-    --startup-files-dir <STARTUP_FILES_DIR> \
+    --startup-json-dir <STARTUP_JSON_DIR> \
     --broker <BROKER_ADDRESS> \
     --auth-token `cat ~/skyscan-broker.token` \
     --log DEBUG \
@@ -31,12 +31,12 @@ _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths 
 #### 2. Launch Each Client
 Each on a different CPU:
 ```
-./scripts/launch_scripts/wait_for_startup_files.sh <STARTUP_FILES_DIR>
+./scripts/launch_scripts/wait_for_startup_json.sh <STARTUP_JSON_DIR>
 
 ./scripts/launch_scripts/launch_client.sh \
-    --mq-basename $(cat <STARTUP_FILES_DIR>/mq-basename.txt) \
-    --baseline-gcd-file $(cat <STARTUP_FILES_DIR>/baseline_GCD_file.txt) \
-    --gcdqp-packet-pkl <STARTUP_FILES_DIR>/GCDQp_packet.pkl \
+    --mq-basename $(cat <STARTUP_JSON_DIR>/mq-basename.txt) \
+    --baseline-gcd-file $(cat <STARTUP_JSON_DIR>/baseline_GCD_file.txt) \
+    --gcdqp-packet-json <STARTUP_JSON_DIR>/GCDQp_packet.json \
     --broker <BROKER_ADDRESS> \
     --auth-token `cat ~/skyscan-broker.token` \
     --log DEBUG \
