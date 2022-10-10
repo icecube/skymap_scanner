@@ -34,7 +34,7 @@ jobs:
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Build Singularity Container
         run: |
-          sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner
+          sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
 
   test-run-all:
     runs-on: ubuntu-latest
