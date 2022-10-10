@@ -20,13 +20,16 @@ env:
 
 jobs:
 
-  docker-build:
+  build-containers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build Docker Image
         run: |
           docker build --no-cache -t icecube/skymap_scanner .
+      - name: Build Singularity Container
+        run: |
+          sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner
 
   test-run-all:
     runs-on: ubuntu-latest
