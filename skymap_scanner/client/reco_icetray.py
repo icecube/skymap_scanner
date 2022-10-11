@@ -207,7 +207,7 @@ def reco_pixel(
     # perform fit
     if reco_algo == cfg.RecoAlgo.MILLIPEDE:
         tray.AddSegment(
-            reco_traysegments.millipede_traysegment.millipede_traysegment,
+            reco_traysegments.millipede.millipede_traysegment,
             "millipede_traysegment",
             muon_service=muon_service,
             cascade_service=cascade_service,
@@ -217,7 +217,7 @@ def reco_pixel(
         )
     elif reco_algo == cfg.RecoAlgo.DUMMY:
         tray.AddSegment(
-            reco_traysegments.dummy_traysegment.dummy_traysegment,
+            reco_traysegments.dummy.dummy_traysegment,
             "dummy_traysegment",
             logger=LOGGER,
         )
