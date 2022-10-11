@@ -22,10 +22,12 @@ jobs:
 
   build-containers:
     runs-on: ubuntu-latest
-    matrix:
-      eventfile: [
-          hese_event_01.json,
-        ]
+    strategy:
+      fail-fast: false
+      matrix:
+        eventfile: [
+            hese_event_01.json,
+          ]
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
