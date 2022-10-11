@@ -23,15 +23,6 @@ jobs:
   build-containers:
     runs-on: ubuntu-latest
     steps:
-      - name: Maximize build space (clear up ~10G)
-        run: |
-          set -x
-          df -h
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
