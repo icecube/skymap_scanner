@@ -181,7 +181,7 @@ jobs:
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:latest \
-            python -m skymap_scanner.client.reco_pixel_pkl \
+            python -m skymap_scanner.client.reco_icetray \
             --in-pkl /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)) \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \

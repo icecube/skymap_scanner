@@ -123,7 +123,7 @@ def main() -> None:
         json.dump(startup_json_dict["GCDQp_packet"], f)
 
     cmd = (
-        f"python -m skymap_scanner.client.reco_pixel_pkl "
+        f"python -m skymap_scanner.client.reco_icetray "
         f" --in-pkl in.pkl"
         f" --out-pkl out.pkl"
         f" --gcdqp-packet-json GCDQp_packet.json"

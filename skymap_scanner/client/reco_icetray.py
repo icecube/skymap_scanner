@@ -25,7 +25,7 @@ from .. import config as cfg
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixelreco import PixelReco, pixel_to_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
-from .millipede_traysegment import millipede_traysegment
+from . import reco_traysegments
 
 LOGGER = logging.getLogger("skyscan.client.reco")
 
@@ -207,7 +207,7 @@ def reco_pixel(
     # perform fit
     if reco_algo == cfg.RecoAlgo.MILLIPEDE:
         tray.AddSegment(
-            millipede_traysegment,
+            reco_traysegments.millipede_traysegment.millipede_traysegment,
             "millipede_traysegment",
             muon_service=muon_service,
             cascade_service=cascade_service,

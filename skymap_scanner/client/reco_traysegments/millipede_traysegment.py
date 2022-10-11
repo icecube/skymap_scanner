@@ -19,7 +19,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     simclasses,
 )
 
-from .. import config as cfg
+from ... import config as cfg
 
 
 @icetray.traysegment
