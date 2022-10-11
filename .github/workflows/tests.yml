@@ -34,6 +34,11 @@ jobs:
         with:
           tool-cache: 'true'
       - uses: actions/checkout@v3
+      - name: Checkout MQClient repo (for broker startup scripts)
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
       - name: Start Broker
         run: |
           set -x
