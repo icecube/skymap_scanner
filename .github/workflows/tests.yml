@@ -63,7 +63,7 @@ jobs:
 
           singularity run skymap_scanner.sif \
             python -m skymap_scanner.server \
-            --reco-algo millipede \
+            --reco-algo dummy \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
@@ -74,6 +74,30 @@ jobs:
             --mini-test-variations \
             --min-nside 1 \
             --max-nside 1 \
+            &
+
+          ./scripts/launch_scripts/wait_for_startup_json.sh .
+
+          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          echo "Launching $nclients clients"
+          mkdir $SKYSCAN_DEBUG_DIR
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          for i in $( seq 1 $nclients ); do
+            singularity run skymap_scanner.sif \
+              python -m skymap_scanner.client \
+              --startup-json-dir . \
+              --broker $BROKER_ADDRESS \
+              --log DEBUG \
+              --log-third-party INFO \
+              --debug-directory $SKYSCAN_DEBUG_DIR \
+              &
+            echo -e "\t$i clients launched"
+          done
+
+          wait -n  # for server
+          for i in $( seq 1 $nclients ); do
+            wait -n  # for client
+          done
 
   test-run-all:
     runs-on: ubuntu-latest
