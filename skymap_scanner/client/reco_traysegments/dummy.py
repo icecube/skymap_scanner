@@ -32,12 +32,14 @@ def dummy_traysegment(tray, name, logger):
     tray.AddModule(notify0, "notify0")
 
     def add_vals(frame):
-        frame["Dummy"].llh = random.random()
-        frame["Dummy"].pos = dataclasses.I3Position(
-            random.random(), random.random(), random.random()
+        frame["Dummy_llh"] = dataclasses.I3Double(random.random())
+        frame["Dummy_pos"] = dataclasses.I3Position(
+            random.random() * I3Units.m, 
+            random.random() * I3Units.m, 
+            random.random() * I3Units.m,
         )
-        frame["Dummy"].time = random.random()
-        frame["Dummy"].energy = random.random()
+        frame["Dummy_time"] = dataclasses.I3Double(random.random())
+        frame["Dummy_energy"] = dataclasses.I3Double(random.random())
 
     tray.AddModule(add_vals, "add_vals")
 
