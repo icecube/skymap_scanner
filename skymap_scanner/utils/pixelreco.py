@@ -73,6 +73,18 @@ class PixelReco:
                 time=frame["MillipedeStarting2ndPass"].time,
                 energy=frame["MillipedeStarting2ndPass"].energy,
             )
+        elif reco_algo == cfg.RecoAlgo.DUMMY:
+            return PixelReco(
+                nside=frame[cfg.I3FRAME_NSIDE].value,
+                pixel=frame[cfg.I3FRAME_PIXEL].value,
+                llh=frame["Dummy"].llh,
+                reco_losses_inside=reco_losses_inside,
+                reco_losses_total=reco_losses_total,
+                pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
+                position=frame["Dummy"].pos,
+                time=frame["Dummy"].time,
+                energy=frame["Dummy"].energy,
+            )
         # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
         #     pass
         else:

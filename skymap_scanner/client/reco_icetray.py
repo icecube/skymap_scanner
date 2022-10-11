@@ -215,6 +215,12 @@ def reco_pixel(
             pulsesName=pulsesName,
             logger=LOGGER,
         )
+    elif reco_algo == cfg.RecoAlgo.DUMMY:
+        tray.AddSegment(
+            reco_traysegments.dummy_traysegment.dummy_traysegment,
+            "dummy_traysegment",
+            logger=LOGGER,
+        )
     # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
     #     pass
     else:

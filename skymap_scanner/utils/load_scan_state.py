@@ -5,6 +5,7 @@
 # pylint: skip-file
 
 import os
+import random
 from typing import List, Tuple
 
 import numpy
@@ -56,7 +57,8 @@ def get_reco_losses_inside(p_frame, g_frame, reco_algo: cfg.RecoAlgo) -> Tuple[f
                 losses.append([p.time, p.energy])
             return losses
         recoLosses = getRecoLosses(p_frame["MillipedeStarting2ndPassParams"])
-
+    elif reco_algo == cfg.RecoAlgo.DUMMY:
+        return random.random(), random.random()
     # elif ...:  # TODO (FUTURE DEV) - add other algos
     #     pass
     else:

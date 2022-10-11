@@ -52,6 +52,7 @@ class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""
 
     MILLIPEDE = enum.auto()
+    DUMMY = = enum.auto()
 
 
 class UnsupportedRecoAlgoException(Exception):
