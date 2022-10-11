@@ -22,12 +22,20 @@ jobs:
 
   build-containers:
     runs-on: ubuntu-latest
+    matrix:
+      eventfile: [
+          hese_event_01.json,
+        ]
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: 'true'
       - uses: actions/checkout@v3
+      - name: Start Broker
+        run: |
+          set -x
+          ./MQClient/resources/docker-pulsar.sh
       - name: Apptainer/Singularity Deps
         run: |
           sudo apt-get -y install squashfuse fuse2fs
@@ -42,8 +50,22 @@ jobs:
           sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
       - name: Run Singularity Container
         run: |
+          mkdir $SKYSCAN_CACHE_DIR
+          mkdir $SKYSCAN_OUTPUT_DIR
+
           singularity run skymap_scanner.sif \
-            python -m skymap_scanner.server
+            python -m skymap_scanner.server \
+            --reco-algo millipede \
+            --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
+            --cache-dir $SKYSCAN_CACHE_DIR \
+            --output-dir $SKYSCAN_OUTPUT_DIR \
+            --startup-json-dir . \
+            --broker $BROKER_ADDRESS \
+            --log DEBUG \
+            --log-third-party INFO \
+            --mini-test-variations \
+            --min-nside 1 \
+            --max-nside 1 \
 
   test-run-all:
     runs-on: ubuntu-latest
