@@ -30,18 +30,15 @@ jobs:
       - uses: actions/checkout@v3
       - name: Apptainer/Singularity Deps
         run: |
-          df -h
           sudo apt-get -y install squashfuse fuse2fs
       - uses: eWaterCycle/setup-apptainer@v1
         with:
           apptainer-version: 1.1.2
       - name: Build Docker Image
         run: |
-          df -h
           docker build --no-cache -t icecube/skymap_scanner .
       - name: Build Singularity Container
         run: |
-          df -h
           # sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
           singularity run docker://icecube/skymap_scanner
 
