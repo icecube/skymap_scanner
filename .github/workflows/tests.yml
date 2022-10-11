@@ -55,6 +55,7 @@ jobs:
       - name: Build Singularity Image
         run: |
           sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
+          ls -lh skymap_scanner.sif
       - name: Run Singularity Container
         run: |
           mkdir $SKYSCAN_CACHE_DIR
