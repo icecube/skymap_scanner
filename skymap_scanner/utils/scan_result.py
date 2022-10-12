@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from ..recos import NSidesDict, PixelReco
+from .pixelreco import NSidesDict, PixelReco
 
 
 class InvalidPixelValueError(Exception):

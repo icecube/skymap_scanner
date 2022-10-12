@@ -28,8 +28,7 @@ from icecube import (  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
-from .. import recos
-from ..utils import extract_json_message
+from ..utils import extract_json_message, pixeleco
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
 from . import LOGGER
@@ -70,7 +69,7 @@ class ProgressReporter:
 
     def __init__(
         self,
-        nsides_dict: recos.NSidesDict,
+        nsides_dict: pixelreco.NSidesDict,
         n_pixreco: int,
         n_posvar: int,
         min_nside: int,
@@ -266,7 +265,7 @@ class PixelsToReco:
 
     def __init__(
         self,
-        nsides_dict: recos.NSidesDict,
+        nsides_dict: pixelreco.NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         min_nside: int,
         max_nside: int,
@@ -438,7 +437,7 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"({recos.pixel_to_tuple(p_frame)}) ({posVariation=})..."
+                f"({pixelreco.pixel_to_tuple(p_frame)}) ({posVariation=})..."
             )
             yield p_frame
 
@@ -456,10 +455,12 @@ class BestPixelRecoFinder:
         self.n_posvar = n_posvar
 
         self.pixelNumToFramesMap: Dict[
-            Tuple[icetray.I3Int, icetray.I3Int], List[recos.PixelReco]
+            Tuple[icetray.I3Int, icetray.I3Int], List[pixelreco.PixelReco]
         ] = {}
 
-    def cache_and_get_best(self, pixreco: recos.PixelReco) -> Optional[recos.PixelReco]:
+    def cache_and_get_best(
+        self, pixreco: pixelreco.PixelReco
+    ) -> Optional[pixelreco.PixelReco]:
         """Add pixreco to internal cache and possibly return the best reco for
         pixel.
 
@@ -510,7 +511,7 @@ class PixelRecoCollector:
         n_pixreco: int,  # Number of expected pixel-reconstructions
         min_nside: int,
         max_nside: int,
-        nsides_dict: recos.NSidesDict,
+        nsides_dict: pixelreco.NSidesDict,
         event_id: str,
         global_start_time: float,
         slack_interface: SlackInterface,
@@ -539,7 +540,7 @@ class PixelRecoCollector:
         self.progress_reporter.finish()
         self.finder.finish()
 
-    def collect(self, pixreco: recos.PixelReco) -> None:
+    def collect(self, pixreco: pixelreco.PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
         LOGGER.debug(f"{self.nsides_dict=}")
 
@@ -580,7 +581,7 @@ class PixelRecoCollector:
 async def serve(
     reco_algo: str,
     event_id: str,
-    nsides_dict: Optional[recos.NSidesDict],
+    nsides_dict: Optional[pixelreco.NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     output_dir: str,
     broker: str,  # for mq
@@ -592,7 +593,7 @@ async def serve(
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
-) -> recos.NSidesDict:
+) -> pixelreco.NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
     global_start_time = time.time()
@@ -677,7 +678,7 @@ async def serve_scan_iteration(
     from_clients_queue: mq.Queue,
     reco_algo: str,
     event_id: str,
-    nsides_dict: recos.NSidesDict,
+    nsides_dict: pixelreco.NSidesDict,
     global_start_time: float,
     pixeler: PixelsToReco,
     slack_interface: SlackInterface,
@@ -695,7 +696,9 @@ async def serve_scan_iteration(
     LOGGER.info("Getting pixels to send to clients...")
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
-            LOGGER.info(f"Sending message M#{i} ({recos.pixel_to_tuple(pframe)})...")
+            LOGGER.info(
+                f"Sending message M#{i} ({pixelreco.pixel_to_tuple(pframe)})..."
+            )
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
@@ -731,8 +734,10 @@ async def serve_scan_iteration(
     with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
             async for pixreco in sub:
-                if not isinstance(pixreco, recos.PixelReco):
-                    raise ValueError(f"Message not {recos.PixelReco}: {type(pixreco)}")
+                if not isinstance(pixreco, pixelreco.PixelReco):
+                    raise ValueError(
+                        f"Message not {pixelreco.PixelReco}: {type(pixreco)}"
+                    )
                 try:
                     col.collect(pixreco)
                 except DuplicatePixelRecoException as e:

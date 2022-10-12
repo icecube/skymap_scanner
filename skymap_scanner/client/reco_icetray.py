@@ -22,7 +22,7 @@ from icecube.frame_object_diff.segments import uncompress  # type: ignore[import
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
-from .. import recos
+from ..utils import pixeleco
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.utils import save_GCD_frame_packet_to_file
 
@@ -121,7 +121,7 @@ def reco_pixel(
     out_pkl: Path,
 ) -> Path:
     """Actually do the reco."""
-    LOGGER.info(f"Reco'ing pixel: {recos.pixel_to_tuple(pframe)}...")
+    LOGGER.info(f"Reco'ing pixel: {pixelreco.pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
@@ -217,7 +217,7 @@ def reco_pixel(
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:
         LOGGER.debug(
-            f"writeout_reco {recos.pixel_to_tuple(frame)}: {frame_for_logging(frame)}"
+            f"writeout_reco {pixelreco.pixel_to_tuple(frame)}: {frame_for_logging(frame)}"
         )
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
@@ -227,7 +227,7 @@ def reco_pixel(
         save_to_disk_cache(frame, out_pkl.parent)
         with open(out_pkl, "wb") as f:
             LOGGER.info(
-                f"Pickle-dumping reco {recos.pixel_to_tuple(frame)}: "
+                f"Pickle-dumping reco {pixelreco.pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
             # apparently baseline GCD is sufficient here, maybe filestager can be None
@@ -236,7 +236,7 @@ def reco_pixel(
                 GCDQp_packet,
                 filestager=dataio.get_stagers(),
             )[0]
-            pixreco = recos.PixelReco.from_i3frame(frame, geometry, reco_algo)
+            pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")
             pickle.dump(pixreco, f)
 
@@ -256,7 +256,7 @@ def reco_pixel(
 
     if not out_pkl.exists():
         raise FileNotFoundError(
-            f"Out file was not written {recos.pixel_to_tuple(pframe)}: {out_pkl}"
+            f"Out file was not written {pixelreco.pixel_to_tuple(pframe)}: {out_pkl}"
         )
     return out_pkl
 

@@ -13,8 +13,8 @@ from I3Tray import I3Units
 from icecube import VHESelfVeto, dataclasses, dataio, icetray
 
 from .. import config as cfg
-from ..recos import PixelReco
 from . import LOGGER
+from .pixelreco import PixelReco
 from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
 
