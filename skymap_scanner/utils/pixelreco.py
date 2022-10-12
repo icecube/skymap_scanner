@@ -81,7 +81,7 @@ class PixelReco:
                 reco_losses_inside=reco_losses_inside,
                 reco_losses_total=reco_losses_total,
                 pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
-                position=frame["Dummy_pos"].value,
+                position=frame["Dummy_pos"],
                 time=frame["Dummy_time"].value,
                 energy=frame["Dummy_time"].value,
             )
