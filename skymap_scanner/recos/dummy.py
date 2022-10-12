@@ -20,8 +20,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from . import Reco
-from .pixelreco import PixelReco
+from . import PixelReco, Reco
 
 
 class Dummy(Reco):
