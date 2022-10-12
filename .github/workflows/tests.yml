@@ -201,7 +201,7 @@ jobs:
 
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:latest \
