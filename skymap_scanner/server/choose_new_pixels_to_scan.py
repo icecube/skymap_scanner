@@ -11,8 +11,8 @@ import numpy
 from icecube import icetray  # type: ignore[import]
 
 from .. import config as cfg
+from ..recos import NSidesDict
 from ..utils.load_scan_state import load_cache_state
-from ..utils.pixelreco import NSidesDict
 from . import LOGGER
 
 
