@@ -20,7 +20,7 @@ from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
 def load_cache_state(
     event_id: str,
-    reco_algo: cfg.RecoAlgo,
+    reco_algo: str,
     filestager=None,
     cache_dir: str = "./cache/",
 ) -> Tuple[str, dict]:
@@ -35,70 +35,6 @@ def load_cache_state(
     state_dict = load_scan_state(event_id, state_dict, reco_algo, filestager=filestager, cache_dir=cache_dir)[1]
 
     return (event_id, state_dict)
-
-
-def get_reco_losses_inside(p_frame, g_frame, reco_algo: cfg.RecoAlgo) -> Tuple[float, float]:
-
-    if reco_algo == cfg.RecoAlgo.MILLIPEDE:
-        if "MillipedeStarting2ndPass" not in p_frame:
-            return numpy.nan, numpy.nan
-        recoParticle = p_frame["MillipedeStarting2ndPass"]
-
-        if "MillipedeStarting2ndPassParams" not in p_frame:
-            return numpy.nan, numpy.nan
-
-        def getRecoLosses(vecParticles):
-            losses = []
-            for p in vecParticles:
-                if not p.is_cascade:
-                    continue
-                if p.energy == 0.:
-                    continue
-                losses.append([p.time, p.energy])
-            return losses
-        recoLosses = getRecoLosses(p_frame["MillipedeStarting2ndPassParams"])
-    elif reco_algo == cfg.RecoAlgo.DUMMY:
-        return random.random(), random.random()
-    # elif ...:  # TODO (FUTURE DEV) - add other algos
-    #     pass
-    else:
-        raise cfg.UnsupportedRecoAlgoException(reco_algo)
-
-    intersectionPoints = VHESelfVeto.IntersectionsWithInstrumentedVolume(g_frame["I3Geometry"], recoParticle)
-    intersectionTimes = []
-    for intersectionPoint in intersectionPoints:
-        vecX = intersectionPoint.x - recoParticle.pos.x
-        vecY = intersectionPoint.y - recoParticle.pos.y
-        vecZ = intersectionPoint.z - recoParticle.pos.z
-        
-        prod = vecX*recoParticle.dir.x + vecY*recoParticle.dir.y + vecZ*recoParticle.dir.z
-        dist = numpy.sqrt(vecX**2 + vecY**2 + vecZ**2)
-        if prod < 0.:
-            dist *= -1.
-        intersectionTimes.append(dist/dataclasses.I3Constants.c + recoParticle.time)
-
-    entryTime = None
-    exitTime = None
-    intersectionTimes = sorted(intersectionTimes)
-    if len(intersectionTimes) == 0:
-        return 0., 0.
-        
-    entryTime = intersectionTimes[0]-60.*I3Units.m/dataclasses.I3Constants.c
-    intersectionTimes = intersectionTimes[1:]
-    exitTime = intersectionTimes[-1]+60.*I3Units.m/dataclasses.I3Constants.c
-    intersectionTimes = intersectionTimes[:-1]
-
-    totalRecoLosses = 0.
-    totalRecoLossesInside = 0.
-    for entry in recoLosses:
-        totalRecoLosses += entry[1]
-        if entryTime is not None and entry[0] < entryTime:
-            continue
-        if exitTime is not None and entry[0] > exitTime:
-            continue
-        totalRecoLossesInside += entry[1]
-
-    return totalRecoLossesInside, totalRecoLosses
 
 
 """
@@ -141,7 +77,7 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List
     return baseline_GCD_frames
 
 
-def load_scan_state(event_id, state_dict, reco_algo: cfg.RecoAlgo, filestager=None, cache_dir="./cache/"):
+def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache_dir="./cache/"):
     
     geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
@@ -292,7 +228,7 @@ if __name__ == "__main__":
     # do the work
     packets = load_cache_state(
         eventID,
-        cfg.RecoAlgo[args.reco_algo.upper()],  # TODO: add --reco-algo (see start_scan.py)
+        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
         filestager=stagers,
         cache_dir=options.CACHEDIR
     )

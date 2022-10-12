@@ -183,7 +183,8 @@ def choose_new_pixels_to_scan(
     min_nside: int = cfg.MIN_NSIDE_DEFAULT,
     mc_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
-    """Get the next set of pixels to scan/refine by searching the nsides_dict."""
+    """Get the next set of pixels to scan/refine by searching the
+    nsides_dict."""
 
     # special case if we have MC truth
     if mc_ra_dec:
@@ -313,7 +314,7 @@ if __name__ == "__main__":
 
     state_dict = load_cache_state(
         eventID,
-        cfg.RecoAlgo[args.reco_algo.upper()],  # TODO: add --reco-algo (see start_scan.py)
+        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
         cache_dir=options.CACHEDIR
     )[1]
     pixels = choose_new_pixels_to_scan(state_dict[cfg.STATEDICT_NSIDES])
