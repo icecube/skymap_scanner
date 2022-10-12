@@ -1,6 +1,7 @@
 """Configuration constants."""
 
 import dataclasses as dc
+import enum
 import os
 from pathlib import Path
 from typing import Final
@@ -47,6 +48,11 @@ MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME: Final = "pframe"
 
 
+class RecoAlgo(enum.Enum):
+    """The supported reconstruction algorithms."""
+
+    MILLIPEDE = enum.auto()
+    DUMMY = enum.auto()
 #
 # Env var constants: set as constants & typecast
 #
