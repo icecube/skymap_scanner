@@ -209,7 +209,7 @@ jobs:
             icecube/skymap_scanner:latest \
             python /local/pkls/transform.py /local/pkls/in.pkl
 
-          cat tests/data/reco_pixel_pkls/*
+          hexdump tests/data/reco_pixel_pkls/in.pkl
 
       #     docker run --network="host" --rm -i \
       #       --shm-size=6gb \
