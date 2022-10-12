@@ -1,7 +1,6 @@
 import pickle
 import sys
-
-import Path
+from pathlib import Path
 
 with open(sys.argv[1], "rb") as f:
     pframe = pickle.load(f)["pframe"]
