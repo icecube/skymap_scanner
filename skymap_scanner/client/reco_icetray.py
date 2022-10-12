@@ -205,7 +205,7 @@ def reco_pixel(
 
     # perform fit
     tray.AddSegment(
-        recos.get_reco_module(reco_algo).traysegment,
+        recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
         muon_service=muon_service,

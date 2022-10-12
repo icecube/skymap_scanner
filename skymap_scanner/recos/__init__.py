@@ -5,7 +5,6 @@ import dataclasses as dc
 import importlib
 import pkgutil
 from pathlib import Path
-from types import ModuleType
 from typing import Any, Dict, List, Tuple
 
 from .. import config as cfg
@@ -25,24 +24,6 @@ def pixel_to_tuple(pixel: I3Frame) -> Tuple[int, int, int]:
         pixel[cfg.I3FRAME_PIXEL].value,
         pixel[cfg.I3FRAME_POSVAR].value,
     )
-
-
-def get_all_reco_algos() -> List[str]:
-    """Return all the supported reco algorithms."""
-    return [
-        mi.name for mi in pkgutil.iter_modules([__file__.rsplit("/", maxsplit=1)[0]])
-    ]
-
-
-def get_reco_module(name: str) -> ModuleType:
-    """Dynamically import the reco sub-module."""
-    try:
-        return importlib.import_module(f"{__name__}.{name.lower()}")
-    except ModuleNotFoundError as e:
-        if name not in get_all_reco_algos():
-            # checking this in 'except' allows us to use 'from e'
-            raise UnsupportedRecoAlgoException(name) from e
-        raise  # something when wrong AFTER accessing sub-module
 
 
 @dc.dataclass
@@ -70,7 +51,7 @@ class PixelReco:
         reco_algo: str,
     ) -> "PixelReco":
         """Get a PixelReco instance by parsing the I3Frame."""
-        return get_reco_module(reco_algo).to_pixelreco(frame, geometry)
+        return get_reco_interface_object(reco_algo).to_pixelreco(frame, geometry)
 
 
 NSidesDict = Dict[int, Dict[int, PixelReco]]
@@ -84,7 +65,7 @@ class UnsupportedRecoAlgoException(Exception):
         super().__init__(f"Requested unsupported reconstruction algorithm: {reco_algo}")
 
 
-class Reco:
+class RecoInterface:
     """An abstract class encapsulating reco-specific logic."""
 
     @staticmethod
@@ -94,3 +75,22 @@ class Reco:
     @staticmethod
     def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
         raise NotImplementedError()
+
+
+def get_all_reco_algos() -> List[str]:
+    """Return all the supported reco algorithms."""
+    return [
+        mi.name for mi in pkgutil.iter_modules([__file__.rsplit("/", maxsplit=1)[0]])
+    ]
+
+
+def get_reco_interface_object(name: str) -> RecoInterface:
+    """Dynamically import the reco sub-module's class."""
+    try:
+        module = importlib.import_module(f"{__name__}.{name.lower()}")
+        return getattr(module, name.capitalize())
+    except ModuleNotFoundError as e:
+        if name not in get_all_reco_algos():
+            # checking this in 'except' allows us to use 'from e'
+            raise UnsupportedRecoAlgoException(name) from e
+        raise  # something when wrong AFTER accessing sub-module

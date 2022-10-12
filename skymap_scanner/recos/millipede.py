@@ -23,10 +23,10 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from . import PixelReco, Reco
+from . import PixelReco, RecoInterface
 
 
-class Millipede(Reco):
+class Millipede(RecoInterface):
     """Reco logic for millipede."""
 
     @icetray.traysegment

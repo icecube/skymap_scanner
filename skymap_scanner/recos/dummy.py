@@ -20,10 +20,10 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from . import PixelReco, Reco
+from . import PixelReco, RecoInterface
 
 
-class Dummy(Reco):
+class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
     @staticmethod
