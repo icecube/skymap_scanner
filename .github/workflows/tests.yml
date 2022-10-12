@@ -213,7 +213,7 @@ jobs:
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:latest \
-            python /local/pkls/get_toclient_msg_pkl.py /local/pkls/pframe.pkl
+            python /local/pkls/get_toclient_msg_pkl.py /local/pkls/pframe.pkl millipede
 
           hexdump -C tests/data/reco_pixel_pkls/${{ matrix.dir }}/in.pkl
 
