@@ -28,7 +28,7 @@ class Dummy(RecoInterface):
 
     @staticmethod
     @icetray.traysegment
-    def traysegment(tray, name, logger):
+    def traysegment(tray, name, logger, **kwargs):
         """Perform dummy reco."""
 
         def notify0(frame):
