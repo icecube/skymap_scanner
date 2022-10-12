@@ -20,14 +20,8 @@ env:
 
 jobs:
 
-  build-containers:
+  test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        eventfile: [
-            hese_event_01.json,
-          ]
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -64,7 +58,7 @@ jobs:
           singularity run skymap_scanner.sif \
             python -m skymap_scanner.server \
             --reco-algo dummy \
-            --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
+            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
@@ -99,7 +93,7 @@ jobs:
             wait -n  # for client
           done
 
-  test-run-all:
+  test-run-docker:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -180,7 +174,7 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-  test-run-pixel-reco:
+  test-run-one-reco-icetray:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
