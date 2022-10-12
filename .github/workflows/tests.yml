@@ -92,6 +92,12 @@ jobs:
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
           done
+      - name: Look at Results File (.npz)
+        run: |
+          ls .
+          ls $SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
+          echo $outfile
 
   test-run-docker:
     runs-on: ubuntu-latest
