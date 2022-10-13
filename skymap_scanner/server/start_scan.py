@@ -329,7 +329,7 @@ class PixelsToReco:
         self.GCDQp_packet = GCDQp_packet
 
         self.fallback_position = p_frame[self.input_pos_name]
-        self.fallback_position = p_frame[self.input_time_name]
+        self.fallback_time = p_frame[self.input_time_name]
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
