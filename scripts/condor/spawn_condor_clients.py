@@ -6,6 +6,8 @@ import getpass
 import logging
 import os
 import subprocess
+import time
+from pathlib import Path
 from typing import List
 
 import coloredlogs  # type: ignore[import]
@@ -30,6 +32,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     accounting_group: str,
     # skymap scanner args
     singularity_image: str,
+    startup_json: Path,
     client_args: str,
 ) -> str:
     """Make the condor file."""
@@ -43,7 +46,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             else ""
         )
 
-        transfer_input_files: List[str] = []
+        transfer_input_files: List[str] = [startup_json]
 
         # write
         file.write(
@@ -79,6 +82,27 @@ def main() -> None:
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    def wait_for_file(path: str, wait_time: int, subpath: str = "") -> Path:
+        """Wait for `path` to exist, then return `Path` instance of `path`.
+
+        If `subpath` is provided, wait for `"{path}/{subpath}"` instead.
+        """
+        if subpath:
+            waitee = Path(path) / subpath
+        else:
+            waitee = Path(path)
+        elapsed_time = 0
+        sleep = 5
+        while not waitee.exists():
+            logging.info(f"waiting for {waitee} ({sleep}s intervals)...")
+            time.sleep(sleep)
+            elapsed_time += sleep
+            if elapsed_time >= wait_time:
+                raise argparse.ArgumentTypeError(
+                    f"FileNotFoundError: waited {wait_time}s [{waitee}]"
+                )
+        return Path(path).resolve()
 
     # condor args
     parser.add_argument(
@@ -117,6 +141,11 @@ def main() -> None:
         help="a path or url to the singularity image",
     )
     parser.add_argument(
+        "--startup-json",
+        help="The 'startup.json' file to startup each client",
+        type=lambda x: wait_for_file(x, 60 * 25),
+    )
+    parser.add_argument(
         "--client-args-file",
         required=True,
         help="a text file containing the python CL arguments to pass to skymap_scanner.client",
@@ -129,9 +158,16 @@ def main() -> None:
     # make condor scratch directory
     scratch = make_condor_scratch_dir()
 
+    # get client args
     with open(args.client_args_file) as f:
         client_args = f.read()
         logging.info(f"Client Args: {client_args}")
+    if "--startup-json-dir" in client_args:
+        raise RuntimeError(
+            "The '--client-args-file' file cannot include \"--startup-json-dir\". "
+            "This needs to be defined explicitly with '--startup-json'."
+        )
+    client_args += " --startup-json-dir . "  # actual file will be transferred
 
     # make condor file
     condorpath = make_condor_file(
@@ -142,6 +178,7 @@ def main() -> None:
         args.accounting_group,
         # skymap scanner args
         args.singularity_image,
+        args.startup_json,
         client_args,
     )
 
