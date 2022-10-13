@@ -60,16 +60,28 @@ class Millipede(RecoInterface):
             Tolerance=0.1,
             Algorithm="SIMPLEX",
         )
-        tray.AddService("I3GulliverMinuit2Factory", 'migrad',
-                        MaxIterations=1000,
-                        Tolerance=0.1,
-                        Algorithm="MIGRAD",
-                        WithGradients=True,
-                        FlatnessCheck=False,
-                        IgnoreEDM=True, # Don't report convergence failures
-                        CheckGradient=False, # Don't die on gradient errors
-                        MinuitStrategy=0, # Don't try to check local curvature
-                        )
+        tray.context['imigrad'] = lilliput.IMinuitMinimizer(
+            MaxIterations=1000,
+            Tolerance=0.1,
+            Algorithm="MIGRAD",
+            WithGradients=True,
+            FlatnessCheck=False,
+            IgnoreEDM=True, # Don't report convergence failures
+            CheckGradient=False, # Don't die on gradient errors
+            MinuitStrategy=0, # Don't try to check local curvature
+            )
+
+        ## TODO: try this MIGRAD, which fails
+        # tray.AddService("I3GulliverMinuit2Factory", 'migrad',
+        #                 MaxIterations=1000,
+        #                 Tolerance=0.1,
+        #                 Algorithm="MIGRAD",
+        #                 WithGradients=True,
+        #                 FlatnessCheck=False,
+        #                 IgnoreEDM=True, # Don't report convergence failures
+        #                 CheckGradient=False, # Don't die on gradient errors
+        #                 MinuitStrategy=0, # Don't try to check local curvature
+        #                 )
 
         coars_steps = dict(StepX=10.*I3Units.m,
                            StepY=10.*I3Units.m,
@@ -117,7 +129,7 @@ class Millipede(RecoInterface):
              OutputName='MillipedeStarting1stPass',
              Parametrization='coarseSteps',
              LogLikelihood='millipedellh',
-             Minimizer='migrad')
+             Minimizer='imigrad')
         def notify1(frame):
             logger.debug(f"1st pass done! {datetime.datetime.now()}")
             logger.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
@@ -148,7 +160,7 @@ class Millipede(RecoInterface):
             SeedService='firstFitSeed',
             Parametrization='fineSteps',
             LogLikelihood='millipedellh',
-            Minimizer='migrad')
+            Minimizer='imigrad')
 
         def notify2(frame):
             logger.debug(f"2nd pass done! {datetime.datetime.now()}")
