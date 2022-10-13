@@ -67,8 +67,8 @@ jobs:
             &
 
           # wait until the skymap_scanner.sif file exists (with a timeout)
-          waitsec="30"
-          endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
+          waitsec="60"
+          endtime=$(date -ud "25 minutes" +%s)  # wait this long for server startup
           while [[ $(date -u +%s) -le $endtime ]]; do
               if [[ -e "skymap_scanner.sif" ]]; then
                   echo "Success! 'skymap_scanner.sif' file found:"
