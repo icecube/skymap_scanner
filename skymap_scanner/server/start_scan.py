@@ -337,20 +337,22 @@ class PixelsToReco:
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
-        min_d = np.inf
+        thc = dataclasses.I3Constants.theta_cherenkov
+        ccc = dataclasses.I3Constants.c
+        min_d = numpy.inf
         min_t = time
         adj_d = 0
         for om in pulses.keys():
             rvec = omgeo[om].position-vertex
             _l = -rvec*direction
-            _d = np.sqrt(rvec.mag2-_l**2) # closest approach distance
+            _d = numpy.sqrt(rvec.mag2-_l**2) # closest approach distance
             if _d < min_d: # closest om
                 min_d = _d
                 min_t = pulses[om][0].time
-                adj_d = _l+_d/np.tan(THC)-_d/(np.cos(THC)*np.sin(THC)) # translation distance
-        if np.isinf(min_d):
+                adj_d = _l+_d/numpy.tan(thc)-_d/(numpy.cos(thc)*numpy.sin(thc)) # translation distance
+        if numpy.isinf(min_d):
             return time
-        return min_t + adj_d/CCC
+        return min_t + adj_d/ccc
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd."""
@@ -442,11 +444,12 @@ class PixelsToReco:
             particle.pos = thisPosition
             particle.dir = direction
             # given direction and vertex position, calculate time from CAD
+            # TODO: is there a better way to access the pulseseries
             particle.time = self.refine_vertex_time(
                 thisPosition,
                 time,
                 direction,
-                dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitUncleanedInIcePulsesHLC'),
+                dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC'),
                 p_frame["I3Geometry"].omgeo)
             particle.energy = energy
             p_frame[f'{self.output_particle_name}'] = particle
