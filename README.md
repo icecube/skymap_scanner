@@ -3,13 +3,13 @@
 <!--- End of README Badges (automated) --->
 # skymap_scanner
 
-Distributed likelihood scan of event directions for real-time alerts using inter-CPU queue-based message passing.
+A distributed system that performs a likelihood scan of event directions for real-time alerts using inter-CPU queue-based message passing.
 
 `skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with `skymap_scanner.utils` (utility functions) and `skymap_scanner.recos` (`icetray` reco-specific logic). Additional, package-independent, utility scripts are in `scripts/utils/`.
 
 ### Example Startup
 #### 1. Launch the Server
-##### Figure Your Args:
+##### Figure Your Args
 ```
     --startup-json-dir DIR_TO_PUT_STARTUP_JSON \
     --cache-dir `pwd`/server_cache \
@@ -23,23 +23,24 @@ Distributed likelihood scan of event directions for real-time alerts using inter
 ```
 _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths are also fine._
 _NOTE: There are more CL arguments not shown. They have defaults._
+###### `startup.json`
+The server will create a `startup.json` file that has necessary info to launch a client. `--startup-json-dir` needs to be somewhere accessible by your client launch script, whether that's via condor or manually.
 ##### Run It
-###### with Singularity:
+###### with Singularity
 ```
 singularity run skymap_scanner.sif \
     python -m skymap_scanner.server \
     YOUR_ARGS
 ```
-###### or with Docker:
+###### or with Docker
 ```
 ./scripts/launch_scripts/docker/launch_server.sh \
     YOUR_ARGS
 ```
 
 #### 2. Launch Each Client
-##### Figure Your Args:
+##### Figure Your Args
 ```
-    --startup-json-dir DIR_WITH_STARTUP_JSON \
     --broker BROKER_ADDRESS \
     --auth-token `cat ~/skyscan-broker.token` \
     --timeout-to-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT \
@@ -47,19 +48,21 @@ singularity run skymap_scanner.sif \
 ```
 _NOTE: There are more CL arguments not shown. They have defaults._
 ##### Run It
-###### with Condor (Singularity):
+###### with Condor (via Singularity)
 You'll want to put your `skymap_scanner.client` args in a file, then pass that to the helper script.
 ```
-echo YOUR_ARGS > my_client_args.txt
+echo $YOUR_ARGS > my_client_args.txt  # just an example
 ./scripts/launch_scripts/condor/spawn_condor_clients.py \
-    --jobs ####, \
-    --memory #GB, \
-    --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE, \
+    --jobs #### \
+    --memory #GB \
+    --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
+    --startup-json DIR_WITH_STARTUP_JSON \
     --client-args-file my_client_args.txt
 ```
-###### or Manually (Docker):
+###### or Manually (Docker)
 ```
 ./scripts/launch_scripts/docker/launch_client.sh \
+    --startup-json-dir DIR_WITH_STARTUP_JSON \
     YOUR_ARGS
 ```
 
@@ -71,13 +74,14 @@ The server will exit on its own once it has received and processed all the recon
 
 All will exit on fatal errors (for clients, use HTCondor to manage re-launching). The in-progress pixel reconstruction is abandoned when a client fails, so there is no concern for duplicate reconstructions at the server. The pre-reconstructed pixel will be re-queued to be delivered to a different client.
 
-### Environment Variables
+### Additional Configuration
+#### Environment Variables
 When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). See `skymap_scanner.config.env` for more detail.
 
-### Additional Configuration
+#### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
 
-#### Runtime Configurable Reconstructions _(Work in Progress)_
+#### Runtime-Configurable Reconstructions _(Work in Progress)_
 Recos are registered by being placed in `skymap_scanner.recos` submodule. Each submodule must contain a class of the same name (eg: `skymap_scanner.recos.foo` has `skymap_scanner.recos.foo.Foo`) which fully inherits from `skymap_scanner.recos.RecoInterface`. This includes defining static methods, `traysegment()` (for IceTray) and `to_pixelreco()` (for MQ).
 On the command line, choosing your reco is provided via `--reco-algo` (on the server).
 ##### Caveats
