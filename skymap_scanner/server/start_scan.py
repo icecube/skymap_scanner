@@ -392,14 +392,7 @@ class PixelsToReco:
         direction = dataclasses.I3Direction(zenith,azimuth)
 
         position = self.fallback_position
-        # given direction and vertex position, calculate time from CAD
-        time = self.refine_vertex_time(
-            position,
-            self.fallback_time
-            p_frame[self.input_time_name].value,
-            direction,
-            dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitUncleanedInIcePulsesHLC'),
-            p_frame["I3Geometry"].omgeo)
+        time = self.fallback_time
         if nside == self.min_nside:
             energy = self.fallback_energy
         else:
@@ -419,18 +412,18 @@ class PixelsToReco:
 
             if coarser_nside < self.min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
-                # position = self.fallback_position
-                # time = self.fallback_time
+                position = self.fallback_position
+                time = self.fallback_time
                 energy = self.fallback_energy
             else:
                 if numpy.isnan(self.nsides_dict[coarser_nside][coarser_pixel].llh):
                     # coarser reconstruction failed
-                    # position = self.fallback_position
-                    # time = self.fallback_time
+                    position = self.fallback_position
+                    time = self.fallback_time
                     energy = self.fallback_energy
                 else:
-                    # position = self.nsides_dict[coarser_nside][coarser_pixel].position
-                    # time = self.nsides_dict[coarser_nside][coarser_pixel].time
+                    position = self.nsides_dict[coarser_nside][coarser_pixel].position
+                    time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
@@ -445,9 +438,15 @@ class PixelsToReco:
             particle.fit_status = dataclasses.I3Particle.FitStatus.OK
             particle.pos = thisPosition
             particle.dir = direction
-            particle.time = time
+            # given direction and vertex position, calculate time from CAD
+            particle.time = self.refine_vertex_time(
+                thisPosition,
+                time,
+                direction,
+                dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitUncleanedInIcePulsesHLC'),
+                p_frame["I3Geometry"].omgeo)
             particle.energy = energy
-            p_frame[f'{self.output_particle_name}_{i}'] = particle
+            p_frame[f'{self.output_particle_name}'] = particle
 
             # generate a new event header
             eventHeader = dataclasses.I3EventHeader(self.event_header)

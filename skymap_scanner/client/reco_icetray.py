@@ -146,14 +146,13 @@ def reco_pixel(
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    # TODO: place the files in these locations
-    base = os.path.expandvars("$I3_TESTDATA/photospline/cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
+    base = os.path.expandvars("$I3_DATA/photon-tables/splines/cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
     for fname in [base % "abs", base % "prob"]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(
         base % "abs", base % "prob", timingSigma=0.0,
-        effectivedistancetable = '$I3_TESTDATA/photospline/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits',
+        effectivedistancetable = '$I3_DATA/photon-tables/splines/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits',
         tiltTableDir = '$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'
     )
     cascade_service.SetEfficiencies(SPEScale)
@@ -216,6 +215,7 @@ def reco_pixel(
         cascade_service=cascade_service,
         ExcludedDOMs=ExcludedDOMs,
         pulsesName=pulsesName,
+        seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"]
     )
 
     # Write reco out

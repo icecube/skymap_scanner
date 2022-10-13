@@ -31,7 +31,7 @@ class Millipede(RecoInterface):
     """Reco logic for millipede."""
 
     @icetray.traysegment
-    def traysegment(tray, name, muon_service, cascade_service, ExcludedDOMs, pulsesName, logger):
+    def traysegment(tray, name, muon_service, cascade_service, ExcludedDOMs, pulsesName, logger, seed=None):
         """Perform Millipede reco."""
 
         def notify0(frame):
@@ -69,20 +69,31 @@ class Millipede(RecoInterface):
                         MinuitStrategy=0, # Don't try to check local curvature
                         )
 
-        tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
-                        MuonSpacing=0.*I3Units.m,
-                        ShowerSpacing=5.*I3Units.m,
-                        StepX = 10.*I3Units.m,
-                        StepY = 10.*I3Units.m,
-                        StepZ = 10.*I3Units.m,
-                        StepT = 0.,
-                        StepZenith = 0.,
-                        StepAzimuth = 0.,
-                        Boundary = 700.*I3Units.m,
-                        StepT = 25.*I3Units.ns)
+        coars_steps = dict(StepX=10.*I3Units.m,
+                           StepY=10.*I3Units.m,
+                           StepZ=10.*I3Units.m,
+                           StepZenith=0.,
+                           StepAzimuth=0.,
+                           StepT=25.*I3Units.ns,
+                           ShowerSpacing=5.*I3Units.m,
+                           MuonSpacing=0,
+                           Boundary=700*I3Units.m)
+        finer_steps = dict(StepX=2.*I3Units.m,
+                           StepY=2.*I3Units.m,
+                           StepZ=2.*I3Units.m,
+                           StepZenith=0.,
+                           StepAzimuth=0.,
+                           StepT=5.*I3Units.ns,
+                           ShowerSpacing=1.*I3Units.m,
+                           MuonSpacing=0,
+                           Boundary=700*I3Units.m)
+        if seed is not None:
+            UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
+            UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
+        tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}_0'],
+            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}'],
             TimeShiftType='TNone',
             PositionShiftType='None')
 
@@ -110,17 +121,7 @@ class Millipede(RecoInterface):
 
         tray.AddModule(notify1, "notify1")
 
-        tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
-            MuonSpacing=0.*I3Units.m,
-            ShowerSpacing=1*I3Units.m,
-            StepX = 2.*I3Units.m,
-            StepY = 2.*I3Units.m,
-            StepZ = 2.*I3Units.m,
-            StepT = 5.*I3Units.ns,
-            StepZenith = 0.,
-            StepAzimuth = 0.,
-            Boundary=700*I3Units.m
-            )
+        tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps', **fine_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
             FirstGuess='MillipedeStarting1stPass',
@@ -152,6 +153,12 @@ class Millipede(RecoInterface):
 
         tray.AddModule(notify2, "notify2")
 
+    @staticmethod
+    def UpdateStepXYZ(the_steps, direction, uniform_step=15*I3Units.m):
+        logger.debug('Updating StepXYZ')
+        the_steps[f'StepX'] = np.sqrt(1-direction.x**2)*uniform_step
+        the_steps[f'StepY'] = np.sqrt(1-direction.y**2)*uniform_step
+        the_steps[f'StepZ'] = np.sqrt(1-direction.z**2)*uniform_step
 
     @staticmethod
     def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
