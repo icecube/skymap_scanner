@@ -53,32 +53,57 @@ class Millipede(RecoInterface):
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 
-        tray.AddService('I3GSLSimplexFactory', 'simplex',
-            MaxIterations=20000)
+        tray.context['isimplex'] = lilliput.IMinuitMinimizer(
+            MaxIterations=2000,
+            Tolerance=0.1,
+            Algorithm="SIMPLEX",
+        )
+        tray.AddService("I3GulliverMinuit2Factory", 'migrad',
+                        MaxIterations=1000,
+                        Tolerance=0.1,
+                        Algorithm="MIGRAD",
+                        WithGradients=True,
+                        FlatnessCheck=False,
+                        IgnoreEDM=True, # Don't report convergence failures
+                        CheckGradient=False, # Don't die on gradient errors
+                        MinuitStrategy=0, # Don't try to check local curvature
+                        )
 
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps',
-            MuonSpacing=0.*I3Units.m,
-            ShowerSpacing=5.*I3Units.m,
-            StepX = 10.*I3Units.m,
-            StepY = 10.*I3Units.m,
-            StepZ = 10.*I3Units.m,
-            StepT = 0.,
-            StepZenith = 0.,
-            StepAzimuth = 0.,
-            )
+                        MuonSpacing=0.*I3Units.m,
+                        ShowerSpacing=5.*I3Units.m,
+                        StepX = 10.*I3Units.m,
+                        StepY = 10.*I3Units.m,
+                        StepZ = 10.*I3Units.m,
+                        StepT = 0.,
+                        StepZenith = 0.,
+                        StepAzimuth = 0.,
+                        Boundary = 700.*I3Units.m,
+                        StepT = 25.*I3Units.ns)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-            FirstGuesses=[cfg.OUTPUT_PARTICLE_NAME],
+            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}_0'],
             TimeShiftType='TNone',
             PositionShiftType='None')
 
-        tray.AddModule('I3SimpleFitter', 'MillipedeStarting1stPass',
-            OutputName='MillipedeStarting1stPass',
+        tray.Add('I3SimpleFitter',
+            OutputName='MillipedeStarting1stPass_simplex',
             SeedService='vetoseed',
             Parametrization='coarseSteps',
             LogLikelihood='millipedellh',
-            Minimizer='simplex')
+            Minimizer='isimplex')
 
+        tray.AddService('I3BasicSeedServiceFactory', 'firstsimplexseed',
+                        FirstGuesses=['MillipedeStarting1stPass_simplex'],
+                        TimeShiftType='TNone',
+                        PositionShiftType='None')
+
+        tray.Add('I3SimpleFitter',
+             SeedService='firstsimplexseed',
+             OutputName='MillipedeStarting1stPass',
+             Parametrization='coarseSteps',
+             LogLikelihood='millipedellh',
+             Minimizer='migrad')
         def notify1(frame):
             logger.debug(f"1st pass done! {datetime.datetime.now()}")
             logger.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
@@ -87,14 +112,14 @@ class Millipede(RecoInterface):
 
         tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps',
             MuonSpacing=0.*I3Units.m,
-            ShowerSpacing=2.5*I3Units.m,
-
+            ShowerSpacing=1*I3Units.m,
             StepX = 2.*I3Units.m,
             StepY = 2.*I3Units.m,
             StepZ = 2.*I3Units.m,
-            StepT = 5.*I3Units.ns, # now, also fit for time
+            StepT = 5.*I3Units.ns,
             StepZenith = 0.,
             StepAzimuth = 0.,
+            Boundary=700*I3Units.m
             )
 
         tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
@@ -102,12 +127,24 @@ class Millipede(RecoInterface):
             TimeShiftType='TNone',
             PositionShiftType='None')
 
+        tray.Add('I3SimpleFitter',
+             SeedService='firstFitSeed',
+             OutputName='MillipedeStarting2ndPass_simplex',
+             Parametrization='fineSteps',
+             LogLikelihood='millipedellh',
+             Minimizer='isimplex')
+
+        tray.AddService('I3BasicSeedServiceFactory', 'secondsimplexseed',
+                        FirstGuesses=['MillipedeStarting2ndPass_simplex'],
+                        TimeShiftType='TNone',
+                        PositionShiftType='None')
+
         tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
             OutputName='MillipedeStarting2ndPass',
             SeedService='firstFitSeed',
             Parametrization='fineSteps',
             LogLikelihood='millipedellh',
-            Minimizer='simplex')
+            Minimizer='migrad')
 
         def notify2(frame):
             logger.debug(f"2nd pass done! {datetime.datetime.now()}")

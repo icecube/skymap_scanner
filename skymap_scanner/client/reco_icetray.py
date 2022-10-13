@@ -145,13 +145,16 @@ def reco_pixel(
 
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
-    # This is why we can use ems_mie instead of InfBareMu_mie even for tracks
-    base = os.path.expandvars("$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits")
+    # This is why we can use cascade tables
+    # TODO: place the files in these locations
+    base = os.path.expandvars("$I3_TESTDATA/photospline/cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
     for fname in [base % "abs", base % "prob"]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(
-        base % "abs", base % "prob", timingSigma=0.0
+        base % "abs", base % "prob", timingSigma=0.0,
+        effectivedistancetable = '$I3_TESTDATA/photospline/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits',
+        tiltTableDir = '$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'
     )
     cascade_service.SetEfficiencies(SPEScale)
 

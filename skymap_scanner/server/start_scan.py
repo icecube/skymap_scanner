@@ -299,23 +299,21 @@ class PixelsToReco:
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
 
-        # Get Position Variations
-        variation_distance = 20.*I3Units.m
         # Production Scan or Mini-Test Scan?
         if mini_test_variations:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variation_distance,0.,0.),
-                dataclasses.I3Position(variation_distance,0.,0.),
-                dataclasses.I3Position(0.,-variation_distance,0.),
-                dataclasses.I3Position(0., variation_distance,0.),
-                dataclasses.I3Position(0.,0.,-variation_distance),
-                dataclasses.I3Position(0.,0., variation_distance)
+                ## with updated settings no need for multiple seeds
+                # dataclasses.I3Position(-variation_distance,0.,0.),
+                # dataclasses.I3Position(variation_distance,0.,0.),
+                # dataclasses.I3Position(0.,-variation_distance,0.),
+                # dataclasses.I3Position(0., variation_distance,0.),
+                # dataclasses.I3Position(0.,0.,-variation_distance),
+                # dataclasses.I3Position(0.,0., variation_distance)
             ]
 
         # Set nside values
@@ -331,11 +329,28 @@ class PixelsToReco:
         self.GCDQp_packet = GCDQp_packet
 
         self.fallback_position = p_frame[self.input_pos_name]
-        self.fallback_time = p_frame[self.input_time_name].value
+        self.fallback_position = p_frame[self.input_time_name]
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
         self.event_mjd = get_event_mjd(self.GCDQp_packet)
+
+    @staticmethod
+    def refine_vertex_time(vertex, time, direction, pulses, omgeo):
+        min_d = np.inf
+        min_t = time
+        adj_d = 0
+        for om in pulses.keys():
+            rvec = omgeo[om].position-vertex
+            _l = -rvec*direction
+            _d = np.sqrt(rvec.mag2-_l**2) # closest approach distance
+            if _d < min_d: # closest om
+                min_d = _d
+                min_t = pulses[om][0].time
+                adj_d = _l+_d/np.tan(THC)-_d/(np.cos(THC)*np.sin(THC)) # translation distance
+        if np.isinf(min_d):
+            return time
+        return min_t + adj_d/CCC
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd."""
@@ -376,9 +391,16 @@ class PixelsToReco:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
+        position = self.fallback_position
+        # given direction and vertex position, calculate time from CAD
+        time = self.refine_vertex_time(
+            position,
+            self.fallback_time
+            p_frame[self.input_time_name].value,
+            direction,
+            dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitUncleanedInIcePulsesHLC'),
+            p_frame["I3Geometry"].omgeo)
         if nside == self.min_nside:
-            position = self.fallback_position
-            time = self.fallback_time
             energy = self.fallback_energy
         else:
             coarser_nside = nside
@@ -397,18 +419,18 @@ class PixelsToReco:
 
             if coarser_nside < self.min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
-                position = self.fallback_position
-                time = self.fallback_time
+                # position = self.fallback_position
+                # time = self.fallback_time
                 energy = self.fallback_energy
             else:
                 if numpy.isnan(self.nsides_dict[coarser_nside][coarser_pixel].llh):
                     # coarser reconstruction failed
-                    position = self.fallback_position
-                    time = self.fallback_time
+                    # position = self.fallback_position
+                    # time = self.fallback_time
                     energy = self.fallback_energy
                 else:
-                    position = self.nsides_dict[coarser_nside][coarser_pixel].position
-                    time = self.nsides_dict[coarser_nside][coarser_pixel].time
+                    # position = self.nsides_dict[coarser_nside][coarser_pixel].position
+                    # time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
@@ -425,7 +447,7 @@ class PixelsToReco:
             particle.dir = direction
             particle.time = time
             particle.energy = energy
-            p_frame[self.output_particle_name] = particle
+            p_frame[f'{self.output_particle_name}_{i}'] = particle
 
             # generate a new event header
             eventHeader = dataclasses.I3EventHeader(self.event_header)

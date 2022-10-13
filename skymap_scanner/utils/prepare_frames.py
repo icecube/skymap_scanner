@@ -176,7 +176,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
     def weighted_median(values, weights):
         return weighted_quantile(values, weights, q=0.5)
 
-    def LatePulseCleaning(frame, Pulses, Residual=3e3*I3Units.ns):
+    def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
         pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
         mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
         counter, charge = 0, 0
