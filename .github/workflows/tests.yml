@@ -97,7 +97,7 @@ jobs:
               --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
-            echo -e "\t$i clients launched"
+            echo -e "\tclient #$i launched"
           done
 
           # Wait for Everyone
@@ -172,7 +172,7 @@ jobs:
               --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
-            echo -e "\t$i clients launched"
+            echo -e "\tclient #$i launched"
           done
 
           # Wait for Everyone
