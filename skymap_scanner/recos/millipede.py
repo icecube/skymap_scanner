@@ -19,6 +19,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     photonics_service,
     recclasses,
     simclasses,
+    lilliput,
 )
 from icecube.icetray import I3Frame
 
@@ -89,6 +90,7 @@ class Millipede(RecoInterface):
                            MuonSpacing=0,
                            Boundary=700*I3Units.m)
         if seed is not None:
+            logger.debug('Updating StepXYZ')
             Millipede.UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
             Millipede.UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
@@ -122,7 +124,7 @@ class Millipede(RecoInterface):
 
         tray.AddModule(notify1, "notify1")
 
-        tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps', **fine_steps)
+        tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps', **finer_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
             FirstGuess='MillipedeStarting1stPass',
@@ -156,10 +158,9 @@ class Millipede(RecoInterface):
 
     @staticmethod
     def UpdateStepXYZ(the_steps, direction, uniform_step=15*I3Units.m):
-        logger.debug('Updating StepXYZ')
-        the_steps[f'StepX'] = np.sqrt(1-direction.x**2)*uniform_step
-        the_steps[f'StepY'] = np.sqrt(1-direction.y**2)*uniform_step
-        the_steps[f'StepZ'] = np.sqrt(1-direction.z**2)*uniform_step
+        the_steps[f'StepX'] = numpy.sqrt(1-direction.x**2)*uniform_step
+        the_steps[f'StepY'] = numpy.sqrt(1-direction.y**2)*uniform_step
+        the_steps[f'StepZ'] = numpy.sqrt(1-direction.z**2)*uniform_step
 
     @staticmethod
     def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
