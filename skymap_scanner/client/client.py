@@ -38,6 +38,7 @@ def main() -> None:
         elapsed_time = 0
         sleep = 5
         while not waitee.exists():
+            LOGGER.info(f"waiting for {waitee} ({sleep}s intervals)...")
             time.sleep(sleep)
             elapsed_time += sleep
             if elapsed_time >= wait_time:
