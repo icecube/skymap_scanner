@@ -10,8 +10,6 @@ Distributed likelihood scan of event directions for real-time alerts using inter
 ## How to Run
 ***There are two\* important helper scripts that will make this easy***: `scripts/launch_scripts/launch_server.sh` and `scripts/launch_scripts/launch_client.sh`. Pass in arguments like you would for the desired python sub-module. These will launch docker containers, auto-manage file transfer/binding, and copy over `SKYSCAN_*` [environment variables](#environment-variables) for you!
 
-\* _Another useful script is `scripts/launch_scripts/wait_for_startup_json.sh`. Use this before launching each client to eliminate file-writing race conditions._
-
 ### Example Startup
 #### 1. Launch the Server
 ```
@@ -31,8 +29,6 @@ _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths 
 #### 2. Launch Each Client
 Each on a different CPU:
 ```
-./scripts/launch_scripts/wait_for_startup_json.sh <STARTUP_JSON_DIR>
-
 ./scripts/launch_scripts/launch_client.sh \
     --mq-basename $(cat <STARTUP_JSON_DIR>/mq-basename.txt) \
     --baseline-gcd-file $(cat <STARTUP_JSON_DIR>/baseline_GCD_file.txt) \

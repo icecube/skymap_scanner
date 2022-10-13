@@ -53,6 +53,8 @@ class RecoAlgo(enum.Enum):
 
     MILLIPEDE = enum.auto()
     DUMMY = enum.auto()
+
+
 #
 # Env var constants: set as constants & typecast
 #
@@ -66,6 +68,7 @@ class EnvConfig:
     SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
     SKYSCAN_SLACK_API_KEY: str = ""
     SKYSCAN_SLACK_CHANNEL: str = "#gfu_live"
+    SKYSCAN_CLIENT_WAIT_FOR_STARTUP_JSON_SEC: int = 10 * 60
 
     def __post_init__(self) -> None:
         """Check values."""

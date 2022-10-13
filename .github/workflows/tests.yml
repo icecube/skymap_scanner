@@ -55,6 +55,7 @@ jobs:
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
 
+          # Launch Server
           singularity run skymap_scanner.sif \
             python -m skymap_scanner.server \
             --reco-algo dummy \
@@ -70,8 +71,7 @@ jobs:
             --max-nside 1 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_json.sh .
-
+          # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
@@ -88,6 +88,7 @@ jobs:
             echo -e "\t$i clients launched"
           done
 
+          # Wait for Everyone
           wait -n  # for server
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
@@ -128,9 +129,10 @@ jobs:
       - name: Run
         run: |
           set -x
-
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
+
+          # Launch Server
           ./scripts/launch_scripts/launch_server.sh \
             --reco-algo millipede \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
@@ -145,8 +147,7 @@ jobs:
             --max-nside 1 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_json.sh .
-
+          # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
@@ -162,6 +163,7 @@ jobs:
             echo -e "\t$i clients launched"
           done
 
+          # Wait for Everyone
           wait -n  # for server
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
