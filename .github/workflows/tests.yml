@@ -133,7 +133,7 @@ jobs:
           mkdir $SKYSCAN_OUTPUT_DIR
 
           # Launch Server
-          ./scripts/launch_scripts/launch_server.sh \
+          ./scripts/launch_scripts/docker/launch_server.sh \
             --reco-algo millipede \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
@@ -153,7 +153,7 @@ jobs:
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
-            ./scripts/launch_scripts/launch_client.sh \
+            ./scripts/launch_scripts/docker/launch_client.sh \
               --startup-json-dir . \
               --broker $BROKER_ADDRESS \
               --log DEBUG \

@@ -50,7 +50,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         )
 
         transfer_input_files: List[str] = []
-        executable = os.path.abspath("./scripts/launch_scripts/launch_client.sh")
+        executable = os.path.abspath("./scripts/launch_scripts/docker/launch_client.sh")
 
         # write
         args = (

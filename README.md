@@ -8,12 +8,12 @@ Distributed likelihood scan of event directions for real-time alerts using inter
 `skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with utility functions located in `skymap_scanner.utils`. Additional, package-independent, utility scripts are in `scripts/utils/`.
 
 ## How to Run
-***There are two\* important helper scripts that will make this easy***: `scripts/launch_scripts/launch_server.sh` and `scripts/launch_scripts/launch_client.sh`. Pass in arguments like you would for the desired python sub-module. These will launch docker containers, auto-manage file transfer/binding, and copy over `SKYSCAN_*` [environment variables](#environment-variables) for you!
+***There are two\* important helper scripts that will make this easy***: `scripts/launch_scripts/docker/launch_server.sh` and `scripts/launch_scripts/docker/launch_client.sh`. Pass in arguments like you would for the desired python sub-module. These will launch docker containers, auto-manage file transfer/binding, and copy over `SKYSCAN_*` [environment variables](#environment-variables) for you!
 
 ### Example Startup
 #### 1. Launch the Server
 ```
-./scripts/launch_scripts/launch_server.sh \
+./scripts/launch_scripts/docker/launch_server.sh \
     --reco-algo millipede \
     --event-file `pwd`/run00136662-evt000035405932-BRONZE.pkl \  # could also be a .json file
     --cache-dir `pwd`/server_cache \
@@ -29,7 +29,7 @@ _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths 
 #### 2. Launch Each Client
 Each on a different CPU:
 ```
-./scripts/launch_scripts/launch_client.sh \
+./scripts/launch_scripts/docker/launch_client.sh \
     --mq-basename $(cat <STARTUP_JSON_DIR>/mq-basename.txt) \
     --baseline-gcd-file $(cat <STARTUP_JSON_DIR>/baseline_GCD_file.txt) \
     --gcdqp-packet-json <STARTUP_JSON_DIR>/GCDQp_packet.json \
