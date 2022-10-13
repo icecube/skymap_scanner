@@ -5,10 +5,12 @@ import dataclasses as dc
 import importlib
 import pkgutil
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from .. import config as cfg
-from ..utils.pixelreco import PixelReco
+
+if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
+    from ..utils.pixelreco import PixelReco
 
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
@@ -34,7 +36,7 @@ class RecoInterface:
         raise NotImplementedError()
 
     @staticmethod
-    def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
+    def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> "PixelReco":
         raise NotImplementedError()
 
 
