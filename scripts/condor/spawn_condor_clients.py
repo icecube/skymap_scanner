@@ -29,14 +29,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     memory: str,
     accounting_group: str,
     # skymap scanner args
-    mq_basename: str,
-    gcd_dir: str,
-    broker: str,
-    auth_token: str,
-    log: str,
-    log_third_party: str,
-    timeout_to_clients: int,
-    timeout_from_clients: int,
+    singularity_image: str,
+    client_args: str,
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -50,22 +44,12 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         )
 
         transfer_input_files: List[str] = []
-        executable = os.path.abspath("./scripts/launch_scripts/docker/launch_client.sh")
 
         # write
-        args = (
-            f"--mq-basename {mq_basename} "
-            f"--gcd-dir {gcd_dir} "
-            f"--broker {broker} "
-            f"--auth-token {auth_token} "
-            f"--log {log} "
-            f"--log-third-party {log_third_party} "
-            f"--timeout-to-clients {timeout_to_clients} "
-            f"--timeout-from-clients {timeout_from_clients}"
-        )
         file.write(
-            f"""executable = {executable}
-arguments = {args}
+            f"""executable = python -m skymap_scanner.client
+arguments = {client_args}
++SingularityImage = "{singularity_image}"
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
 log = {scratch}/skymap_scanner.log
@@ -88,15 +72,6 @@ def main() -> None:
 
     Make scratch directory and condor file.
     """
-    if not (
-        os.getcwd().startswith(os.path.expanduser("~"))
-        and os.getcwd().endswith("skymap_scanner")
-        and "scripts" in os.listdir(".")
-    ):
-        raise RuntimeError(
-            "You must run this script from home directory @ repo root (script uses relative paths)"
-        )
-
     parser = argparse.ArgumentParser(
         description=(
             "Make Condor script for submitting Skymap Scanner clients: "
@@ -134,49 +109,17 @@ def main() -> None:
         # default="8GB",
     )
 
-    # skymap scanner args
+    # client args
     parser.add_argument(
-        "--mq-basename",
+        "--singularity-image",
         required=True,
-        help="Skymap Scanner: base identifier to correspond to an event for its MQ connections",
+        # TODO - put default as CVMFS path, once that exists
+        help="a path or url to the singularity image",
     )
     parser.add_argument(
-        "--gcd-dir",
+        "--client-args-file",
         required=True,
-        help="Skymap Scanner: the GCD directory to use",
-    )
-    parser.add_argument(
-        "--broker",
-        required=True,
-        help="Skymap Scanner: the Pulsar broker URL to connect to",
-    )
-    parser.add_argument(
-        "--auth-token",
-        required=True,
-        help="Skymap Scanner: the Pulsar authentication token to use",
-    )
-    parser.add_argument(
-        "--timeout-to-clients",
-        required=True,
-        type=int,
-        help="timeout (seconds) for messages TO client(s)",
-    )
-    parser.add_argument(
-        "--timeout-from-clients",
-        required=True,
-        type=int,
-        help="timeout (seconds) for messages FROM client(s)",
-    )
-    parser.add_argument(
-        "-l",
-        "--log",
-        required=True,
-        help="Skymap Scanner: the output logging level (for first-party loggers)",
-    )
-    parser.add_argument(
-        "--log-third-party",
-        required=True,
-        help="Skymap Scanner: the output logging level for third-party loggers",
+        help="a text file containing the python CL arguments to pass to skymap_scanner.client",
     )
 
     args = parser.parse_args()
@@ -186,6 +129,10 @@ def main() -> None:
     # make condor scratch directory
     scratch = make_condor_scratch_dir()
 
+    with open(args.client_args_file) as f:
+        client_args = f.read()
+        logging.info(f"Client Args: {client_args}")
+
     # make condor file
     condorpath = make_condor_file(
         # condor args
@@ -194,14 +141,8 @@ def main() -> None:
         args.memory,
         args.accounting_group,
         # skymap scanner args
-        args.mq_basename,
-        args.gcd_dir,
-        args.broker,
-        args.auth_token,
-        args.log,
-        args.log_third_party,
-        args.timeout_to_clients,
-        args.timeout_from_clients,
+        args.singularity_image,
+        client_args,
     )
 
     # Execute
