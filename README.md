@@ -56,9 +56,10 @@ echo $YOUR_ARGS > my_client_args.txt  # just an example
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
-    --startup-json DIR_WITH_STARTUP_JSON \
+    --startup-json PATH_TO_STARTUP_JSON \
     --client-args-file my_client_args.txt
 ```
+_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-file` file.
 ###### or Manually (Docker)
 ```
 ./scripts/launch_scripts/docker/launch_client.sh \
