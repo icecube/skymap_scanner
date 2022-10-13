@@ -16,7 +16,7 @@ env:
   BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_REPORT_INTERVAL_SEC: 60
-  CI_TESTING_USE_LOCAL_DOCKER: 1
+  LOOK_FOR_LOCAL_IMAGE: 1
 
 jobs:
 
@@ -46,18 +46,13 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build --no-cache -t icecube/skymap_scanner .
-      - name: Build Singularity Image
-        run: |
-          sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
-          ls -lh skymap_scanner.sif
       - name: Run Singularity Container
         run: |
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
 
           # Launch Server
-          singularity run skymap_scanner.sif \
-            python -m skymap_scanner.server \
+          ./scripts/launch_scripts/singularity/launch_server.sh \
             --reco-algo dummy \
             --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
             --cache-dir $SKYSCAN_CACHE_DIR \
@@ -71,13 +66,30 @@ jobs:
             --max-nside 1 \
             &
 
+          # wait until the skymap_scanner.sif file exists (with a timeout)
+          waitsec="30"
+          endtime=$(date -ud "10 minutes" +%s)  # wait this long for server startup
+          while [[ $(date -u +%s) -le $endtime ]]; do
+              if [[ -e "skymap_scanner.sif" ]]; then
+                  echo "Success! 'skymap_scanner.sif' file found:"
+                  ls .
+                  break  # Done!
+              fi
+              echo "waiting for 'skymap_scanner.sif' ($waitsec second intervals)..."
+              sleep $waitsec
+          done
+          if [[ ! -e "skymap_scanner.sif" ]]; then
+              echo "Failed. 'skymap_scanner.sif' not found within timelimit"
+              exit 62
+          fi
+
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
-            singularity run skymap_scanner.sif \
+            ./scripts/launch_scripts/singularity/launch_client.sh \
               python -m skymap_scanner.client \
               --startup-json-dir . \
               --broker $BROKER_ADDRESS \

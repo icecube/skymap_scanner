@@ -64,9 +64,9 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 set -x
 
 
-# Toggle Options
+# Figure where to get image
 PULL_POLICY="--pull=always"
-if [ "$CI_TESTING_USE_LOCAL_DOCKER" == "1" ]; then
+if [ "$LOOK_FOR_LOCAL_IMAGE" == "1" ]; then
     PULL_POLICY=""
 fi
 
