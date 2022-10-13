@@ -428,9 +428,12 @@ class PixelsToReco:
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
+            # rotate variation to be applied in transverse plane
+            posVariation.rotate_y(direction.theta)
+            posVariation.rotate_z(direction.phi)
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
-            thisPosition = dataclasses.I3Position(position.x + posVariation.x,position.y + posVariation.y,position.z + posVariation.z)
+            thisPosition = position+posVariations
 
             # generate the particle from scratch
             particle = dataclasses.I3Particle()
