@@ -49,7 +49,8 @@ class Millipede(RecoInterface):
             PartialExclusion=True,
             ReadoutWindow=pulsesName+'TimeRange',
             Pulses=pulsesName,
-            BinSigma=3)
+            BinSigma=3,
+            RelUncertainty=0.3)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 

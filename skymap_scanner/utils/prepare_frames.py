@@ -134,9 +134,9 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         ExcludeDeepCore='DeepCoreDOMs',
         ExcludeSaturatedDOMs='SaturatedDOMs',
         ExcludeBrightDOMs='BrightDOMs',
+        BrightDOMThreshold=2,
         BadDomsList='BadDomsList',
         CalibrationErrata='CalibrationErrata',
-
         SaturationWindows='SaturationWindows'
         )
 
