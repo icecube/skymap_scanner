@@ -28,7 +28,7 @@ from icecube import (  # type: ignore[import]
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
-from ..utils import extract_json_message, pixeleco
+from ..utils import extract_json_message, pixelreco
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
 from . import LOGGER
