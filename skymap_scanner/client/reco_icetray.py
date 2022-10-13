@@ -22,6 +22,7 @@ from icecube.frame_object_diff.segments import uncompress  # type: ignore[import
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
+from .. import recos
 from ..utils import pixelreco
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.utils import save_GCD_frame_packet_to_file
