@@ -433,7 +433,7 @@ class PixelsToReco:
             posVariation.rotate_z(direction.phi)
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
-            thisPosition = position+posVariations
+            thisPosition = position+posVariation
 
             # generate the particle from scratch
             particle = dataclasses.I3Particle()
