@@ -26,27 +26,6 @@ def main() -> None:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    def wait_for_file(path: str, wait_time: int, subpath: str = "") -> Path:
-        """Wait for `path` to exist, then return `Path` instance of `path`.
-
-        If `subpath` is provided, wait for `"{path}/{subpath}"` instead.
-        """
-        if subpath:
-            waitee = Path(path) / subpath
-        else:
-            waitee = Path(path)
-        elapsed_time = 0
-        sleep = 5
-        while not waitee.exists():
-            LOGGER.info(f"waiting for {waitee} ({sleep}s intervals)...")
-            time.sleep(sleep)
-            elapsed_time += sleep
-            if elapsed_time >= wait_time:
-                raise argparse.ArgumentTypeError(
-                    f"FileNotFoundError: waited {wait_time}s [{waitee}]"
-                )
-        return Path(path)
-
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform reco scans on pixels "
@@ -63,9 +42,7 @@ def main() -> None:
             "The directory with the 'startup.json' file to startup the client "
             "(has keys 'mq_basename', 'baseline_GCD_file', and 'GCDQp_packet')"
         ),
-        type=lambda x: wait_for_file(
-            x, cfg.env.SKYSCAN_CLIENT_WAIT_FOR_STARTUP_JSON_SEC, "startup.json"
-        ),
+        type=Path,
     )
 
     # "physics" args

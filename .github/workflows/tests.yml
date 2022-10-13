@@ -71,6 +71,8 @@ jobs:
             --max-nside 1 \
             &
 
+          ./scripts/launch_scripts/wait_for_startup_json.sh .
+
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
@@ -146,6 +148,8 @@ jobs:
             --min-nside 1 \
             --max-nside 1 \
             &
+
+          ./scripts/launch_scripts/wait_for_startup_json.sh .
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))

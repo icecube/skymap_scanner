@@ -59,9 +59,10 @@ echo $YOUR_ARGS > my_client_args.txt  # just an example
     --startup-json PATH_TO_STARTUP_JSON \
     --client-args-file my_client_args.txt
 ```
-_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-file` file.
+_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-file` file._
 ###### or Manually (Docker)
 ```
+./scripts/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
 ./scripts/launch_scripts/docker/launch_client.sh \
     --startup-json-dir DIR_WITH_STARTUP_JSON \
     YOUR_ARGS
