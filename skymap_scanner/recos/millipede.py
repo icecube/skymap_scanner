@@ -89,8 +89,8 @@ class Millipede(RecoInterface):
                            MuonSpacing=0,
                            Boundary=700*I3Units.m)
         if seed is not None:
-            UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
-            UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
+            Millipede.UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
+            Millipede.UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
