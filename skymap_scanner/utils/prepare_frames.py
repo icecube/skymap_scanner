@@ -110,7 +110,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
     tray.AddModule('VHESelfVeto', 'selfveto',
-        VertexThreshold=2,
+        VertexThreshold=250,
         Pulses=nominalPulsesName+'HLC',
         OutputBool='HESE_VHESelfVeto',
         OutputVertexTime=cfg.INPUT_TIME_NAME,
