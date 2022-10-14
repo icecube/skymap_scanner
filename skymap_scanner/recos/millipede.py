@@ -67,18 +67,7 @@ class Millipede(RecoInterface):
 
     @icetray.traysegment
     def exclusions(tray, name):
-        # make sure the script doesn't fail because some objects alreadye exist
-        def cleanupFrame(frame):
-            if "SaturatedDOMs" in frame:
-                del frame["SaturatedDOMs"]
-            # Added BrightDOMs Nov 28 2015 since it was already in frame - Will
-            if "BrightDOMs" in frame:
-                del frame["BrightDOMs"]
-            if "DeepCoreDOMs" in frame:
-                del frame["DeepCoreDOMs"]
-
-        tray.AddModule(cleanupFrame, "cleanupFrame",
-            Streams=[icetray.I3Frame.DAQ, icetray.I3Frame.Physics])
+        tray.Add('Delete', keys=['BrightDOMs', 'SaturatedDOMs', 'DeepCoreDOMs'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
@@ -99,9 +88,7 @@ class Millipede(RecoInterface):
                 if name in frame: continue
                 frame[name] = dataclasses.I3VectorOMKey()
         tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
-            ListNames = ["BrightDOMs"],
-            Streams=[icetray.I3Frame.Physics])
-
+            ListNames = ["BrightDOMs"])
         # exclude bright DOMs
         ExcludedDOMs = exclusionList
 
