@@ -45,10 +45,10 @@ jobs:
           apptainer-version: 1.1.2
       - name: Build Docker Image
         run: |
-          docker build --no-cache -t icecube/skymap_scanner .
+          docker build --no-cache -t icecube/skymap_scanner:local .
       - name: Build Singularity Image
         run: |
-          sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner
+          sudo singularity build skymap_scanner.sif docker://icecube/skymap_scanner:local
           ls -lh skymap_scanner.sif
       - name: Run Singularity Container
         run: |
@@ -127,7 +127,7 @@ jobs:
           ./MQClient/resources/docker-pulsar.sh
       - name: Build Skymap Scanner Docker Image
         run: |
-          docker build --no-cache -t icecube/skymap_scanner .
+          docker build --no-cache -t icecube/skymap_scanner:local .
       - name: Run
         run: |
           set -x
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Skymap Scanner Docker Image
         run: |
-          docker build --no-cache -t icecube/skymap_scanner .
+          docker build --no-cache -t icecube/skymap_scanner:local .
       - name: Run
         run: |
           # grab the GCDQp_packet key and throw into a file
@@ -218,7 +218,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:latest \
+            icecube/skymap_scanner:local \
             python /local/pkls/get_toclient_msg_pkl.py \
             --pframe-pkl /local/pkls/pframe.pkl \
             --reco-algo millipede
@@ -231,7 +231,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:latest \
+            icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
             --in-pkl /local/pkls/in.pkl \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
@@ -250,7 +250,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:latest \
+            icecube/skymap_scanner:local \
             python tests/compare_reco_pixel_pkl.py \
             --actual /local/pkls/out.pkl \
             --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)) \

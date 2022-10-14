@@ -66,8 +66,10 @@ set -x
 
 # Figure where to get image
 PULL_POLICY="--pull=always"
+IMAGE_TAG="latest"
 if [ "$LOOK_FOR_LOCAL_IMAGE" == "1" ]; then
     PULL_POLICY=""
+    IMAGE_TAG="local"
 fi
 
 
@@ -77,6 +79,6 @@ docker run --network="host" $PULL_POLICY --rm -i \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=300}" \
-    icecube/skymap_scanner:latest \
+    icecube/skymap_scanner:$IMAGE_TAG \
     python -m skymap_scanner.server \
     $PY_ARGS
