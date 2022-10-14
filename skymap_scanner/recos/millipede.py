@@ -67,7 +67,12 @@ class Millipede(RecoInterface):
 
     @icetray.traysegment
     def exclusions(tray, name):
-        tray.Add('Delete', keys=['BrightDOMs', 'SaturatedDOMs', 'DeepCoreDOMs'])
+        tray.Add('Delete', keys=['BrightDOMs',
+                                 'SaturatedDOMs',
+                                 'DeepCoreDOMs',
+                                 Millipede.pulsesName_cleaned,
+                                 Millipede.pulsesName_cleaned+'TimeWindows',
+                                 Millipede.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
@@ -88,7 +93,7 @@ class Millipede(RecoInterface):
                 if name in frame: continue
                 frame[name] = dataclasses.I3VectorOMKey()
         tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
-            ListNames = ["BrightDOMs"])
+                       ListNames = ["BrightDOMs"])
         # exclude bright DOMs
         ExcludedDOMs = exclusionList
 
@@ -144,8 +149,8 @@ class Millipede(RecoInterface):
             frame[Millipede.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                        Pulses=Millipede.pulsesName,
-                        )
+                       Pulses=Millipede.pulsesName,
+                       )
         return ExcludedDOMs + [Millipede.pulsesName_cleaned+'TimeWindows']
 
 
