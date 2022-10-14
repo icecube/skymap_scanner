@@ -117,6 +117,15 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         OutputVertexPos=cfg.INPUT_POS_NAME,
         If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
+    # this only runs if the previous module did not return anything
+    tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
+                   VertexThreshold=5,
+                   Pulses=nominalPulsesName+'HLC',
+                   OutputBool='VHESelfVeto_meaningless_lowen',
+                   OutputVertexTime=cfg.INPUT_TIME_NAME,
+                   OutputVertexPos=cfg.INPUT_POS_NAME,
+                   If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+
     # make sure the script doesn't fail because some objects alreadye exist
     def cleanupFrame(frame):
         if "SaturatedDOMs" in frame:
