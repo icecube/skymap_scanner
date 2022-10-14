@@ -50,8 +50,8 @@ def make_condor_file(  # pylint: disable=R0913,R0914
 
         # write
         file.write(
-            f"""executable = python -m skymap_scanner.client
-arguments = {client_args}
+            f"""executable = python
+arguments = -m skymap_scanner.client {client_args}
 +SingularityImage = "{singularity_image}"
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
