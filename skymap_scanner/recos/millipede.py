@@ -32,7 +32,7 @@ class Millipede(RecoInterface):
     """Reco logic for millipede."""
 
     @icetray.traysegment
-    def exclusions(tray):
+    def exclusions(tray, name):
         # make sure the script doesn't fail because some objects alreadye exist
         def cleanupFrame(frame):
             if "SaturatedDOMs" in frame:
