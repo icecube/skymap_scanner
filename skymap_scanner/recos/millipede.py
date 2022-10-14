@@ -58,11 +58,11 @@ class Millipede(RecoInterface):
     muon_service = None
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
-        if Millipede.pulsesName not in frame:
+        if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
-        if Millipede.pulsesName + "TimeWindows" not in frame:
+        if pulsesName + "TimeWindows" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
-        if Millipede.pulsesName + "TimeRange" not in frame:
+        if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
     @icetray.traysegment
