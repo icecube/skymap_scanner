@@ -29,6 +29,7 @@ from wipac_dev_tools import logging_tools
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message, pixelreco
+from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
 from . import LOGGER
@@ -267,6 +268,7 @@ class PixelsToReco:
         self,
         nsides_dict: pixelreco.NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
+        baseline_GCD: str,
         min_nside: int,
         max_nside: int,
         input_time_name: str,
@@ -323,7 +325,7 @@ class PixelsToReco:
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
-        g_frame = GCDQp_packet[0]
+        g_frame = get_baseline_gcd_frames(baseline_GCD, GCDQp_packet, None)[0]
 
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
@@ -614,6 +616,7 @@ async def serve(
     event_id: str,
     nsides_dict: Optional[pixelreco.NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
+    baseline_GCD: str,
     output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
@@ -652,6 +655,7 @@ async def serve(
     pixeler = PixelsToReco(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
+        baseline_GCD=baseline_GCD,
         min_nside=min_nside,
         max_nside=max_nside,
         input_time_name=cfg.INPUT_TIME_NAME,
@@ -1018,6 +1022,7 @@ def main() -> None:
             event_id=event_id,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
             GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
+            baseline_GCD=state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,

@@ -74,6 +74,8 @@ class Millipede(RecoInterface):
             # Added BrightDOMs Nov 28 2015 since it was already in frame - Will
             if "BrightDOMs" in frame:
                 del frame["BrightDOMs"]
+            if "DeepCoreDOMs" in frame:
+                del frame["DeepCoreDOMs"]
 
         tray.AddModule(cleanupFrame, "cleanupFrame",
             Streams=[icetray.I3Frame.DAQ, icetray.I3Frame.Physics])
