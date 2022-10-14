@@ -53,6 +53,8 @@ class RecoAlgo(enum.Enum):
 
     MILLIPEDE = enum.auto()
     DUMMY = enum.auto()
+
+
 #
 # Env var constants: set as constants & typecast
 #
