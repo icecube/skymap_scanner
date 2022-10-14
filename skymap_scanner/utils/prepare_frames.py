@@ -109,6 +109,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         OutputSLC=nominalPulsesName+'SLC',
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
+    # TODO: how to set this differently for different recos?
     tray.AddModule('VHESelfVeto', 'selfveto',
         VertexThreshold=250,
         Pulses=nominalPulsesName+'HLC',
@@ -125,98 +126,6 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
                    OutputVertexTime=cfg.INPUT_TIME_NAME,
                    OutputVertexPos=cfg.INPUT_POS_NAME,
                    If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
-
-    # make sure the script doesn't fail because some objects alreadye exist
-    def cleanupFrame(frame):
-        if "SaturatedDOMs" in frame:
-            del frame["SaturatedDOMs"]
-        # Added BrightDOMs Nov 28 2015 since it was already in frame - Will
-        if "BrightDOMs" in frame:
-            del frame["BrightDOMs"]
-
-    tray.AddModule(cleanupFrame, "cleanupFrame",
-        Streams=[icetray.I3Frame.DAQ, icetray.I3Frame.Physics])
-
-    exclusionList = \
-    tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-        Pulses = nominalPulsesName,
-        ExcludeDeepCore='DeepCoreDOMs',
-        ExcludeSaturatedDOMs='SaturatedDOMs',
-        ExcludeBrightDOMs='BrightDOMs',
-        BrightDOMThreshold=2,
-        BadDomsList='BadDomsList',
-        CalibrationErrata='CalibrationErrata',
-        SaturationWindows='SaturationWindows'
-        )
-
-
-    # I like having frame objects in there even if they are empty for some frames
-    def createEmptyDOMLists(frame, ListNames=[]):
-        for name in ListNames:
-            if name in frame: continue
-            frame[name] = dataclasses.I3VectorOMKey()
-    tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
-        ListNames = ["BrightDOMs"],
-        Streams=[icetray.I3Frame.Physics])
-
-    # exclude bright DOMs
-    ExcludedDOMs = exclusionList
-
-    ##################
-
-    def _weighted_quantile_arg(values, weights, q=0.5):
-        indices = numpy.argsort(values)
-        sorted_indices = numpy.arange(len(values))[indices]
-        medianidx = (weights[indices].cumsum()/weights[indices].sum()).searchsorted(q)
-        if (0 <= medianidx) and (medianidx < len(values)):
-            return sorted_indices[medianidx]
-        else:
-            return numpy.nan
-
-    def weighted_quantile(values, weights, q=0.5):
-        if len(values) != len(weights):
-            raise ValueError("shape of `values` and `weights` don't match!")
-        index = _weighted_quantile_arg(values, weights, q=q)
-        if not numpy.isnan(index):
-            return values[index]
-        else:
-            return numpy.nan
-
-    def weighted_median(values, weights):
-        return weighted_quantile(values, weights, q=0.5)
-
-    def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
-        pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
-        mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
-        counter, charge = 0, 0
-        qtot = 0
-        times = dataclasses.I3TimeWindowSeriesMap()
-        for omkey, ps in pulses.items():
-            if len(ps) < 2:
-                if len(ps) == 1:
-                    qtot += ps[0].charge
-                continue
-            ts = numpy.asarray([p.time for p in ps])
-            cs = numpy.asarray([p.charge for p in ps])
-            median = weighted_median(ts, cs)
-            qtot += cs.sum()
-            for p in ps:
-                if p.time >= (median+Residual):
-                    if omkey not in times:
-                        ts = dataclasses.I3TimeWindowSeries()
-                        ts.append(dataclasses.I3TimeWindow(median+Residual, numpy.inf)) # this defines the **excluded** time window
-                        times[omkey] = ts
-                    mask.set(omkey, p, False)
-                    counter += 1
-                    charge += p.charge
-        frame[nominalPulsesName+"LatePulseCleaned"] = mask
-        frame[nominalPulsesName+"LatePulseCleanedTimeWindows"] = times
-        frame[nominalPulsesName+"LatePulseCleanedTimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
-
-    tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                    Pulses=nominalPulsesName,
-                    )
-    ExcludedDOMs = ExcludedDOMs + [nominalPulsesName+'LatePulseCleanedTimeWindows']
 
     if GCD_diff_base_filename is not None:
         def delFrameObjectsWithDiffsAvailable(frame):
@@ -235,4 +144,4 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
     tray.Finish()
     del tray
     
-    return (output_frames, ExcludedDOMs)
+    return output_frames

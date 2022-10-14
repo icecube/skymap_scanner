@@ -17,7 +17,6 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
 import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
-from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,
@@ -335,6 +334,9 @@ class PixelsToReco:
         self.event_header = p_frame["I3EventHeader"]
         self.event_mjd = get_event_mjd(self.GCDQp_packet)
 
+        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC')
+        self.omgeo = p_frame["I3Geometry"].omgeo
+
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
         thc = dataclasses.I3Constants.theta_cherenkov
@@ -449,8 +451,8 @@ class PixelsToReco:
                 thisPosition,
                 time,
                 direction,
-                dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC'),
-                p_frame["I3Geometry"].omgeo)
+                self.pulseseries_hlc,
+                self.omgeo)
             particle.energy = energy
             p_frame[f'{self.output_particle_name}'] = particle
 

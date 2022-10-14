@@ -131,14 +131,6 @@ def reco_pixel(
     # Constants ########################################################
 
     pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
-    ExcludedDOMs = [
-        "CalibrationErrata",
-        "BadDomsList",
-        "DeepCoreDOMs",
-        "SaturatedDOMs",
-        "BrightDOMs",
-        pulsesName + "TimeWindows",
-    ]
     SPEScale = 0.99
 
     # Load Data ########################################################
@@ -215,7 +207,6 @@ def reco_pixel(
         logger=LOGGER,
         muon_service=muon_service,
         cascade_service=cascade_service,
-        ExcludedDOMs=ExcludedDOMs,
         pulsesName=pulsesName,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"]
     )

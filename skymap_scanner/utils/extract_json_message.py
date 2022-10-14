@@ -188,11 +188,9 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         del ehe_override_gcd
 
     if GCD_diff_base_filename is not None:
-        frame_packet, ExcludedDOMs = prepare_frames(frame_packet, str(GCD_diff_base_handle), pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, str(GCD_diff_base_handle), pulsesName=pulsesName)
     else:
-        frame_packet, ExcludedDOMs = prepare_frames(frame_packet, None, pulsesName=pulsesName)
-
-    LOGGER.debug(f"ExcludedDOMs is {ExcludedDOMs}")
+        frame_packet = prepare_frames(frame_packet, None, pulsesName=pulsesName)
 
     # move the last packet frame from Physics to the 'p' stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
