@@ -2,7 +2,7 @@
 
 ########################################################################
 #
-# Launch the Skymap Scanner server
+# Launch a Skymap Scanner client
 #
 # Pass in the arguments as if this were just the python sub-module
 #
@@ -30,24 +30,16 @@ def extract_opt_path(py_args, opt):
         return f"{before} {after}", os.path.abspath(val)
     return f"{before} {after}", None
 
-py_args, event = extract_opt_path(py_args, "--event-file")
-py_args, cache = extract_opt_path(py_args, "--cache-dir")
-py_args, output = extract_opt_path(py_args, "--output-dir")
+py_args, debug_dir = extract_opt_path(py_args, "--debug-directory")
 py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
 py_args, startup = extract_opt_path(py_args, "--startup-json-dir")
 
 dockermount_args = ""
 py_args += " "
 
-if event:
-    dockermount_args += f"--mount type=bind,source={os.path.dirname(event)},target=/local/event,readonly "
-    py_args += f"--event-file /local/event/{os.path.basename(event)} "
-if cache:
-    dockermount_args += f"--mount type=bind,source={cache},target=/local/cache "
-    py_args += f"--cache-dir /local/cache "
-if output:
-    dockermount_args += f"--mount type=bind,source={output},target=/local/output "
-    py_args += f"--output-dir /local/output "
+if debug_dir:
+    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/debug "
+    py_args += f"--debug-directory /local/debug "
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
@@ -64,19 +56,22 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 set -x
 
 
-# Toggle Options
+# Figure where to get image
 PULL_POLICY="--pull=always"
-if [ "$CI_TESTING_USE_LOCAL_DOCKER" == "1" ]; then
+IMAGE_TAG="latest"
+if [ "$LOOK_FOR_LOCAL_IMAGE" == "1" ]; then
     PULL_POLICY=""
+    IMAGE_TAG="local"
 fi
 
 
 # Run
 docker run --network="host" $PULL_POLICY --rm -i \
+    --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=300}" \
-    icecube/skymap_scanner:latest \
-    python -m skymap_scanner.server \
+    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=900}" \
+    icecube/skymap_scanner:$IMAGE_TAG \
+    python -m skymap_scanner.client \
     $PY_ARGS

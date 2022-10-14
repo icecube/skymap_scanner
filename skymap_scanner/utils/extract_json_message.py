@@ -45,7 +45,7 @@ def extract_GCD_diff_base_filename(frame_packet):
     
     return GCD_diff_base_filename
 
-def extract_json_message(json_data, reco_algo: cfg.RecoAlgo, filestager, cache_dir="./cache/", override_GCD_filename=None):
+def extract_json_message(json_data, reco_algo: str, filestager, cache_dir="./cache/", override_GCD_filename=None):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
@@ -223,7 +223,7 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
     )
 
 
-def extract_json_messages(filenames, reco_algo: cfg.RecoAlgo, filestager, cache_dir="./cache", override_GCD_filename=None):
+def extract_json_messages(filenames, reco_algo: str, filestager, cache_dir="./cache", override_GCD_filename=None):
     all_messages = []
     return_packets = dict()
 
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     # do the work
     packets = extract_json_messages(
         filenames,
-        cfg.RecoAlgo[args.reco_algo.upper()],  # TODO: add --reco-algo (see start_scan.py)
+        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
         filestager=stagers,
         cache_dir=options.CACHEDIR,
         override_GCD_filename=options.OVERRIDEGCDFILENAME

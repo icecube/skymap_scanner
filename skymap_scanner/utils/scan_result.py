@@ -16,11 +16,9 @@ class InvalidPixelValueError(Exception):
 
 
 class ScanResult:
-    """
-    This class parses a nsides_dict and stores
-    the relevant numeric result of the scan. Ideally it should serve as
-    the basic data structure for plotting / processing / transmission of
-    the scan result.
+    """This class parses a nsides_dict and stores the relevant numeric result
+    of the scan. Ideally it should serve as the basic data structure for
+    plotting / processing / transmission of the scan result.
 
     nsides_dict is a dictionary keyed by 'nside' values for which a scan
     result is available (e.g. 8, 64, 512), see `pixelreco.NSidesDict`.
@@ -81,7 +79,8 @@ class ScanResult:
     def is_close_datapoint(
         self, s_val: float, o_val: float, field: str, equal_nan: bool
     ) -> Tuple[float, bool]:
-        """Get the diff float-value and test truth-value for the 2 pixel datapoints."""
+        """Get the diff float-value and test truth-value for the 2 pixel
+        datapoints."""
         if field not in self.require_close:
             raise ValueError(
                 f"Datapoint field ({field}) cannot be compared by "
@@ -113,7 +112,8 @@ class ScanResult:
         equal_nan: bool,
         do_disqualify_zero_energy_pixels: bool,  # TODO: remove?
     ) -> Tuple[List[float], List[bool]]:
-        """Get the diff float-values and test truth-values for the 2 pixel-data.
+        """Get the diff float-values and test truth-values for the 2 pixel-
+        data.
 
         The datapoints are compared face-to-face (zipped).
 
@@ -162,8 +162,8 @@ class ScanResult:
         dump_json_diff: Optional[Path] = None,
         do_disqualify_zero_energy_pixels: bool = False,  # TODO: remove?
     ) -> bool:
-        """
-        Checks if two results are close by requiring strict equality on pixel indices and close condition on numeric results.
+        """Checks if two results are close by requiring strict equality on
+        pixel indices and close condition on numeric results.
 
         Optionally, pass a `Path` for `dump_json_diff` to get a json
         file containing every diff at the pixel-data level.
@@ -247,9 +247,7 @@ class ScanResult:
 
     @classmethod
     def from_nsides_dict(cls, nsides_dict: NSidesDict) -> "ScanResult":
-        """
-        Factory method for nsides_dict
-        """
+        """Factory method for nsides_dict."""
         result = cls.load_pixels(nsides_dict)
         return cls(result)
 
@@ -290,9 +288,8 @@ class ScanResult:
     """
 
     def get_nside_string(self):
-        """
-        Returns a string string listing the nside values to be included in the output filename.
-        """
+        """Returns a string string listing the nside values to be included in
+        the output filename."""
         # keys have a 'nside-NNN' format but we just want to extract the nside values to build the string
         # parsing back and forth numbers to strings is not the most elegant choice but works for now
         # TODO: possibly better to use integer values as keys in self.result

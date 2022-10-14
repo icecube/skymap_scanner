@@ -5,6 +5,7 @@ import dataclasses as dc
 from typing import Any, Dict, Tuple
 
 from .. import config as cfg
+from .. import recos
 
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
@@ -45,38 +46,10 @@ class PixelReco:
     def from_i3frame(
         frame: I3Frame,
         geometry: I3Frame,
-        reco_algo: cfg.RecoAlgo,
+        reco_algo: str,
     ) -> "PixelReco":
         """Get a PixelReco instance by parsing the I3Frame."""
-
-        # import(s) that are dependent on icecube
-        from .load_scan_state import get_reco_losses_inside
-
-        # Calculate reco losses, based on load_scan_state()
-        reco_losses_inside, reco_losses_total = get_reco_losses_inside(
-            p_frame=frame, g_frame=geometry, reco_algo=reco_algo
-        )
-
-        if reco_algo == cfg.RecoAlgo.MILLIPEDE:
-            if "MillipedeStarting2ndPass_millipedellh" not in frame:
-                llh = float("nan")
-            else:
-                llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
-            return PixelReco(
-                nside=frame[cfg.I3FRAME_NSIDE].value,
-                pixel=frame[cfg.I3FRAME_PIXEL].value,
-                llh=llh,
-                reco_losses_inside=reco_losses_inside,
-                reco_losses_total=reco_losses_total,
-                pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
-                position=frame["MillipedeStarting2ndPass"].pos,
-                time=frame["MillipedeStarting2ndPass"].time,
-                energy=frame["MillipedeStarting2ndPass"].energy,
-            )
-        # elif ...:  # TODO (FUTURE DEV) - add other algos/traysegments
-        #     pass
-        else:
-            raise cfg.UnsupportedRecoAlgoException(reco_algo)
+        return recos.get_reco_interface_object(reco_algo).to_pixelreco(frame, geometry)
 
 
 NSidesDict = Dict[int, Dict[int, PixelReco]]

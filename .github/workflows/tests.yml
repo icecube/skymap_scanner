@@ -16,19 +16,93 @@ env:
   BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_REPORT_INTERVAL_SEC: 60
-  CI_TESTING_USE_LOCAL_DOCKER: 1
+  LOOK_FOR_LOCAL_IMAGE: 1
 
 jobs:
 
-  docker-build:
+  test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: 'true'
       - uses: actions/checkout@v3
+      - name: Checkout MQClient repo (for broker startup scripts)
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
+      - name: Start Broker
+        run: |
+          set -x
+          ./MQClient/resources/docker-pulsar.sh
+      - name: Apptainer/Singularity Deps
+        run: |
+          sudo apt-get -y install squashfuse fuse2fs
+      - uses: eWaterCycle/setup-apptainer@v1
+        with:
+          apptainer-version: 1.1.2
       - name: Build Docker Image
         run: |
-          docker build --no-cache -t icecube/skymap_scanner .
+          docker build --no-cache -t icecube/skymap_scanner:local .
+      - name: Build Singularity Image
+        run: |
+          sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner:local
+          ls -lh skymap_scanner.sif
+      - name: Run Singularity Container
+        run: |
+          mkdir $SKYSCAN_CACHE_DIR
+          mkdir $SKYSCAN_OUTPUT_DIR
 
-  test-run-all:
+          # Launch Server
+          singularity run skymap_scanner.sif \
+            python -m skymap_scanner.server \
+            --reco-algo dummy \
+            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
+            --cache-dir $SKYSCAN_CACHE_DIR \
+            --output-dir $SKYSCAN_OUTPUT_DIR \
+            --startup-json-dir . \
+            --broker $BROKER_ADDRESS \
+            --log DEBUG \
+            --log-third-party INFO \
+            --mini-test-variations \
+            --min-nside 1 \
+            --max-nside 1 \
+            &
+
+          ./scripts/launch_scripts/wait_for_startup_json.sh .
+
+          # Launch Clients
+          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          echo "Launching $nclients clients"
+          mkdir $SKYSCAN_DEBUG_DIR
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          for i in $( seq 1 $nclients ); do
+            singularity run skymap_scanner.sif \
+              python -m skymap_scanner.client \
+              --startup-json-dir . \
+              --broker $BROKER_ADDRESS \
+              --log DEBUG \
+              --log-third-party INFO \
+              --debug-directory $SKYSCAN_DEBUG_DIR \
+              &
+            echo -e "\tclient #$i launched"
+          done
+
+          # Wait for Everyone
+          wait -n  # for server
+          for i in $( seq 1 $nclients ); do
+            wait -n  # for client
+          done
+      - name: Look at Results File (.npz)
+        run: |
+          ls .
+          ls $SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
+          echo $outfile
+
+  test-run-docker:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -53,14 +127,15 @@ jobs:
           ./MQClient/resources/docker-pulsar.sh
       - name: Build Skymap Scanner Docker Image
         run: |
-          docker build --no-cache -t icecube/skymap_scanner .
+          docker build --no-cache -t icecube/skymap_scanner:local .
       - name: Run
         run: |
           set -x
-
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
-          ./scripts/launch_scripts/launch_server.sh \
+
+          # Launch Server
+          ./scripts/launch_scripts/docker/launch_server.sh \
             --reco-algo millipede \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
@@ -76,21 +151,23 @@ jobs:
 
           ./scripts/launch_scripts/wait_for_startup_json.sh .
 
+          # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
-            ./scripts/launch_scripts/launch_client.sh \
+            ./scripts/launch_scripts/docker/launch_client.sh \
               --startup-json-dir . \
               --broker $BROKER_ADDRESS \
               --log DEBUG \
               --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
-            echo -e "\t$i clients launched"
+            echo -e "\tclient #$i launched"
           done
 
+          # Wait for Everyone
           wait -n  # for server
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
@@ -109,7 +186,7 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-  test-run-pixel-reco:
+  test-run-one-reco-icetray:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -123,19 +200,40 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Skymap Scanner Docker Image
         run: |
-          docker build --no-cache -t icecube/skymap_scanner .
+          docker build --no-cache -t icecube/skymap_scanner:local .
       - name: Run
         run: |
-          jq '.GCDQp_packet' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json > tests/data/reco_pixel_pkls/${{ matrix.dir }}//GCDQp_packet.json
+          # grab the GCDQp_packet key and throw into a file
+          jq '.GCDQp_packet' \
+            tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json > \
+            tests/data/reco_pixel_pkls/${{ matrix.dir }}//GCDQp_packet.json
 
+          # move python file to subdir to make bindings simpler
+          cp tests/data/reco_pixel_pkls/get_toclient_msg_pkl.py \
+            tests/data/reco_pixel_pkls/${{ matrix.dir }}
+
+          # create the in.pkl
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:latest \
-            python -m skymap_scanner.client.reco_pixel_pkl \
-            --in-pkl /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.in.pkl)) \
+            icecube/skymap_scanner:local \
+            python /local/pkls/get_toclient_msg_pkl.py \
+            --pframe-pkl /local/pkls/pframe.pkl \
+            --reco-algo millipede
+
+          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.dir }}/in.pkl
+
+          # run
+          docker run --network="host" --rm -i \
+            --shm-size=6gb \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
+            --env PY_COLORS=1 \
+            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
+            icecube/skymap_scanner:local \
+            python -m skymap_scanner.client.reco_icetray \
+            --in-pkl /local/pkls/in.pkl \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl \
@@ -152,7 +250,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:latest \
+            icecube/skymap_scanner:local \
             python tests/compare_reco_pixel_pkl.py \
             --actual /local/pkls/out.pkl \
             --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)) \
