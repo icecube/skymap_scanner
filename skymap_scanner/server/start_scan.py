@@ -323,19 +323,20 @@ class PixelsToReco:
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
+        g_frame = GCDQp_packet[0]
+
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
-        self.GCDQp_packet = GCDQp_packet
 
         self.fallback_position = p_frame[self.input_pos_name]
         self.fallback_time = p_frame[self.input_time_name]
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(self.GCDQp_packet)
+        self.event_mjd = get_event_mjd(GCDQp_packet)
 
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC')
-        self.omgeo = p_frame["I3Geometry"].omgeo
+        self.omgeo = g_frame["I3Geometry"].omgeo
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
