@@ -3,6 +3,8 @@
 # fmt: off
 
 import datetime
+import os
+import copy
 from typing import Tuple
 
 import numpy
@@ -30,6 +32,38 @@ from . import RecoInterface
 
 class Millipede(RecoInterface):
     """Reco logic for millipede."""
+    # Constants ########################################################
+
+    pulsesName = "SplitUncleanedInIcePulses"
+    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+    SPEScale = 0.99
+
+    # Load Data ########################################################
+
+    # At HESE energies, deposited light is dominated by the stochastic losses
+    # (muon part emits so little light in comparison)
+    # This is why we can use cascade tables
+    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
+    _base = os.path.join(_splinedir, "cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
+    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_bfr-v2_z20.eff.fits")
+    for fname in [_base % "abs", _base % "prob", _effd]:
+        if not os.path.exists(fname):
+            raise FileNotFoundError(fname)
+    cascade_service = photonics_service.I3PhotoSplineService(
+        _base % "abs", _base % "prob", timingSigma=0.0,
+        effectivedistancetable = _effd,
+        tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/')
+    )
+    cascade_service.SetEfficiencies(SPEScale)
+    muon_service = None
+
+    def makeSurePulsesExist(frame, pulsesName) -> None:
+        if Millipede.pulsesName not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName))
+        if Millipede.pulsesName + "TimeWindows" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
+        if Millipede.pulsesName + "TimeRange" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
     @icetray.traysegment
     def exclusions(tray, name):
@@ -46,7 +80,7 @@ class Millipede(RecoInterface):
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = nominalPulsesName,
+            Pulses = Millipede.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -116,35 +150,38 @@ class Millipede(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[nominalPulsesName+"LatePulseCleaned"] = mask
-            frame[nominalPulsesName+"LatePulseCleanedTimeWindows"] = times
-            frame[nominalPulsesName+"LatePulseCleanedTimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
+            frame[Millipede.pulsesName_cleaned] = mask
+            frame[Millipede.pulsesName_cleaned+"TimeWindows"] = times
+            frame[Millipede.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                        Pulses=nominalPulsesName,
+                        Pulses=Millipede.pulsesName,
                         )
-        return ExcludedDOMs + [nominalPulsesName+'LatePulseCleanedTimeWindows']
+        return ExcludedDOMs + [Millipede.pulsesName_cleaned+'TimeWindows']
 
 
     @icetray.traysegment
-    def traysegment(tray, name, muon_service, cascade_service, pulsesName, logger, seed=None):
+    def traysegment(tray, name, logger, seed=None):
         """Perform Millipede reco."""
-        ExcludedDOMs = tray.Add(self.exclusions)
+        ExcludedDOMs = tray.Add(Millipede.exclusions)
+
+        tray.Add(Millipede.makeSurePulsesExist, pulsesName=Millipede.pulsesName_cleaned)
+
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
 
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=muon_service,
-            CascadePhotonicsService=cascade_service,
+            MuonPhotonicsService=Millipede.muon_service,
+            CascadePhotonicsService=Millipede.cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
             # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
-            ReadoutWindow=pulsesName+'TimeRange',
-            Pulses=pulsesName,
+            ReadoutWindow=Millipede.pulsesName_cleaned+'TimeRange',
+            Pulses=Millipede.pulsesName_cleaned,
             BinSigma=3,
             RelUncertainty=0.3)
 
@@ -268,9 +305,9 @@ class Millipede(RecoInterface):
 
     @staticmethod
     def UpdateStepXYZ(the_steps, direction, uniform_step=15*I3Units.m):
-        the_steps[f'StepX'] = numpy.sqrt(1-direction.x**2)*uniform_step
-        the_steps[f'StepY'] = numpy.sqrt(1-direction.y**2)*uniform_step
-        the_steps[f'StepZ'] = numpy.sqrt(1-direction.z**2)*uniform_step
+        the_steps['StepX'] = numpy.sqrt(1-direction.x**2)*uniform_step
+        the_steps['StepY'] = numpy.sqrt(1-direction.y**2)*uniform_step
+        the_steps['StepZ'] = numpy.sqrt(1-direction.z**2)*uniform_step
 
     @staticmethod
     def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
