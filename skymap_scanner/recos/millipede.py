@@ -59,6 +59,7 @@ class Millipede(RecoInterface):
             MaxIterations=2000,
             Tolerance=0.1,
             Algorithm="SIMPLEX",
+            MinuitPrintLevel=2
         )
         tray.context['imigrad'] = lilliput.IMinuitMinimizer(
             MaxIterations=1000,
@@ -69,6 +70,7 @@ class Millipede(RecoInterface):
             IgnoreEDM=True, # Don't report convergence failures
             CheckGradient=False, # Don't die on gradient errors
             MinuitStrategy=0, # Don't try to check local curvature
+            MinuitPrintLevel=2
             )
 
         ## TODO: try this MIGRAD, which fails
@@ -132,6 +134,7 @@ class Millipede(RecoInterface):
              Minimizer='imigrad')
         def notify1(frame):
             logger.debug(f"1st pass done! {datetime.datetime.now()}")
+            logger.debug(f"Seeded with: {frame[f'{cfg.OUTPUT_PARTICLE_NAME}']}")
             logger.debug(f"MillipedeStarting1stPass: {frame['MillipedeStarting1stPass']}")
 
         tray.AddModule(notify1, "notify1")
