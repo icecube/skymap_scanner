@@ -142,7 +142,7 @@ class Millipede(RecoInterface):
         tray.AddService('MuMillipedeParametrizationFactory', 'fineSteps', **finer_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'firstFitSeed',
-            FirstGuess='MillipedeStarting1stPass',
+            FirstGuesses=['MillipedeStarting1stPass'],
             TimeShiftType='TNone',
             PositionShiftType='None')
 
@@ -160,7 +160,7 @@ class Millipede(RecoInterface):
 
         tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
             OutputName='MillipedeStarting2ndPass',
-            SeedService='firstFitSeed',
+            SeedService='secondsimplexseed',
             Parametrization='fineSteps',
             LogLikelihood='millipedellh',
             Minimizer='imigrad')
