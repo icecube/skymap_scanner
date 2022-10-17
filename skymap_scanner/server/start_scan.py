@@ -344,7 +344,7 @@ class PixelsToReco:
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
 
         self.fallback_position = p_frame[self.input_pos_name]
-        self.fallback_time = p_frame[self.input_time_name]
+        self.fallback_time = p_frame[self.input_time_name].value
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
