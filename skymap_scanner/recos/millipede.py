@@ -179,18 +179,6 @@ class Millipede(RecoInterface):
         tray.AddService('I3GSLSimplexFactory', 'simplex',
             MaxIterations=20000)
 
-        ## TODO: try this MIGRAD, which fails
-        # tray.AddService("I3GulliverMinuit2Factory", 'migrad',
-        #                 MaxIterations=1000,
-        #                 Tolerance=0.1,
-        #                 Algorithm="MIGRAD",
-        #                 WithGradients=True,
-        #                 FlatnessCheck=False,
-        #                 IgnoreEDM=True, # Don't report convergence failures
-        #                 CheckGradient=False, # Don't die on gradient errors
-        #                 MinuitStrategy=0, # Don't try to check local curvature
-        #                 )
-
         coars_steps = dict(StepX=10.*I3Units.m,
                            StepY=10.*I3Units.m,
                            StepZ=10.*I3Units.m,
@@ -217,7 +205,7 @@ class Millipede(RecoInterface):
             PositionShiftType='None')
 
         tray.Add('I3SimpleFitter',
-            OutputName='MillipedeStarting1stPass_simplex',
+            OutputName='MillipedeStarting1stPass',
             SeedService='vetoseed',
             Parametrization='coarseSteps',
             LogLikelihood='millipedellh',
@@ -239,7 +227,7 @@ class Millipede(RecoInterface):
 
         tray.Add('I3SimpleFitter',
              SeedService='firstFitSeed',
-             OutputName='MillipedeStarting2ndPass_simplex',
+             OutputName='MillipedeStarting2ndPass',
              Parametrization='fineSteps',
              LogLikelihood='millipedellh',
              Minimizer='simplex')
