@@ -17,6 +17,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
 import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
+from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,
@@ -275,6 +276,7 @@ class PixelsToReco:
         input_pos_name: str,
         output_particle_name: str,
         mini_test_variations: bool,
+        reco_algo:str
     ) -> None:
         """
         Arguments:
@@ -294,28 +296,39 @@ class PixelsToReco:
                 - name of the output I3Particle
             `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
+            `reco_algo`
+                - name of the reconstruction algorithm to run
         """
         self.nsides_dict = nsides_dict
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
+        self.reco_algo = reco_algo.lower()
 
+
+        # Get Position Variations
+        variation_distance = 20.*I3Units.m
         # Production Scan or Mini-Test Scan?
         if mini_test_variations:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
+                dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-                ## with updated settings no need for multiple seeds
-                # dataclasses.I3Position(-variation_distance,0.,0.),
-                # dataclasses.I3Position(variation_distance,0.,0.),
-                # dataclasses.I3Position(0.,-variation_distance,0.),
-                # dataclasses.I3Position(0., variation_distance,0.),
-                # dataclasses.I3Position(0.,0.,-variation_distance),
-                # dataclasses.I3Position(0.,0., variation_distance)
-            ]
+            if self.reco_algo == 'millipede':
+                self.pos_variations = [
+                    dataclasses.I3Position(0.,0.,0.),
+                    dataclasses.I3Position(-variation_distance,0.,0.),
+                    dataclasses.I3Position(variation_distance,0.,0.),
+                    dataclasses.I3Position(0.,-variation_distance,0.),
+                    dataclasses.I3Position(0., variation_distance,0.),
+                    dataclasses.I3Position(0.,0.,-variation_distance),
+                    dataclasses.I3Position(0.,0., variation_distance)
+                    ]
+            else:
+                self.pos_variations = [
+                    dataclasses.I3Position(0.,0.,0.),
+                    ]
 
         # Set nside values
         if max_nside < min_nside:
@@ -398,9 +411,9 @@ class PixelsToReco:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        position = self.fallback_position
-        time = self.fallback_time
         if nside == self.min_nside:
+            position = self.fallback_position
+            time = self.fallback_time
             energy = self.fallback_energy
         else:
             coarser_nside = nside
@@ -435,9 +448,10 @@ class PixelsToReco:
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
-            # rotate variation to be applied in transverse plane
-            posVariation.rotate_y(direction.theta)
-            posVariation.rotate_z(direction.phi)
+            if self.reco_algo != 'millipede':
+                # rotate variation to be applied in transverse plane
+                posVariation.rotate_y(direction.theta)
+                posVariation.rotate_z(direction.phi)
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
             thisPosition = position+posVariation
@@ -448,14 +462,18 @@ class PixelsToReco:
             particle.fit_status = dataclasses.I3Particle.FitStatus.OK
             particle.pos = thisPosition
             particle.dir = direction
-            # given direction and vertex position, calculate time from CAD
-            # TODO: is there a better way to access the pulseseries
-            particle.time = self.refine_vertex_time(
-                thisPosition,
-                time,
-                direction,
-                self.pulseseries_hlc,
-                self.omgeo)
+            if self.reco_algo == 'millipede':
+                LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
+                particle.time = time
+            else:
+                LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
+                # given direction and vertex position, calculate time from CAD
+                particle.time = self.refine_vertex_time(
+                    thisPosition,
+                    time,
+                    direction,
+                    self.pulseseries_hlc,
+                    self.omgeo)
             particle.energy = energy
             p_frame[f'{self.output_particle_name}'] = particle
 
@@ -662,6 +680,7 @@ async def serve(
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
         mini_test_variations=mini_test_variations,
+        reco_algo=reco_algo
     )
 
     slack_interface = SlackInterface()
