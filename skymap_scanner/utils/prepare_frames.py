@@ -65,7 +65,7 @@ class FrameArraySink(icetray.I3Module):
         
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="SplitUncleanedInIcePulses"):
     from icecube import (
         DomTools,
         VHESelfVeto,
@@ -109,23 +109,31 @@ def prepare_frames(frame_array, GCD_diff_base_filename, pulsesName="SplitUnclean
         OutputSLC=nominalPulsesName+'SLC',
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
-    # TODO: how to set this differently for different recos?
-    tray.AddModule('VHESelfVeto', 'selfveto',
-        VertexThreshold=250,
-        Pulses=nominalPulsesName+'HLC',
-        OutputBool='HESE_VHESelfVeto',
-        OutputVertexTime=cfg.INPUT_TIME_NAME,
-        OutputVertexPos=cfg.INPUT_POS_NAME,
-        If=lambda frame: "HESE_VHESelfVeto" not in frame)
+    if reco_algo.lower() == 'millipede':
+        tray.AddModule('VHESelfVeto', 'selfveto',
+                       VertexThreshold=2,
+                       Pulses=nominalPulsesName+'HLC',
+                       OutputBool='HESE_VHESelfVeto',
+                       OutputVertexTime=cfg.INPUT_TIME_NAME,
+                       OutputVertexPos=cfg.INPUT_POS_NAME,
+                       If=lambda frame: "HESE_VHESelfVeto" not in frame)
+    else:
+        tray.AddModule('VHESelfVeto', 'selfveto',
+            VertexThreshold=250,
+            Pulses=nominalPulsesName+'HLC',
+            OutputBool='HESE_VHESelfVeto',
+            OutputVertexTime=cfg.INPUT_TIME_NAME,
+            OutputVertexPos=cfg.INPUT_POS_NAME,
+            If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
-    # this only runs if the previous module did not return anything
-    tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
-                   VertexThreshold=5,
-                   Pulses=nominalPulsesName+'HLC',
-                   OutputBool='VHESelfVeto_meaningless_lowen',
-                   OutputVertexTime=cfg.INPUT_TIME_NAME,
-                   OutputVertexPos=cfg.INPUT_POS_NAME,
-                   If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+        # this only runs if the previous module did not return anything
+        tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
+                       VertexThreshold=5,
+                       Pulses=nominalPulsesName+'HLC',
+                       OutputBool='VHESelfVeto_meaningless_lowen',
+                       OutputVertexTime=cfg.INPUT_TIME_NAME,
+                       OutputVertexPos=cfg.INPUT_POS_NAME,
+                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
     if GCD_diff_base_filename is not None:
         def delFrameObjectsWithDiffsAvailable(frame):

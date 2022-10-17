@@ -54,14 +54,14 @@ def extract_json_message(json_data, reco_algo: str, filestager, cache_dir="./cac
     # extract the packet
     frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
 
-    r = __extract_frame_packet(frame_packet, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
+    r = __extract_frame_packet(frame_packet, filestager=filestager, reco_algo=reco_algo, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
     event_id = r[1]
     state_dict = r[2]
 
     # try to load existing pixels if there are any
     return load_scan_state(event_id, state_dict, reco_algo, cache_dir=cache_dir)
 
-def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
+def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
@@ -188,9 +188,9 @@ def __extract_frame_packet(frame_packet, filestager, cache_dir="./cache/", overr
         del ehe_override_gcd
 
     if GCD_diff_base_filename is not None:
-        frame_packet = prepare_frames(frame_packet, str(GCD_diff_base_handle), pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, str(GCD_diff_base_handle), reco_algo, pulsesName=pulsesName)
     else:
-        frame_packet = prepare_frames(frame_packet, None, pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
 
     # move the last packet frame from Physics to the 'p' stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
