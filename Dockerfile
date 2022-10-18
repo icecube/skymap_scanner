@@ -94,7 +94,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zs
 RUN sudo apt-get install python3-pip -y
 RUN python3 -m pip install --upgrade pip
 RUN pip install .
-RUN pip install iminuit
 
 
 #
