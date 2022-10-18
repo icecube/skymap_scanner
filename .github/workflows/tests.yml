@@ -135,7 +135,7 @@ jobs:
 
           # Launch Server
           ./scripts/launch_scripts/docker/launch_server.sh \
-            --reco-algo millipede \
+            --reco-algo millipede2 \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
@@ -220,7 +220,7 @@ jobs:
             icecube/skymap_scanner:local \
             python /local/pkls/get_toclient_msg_pkl.py \
             --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo millipede
+            --reco-algo millipede2
 
           hexdump -C tests/data/reco_pixel_pkls/${{ matrix.dir }}/in.pkl
 

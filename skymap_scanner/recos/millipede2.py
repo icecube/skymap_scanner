@@ -34,7 +34,8 @@ class Millipede2(RecoInterface):
     """Reco logic for millipede."""
     # Constants ########################################################
 
-    pulsesName = "SplitUncleanedInIcePulses"
+    pulsesNameOrig = "SplitUncleanedInIcePulses"
+    pulsesName = "SplitUncleanedInIcePulsesIC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     # Load Data ########################################################
@@ -155,6 +156,11 @@ class Millipede2(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform Millipede2 reco."""
+        def mask_dc(frame, origpulses, maskedpulses):
+            frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
+                frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
+        tray.Add(mask_dc, Millipede2.pulsesNameOrig, Millipede2.pulsesName)
+
         ExcludedDOMs = tray.Add(Millipede2.exclusions)
 
         tray.Add(Millipede2.makeSurePulsesExist, pulsesName=Millipede2.pulsesName_cleaned)
