@@ -34,7 +34,7 @@ class Millipede2(RecoInterface):
     """Reco logic for millipede."""
     # Constants ########################################################
 
-    pulsesNameOrig = "SplitUncleanedInIcePulses"
+    pulsesName_orig = "SplitUncleanedInIcePulses"
     pulsesName = "SplitUncleanedInIcePulsesIC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
@@ -145,7 +145,7 @@ class Millipede2(RecoInterface):
                         charge += p.charge
             frame[Millipede2.pulsesName_cleaned] = mask
             frame[Millipede2.pulsesName_cleaned+"TimeWindows"] = times
-            frame[Millipede2.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
+            frame[Millipede2.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Millipede2.pulsesName_orig+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
                        Pulses=Millipede2.pulsesName,
@@ -159,7 +159,7 @@ class Millipede2(RecoInterface):
         def mask_dc(frame, origpulses, maskedpulses):
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
                 frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
-        tray.Add(mask_dc, origpulses=Millipede2.pulsesNameOrig, maskedpulses=Millipede2.pulsesName)
+        tray.Add(mask_dc, origpulses=Millipede2.pulsesName_orig, maskedpulses=Millipede2.pulsesName)
 
         ExcludedDOMs = tray.Add(Millipede2.exclusions)
 
