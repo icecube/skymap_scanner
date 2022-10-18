@@ -159,7 +159,7 @@ class Millipede2(RecoInterface):
         def mask_dc(frame, origpulses, maskedpulses):
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
                 frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
-        tray.Add(mask_dc, Millipede2.pulsesNameOrig, Millipede2.pulsesName)
+        tray.Add(mask_dc, origpulses=Millipede2.pulsesNameOrig, maskedpulses=Millipede2.pulsesName)
 
         ExcludedDOMs = tray.Add(Millipede2.exclusions)
 
