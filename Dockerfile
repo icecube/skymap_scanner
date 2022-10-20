@@ -27,34 +27,6 @@ RUN ls /opt/i3-data/baseline_gcds
 
 
 #
-# Setup Python
-#
-
-# from https://gist.github.com/jprjr/7667947#gistcomment-3684823
-
-ENV PYTHON_VERSION 3.8.10
-
-# Set of all dependencies needed for pyenv to work on Ubuntu
-RUN apt-get install ca-certificates
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget ca-certificates curl llvm libncurses5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev mecab-ipadic-utf8 git
-
-# Set-up necessary Env vars for PyEnv
-ENV PYENV_ROOT /root/.pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
-
-# Install pyenv
-RUN set -ex \
-    && curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash \
-    && pyenv update \
-    && pyenv install $PYTHON_VERSION \
-    && pyenv global $PYTHON_VERSION \
-    && pyenv rehash
-
-RUN python3 -V
-
-
-#
 # Get IceTray Setup
 #
 
