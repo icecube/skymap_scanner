@@ -28,7 +28,7 @@ jobs:
         with:
           tool-cache: 'true'
       - uses: actions/checkout@v3
-      - uses: eWaterCycle/setup-apptainer@v1
+      - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.1.2
       - name: Build Docker Image
@@ -56,7 +56,7 @@ jobs:
         run: |
           set -x
           ./MQClient/resources/docker-pulsar.sh
-      - uses: eWaterCycle/setup-apptainer@v1
+      - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.1.2
       - name: Build Docker Image
