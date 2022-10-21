@@ -12,6 +12,8 @@ jobs:
   docker:
     name: "Docker Image"
     runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.docker_meta.outputs.tags }}
     steps:
 
     - name: Checkout Project
@@ -19,6 +21,7 @@ jobs:
 
     - name: Docker meta
       id: docker_meta
+      # if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }} # TODO
       uses: docker/metadata-action@v4
       with:
         images: |
@@ -46,23 +49,35 @@ jobs:
 
   singularity-cvmfs:
     name: "Publish Singularity Image to CVMFS"
+    needs: [docker]
     runs-on: ubuntu-latest
     steps:
-
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          path: repo
 
       - name: Checkout WIPACrepo/cvmfs-actions
         uses: actions/checkout@v3
         with:
           repository: WIPACrepo/cvmfs-actions
           path: cvmfs-actions
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so your job can access it
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
 
       - name: Git config
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
 
+      - name: Append Image to docker_images.txt
+        run: |
+          cd cvmfs-actions
+          for TAG in ${{ fromJSON(needs.docker.outputs.tags) }}; do
+            # docker://icecube/skymap_scanner:3 realtime/skymap_scanner:3
+            LINE='docker://icecube/skymap_scanner:$TAG realtime/skymap_scanner:$TAG'
+            # remove all instances of the line
+            sed '/$LINE/d' ./docker_images.txt
+            sed '/-$LINE/d' ./docker_images.txt
+            # and append it to the end
+            echo $LINE >> docker_images.txt
+          done
+
+          git add docker_images.txt || true
+          git commit -m "<bot> update docker_images.txt ($LINE)" || true
+          git push
