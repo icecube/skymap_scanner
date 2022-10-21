@@ -1,4 +1,4 @@
-name: docker releases
+name: docker & singularity/cvmfs releases
 
 on:
   push:
@@ -43,3 +43,26 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
+
+  singularity-cvmfs:
+    name: "Publish Singularity Image to CVMFS"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          path: repo
+
+      - name: Checkout WIPACrepo/cvmfs-actions
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/cvmfs-actions
+          path: cvmfs-actions
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so your job can access it
+
+      - name: Git config
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
