@@ -3,6 +3,7 @@
 import argparse
 import datetime as dt
 import getpass
+import json
 import logging
 import os
 import subprocess
@@ -146,9 +147,9 @@ def main() -> None:
         type=lambda x: wait_for_file(x, 60 * 25),
     )
     parser.add_argument(
-        "--client-args-file",
+        "--client-args-json",
         required=True,
-        help="a text file containing the python CL arguments to pass to skymap_scanner.client",
+        help="a JSON file containing the python CL arguments to pass to skymap_scanner.client",
     )
 
     args = parser.parse_args()
@@ -159,12 +160,12 @@ def main() -> None:
     scratch = make_condor_scratch_dir()
 
     # get client args
-    with open(args.client_args_file) as f:
-        client_args = f.read()
+    with open(args.client_args_json) as f:
+        client_args = " ".join(f"{k} {v}" for k, v in json.load(f).items())
         logging.info(f"Client Args: {client_args}")
     if "--startup-json-dir" in client_args:
         raise RuntimeError(
-            "The '--client-args-file' file cannot include \"--startup-json-dir\". "
+            "The '--client-args-json' file cannot include \"--startup-json-dir\". "
             "This needs to be defined explicitly with '--startup-json'."
         )
     client_args += " --startup-json-dir . "  # actual file will be transferred
