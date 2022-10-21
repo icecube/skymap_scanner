@@ -42,24 +42,24 @@ singularity run skymap_scanner.sif \
 ##### Figure Your Args
 ```
     --broker BROKER_ADDRESS \
-    --auth-token `cat ~/skyscan-broker.token` \
+    --auth-token AUTH_TOKEN \
     --timeout-to-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT \
     --timeout-from-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 ```
 _NOTE: There are more CL arguments not shown. They have defaults._
 ##### Run It
 ###### with Condor (via Singularity)
-You'll want to put your `skymap_scanner.client` args in a file, then pass that to the helper script.
+You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
 ```
-echo $YOUR_ARGS > my_client_args.txt  # just an example
+echo my_client_args.json  # just an example
 ./scripts/launch_scripts/condor/spawn_condor_clients.py \
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
     --startup-json PATH_TO_STARTUP_JSON \
-    --client-args-file my_client_args.txt
+    --client-args-json my_client_args.json
 ```
-_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-file` file._
+_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-json` file._
 ###### or Manually (Docker)
 ```
 ./scripts/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
