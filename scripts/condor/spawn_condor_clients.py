@@ -52,7 +52,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         # write
         file.write(
             f"""executable = python
-arguments = -m skymap_scanner.client {client_args}
+arguments = -m skymap_scanner.client {client_args} --startup-json-dir .
 +SingularityImage = "{singularity_image}"
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
@@ -168,7 +168,6 @@ def main() -> None:
             "The '--client-args-json' file cannot include \"--startup-json-dir\". "
             "This needs to be defined explicitly with '--startup-json'."
         )
-    client_args += " --startup-json-dir . "  # actual file will be transferred
 
     # make condor file
     condorpath = make_condor_file(
