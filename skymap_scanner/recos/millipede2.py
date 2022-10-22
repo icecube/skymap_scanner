@@ -229,7 +229,7 @@ class Millipede2(RecoInterface):
                            StepZenith=0.,
                            StepAzimuth=0.,
                            StepT=5.*I3Units.ns,
-                           ShowerSpacing=1.*I3Units.m,
+                           ShowerSpacing=2.5*I3Units.m,
                            MuonSpacing=0,
                            Boundary=700*I3Units.m)
         if seed is not None:
