@@ -194,7 +194,7 @@ class Millipede(RecoInterface):
                            StepZenith=0.,
                            StepAzimuth=0.,
                            StepT=5.*I3Units.ns,
-                           ShowerSpacing=1.*I3Units.m,
+                           ShowerSpacing=2.5*I3Units.m,
                            MuonSpacing=0)
 
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
