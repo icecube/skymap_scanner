@@ -72,8 +72,11 @@ jobs:
         run: |
           cd cvmfs-actions
           for TAG in ${{ fromJSON(needs.docker.outputs.tags) }}; do
-            # docker://icecube/skymap_scanner:3 realtime/skymap_scanner:3
-            LINE='docker://icecube/skymap_scanner:$TAG realtime/skymap_scanner:$TAG'
+            echo $TAG
+            # TAG  =  icecube/skymap_scanner:3
+            # LINE = docker://icecube/skymap_scanner:3 realtime/skymap_scanner:3
+            LINE="docker://$TAG $( sed "s/icecube/realtime/g" <<< $TAG )"
+            echo $LINE
             # remove all instances of the line
             sed '/$LINE/d' ./docker_images.txt
             sed '/-$LINE/d' ./docker_images.txt
