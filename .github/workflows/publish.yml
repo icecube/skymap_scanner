@@ -75,7 +75,7 @@ jobs:
             echo $TAG
             # TAG  =  icecube/skymap_scanner:3
             # LINE = docker://icecube/skymap_scanner:3 realtime/skymap_scanner:3
-            LINE="docker://$TAG $( sed "s/icecube/realtime/g" <<< $TAG )"
+            LINE="docker://$TAG $( sed 's/icecube/realtime/g' <<< $TAG )"
             echo $LINE
             # remove all instances of the line
             sed '/$LINE/d' ./docker_images.txt
