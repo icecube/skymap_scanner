@@ -29,7 +29,7 @@ jobs:
             # branches/PRs
             type=sha,prefix={{branch}}-,enable=${{ github.ref != format('refs/heads/{0}', github.event.repository.default_branch ) }}
             # work for default_branch
-            type=ref,event=branch,enable={{ enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch ) }} }}
+            type=ref,event=branch,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch ) }}
             # work for tags
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
