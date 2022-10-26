@@ -57,58 +57,10 @@ jobs:
     needs: [docker]
     runs-on: ubuntu-latest
     steps:
-
-      - name: Checkout WIPACrepo/cvmfs-actions
-        uses: actions/checkout@v3
+      - uses: WIPACrepo/cvmfs-actions@v1.1
         with:
-          repository: WIPACrepo/cvmfs-actions
-          path: cvmfs-actions
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-
-      - name: Git config
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-
-      - name: Request to Add Image to CVMFS
-        if: ${{ github.event_name != 'delete' }}
-        run: |
-          cd cvmfs-actions
-          for TAG in ${{ fromJSON(needs.docker.outputs.tags) }}; do
-            echo $TAG
-            # TAG  =  icecube/skymap_scanner:3
-            # LINE = docker://icecube/skymap_scanner:3 realtime/skymap_scanner:3
-            LINE="docker://$TAG $( sed 's/icecube/realtime/g' <<< $TAG )"
-            echo $LINE
-            # remove all instances of the line
-            sed '/$LINE/d' ./docker_images.txt
-            sed '/-$LINE/d' ./docker_images.txt
-            # and append it to the end
-            echo $LINE >> docker_images.txt
-          done
-
-          git add docker_images.txt || true
-          git commit -m "<bot> update docker_images.txt ($LINE)" || true
-          git push
-
-      - name: Request to Remove Image from CVMFS
-        if: ${{ github.event_name == 'delete' }}
-        run: |
-        cd cvmfs-actions
-        for TAG in ${{ fromJSON(needs.docker.outputs.tags) }}; do
-          echo $TAG
-          # TAG  =  icecube/skymap_scanner:3
-          # LINE = docker://icecube/skymap_scanner:3 realtime/skymap_scanner:3
-          LINE_NO_DASH="docker://$TAG $( sed 's/icecube/realtime/g' <<< $TAG )"
-          LINE="- $LINE_NO_DASH"
-          echo $LINE
-          # remove all instances of the line
-          sed '/$LINE/d' ./docker_images.txt
-          sed '/$LINE_NO_DASH/d' ./docker_images.txt
-          # and append it to the end
-          echo $LINE >> docker_images.txt
-        done
-
-        git add docker_images.txt || true
-        git commit -m "<bot> update docker_images.txt ($LINE)" || true
-        git push
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
+          remove: ${{ github.event_name == 'delete' }}
+          docker_tags: ${{ needs.docker.outputs.tags }}
+          dest_dir: realtime
+          include_docker_repo: false
