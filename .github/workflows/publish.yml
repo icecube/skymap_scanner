@@ -72,7 +72,7 @@ jobs:
           # release tags
           type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
 
-    - uses: WIPACrepo/cvmfs-actions@v1.1
+    - uses: WIPACrepo/build-singularity-cvmfs-action@v1.1
       with:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
         remove: ${{ github.event_name == 'delete' }}
