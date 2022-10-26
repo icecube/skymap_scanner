@@ -53,7 +53,8 @@ jobs:
     needs: [docker]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Project
+
+    - name: Checkout Project
       uses: actions/checkout@v3
 
     - name: Docker meta
@@ -70,10 +71,11 @@ jobs:
           type=sha,prefix={{branch}}-,enable=${{ github.ref_type == "branch" }}
           # release tags
           type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == "tag" }}
-      - uses: WIPACrepo/cvmfs-actions@v1.1
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-          remove: ${{ github.event_name == 'delete' }}
-          docker_tags: ${{ docker_meta.tags }}
-          dest_dir: realtime
-          include_docker_repo: false
+
+    - uses: WIPACrepo/cvmfs-actions@v1.1
+      with:
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
+        remove: ${{ github.event_name == 'delete' }}
+        docker_tags: ${{ docker_meta.tags }}
+        dest_dir: realtime
+        include_docker_repo: false
