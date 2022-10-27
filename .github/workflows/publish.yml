@@ -1,0 +1,81 @@
+name: docker & singularity/cvmfs releases
+
+on:
+  push:
+    branches-ignore:
+      - '**'
+    tags:
+      - '**'
+  workflow_dispatch:
+  delete:
+
+jobs:
+  docker:
+    if: ${{ github.event_name != 'delete' }}
+    name: "Docker Image"
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Project
+      uses: actions/checkout@v3
+
+    - name: Docker meta
+      id: docker_meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          icecube/skymap_scanner
+        tags: |
+            # branches (PRs)
+            type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
+            # release tags
+            type=semver,pattern={{major}},enable=${{ github.ref_type == 'tag' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_type == 'tag' }}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      if: ${{ github.event_name != 'pull_request' }}
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Push Docker Image
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.docker_meta.outputs.tags }}
+        labels: ${{ steps.docker_meta.outputs.labels }}
+
+  cvmfs:
+    name: Publish Image to CVMFS
+    needs: [docker]
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Project
+      uses: actions/checkout@v3
+
+    - name: Docker meta
+      id: docker_meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          icecube/skymap_scanner
+        flavor: |
+          latest=false
+        tags: |
+          # we only want to put version/sha -specific images on CVMFS
+          # branches (PRs)
+          type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
+          # release tags
+          type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
+
+    - uses: WIPACrepo/build-singularity-cvmfs-action@v1.1
+      with:
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
+        remove: ${{ github.event_name == 'delete' }}
+        docker_tags: ${{ steps.docker_meta.outputs.tags }}
+        dest_dir: realtime
+        include_docker_repo: false

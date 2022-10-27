@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-astropy==5.1
+astropy==5.1.1
     # via healpy
 asyncstdlib==3.10.5
     # via
@@ -77,7 +77,7 @@ typing-extensions==4.4.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools[coloredlogs]==1.5.6
+wipac-dev-tools[coloredlogs]==1.6.0
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient
