@@ -32,7 +32,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     memory: str,
     accounting_group: str,
     # skymap scanner args
-    cvmfs_image_tag: str,
+    singularity_image: str,
     startup_json: Path,
     client_args: str,
 ) -> str:
@@ -66,7 +66,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         file.write(
             f"""executable = /bin/sh
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .
-+SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:{cvmfs_image_tag}"
++SingularityImage = "{singularity_image}"
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
 log = {scratch}/skymap_scanner.log
@@ -149,10 +149,9 @@ def main() -> None:
 
     # client args
     parser.add_argument(
-        "--cvmfs-image-tag",
+        "--singularity-image",
         required=True,
-        help="the specified tag of the CVMFS-hosted Skymap Scanner image. "
-        "Ex: TAG -> /cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:TAG",
+        help="a path or url to the singularity image",
     )
     parser.add_argument(
         "--startup-json",
@@ -190,7 +189,7 @@ def main() -> None:
         args.memory,
         args.accounting_group,
         # skymap scanner args
-        args.cvmfs_image_tag,
+        args.singularity_image,
         args.startup_json,
         client_args,
     )
