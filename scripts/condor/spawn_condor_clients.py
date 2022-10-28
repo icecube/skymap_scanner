@@ -49,10 +49,23 @@ def make_condor_file(  # pylint: disable=R0913,R0914
 
         transfer_input_files: List[str] = [startup_json]
 
+        # NOTE:
+        # In the newest version of condor we could use:
+        #   universe = container
+        #   container_image = ...
+        #   arguments = python -m ...
+        # But for now, we're stuck with:
+        #   executable = ...
+        #   +SingularityImage = ...
+        #   arguments = /usr/local/icetray/env-shell.sh python -m ...
+        # Because "this universe doesn't know how to do the
+        #   entrypoint, and loading the icetray env file
+        #   directly from cvmfs messes up the paths" -DS
+
         # write
         file.write(
-            f"""executable = python
-arguments = -m skymap_scanner.client {client_args} --startup-json-dir .
+            f"""executable = /bin/sh
+arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .
 +SingularityImage = "{singularity_image}"
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
@@ -138,7 +151,6 @@ def main() -> None:
     parser.add_argument(
         "--singularity-image",
         required=True,
-        # TODO - put default as CVMFS path, once that exists
         help="a path or url to the singularity image",
     )
     parser.add_argument(
