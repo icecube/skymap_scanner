@@ -28,7 +28,7 @@ The server will create a `startup.json` file that has necessary info to launch a
 ##### Run It
 ###### with Singularity
 ```
-singularity run skymap_scanner.sif \
+singularity run FULLPATH_TO_CVMFS_HOSTED_IMAGE \ # ex: /cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:.../
     python -m skymap_scanner.server \
     YOUR_ARGS
 ```
@@ -55,7 +55,7 @@ echo my_client_args.json  # just an example
 ./scripts/launch_scripts/condor/spawn_condor_clients.py \
     --jobs #### \
     --memory #GB \
-    --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
+    --cvmfs-image-tag TAG_OF_CVMFS_HOSTED_IMAGE \  # just the tag portion of the filepath
     --startup-json PATH_TO_STARTUP_JSON \
     --client-args-json my_client_args.json
 ```
