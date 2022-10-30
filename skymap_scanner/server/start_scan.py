@@ -808,7 +808,7 @@ async def serve_scan_iteration(
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if len(col.pixreco_ids_received-col.pixreco_ids_sent) == 0:
+                if len(col.pixreco_ids_sent-col.pixreco_ids_received) == 0:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
