@@ -51,7 +51,7 @@ packaging==21.3
     # via
     #   astropy
     #   matplotlib
-pillow==9.2.0
+pillow==9.3.0
     # via matplotlib
 pulsar-client==2.10.2
     # via wipac-mqclient
