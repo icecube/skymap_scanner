@@ -566,6 +566,7 @@ class PixelRecoCollector:
         event_id: str,
         global_start_time: float,
         slack_interface: SlackInterface,
+        pixreco_ids_sent: Set[Tuple[int, int, int]]
     ) -> None:
         self.finder = BestPixelRecoFinder(
             n_posvar=n_posvar,
@@ -581,7 +582,8 @@ class PixelRecoCollector:
         )
         self.nsides_dict = nsides_dict
         self.global_start_time = global_start_time
-        self.pixreco_ids_received: List[Tuple[int, int, int]] = []
+        self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
+        self.pixreco_ids_sent = pixreco_ids_sent
 
     def __enter__(self) -> "PixelRecoCollector":
         self.progress_reporter.initial_report(self.global_start_time)
@@ -599,7 +601,12 @@ class PixelRecoCollector:
             raise DuplicatePixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
-        self.pixreco_ids_received.append(pixreco.id_tuple)
+        if pixreco.id_tuple not in self.pixreco_ids_sent:
+            raise DuplicatePixelRecoException(
+                f"Pixel-reco received not in sent set, it is probably from an earlier iteration: {pixreco.id_tuple}"
+            )
+            
+        self.pixreco_ids_received.add(pixreco.id_tuple)
         logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
@@ -748,10 +755,12 @@ async def serve_scan_iteration(
 
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
+    pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
+            _tup = pixelreco.pixel_to_tuple(pframe)
             LOGGER.info(
-                f"Sending message M#{i} ({pixelreco.pixel_to_tuple(pframe)})..."
+                f"Sending message M#{i} ({_tup})..."
             )
             await pub.send(
                 {
@@ -759,6 +768,7 @@ async def serve_scan_iteration(
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
+            pixreco_ids_sent.add(_tup)
 
     # check if anything was actually processed
     try:
@@ -781,6 +791,7 @@ async def serve_scan_iteration(
         event_id=event_id,
         global_start_time=global_start_time,
         slack_interface=slack_interface,
+        pixreco_ids_sent=pixreco_ids_sent
     )
 
     # get pixel-recos from client(s), collect and save
@@ -797,7 +808,7 @@ async def serve_scan_iteration(
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if len(col.pixreco_ids_received) == n_pixreco:
+                if len(col.pixreco_ids_received-col.pixreco_ids_sent) == 0:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
