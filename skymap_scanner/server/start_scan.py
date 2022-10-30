@@ -12,7 +12,7 @@ import os
 import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union, Set
 
 import healpy  # type: ignore[import]
 import mqclient as mq
