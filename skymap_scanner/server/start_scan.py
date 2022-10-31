@@ -559,7 +559,6 @@ class PixelRecoCollector:
     def __init__(
         self,
         n_posvar: int,  # Number of position variations to collect
-        n_pixreco: int,  # Number of expected pixel-reconstructions
         min_nside: int,
         max_nside: int,
         nsides_dict: pixelreco.NSidesDict,
@@ -573,7 +572,7 @@ class PixelRecoCollector:
         )
         self.progress_reporter = ProgressReporter(
             nsides_dict,
-            n_pixreco,
+            len(pixreco_ids_sent),
             n_posvar,
             min_nside,
             max_nside,
@@ -771,12 +770,10 @@ async def serve_scan_iteration(
             pixreco_ids_sent.add(_tup)
 
     # check if anything was actually processed
-    try:
-        n_pixreco = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError:
+    if not pixreco_ids_sent:
         LOGGER.info("No pixels were sent for this iteration.")
         return 0
-    LOGGER.info(f"Done serving pixel-variations to clients: {n_pixreco}.")
+    LOGGER.info(f"Done serving pixel-variations to clients: {len(pixreco_ids_sent)}.")
 
     #
     # COLLECT PIXEL-RECOS
@@ -784,7 +781,6 @@ async def serve_scan_iteration(
 
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
-        n_pixreco=n_pixreco,
         min_nside=pixeler.min_nside,
         max_nside=pixeler.max_nside,
         nsides_dict=nsides_dict,
@@ -812,7 +808,7 @@ async def serve_scan_iteration(
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return n_pixreco
+    return len(pixreco_ids_sent)
 
 
 def write_startup_json(
