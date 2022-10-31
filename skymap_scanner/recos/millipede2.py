@@ -244,23 +244,12 @@ class Millipede2(RecoInterface):
             PositionShiftType='None')
 
         tray.Add('I3SimpleFitter',
-            OutputName='MillipedeStarting1stPass_simplex',
+            OutputName='MillipedeStarting1stPass',
             SeedService='vetoseed',
             Parametrization='coarseSteps',
             LogLikelihood='millipedellh',
             Minimizer='isimplex')
 
-        tray.AddService('I3BasicSeedServiceFactory', 'firstsimplexseed',
-                        FirstGuesses=['MillipedeStarting1stPass_simplex'],
-                        TimeShiftType='TNone',
-                        PositionShiftType='None')
-
-        tray.Add('I3SimpleFitter',
-             SeedService='firstsimplexseed',
-             OutputName='MillipedeStarting1stPass',
-             Parametrization='coarseSteps',
-             LogLikelihood='millipedellh',
-             Minimizer='imigrad')
         def notify1(frame):
             logger.debug(f"1st pass done! {datetime.datetime.now()}")
             logger.debug(f"Seeded with: {frame[f'{cfg.OUTPUT_PARTICLE_NAME}']}")
@@ -277,22 +266,10 @@ class Millipede2(RecoInterface):
 
         tray.Add('I3SimpleFitter',
              SeedService='firstFitSeed',
-             OutputName='MillipedeStarting2ndPass_simplex',
+             OutputName='MillipedeStarting2ndPass',
              Parametrization='fineSteps',
              LogLikelihood='millipedellh',
-             Minimizer='isimplex')
-
-        tray.AddService('I3BasicSeedServiceFactory', 'secondsimplexseed',
-                        FirstGuesses=['MillipedeStarting2ndPass_simplex'],
-                        TimeShiftType='TNone',
-                        PositionShiftType='None')
-
-        tray.AddModule('I3SimpleFitter', 'MillipedeStarting2ndPass',
-            OutputName='MillipedeStarting2ndPass',
-            SeedService='secondsimplexseed',
-            Parametrization='fineSteps',
-            LogLikelihood='millipedellh',
-            Minimizer='imigrad')
+             Minimizer='imigrad')
 
         def notify2(frame):
             logger.debug(f"2nd pass done! {datetime.datetime.now()}")
