@@ -109,7 +109,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
         OutputSLC=nominalPulsesName+'SLC',
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
-    if reco_algo.lower() == 'millipede':
+    if reco_algo.lower() == 'millipede_original':
         tray.AddModule('VHESelfVeto', 'selfveto',
                        VertexThreshold=2,
                        Pulses=nominalPulsesName+'HLC',

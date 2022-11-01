@@ -51,8 +51,8 @@ MSG_KEY_PFRAME: Final = "pframe"
 class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""
 
-    MILLIPEDE = enum.auto()
-    MILLIPEDE2 = enum.auto()
+    MILLIPEDE_ORIGINAL = enum.auto()
+    MILLIPEDE_WILKS = enum.auto()
     DUMMY = enum.auto()
 
 

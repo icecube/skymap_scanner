@@ -30,30 +30,28 @@ from ..utils.pixelreco import PixelReco
 from . import RecoInterface
 
 
-class Millipede2(RecoInterface):
+class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
     # Constants ########################################################
 
-    pulsesName_orig = "SplitUncleanedInIcePulses"
-    pulsesName = "SplitUncleanedInIcePulsesIC"
+    pulsesName = "SplitUncleanedInIcePulses"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+    SPEScale = 0.99
 
     # Load Data ########################################################
 
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
-    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_bfr-v2_z20.eff.fits")
-    for fname in [_base % "abs", _base % "prob", _effd]:
+    _splinedir = os.path.expandvars("$I3_TESTDATA/photospline")
+    _base = os.path.join(_splinedir, "ems_mie_z20_a10.%s.fits")
+    for fname in [_base % "abs", _base % "prob"]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0,
-        effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/')
+        _base % "abs", _base % "prob", timingSigma=0.0
     )
+    cascade_service.SetEfficiencies(SPEScale)
     muon_service = None
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
@@ -69,17 +67,16 @@ class Millipede2(RecoInterface):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 Millipede2.pulsesName_cleaned,
-                                 Millipede2.pulsesName_cleaned+'TimeWindows',
-                                 Millipede2.pulsesName_cleaned+'TimeRange'])
+                                 MillipedeOriginal.pulsesName_cleaned,
+                                 MillipedeOriginal.pulsesName_cleaned+'TimeWindows',
+                                 MillipedeOriginal.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = Millipede2.pulsesName,
+            Pulses = MillipedeOriginal.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
-            BrightDOMThreshold=2,
             BadDomsList='BadDomsList',
             CalibrationErrata='CalibrationErrata',
             SaturationWindows='SaturationWindows'
@@ -119,7 +116,7 @@ class Millipede2(RecoInterface):
         def weighted_median(values, weights):
             return weighted_quantile(values, weights, q=0.5)
 
-        def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
+        def LatePulseCleaning(frame, Pulses, Residual=3e3*I3Units.ns):
             pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
             mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
             counter, charge = 0, 0
@@ -143,27 +140,22 @@ class Millipede2(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[Millipede2.pulsesName_cleaned] = mask
-            frame[Millipede2.pulsesName_cleaned+"TimeWindows"] = times
-            frame[Millipede2.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Millipede2.pulsesName_orig+"TimeRange"])
+            frame[MillipedeOriginal.pulsesName_cleaned] = mask
+            frame[MillipedeOriginal.pulsesName_cleaned+"TimeWindows"] = times
+            frame[MillipedeOriginal.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=Millipede2.pulsesName,
+                       Pulses=MillipedeOriginal.pulsesName,
                        )
-        return ExcludedDOMs + [Millipede2.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [MillipedeOriginal.pulsesName_cleaned+'TimeWindows']
 
 
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
-        """Perform Millipede2 reco."""
-        def mask_dc(frame, origpulses, maskedpulses):
-            frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
-                frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
-        tray.Add(mask_dc, origpulses=Millipede2.pulsesName_orig, maskedpulses=Millipede2.pulsesName)
+        """Perform MillipedeOriginal reco."""
+        ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
-        ExcludedDOMs = tray.Add(Millipede2.exclusions)
-
-        tray.Add(Millipede2.makeSurePulsesExist, pulsesName=Millipede2.pulsesName_cleaned)
+        tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
@@ -171,58 +163,31 @@ class Millipede2(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=Millipede2.muon_service,
-            CascadePhotonicsService=Millipede2.cascade_service,
+            MuonPhotonicsService=MillipedeOriginal.muon_service,
+            CascadePhotonicsService=MillipedeOriginal.cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
+            # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
-            ReadoutWindow=Millipede2.pulsesName_cleaned+'TimeRange',
-            Pulses=Millipede2.pulsesName_cleaned,
-            BinSigma=3,
-            RelUncertainty=0.3)
+            ReadoutWindow=MillipedeOriginal.pulsesName_cleaned+'TimeRange',
+            Pulses=MillipedeOriginal.pulsesName_cleaned,
+            BinSigma=3)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 
-        tray.context['isimplex'] = lilliput.IMinuitMinimizer(
-            MaxIterations=2000,
-            Tolerance=0.1,
-            Algorithm="SIMPLEX",
-            MinuitPrintLevel=2
-        )
-        tray.context['imigrad'] = lilliput.IMinuitMinimizer(
-            MaxIterations=1000,
-            Tolerance=0.1,
-            Algorithm="MIGRAD",
-            WithGradients=True,
-            FlatnessCheck=False,
-            IgnoreEDM=True, # Don't report convergence failures
-            CheckGradient=False, # Don't die on gradient errors
-            MinuitStrategy=0, # Don't try to check local curvature
-            MinuitPrintLevel=2
-            )
-
-        ## TODO: try this MIGRAD, which fails
-        # tray.AddService("I3GulliverMinuit2Factory", 'migrad',
-        #                 MaxIterations=1000,
-        #                 Tolerance=0.1,
-        #                 Algorithm="MIGRAD",
-        #                 WithGradients=True,
-        #                 FlatnessCheck=False,
-        #                 IgnoreEDM=True, # Don't report convergence failures
-        #                 CheckGradient=False, # Don't die on gradient errors
-        #                 MinuitStrategy=0, # Don't try to check local curvature
-        #                 )
+        tray.AddService('I3GSLSimplexFactory', 'simplex',
+            MaxIterations=20000)
 
         coars_steps = dict(StepX=10.*I3Units.m,
                            StepY=10.*I3Units.m,
                            StepZ=10.*I3Units.m,
                            StepZenith=0.,
                            StepAzimuth=0.,
-                           StepT=25.*I3Units.ns,
+                           StepT=0.*I3Units.ns,
                            ShowerSpacing=5.*I3Units.m,
-                           MuonSpacing=0,
-                           Boundary=700*I3Units.m)
+                           MuonSpacing=0)
+
         finer_steps = dict(StepX=2.*I3Units.m,
                            StepY=2.*I3Units.m,
                            StepZ=2.*I3Units.m,
@@ -230,12 +195,8 @@ class Millipede2(RecoInterface):
                            StepAzimuth=0.,
                            StepT=5.*I3Units.ns,
                            ShowerSpacing=2.5*I3Units.m,
-                           MuonSpacing=0,
-                           Boundary=700*I3Units.m)
-        if seed is not None:
-            logger.debug('Updating StepXYZ')
-            Millipede2.UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
-            Millipede2.UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
+                           MuonSpacing=0)
+
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
@@ -248,7 +209,7 @@ class Millipede2(RecoInterface):
             SeedService='vetoseed',
             Parametrization='coarseSteps',
             LogLikelihood='millipedellh',
-            Minimizer='isimplex')
+            Minimizer='simplex')
 
         def notify1(frame):
             logger.debug(f"1st pass done! {datetime.datetime.now()}")
@@ -269,7 +230,7 @@ class Millipede2(RecoInterface):
              OutputName='MillipedeStarting2ndPass',
              Parametrization='fineSteps',
              LogLikelihood='millipedellh',
-             Minimizer='imigrad')
+             Minimizer='simplex')
 
         def notify2(frame):
             logger.debug(f"2nd pass done! {datetime.datetime.now()}")
@@ -278,15 +239,9 @@ class Millipede2(RecoInterface):
         tray.AddModule(notify2, "notify2")
 
     @staticmethod
-    def UpdateStepXYZ(the_steps, direction, uniform_step=15*I3Units.m):
-        the_steps['StepX'] = numpy.sqrt(1-direction.x**2)*uniform_step
-        the_steps['StepY'] = numpy.sqrt(1-direction.y**2)*uniform_step
-        the_steps['StepZ'] = numpy.sqrt(1-direction.z**2)*uniform_step
-
-    @staticmethod
     def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
         # Calculate reco losses, based on load_scan_state()
-        reco_losses_inside, reco_losses_total = Millipede2.get_reco_losses_inside(
+        reco_losses_inside, reco_losses_total = MillipedeOriginal.get_reco_losses_inside(
             p_frame=frame, g_frame=geometry,
         )
 

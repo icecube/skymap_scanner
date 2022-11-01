@@ -315,7 +315,7 @@ class PixelsToReco:
                 dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
-            if self.reco_algo == 'millipede':
+            if self.reco_algo == 'millipede_original':
                 self.pos_variations = [
                     dataclasses.I3Position(0.,0.,0.),
                     dataclasses.I3Position(-variation_distance,0.,0.),
@@ -448,7 +448,7 @@ class PixelsToReco:
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
-            if self.reco_algo != 'millipede':
+            if self.reco_algo != 'millipede_original':
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
@@ -462,7 +462,7 @@ class PixelsToReco:
             particle.fit_status = dataclasses.I3Particle.FitStatus.OK
             particle.pos = thisPosition
             particle.dir = direction
-            if self.reco_algo == 'millipede':
+            if self.reco_algo == 'millipede_original':
                 LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
                 particle.time = time
             else:
