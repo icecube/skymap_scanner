@@ -710,9 +710,9 @@ class ScanResult:
             contour_colors=['k', 'r']
         else:
             # # Wilk's
-            contour_levels = (np.array([1.39, 4.61, 11.83, 28.74])+min_value)[1:]
-            contour_labels = [r'50%', r'90%', r'3$\sigma$', r'5$\sigma$'][1:]
-            contour_colors=['0.5', 'k', 'r', 'g'][1:]
+            contour_levels = (np.array([1.39, 4.61, 11.83, 28.74])+min_value)[:3]
+            contour_labels = [r'50%', r'90%', r'3$\sigma$', r'5$\sigma$'][:3]
+            contour_colors=['k', 'r', 'g', 'b'][:3]
 
         sample_points = np.array([grid_dec + np.pi/2., grid_ra]).T
         # Call meander module to find contours
@@ -752,7 +752,7 @@ class ScanResult:
         lon, lat = np.degrees(minRA), -np.degrees(minDec)
         healpy.cartview(map=master_map, title=plot_title,
             min=0., #min 2DeltaLLH value for colorscale
-            max=250., #max 2DeltaLLH value for colorscale
+            max=40., #max 2DeltaLLH value for colorscale
             rot=(lon,lat,0.), cmap=cmap, hold=True,
             cbar=None, lonra=lonra, latra=latra,
             unit=r"$-2 \Delta \ln (L)$",
