@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.patheffects as path_effects
 from matplotlib.axes import Axes
 from matplotlib.ticker import Formatter, FixedFormatter, FixedLocator
 from matplotlib.transforms import Transform, Affine2D
@@ -6,7 +7,7 @@ from matplotlib.projections import projection_registry
 from matplotlib.projections.geo import MollweideAxes
 import matplotlib
 matplotlib.use('agg')
-import matplotlib.pyplot
+from matplotlib import pyplot as plt
 import healpy
 
 def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
@@ -24,13 +25,13 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
         lon_offset = rot[0]+lonra[0] - 0.025*(lonra[1]-lonra[0])
         lat_offset = rot[1]+latra[0] - 0.05*(latra[1]-latra[0])
         # lonlat coordinates for labels
-        min_lon = numpy.round(lon_offset/2.)*2. - 2
+        min_lon = np.round(lon_offset/2.)*2. - 2
         max_lon = lon_offset+lonra[1]-lonra[0] + 2
-        lons = numpy.arange(min_lon, max_lon, 2)
+        lons = np.arange(min_lon, max_lon, 2)
         
-        min_lat = numpy.round(lat_offset/2.)*2. - 2
+        min_lat = np.round(lat_offset/2.)*2. - 2
         max_lat = lat_offset+latra[1]-latra[0] + 2
-        lats = numpy.arange(min_lat, max_lat, 2)
+        lats = np.arange(min_lat, max_lat, 2)
 
         lon_set = []
         for lon in lons:
@@ -42,16 +43,16 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
             if lat > lower_lat and lat < upper_lat:
                 lat_set.append(lat)
 
-        lons = numpy.array(lon_set)
-        lats = numpy.array(lat_set)
+        lons = np.array(lon_set)
+        lats = np.array(lat_set)
         lat_offset = rot[1]+latra[1] + 0.05*(latra[1]-latra[0])
     else:
         lon_offset = -180
         lat_offset = 0
 
         # lonlat coordinates for labels
-        lons = numpy.arange(-150, 181, 30)
-        lats = numpy.arange(-90, 91, 30)
+        lons = np.arange(-150, 181, 30)
+        lats = np.arange(-90, 91, 30)
 
     # actual text at those coordinates
     llats = -lats
@@ -72,6 +73,50 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
         ax.annotate(r"$\bf{180^\circ}$", xy=(-1.95, 0.625), size="medium")
     ax.annotate("Equatorial", xy=(0.8, -0.15),
                 size="medium", xycoords="axes fraction")
+
+
+# def plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec,
+#         cmap_min=0., cmap_max=250.):
+#     """"Plots the 4FGL catalog in a color that contrasts with the background
+#     healpix map"""
+#     hdu = pyfits.open('/cvmfs/icecube.opensciencegrid.org/users/steinrob/reference_catalogues/Fermi_4FGL_v18.fit')
+#     fgl = hdu[1]
+#     pe = [path_effects.Stroke(linewidth=0.5, foreground=cmap(0.0)),
+#         path_effects.Normal()]
+
+#     fname_i = np.array(fgl.data['Source_Name'])
+#     fra_i = np.array(fgl.data['RAJ2000'])*np.pi/180.
+#     fdec_i = np.array(fgl.data['DEJ2000'])*np.pi/180.
+#     fgl_mask = np.logical_and(np.logical_and(fra_i > lower_ra, fra_i < upper_ra), np.logical_and(fdec_i > lower_dec, fdec_i < upper_dec))
+#     flon_i = fra_i
+#     flat_i = -fdec_i
+
+#     def color_filter(lon, lat):
+#         vals = healpy.get_interp_val(master_map, lon, lat, lonlat=True)
+#         vals = (healpy.get_interp_val(master_map, lon, lat, lonlat=True) - cmap_min)/(cmap_max-cmap_min)
+#         vals = np.where(vals < 0.0, 0.0, vals)
+#         vals = np.where(vals > 1.0, 1.0, vals)
+#         vals = np.round(1.0-vals)
+#         return vals
+
+#     healpy.projscatter(
+#         flon_i[fgl_mask]*180./np.pi,
+#         flat_i[fgl_mask]*180./np.pi,
+#         lonlat=True,
+#         c=cmap(color_filter(flon_i[fgl_mask]*180./np.pi, flat_i[fgl_mask]*180./np.pi)),
+#         marker='o',
+#         s=10)
+#     for i in range(len(fgl_mask)):
+#         if not fgl_mask[i]:
+#             continue
+#         healpy.projtext(flon_i[i]*180./np.pi,
+#                 flat_i[i]*180./np.pi,
+#                 fname_i[i],
+#                 lonlat=True,
+#                 color = cmap(1.0),
+#                 fontsize=6,
+#                 path_effects=pe)
+#     del fgl
 
 
 ##
