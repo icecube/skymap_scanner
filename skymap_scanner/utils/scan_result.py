@@ -16,22 +16,6 @@ class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
 
 
-def parse_event_id(event_id_string):
-    parts = event_id_string.split('.')
-    if len(parts) != 3:
-        raise RuntimeError("event ID must have 3 parts separated by '.'")
-
-    if not parts[0].startswith("run"):
-        raise RuntimeError("event ID run part does not start with \"run\"")
-    if not parts[1].startswith("evt"):
-        raise RuntimeError("event ID event part does not start with \"evt\"")
-
-    run = int(parts[0][3:])
-    event = int(parts[1][3:])
-    evt_type = parts[2]
-    return (run, event, evt_type)
-
-
 class ScanResult:
     """This class parses a nsides_dict and stores the relevant numeric result
     of the scan. Ideally it should serve as the basic data structure for
@@ -254,6 +238,21 @@ class ScanResult:
     """
     Auxiliary methods
     """
+    @staticmethod
+    def parse_event_id(event_id_string):
+        parts = event_id_string.split('.')
+        if len(parts) != 3:
+            raise RuntimeError("event ID must have 3 parts separated by '.'")
+
+        if not parts[0].startswith("run"):
+            raise RuntimeError("event ID run part does not start with \"run\"")
+        if not parts[1].startswith("evt"):
+            raise RuntimeError("event ID event part does not start with \"evt\"")
+
+        run = int(parts[0][3:])
+        event = int(parts[1][3:])
+        evt_type = parts[2]
+        return (run, event, evt_type)
 
     @staticmethod
     def format_nside(nside):
@@ -335,6 +334,10 @@ class ScanResult:
                     log_func=None,
                     upload_func=None,
                     final_channels=None):
+        import matplotlib
+        from matplotlib import text
+        from .plotting_tools import hp_ticklabels, RaFormatter, DecFormatter, AstroMollweideAxes
+        import healpy
         if log_func is None:
             def log_func(x):
                 print(x)
@@ -358,7 +361,7 @@ class ScanResult:
             if "nside-" not in k:
                 raise RuntimeError("\"nside\" not in result file..")
 
-        run_id, event_id, event_type = parse_event_id(self.event_id)
+        run_id, event_id, event_type = self.parse_event_id(self.event_id)
 
         # mjd = get_event_mjd(state_dict)
 
@@ -577,113 +580,3 @@ class ScanResult:
         print("done.")
 
         return imgdata
-
-try:
-    from matplotlib.axes import Axes
-    from matplotlib import text
-    from matplotlib.ticker import Formatter, FixedFormatter, FixedLocator
-    from matplotlib.transforms import Transform, Affine2D
-    from matplotlib.projections import projection_registry
-    from matplotlib.projections.geo import MollweideAxes
-    import matplotlib
-    matplotlib.use('agg')
-    import matplotlib.pyplot
-    import healpy
-
-    ##
-    # Mollweide axes with phi axis flipped and in hours from 24 to 0 instead of
-    #         in degrees from -180 to 180.
-    class RaFormatter(Formatter):
-        def __init__(self):
-            pass
-
-        def __call__(self, x, pos=None):
-            hours = (x / np.pi) * 12.
-            minutes = hours - int(hours)
-            hours = int(hours)
-            minutes = minutes * 60.
-
-            seconds = minutes - int(minutes)
-            minutes = int(minutes)
-            seconds = seconds*60.
-            seconds = int(seconds)
-
-            return r"%0.0f$^\mathrm{h}$%0.0f$^\prime$%0.0f$^{\prime\prime}$" % (hours, minutes, seconds)
-
-    class DecFormatter(Formatter):
-        def __init__(self):
-            pass
-
-        def __call__(self, x, pos=None):
-            degrees = (x / np.pi) * 180.
-            return r"$%0.1f^\circ$" % (degrees)
-            # return r"%0.0f$^\circ$" % (degrees)
-
-    class AstroMollweideAxes(MollweideAxes):
-        name = 'astro mollweide'
-
-        def cla(self):
-            super(AstroMollweideAxes, self).cla()
-            self.set_xlim(0, 2*np.pi)
-
-        def set_xlim(self, *args, **kwargs):
-            Axes.set_xlim(self, 0., 2*np.pi)
-            Axes.set_ylim(self, -np.pi / 2.0, np.pi / 2.0)
-
-        def _get_core_transform(self, resolution):
-            return Affine2D().translate(-np.pi, 0.) + super(AstroMollweideAxes, self)._get_core_transform(resolution)
-
-        class RaFormatter(Formatter):
-            # Copied from matplotlib.geo.GeoAxes.ThetaFormatter and modified
-            def __init__(self, round_to=1.0):
-                self._round_to = round_to
-
-            def __call__(self, x, pos=None):
-                hours = (x / np.pi) * 12.
-                hours = round(15 * hours / self._round_to) * self._round_to / 15
-                return r"%0.0f$^\mathrm{h}$" % hours
-
-        def set_longitude_grid(self, degrees):
-            # Copied from matplotlib.geo.GeoAxes.set_longitude_grid and modified
-            number = (360 // degrees) + 1
-            self.xaxis.set_major_locator(
-                FixedLocator(
-                    np.linspace(0, 2*np.pi, number, True)[1:-1]))
-            self._longitude_degrees = degrees
-            self.xaxis.set_major_formatter(self.RaFormatter(degrees))
-
-        def _set_lim_and_transforms(self):
-            # Copied from matplotlib.geo.GeoAxes._set_lim_and_transforms and modified
-            super(AstroMollweideAxes, self)._set_lim_and_transforms()
-
-            # This is the transform for latitude ticks.
-            yaxis_stretch = Affine2D().scale(np.pi * 2.0, 1.0)
-            yaxis_space = Affine2D().scale(-1.0, 1.1)
-            self._yaxis_transform = \
-                yaxis_stretch + \
-                self.transData
-            yaxis_text_base = \
-                yaxis_stretch + \
-                self.transProjection + \
-                (yaxis_space + \
-                 self.transAffine + \
-                 self.transAxes)
-            self._yaxis_text1_transform = \
-                yaxis_text_base + \
-                Affine2D().translate(-8.0, 0.0)
-            self._yaxis_text2_transform = \
-                yaxis_text_base + \
-                Affine2D().translate(8.0, 0.0)
-
-        def _get_affine_transform(self):
-            transform = self._get_core_transform(1)
-            xscale, _ = transform.transform_point((0, 0))
-            _, yscale = transform.transform_point((0, np.pi / 2.0))
-            return Affine2D() \
-                .scale(0.5 / xscale, 0.5 / yscale) \
-                .translate(0.5, 0.5)
-
-    projection_registry.register(AstroMollweideAxes)
-
-except ModuleNotFoundError:
-    pass
