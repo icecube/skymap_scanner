@@ -12,7 +12,7 @@ import os
 import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union, Set
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -30,6 +30,7 @@ from wipac_dev_tools import logging_tools
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message, pixelreco
+from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
 from . import LOGGER
@@ -268,12 +269,14 @@ class PixelsToReco:
         self,
         nsides_dict: pixelreco.NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
+        baseline_GCD: str,
         min_nside: int,
         max_nside: int,
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
         mini_test_variations: bool,
+        reco_algo:str
     ) -> None:
         """
         Arguments:
@@ -293,11 +296,15 @@ class PixelsToReco:
                 - name of the output I3Particle
             `mini_test_variations`
                 - whether this is a mini test scan (fewer variations)
+            `reco_algo`
+                - name of the reconstruction algorithm to run
         """
         self.nsides_dict = nsides_dict
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
+        self.reco_algo = reco_algo.lower()
+
 
         # Get Position Variations
         variation_distance = 20.*I3Units.m
@@ -308,15 +315,20 @@ class PixelsToReco:
                 dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variation_distance,0.,0.),
-                dataclasses.I3Position(variation_distance,0.,0.),
-                dataclasses.I3Position(0.,-variation_distance,0.),
-                dataclasses.I3Position(0., variation_distance,0.),
-                dataclasses.I3Position(0.,0.,-variation_distance),
-                dataclasses.I3Position(0.,0., variation_distance)
-            ]
+            if self.reco_algo == 'millipede_original':
+                self.pos_variations = [
+                    dataclasses.I3Position(0.,0.,0.),
+                    dataclasses.I3Position(-variation_distance,0.,0.),
+                    dataclasses.I3Position(variation_distance,0.,0.),
+                    dataclasses.I3Position(0.,-variation_distance,0.),
+                    dataclasses.I3Position(0., variation_distance,0.),
+                    dataclasses.I3Position(0.,0.,-variation_distance),
+                    dataclasses.I3Position(0.,0., variation_distance)
+                    ]
+            else:
+                self.pos_variations = [
+                    dataclasses.I3Position(0.,0.,0.),
+                    ]
 
         # Set nside values
         if max_nside < min_nside:
@@ -326,16 +338,39 @@ class PixelsToReco:
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
+        g_frame = get_baseline_gcd_frames(baseline_GCD, GCDQp_packet, None)[0]
+
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
-        self.GCDQp_packet = GCDQp_packet
 
         self.fallback_position = p_frame[self.input_pos_name]
         self.fallback_time = p_frame[self.input_time_name].value
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(self.GCDQp_packet)
+        self.event_mjd = get_event_mjd(GCDQp_packet)
+
+        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC')
+        self.omgeo = g_frame["I3Geometry"].omgeo
+
+    @staticmethod
+    def refine_vertex_time(vertex, time, direction, pulses, omgeo):
+        thc = dataclasses.I3Constants.theta_cherenkov
+        ccc = dataclasses.I3Constants.c
+        min_d = numpy.inf
+        min_t = time
+        adj_d = 0
+        for om in pulses.keys():
+            rvec = omgeo[om].position-vertex
+            _l = -rvec*direction
+            _d = numpy.sqrt(rvec.mag2-_l**2) # closest approach distance
+            if _d < min_d: # closest om
+                min_d = _d
+                min_t = pulses[om][0].time
+                adj_d = _l+_d/numpy.tan(thc)-_d/(numpy.cos(thc)*numpy.sin(thc)) # translation distance
+        if numpy.isinf(min_d):
+            return time
+        return min_t + adj_d/ccc
 
     def generate_pframes(self) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd."""
@@ -413,9 +448,13 @@ class PixelsToReco:
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
+            if self.reco_algo == 'millipede_wilks':
+                # rotate variation to be applied in transverse plane
+                posVariation.rotate_y(direction.theta)
+                posVariation.rotate_z(direction.phi)
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
-            thisPosition = dataclasses.I3Position(position.x + posVariation.x,position.y + posVariation.y,position.z + posVariation.z)
+            thisPosition = position+posVariation
 
             # generate the particle from scratch
             particle = dataclasses.I3Particle()
@@ -423,9 +462,20 @@ class PixelsToReco:
             particle.fit_status = dataclasses.I3Particle.FitStatus.OK
             particle.pos = thisPosition
             particle.dir = direction
-            particle.time = time
+            if self.reco_algo == 'millipede_original':
+                LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
+                particle.time = time
+            else:
+                LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
+                # given direction and vertex position, calculate time from CAD
+                particle.time = self.refine_vertex_time(
+                    thisPosition,
+                    time,
+                    direction,
+                    self.pulseseries_hlc,
+                    self.omgeo)
             particle.energy = energy
-            p_frame[self.output_particle_name] = particle
+            p_frame[f'{self.output_particle_name}'] = particle
 
             # generate a new event header
             eventHeader = dataclasses.I3EventHeader(self.event_header)
@@ -509,20 +559,20 @@ class PixelRecoCollector:
     def __init__(
         self,
         n_posvar: int,  # Number of position variations to collect
-        n_pixreco: int,  # Number of expected pixel-reconstructions
         min_nside: int,
         max_nside: int,
         nsides_dict: pixelreco.NSidesDict,
         event_id: str,
         global_start_time: float,
         slack_interface: SlackInterface,
+        pixreco_ids_sent: Set[Tuple[int, int, int]]
     ) -> None:
         self.finder = BestPixelRecoFinder(
             n_posvar=n_posvar,
         )
         self.progress_reporter = ProgressReporter(
             nsides_dict,
-            n_pixreco,
+            len(pixreco_ids_sent),
             n_posvar,
             min_nside,
             max_nside,
@@ -531,7 +581,8 @@ class PixelRecoCollector:
         )
         self.nsides_dict = nsides_dict
         self.global_start_time = global_start_time
-        self.pixreco_ids_received: List[Tuple[int, int, int]] = []
+        self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
+        self.pixreco_ids_sent = pixreco_ids_sent
 
     def __enter__(self) -> "PixelRecoCollector":
         self.progress_reporter.initial_report(self.global_start_time)
@@ -549,7 +600,12 @@ class PixelRecoCollector:
             raise DuplicatePixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
-        self.pixreco_ids_received.append(pixreco.id_tuple)
+        if pixreco.id_tuple not in self.pixreco_ids_sent:
+            raise DuplicatePixelRecoException(
+                f"Pixel-reco received not in sent set, it is probably from an earlier iteration: {pixreco.id_tuple}"
+            )
+            
+        self.pixreco_ids_received.add(pixreco.id_tuple)
         logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
@@ -584,6 +640,7 @@ async def serve(
     event_id: str,
     nsides_dict: Optional[pixelreco.NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
+    baseline_GCD: str,
     output_dir: str,
     broker: str,  # for mq
     auth_token: str,  # for mq
@@ -622,12 +679,14 @@ async def serve(
     pixeler = PixelsToReco(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
+        baseline_GCD=baseline_GCD,
         min_nside=min_nside,
         max_nside=max_nside,
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
         mini_test_variations=mini_test_variations,
+        reco_algo=reco_algo
     )
 
     slack_interface = SlackInterface()
@@ -695,10 +754,12 @@ async def serve_scan_iteration(
 
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
+    pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
+            _tup = pixelreco.pixel_to_tuple(pframe)
             LOGGER.info(
-                f"Sending message M#{i} ({pixelreco.pixel_to_tuple(pframe)})..."
+                f"Sending message M#{i} ({_tup})..."
             )
             await pub.send(
                 {
@@ -706,14 +767,13 @@ async def serve_scan_iteration(
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
+            pixreco_ids_sent.add(_tup)
 
     # check if anything was actually processed
-    try:
-        n_pixreco = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError:
+    if not pixreco_ids_sent:
         LOGGER.info("No pixels were sent for this iteration.")
         return 0
-    LOGGER.info(f"Done serving pixel-variations to clients: {n_pixreco}.")
+    LOGGER.info(f"Done serving pixel-variations to clients: {len(pixreco_ids_sent)}.")
 
     #
     # COLLECT PIXEL-RECOS
@@ -721,13 +781,13 @@ async def serve_scan_iteration(
 
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
-        n_pixreco=n_pixreco,
         min_nside=pixeler.min_nside,
         max_nside=pixeler.max_nside,
         nsides_dict=nsides_dict,
         event_id=event_id,
         global_start_time=global_start_time,
         slack_interface=slack_interface,
+        pixreco_ids_sent=pixreco_ids_sent
     )
 
     # get pixel-recos from client(s), collect and save
@@ -744,11 +804,11 @@ async def serve_scan_iteration(
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if len(col.pixreco_ids_received) == n_pixreco:
+                if col.pixreco_ids_sent==col.pixreco_ids_received:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return n_pixreco
+    return len(pixreco_ids_sent)
 
 
 def write_startup_json(
@@ -988,6 +1048,7 @@ def main() -> None:
             event_id=event_id,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
             GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
+            baseline_GCD=state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
             output_dir=args.output_dir,
             broker=args.broker,
             auth_token=args.auth_token,

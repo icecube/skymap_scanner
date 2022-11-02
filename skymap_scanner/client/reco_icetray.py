@@ -128,37 +128,7 @@ def reco_pixel(
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{baseline_GCD_file=}")
 
-    # Constants ########################################################
-
-    pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
-    ExcludedDOMs = [
-        "CalibrationErrata",
-        "BadDomsList",
-        "DeepCoreDOMs",
-        "SaturatedDOMs",
-        "BrightDOMs",
-        pulsesName + "TimeWindows",
-    ]
-    SPEScale = 0.99
-
-    # Load Data ########################################################
-
-    # At HESE energies, deposited light is dominated by the stochastic losses
-    # (muon part emits so little light in comparison)
-    # This is why we can use ems_mie instead of InfBareMu_mie even for tracks
-    base = os.path.expandvars("$I3_TESTDATA/photospline/ems_mie_z20_a10.%s.fits")
-    for fname in [base % "abs", base % "prob"]:
-        if not os.path.exists(fname):
-            raise FileNotFoundError(fname)
-    cascade_service = photonics_service.I3PhotoSplineService(
-        base % "abs", base % "prob", timingSigma=0.0
-    )
-    cascade_service.SetEfficiencies(SPEScale)
-
-    muon_service = None
-
     # Build Tray #######################################################
-
     tray = I3Tray()
 
     # Load frames
@@ -168,17 +138,6 @@ def reco_pixel(
         Pixel=pframe,
         GCDQpFrames=GCDQp_packet,
     )
-
-    def makeSurePulsesExist(frame) -> None:
-        pulsesName = "SplitUncleanedInIcePulsesLatePulseCleaned"
-        if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
-        if pulsesName + "TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
-        if pulsesName + "TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
-
-    tray.AddModule(makeSurePulsesExist, "makeSurePulsesExist")
 
     def notifyStart(frame):
         LOGGER.debug(f"got data - uncompressing GCD {datetime.datetime.now()}")
@@ -209,10 +168,7 @@ def reco_pixel(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        muon_service=muon_service,
-        cascade_service=cascade_service,
-        ExcludedDOMs=ExcludedDOMs,
-        pulsesName=pulsesName,
+        seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"]
     )
 
     # Write reco out
