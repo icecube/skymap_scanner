@@ -448,7 +448,7 @@ class PixelsToReco:
 
         for i in range(0,len(self.pos_variations)):
             posVariation = self.pos_variations[i]
-            if self.reco_algo != 'millipede_original':
+            if self.reco_algo == 'millipede_wilks':
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
