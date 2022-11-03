@@ -449,7 +449,7 @@ class ScanResult:
         print(f"preparing plot: {plot_filename}...")
 
         # the color map to use
-        cmap = matplotlib.cm.viridis_r
+        cmap = matplotlib.cm.magma_r
         cmap.set_under(alpha=0.) # make underflows transparent
         cmap.set_bad(alpha=1., color=(1.,0.,0.)) # make NaNs bright red
 
@@ -545,7 +545,8 @@ class ScanResult:
         # workaround for issue with viewers, see colorbar docstring
         cb.solids.set_edgecolor("face")
 
-        ax.set_aspect('equal')
+        if dozoom:
+            ax.set_aspect('equal')
         ax.tick_params(axis='x', labelsize=10)
         ax.tick_params(axis='y', labelsize=10)
 
@@ -698,7 +699,7 @@ class ScanResult:
 
         print("preparing plot: {0}...".format(plot_filename))
 
-        cmap = matplotlib.cm.viridis_r
+        cmap = matplotlib.cm.magma_r
         cmap.set_under('w')
         cmap.set_bad(alpha=1., color=(1.,0.,0.)) # make NaNs bright red
 
