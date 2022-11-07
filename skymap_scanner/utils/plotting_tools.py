@@ -9,6 +9,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot as plt
 import healpy
+import astropy.io.fits as pyfits
 
 def format_fits_header(event_id_tuple, mjd, ra, dec, uncertainty):
     '''Prepare some of the relevant event information for 
@@ -104,48 +105,48 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
                 size="medium", xycoords="axes fraction")
 
 
-# def plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec,
-#         cmap_min=0., cmap_max=250.):
-#     """"Plots the 4FGL catalog in a color that contrasts with the background
-#     healpix map"""
-#     hdu = pyfits.open('/cvmfs/icecube.opensciencegrid.org/users/steinrob/reference_catalogues/Fermi_4FGL_v18.fit')
-#     fgl = hdu[1]
-#     pe = [path_effects.Stroke(linewidth=0.5, foreground=cmap(0.0)),
-#         path_effects.Normal()]
+def plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec,
+        cmap_min=0., cmap_max=250.):
+    """"Plots the 4FGL catalog in a color that contrasts with the background
+    healpix map"""
+    hdu = pyfits.open('/cvmfs/icecube.opensciencegrid.org/users/steinrob/reference_catalogues/Fermi_4FGL_v18.fit')
+    fgl = hdu[1]
+    pe = [path_effects.Stroke(linewidth=0.5, foreground=cmap(0.0)),
+        path_effects.Normal()]
 
-#     fname_i = np.array(fgl.data['Source_Name'])
-#     fra_i = np.array(fgl.data['RAJ2000'])*np.pi/180.
-#     fdec_i = np.array(fgl.data['DEJ2000'])*np.pi/180.
-#     fgl_mask = np.logical_and(np.logical_and(fra_i > lower_ra, fra_i < upper_ra), np.logical_and(fdec_i > lower_dec, fdec_i < upper_dec))
-#     flon_i = fra_i
-#     flat_i = -fdec_i
+    fname_i = np.array(fgl.data['Source_Name'])
+    fra_i = np.array(fgl.data['RAJ2000'])*np.pi/180.
+    fdec_i = np.array(fgl.data['DEJ2000'])*np.pi/180.
+    fgl_mask = np.logical_and(np.logical_and(fra_i > lower_ra, fra_i < upper_ra), np.logical_and(fdec_i > lower_dec, fdec_i < upper_dec))
+    flon_i = fra_i
+    flat_i = -fdec_i
 
-#     def color_filter(lon, lat):
-#         vals = healpy.get_interp_val(master_map, lon, lat, lonlat=True)
-#         vals = (healpy.get_interp_val(master_map, lon, lat, lonlat=True) - cmap_min)/(cmap_max-cmap_min)
-#         vals = np.where(vals < 0.0, 0.0, vals)
-#         vals = np.where(vals > 1.0, 1.0, vals)
-#         vals = np.round(1.0-vals)
-#         return vals
+    def color_filter(lon, lat):
+        vals = healpy.get_interp_val(master_map, lon, lat, lonlat=True)
+        vals = (healpy.get_interp_val(master_map, lon, lat, lonlat=True) - cmap_min)/(cmap_max-cmap_min)
+        vals = np.where(vals < 0.0, 0.0, vals)
+        vals = np.where(vals > 1.0, 1.0, vals)
+        vals = np.round(1.0-vals)
+        return vals
 
-#     healpy.projscatter(
-#         flon_i[fgl_mask]*180./np.pi,
-#         flat_i[fgl_mask]*180./np.pi,
-#         lonlat=True,
-#         c=cmap(color_filter(flon_i[fgl_mask]*180./np.pi, flat_i[fgl_mask]*180./np.pi)),
-#         marker='o',
-#         s=10)
-#     for i in range(len(fgl_mask)):
-#         if not fgl_mask[i]:
-#             continue
-#         healpy.projtext(flon_i[i]*180./np.pi,
-#                 flat_i[i]*180./np.pi,
-#                 fname_i[i],
-#                 lonlat=True,
-#                 color = cmap(1.0),
-#                 fontsize=6,
-#                 path_effects=pe)
-#     del fgl
+    healpy.projscatter(
+        flon_i[fgl_mask]*180./np.pi,
+        flat_i[fgl_mask]*180./np.pi,
+        lonlat=True,
+        c=cmap(color_filter(flon_i[fgl_mask]*180./np.pi, flat_i[fgl_mask]*180./np.pi)),
+        marker='o',
+        s=10)
+    for i in range(len(fgl_mask)):
+        if not fgl_mask[i]:
+            continue
+        healpy.projtext(flon_i[i]*180./np.pi,
+                flat_i[i]*180./np.pi,
+                fname_i[i],
+                lonlat=True,
+                color = cmap(1.0),
+                fontsize=6,
+                path_effects=pe)
+    del fgl
 
 
 ##

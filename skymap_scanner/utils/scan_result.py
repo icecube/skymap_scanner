@@ -17,7 +17,12 @@ import healpy
 import meander
 
 from .pixelreco import NSidesDict, PixelReco
-from .plotting_tools import hp_ticklabels, RaFormatter, DecFormatter, AstroMollweideAxes, format_fits_header
+from .plotting_tools import (hp_ticklabels,
+                             RaFormatter,
+                             DecFormatter,
+                             AstroMollweideAxes,
+                             format_fits_header,
+                             plot_catalog)
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
@@ -594,6 +599,7 @@ class ScanResult:
                            extra_radius=np.nan,
                            systematics=False,
                            plot_bounding_box=False,
+                           plot_4fgl=False,
                            final_channels=None):
         """ Uses healpy to plot a map
         """
@@ -829,8 +835,9 @@ class ScanResult:
             rot=(lon,lat,0), 
             bounds=(lower_lon, upper_lon, lower_lat, upper_lat))
 
-        # Overlay 4FGL sources
-        # plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec)
+        if plot_4fgl:
+            # Overlay 4FGL sources
+            plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec)
 
         # Approximate contours as rectangles
         ra = minRA * 180./np.pi
