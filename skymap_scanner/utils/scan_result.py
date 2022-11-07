@@ -247,18 +247,18 @@ class ScanResult:
 
     @classmethod
     def from_nsides_dict(cls, nsides_dict: NSidesDict,
-                         run_id: int = -1,
-                         event_id: int = -1,
-                         mjd: float = -1.) -> "ScanResult":
+                         run_id: Optional[int] = None,
+                         event_id: Optional[int] = None,
+                         mjd: Optional[float] = None) -> "ScanResult":
         """Factory method for nsides_dict."""
         result = cls.load_pixels(nsides_dict, run_id, event_id, mjd)
         return cls(result)
 
     @classmethod
     def load_pixels(cls, nsides_dict: NSidesDict,
-                    run_id: int = -1,
-                    event_id: int = -1,
-                    mjd: float = -1):
+                    run_id: Optional[int] = None,
+                    event_id: Optional[int] = None,
+                    mjd: Optional[float] = None):
         logger = logging.getLogger(__name__)
 
         out = dict()
