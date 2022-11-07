@@ -246,20 +246,29 @@ class ScanResult:
         return int(key.split("nside-")[1])
 
     @classmethod
-    def from_nsides_dict(cls, nsides_dict: NSidesDict) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict,
+                         run_id: int = -1,
+                         event_id: int = -1,
+                         mjd: float = -1.) -> "ScanResult":
         """Factory method for nsides_dict."""
-        result = cls.load_pixels(nsides_dict)
+        result = cls.load_pixels(nsides_dict, run_id, event_id, mjd)
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, nsides_dict: NSidesDict):
+    def load_pixels(cls, nsides_dict: NSidesDict,
+                    run_id: int = -1,
+                    event_id: int = -1,
+                    mjd: float = -1):
         logger = logging.getLogger(__name__)
 
         out = dict()
-
         for nside, pixel_dict in nsides_dict.items():
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata={"run_id": run_id,
+                                                        "event_id": event_id,
+                                                        "mjd": mjd,
+                                                        "nside": nside})
             n = len(pixel_dict)
-            v = np.zeros(n, dtype=cls.PIXEL_TYPE)
+            v = np.zeros(n, dtype=_dtype)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
