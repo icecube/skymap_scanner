@@ -79,7 +79,7 @@ jobs:
 
     - name: Request New CVMFS Image Build
       if: github.event_name != 'delete'
-      uses: WIPACrepo/build-singularity-cvmfs-action@remove-regex-path
+      uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
       with:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
         docker_tags: ${{ steps.docker_meta.outputs.tags }}
@@ -88,7 +88,7 @@ jobs:
 
     - name: Request CVMFS Image Removal(s)
       if: github.event_name == 'delete'
-      uses: WIPACrepo/build-singularity-cvmfs-action@remove-regex-path
+      uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
       with:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
         remove_regex_path: 'realtime/${{ github.event.ref }}.*'
