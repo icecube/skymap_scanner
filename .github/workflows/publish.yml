@@ -51,6 +51,11 @@ jobs:
   cvmfs:
     name: Publish Image to CVMFS
     needs: [docker]
+    if: |
+      always() &&
+      (needs.docker.result == 'success' ||
+        (needs.docker.result == 'skipped' && github.event_name == 'delete')
+      )
     runs-on: ubuntu-latest
     steps:
 
