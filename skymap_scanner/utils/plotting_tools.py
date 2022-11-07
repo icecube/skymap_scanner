@@ -10,6 +10,35 @@ matplotlib.use('agg')
 from matplotlib import pyplot as plt
 import healpy
 
+def format_fits_header(event_id_tuple, mjd, ra, dec, uncertainty):
+    '''Prepare some of the relevant event information for 
+    a fits file header'''
+    run_id, event_id, event_type = event_id_tuple
+
+    header = [
+        ('RUNID', run_id), 
+        ('EVENTID', event_id),
+        ('SENDER', 'IceCube Collaboration'),
+        ('EventMJD', mjd),
+        ('I3TYPE', '%s'%event_type,'Alert Type'),
+        ('RA', np.round(ra,2),'Degree'),
+        ('DEC', np.round(dec,2),'Degree'),
+        ('RA_ERR_PLUS', np.round(uncertainty[0][1],2),
+            '90% containment error high'),
+        ('RA_ERR_MINUS', np.round(np.abs(uncertainty[0][0]),2),
+            '90% containment error low'),
+        ('DEC_ERR_PLUS', np.round(uncertainty[1][1],2),
+            '90% containment error high'),
+        ('DEC_ERR_MINUS', np.round(np.abs(uncertainty[1][0]),2),
+            '90% containment error low'),
+        ('COMMENTS', '50%(90%) uncertainty location' \
+            + ' => Change in 2LLH based on Wilks theorem'),
+        ('NOTE', 'Please ignore pixels with infinite or NaN values.' \
+            + ' They are rare cases of the minimizer failing to converge')
+        ]
+    return header
+
+
 def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
     """ labels coordinates on a healpy map
     zoom: indicates zoomed-in cartview

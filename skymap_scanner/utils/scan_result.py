@@ -6,6 +6,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import io
+import pickle
+from astropy.io import ascii
 
 import numpy as np
 import matplotlib
@@ -15,7 +17,7 @@ import healpy
 import meander
 
 from .pixelreco import NSidesDict, PixelReco
-from .plotting_tools import hp_ticklabels, RaFormatter, DecFormatter, AstroMollweideAxes
+from .plotting_tools import hp_ticklabels, RaFormatter, DecFormatter, AstroMollweideAxes, format_fits_header
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
@@ -591,6 +593,7 @@ class ScanResult:
                            extra_dec=np.nan,
                            extra_radius=np.nan,
                            systematics=False,
+                           plot_bounding_box=False,
                            final_channels=None):
         """ Uses healpy to plot a map
         """
@@ -830,126 +833,114 @@ class ScanResult:
         # plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec)
 
         # Approximate contours as rectangles
-        if systematics is True:
-            ra = minRA * 180./np.pi
-            dec = minDec * 180./np.pi
-            for l, contours in enumerate(contours_by_level):
-                ra_plus = None
-                for contour in contours:
-                    theta, phi = contour.T
-                    if ra_plus is None:
-                        ra_plus = np.max(phi)*180./np.pi - ra
-                        ra_minus = np.min(phi)*180./np.pi - ra
-                        dec_plus = (np.max(theta)-np.pi/2.)*180./np.pi - dec
-                        dec_minus = (np.min(theta)-np.pi/2.)*180./np.pi - dec
-                    else:
-                        ra_plus = max(ra_plus, np.max(phi)*180./np.pi - ra)
-                        ra_minus = min(ra_minus, np.min(phi)*180./np.pi - ra)
-                        dec_plus = max(dec_plus, (np.max(theta)-np.pi/2.)*180./np.pi - dec)
-                        dec_minus = min(dec_minus, (np.min(theta)-np.pi/2.)*180./np.pi - dec)
-                contain_txt = "Approximating the {0}% error region as a rectangle, we get:".format(["50", "90"][l]) + " \n" + \
-                              "\t RA = {0:.2f} + {1:.2f} - {2:.2f}".format(
-                                  ra, ra_plus, np.abs(ra_minus)) + " \n" + \
-                              "\t Dec = {0:.2f} + {1:.2f} - {2:.2f}".format(
-                                  dec, dec_plus, np.abs(dec_minus))                
-                log_func(contain_txt)
-            plot_bounding_box = True
-            if plot_bounding_box:
-                bounding_ras = []; bounding_decs = []
-                # lower bound
-                bounding_ras.extend(list(np.linspace(ra+ra_minus, 
-                    ra+ra_plus, 10)))
-                bounding_decs.extend([dec+dec_minus]*10)
-                # right bound
-                bounding_ras.extend([ra+ra_plus]*10)
-                bounding_decs.extend(list(np.linspace(dec+dec_minus,
-                    dec+dec_plus, 10)))
-                # upper bound
-                bounding_ras.extend(list(np.linspace(ra+ra_plus,
-                    ra+ra_minus, 10)))
-                bounding_decs.extend([dec+dec_plus]*10)
-                # left bound
-                bounding_ras.extend([ra+ra_minus]*10)
-                bounding_decs.extend(list(np.linspace(dec+dec_plus,
-                    dec+dec_minus,10)))
-                # join end to beginning
-                bounding_ras.append(bounding_ras[0])
-                bounding_decs.append(bounding_decs[0])
-                bounding_ras = np.asarray(bounding_ras)
-                bounding_decs = np.asarray(bounding_decs)
-                bounding_phi = np.radians(bounding_ras)
-                bounding_theta = np.radians(bounding_decs) + np.pi/2.
-                bounding_contour = np.array([bounding_theta, bounding_phi])
-                bounding_contour_area = 0.
-                bounding_contour_area = area(bounding_contour.T)
-                bounding_contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
-                contour_label = r'90% Bounding rectangle' + ' - area: {0:.2f} sqdeg'.format(
-                    bounding_contour_area)
-                healpy.projplot(bounding_theta, bounding_phi, linewidth=0.75, 
-                    c='r', linestyle='dashed', label=contour_label)
+        ra = minRA * 180./np.pi
+        dec = minDec * 180./np.pi
+        for l, contours in enumerate(contours_by_level[:2]):
+            ra_plus = None
+            for contour in contours:
+                theta, phi = contour.T
+                if ra_plus is None:
+                    ra_plus = np.max(phi)*180./np.pi - ra
+                    ra_minus = np.min(phi)*180./np.pi - ra
+                    dec_plus = (np.max(theta)-np.pi/2.)*180./np.pi - dec
+                    dec_minus = (np.min(theta)-np.pi/2.)*180./np.pi - dec
+                else:
+                    ra_plus = max(ra_plus, np.max(phi)*180./np.pi - ra)
+                    ra_minus = min(ra_minus, np.min(phi)*180./np.pi - ra)
+                    dec_plus = max(dec_plus, (np.max(theta)-np.pi/2.)*180./np.pi - dec)
+                    dec_minus = min(dec_minus, (np.min(theta)-np.pi/2.)*180./np.pi - dec)
+            contain_txt = "Approximating the {0}% error region as a rectangle, we get:".format(["50", "90"][l]) + " \n" + \
+                          "\t RA = {0:.2f} + {1:.2f} - {2:.2f}".format(
+                              ra, ra_plus, np.abs(ra_minus)) + " \n" + \
+                          "\t Dec = {0:.2f} + {1:.2f} - {2:.2f}".format(
+                              dec, dec_plus, np.abs(dec_minus))                
+            log_func(contain_txt)
+        if plot_bounding_box:
+            bounding_ras = []; bounding_decs = []
+            # lower bound
+            bounding_ras.extend(list(np.linspace(ra+ra_minus, 
+                ra+ra_plus, 10)))
+            bounding_decs.extend([dec+dec_minus]*10)
+            # right bound
+            bounding_ras.extend([ra+ra_plus]*10)
+            bounding_decs.extend(list(np.linspace(dec+dec_minus,
+                dec+dec_plus, 10)))
+            # upper bound
+            bounding_ras.extend(list(np.linspace(ra+ra_plus,
+                ra+ra_minus, 10)))
+            bounding_decs.extend([dec+dec_plus]*10)
+            # left bound
+            bounding_ras.extend([ra+ra_minus]*10)
+            bounding_decs.extend(list(np.linspace(dec+dec_plus,
+                dec+dec_minus,10)))
+            # join end to beginning
+            bounding_ras.append(bounding_ras[0])
+            bounding_decs.append(bounding_decs[0])
+            bounding_ras = np.asarray(bounding_ras)
+            bounding_decs = np.asarray(bounding_decs)
+            bounding_phi = np.radians(bounding_ras)
+            bounding_theta = np.radians(bounding_decs) + np.pi/2.
+            bounding_contour = np.array([bounding_theta, bounding_phi])
+            bounding_contour_area = 0.
+            bounding_contour_area = area(bounding_contour.T)
+            bounding_contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
+            contour_label = r'90% Bounding rectangle' + ' - area: {0:.2f} sqdeg'.format(
+                bounding_contour_area)
+            healpy.projplot(bounding_theta, bounding_phi, linewidth=0.75, 
+                c='r', linestyle='dashed', label=contour_label)
 
-            # Output contours in RA, dec instead of theta, phi
-            saving_contours = []
-            for contours in contours_by_level:
-                saving_contours.append([])
-                for contours in contours:
-                    saving_contours[-1].append([])
-                    theta, phi = contour.T
-                    ras = phi
-                    decs = theta - np.pi/2.
-                    for tmp_ra, tmp_dec in zip(ras, decs):
-                        saving_contours[-1][-1].append([tmp_ra, tmp_dec])
+        # Output contours in RA, dec instead of theta, phi
+        saving_contours = []
+        for contours in contours_by_level:
+            saving_contours.append([])
+            for contours in contours:
+                saving_contours[-1].append([])
+                theta, phi = contour.T
+                ras = phi
+                decs = theta - np.pi/2.
+                for tmp_ra, tmp_dec in zip(ras, decs):
+                    saving_contours[-1][-1].append([tmp_ra, tmp_dec])
 
-            # Dump the whole contour
-            path = self.event_id + ".contour.pkl"
-            print("Saving contour to", path)
-            with open(path, "wb") as f:
-                Pickle.dump(saving_contours, f)
-
-            # Save the individual contours, send messages
-            for i, val in enumerate(["50", "90"]):
-                ras = list(np.asarray(saving_contours[i][0]).T[0])
-                decs = list(np.asarray(saving_contours[i][0]).T[1])
-                tab = {"ra (rad)": ras, "dec (rad)": decs}
-                savename = self.event_id + ".contour_" + val + ".txt"
-                try:
-                    ascii.write(tab, savename, overwrite=True)
-                    print("Dumping to", savename)
-                    for i, ch in enumerate(final_channels):
-                        output = io.StringIO()
-                        #output = str.encode(savename)
+        # Save the individual contours, send messages
+        for i, val in enumerate(["50", "90"]):
+            ras = list(np.asarray(saving_contours[i][0]).T[0])
+            decs = list(np.asarray(saving_contours[i][0]).T[1])
+            tab = {"ra (rad)": ras, "dec (rad)": decs}
+            savename = self.event_id + ".contour_" + val + ".txt"
+            try:
+                ascii.write(tab, savename, overwrite=True)
+                print("Dumping to", savename)
+                for i, ch in enumerate(final_channels):
+                    output = io.StringIO()
+                    #output = str.encode(savename)
+                    if dosave:
                         ascii.write(tab, output, overwrite=True)
-                        output.seek(0) 
-                        config.slack_channel=ch
-                        print(upload_func(output, savename, savename))
-                        output.truncate(0) 
-                        del output
-                except OSError:
-                    log_func("Memory Error prevented contours from being written")
+                    output.seek(0) 
+                    print(upload_func(output, savename, savename))
+                    output.truncate(0) 
+                    del output
+            except OSError:
+                log_func("Memory Error prevented contours from being written")
 
-            uncertainty = [(ra_minus, ra_plus), (dec_minus, dec_plus)]
-            fits_header = format_fits_header(self.event_id, state_dict, 
-                np.degrees(minRA), np.degrees(minDec), uncertainty,
-               )
-            mmap_nside = healpy.get_nside(master_map)
+        uncertainty = [(ra_minus, ra_plus), (dec_minus, dec_plus)]
+        fits_header = format_fits_header(self.parse_event_id(self.event_id), 0, 
+            np.degrees(minRA), np.degrees(minDec), uncertainty,
+           )
+        mmap_nside = healpy.get_nside(master_map)
 
-            # Pixel numbers as is gives a map that is reflected
-            # about the equator. This is all deal with self-consistently
-            # here but we need to correct before outputting a fits file
-            def fixpixnumber(nside,pixels):
-                th_o, phi_o = healpy.pix2ang(nside, pixels)
-                dec_o = th_o - np.pi/2
-                th_fixed = np.pi/2 - dec_o 
-                pix_fixed = healpy.ang2pix(nside, th_fixed, phi_o)
-                return pix_fixed
-            pixels = np.arange(len(master_map))
-            nside = healpy.get_nside(master_map)
-            new_pixels = fixpixnumber(nside, pixels)
-            equatorial_map = master_map[new_pixels]
-
-            healpy.write_map(f"{self.event_id}.skymap_nside_{mmap_nside}.fits.gz",
-                equatorial_map, coord = 'C', column_names = ['2LLH'],
-                extra_header = fits_header, overwrite=True)
+        # Pixel numbers as is gives a map that is reflected
+        # about the equator. This is all deal with self-consistently
+        # here but we need to correct before outputting a fits file
+        def fixpixnumber(nside,pixels):
+            th_o, phi_o = healpy.pix2ang(nside, pixels)
+            dec_o = th_o - np.pi/2
+            th_fixed = np.pi/2 - dec_o 
+            pix_fixed = healpy.ang2pix(nside, th_fixed, phi_o)
+            return pix_fixed
+        pixels = np.arange(len(master_map))
+        nside = healpy.get_nside(master_map)
+        new_pixels = fixpixnumber(nside, pixels)
+        equatorial_map = master_map[new_pixels]
 
         # Plot the original online reconstruction location
         if np.sum(np.isnan([extra_ra, extra_dec, extra_radius])) == 0:
@@ -980,8 +971,9 @@ class ScanResult:
                 Phi[bins] = Phi[0]
                 return Theta, Phi
 
-            dist = angular_distance(minRA, minDec, extra_ra * np.pi/180., extra_dec * np.pi/180.)
-            print("Millipede best fit is", dist /(np.pi * extra_radius/(1.177 * 180.)), "sigma from reported best fit")        
+            # dist = angular_distance(minRA, minDec, extra_ra * np.pi/180., extra_dec * np.pi/180.)
+            # print("Millipede best fit is", dist /(np.pi * extra_radius/(1.177 * 180.)), "sigma from reported best fit")
+        
 
             extra_ra_rad = np.radians(extra_ra)
             extra_dec_rad = np.radians(extra_dec)
@@ -1013,15 +1005,20 @@ class ScanResult:
             healpy_area, "degrees (scaled)")
 
         if dosave:
+            # Dump the whole contour
+            path = self.event_id + ".contour.pkl"
+            print("Saving contour to", path)
+            with open(path, "wb") as f:
+                pickle.dump(saving_contours, f)
+
+            healpy.write_map(f"{self.event_id}.skymap_nside_{mmap_nside}.fits.gz",
+                equatorial_map, coord = 'C', column_names = ['2LLH'],
+                extra_header = fits_header, overwrite=True)
+
             # Save the figure
             print("saving: {0}...".format(plot_filename))
             #ax.invert_xaxis()
             fig.savefig(plot_filename, dpi=dpi, transparent=True)
-
-        # # use io.BytesIO to save this into a memory buffer
-        # imgdata = io.BytesIO()
-        # fig.savefig(imgdata, format='png', dpi=dpi, transparent=True)
-        # imgdata.seek(0)
 
         print("done.")
 
@@ -1030,24 +1027,14 @@ class ScanResult:
         else:
             title = "Millipede contour, assuming Wilk's Theorum:"
 
-        if systematics is True:
-            for i, ch in enumerate(final_channels):
-                imgdata = io.BytesIO()
-                fig.savefig(imgdata, format='png', dpi=600, transparent=True)
-                imgdata.seek(0)
-
-                savename = plot_filename[:-4] + ".png"
-                print(savename)
-                # config.slack_channel=ch
-                upload_func(imgdata, savename, title)
-        else:
+        for i, ch in enumerate(final_channels):
             imgdata = io.BytesIO()
             fig.savefig(imgdata, format='png', dpi=600, transparent=True)
             imgdata.seek(0)
 
             savename = plot_filename[:-4] + ".png"
             print(savename)
-            # config.slack_channel=final_channels[0]
+            # config.slack_channel=ch
             upload_func(imgdata, savename, title)
 
         plt.close()
