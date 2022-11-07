@@ -49,7 +49,7 @@ jobs:
         labels: ${{ steps.docker_meta.outputs.labels }}
 
   cvmfs:
-    name: Publish Image to CVMFS
+    name: CVMFS Image
     needs: [docker]
     if: |
       always() &&
@@ -77,10 +77,18 @@ jobs:
           # release tags
           type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
 
-    - uses: WIPACrepo/build-singularity-cvmfs-action@v1.1
+    - name: Request New CVMFS Image Build
+      if: github.event_name != 'delete'
+      uses: WIPACrepo/build-singularity-cvmfs-action@v1.1
       with:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-        remove: ${{ github.event_name == 'delete' }}
         docker_tags: ${{ steps.docker_meta.outputs.tags }}
         dest_dir: realtime
         include_docker_repo: false
+
+    - name: Request CVMFS Image Removal(s)
+      if: github.event_name == 'delete'
+      uses: WIPACrepo/build-singularity-cvmfs-action@v1.1
+      with:
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
+        remove_regex_path: 'realtime/${{ github.event.ref }}.*'
