@@ -77,7 +77,7 @@ jobs:
           # release tags
           type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
 
-    - name: Request New CVMFS Image Build
+    - name: Request Build(s)
       if: github.event_name != 'delete'
       uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
       with:
@@ -86,7 +86,7 @@ jobs:
         dest_dir: realtime
         include_docker_repo: false
 
-    - name: Request CVMFS Image Removal(s)
+    - name: Request Removal(s)
       if: github.event_name == 'delete'
       uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
       with:
