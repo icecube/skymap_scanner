@@ -45,6 +45,7 @@ class ScanResult:
     def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
         self.result = result
+        self.logger.debug(f"Metadata for this result: {[self.result[_].dtype.metadata for _ in self.result]}")
 
         # bookkeeping for comparing values
         self.require_close = {  # w/ rtol values
@@ -246,20 +247,29 @@ class ScanResult:
         return int(key.split("nside-")[1])
 
     @classmethod
-    def from_nsides_dict(cls, nsides_dict: NSidesDict) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict,
+                         run_id: Optional[int] = None,
+                         event_id: Optional[int] = None,
+                         mjd: Optional[float] = None) -> "ScanResult":
         """Factory method for nsides_dict."""
-        result = cls.load_pixels(nsides_dict)
+        result = cls.load_pixels(nsides_dict, run_id, event_id, mjd)
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, nsides_dict: NSidesDict):
+    def load_pixels(cls, nsides_dict: NSidesDict,
+                    run_id: Optional[int] = None,
+                    event_id: Optional[int] = None,
+                    mjd: Optional[float] = None):
         logger = logging.getLogger(__name__)
 
         out = dict()
-
         for nside, pixel_dict in nsides_dict.items():
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata={"run_id": run_id,
+                                                        "event_id": event_id,
+                                                        "mjd": mjd,
+                                                        "nside": nside})
             n = len(pixel_dict)
-            v = np.zeros(n, dtype=cls.PIXEL_TYPE)
+            v = np.zeros(n, dtype=_dtype)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
 
@@ -300,13 +310,31 @@ class ScanResult:
     def load(cls, filename) -> "ScanResult":
         npz = np.load(filename)
         result = dict()
-        for key in npz.keys():
-            result[key] = npz[key]
+        if "header" not in npz:
+            for key in npz.keys():
+                result[key] = npz[key]
+        else:
+            h = npz["header"]
+            for v in h:
+                key = cls.format_nside(v['nside'])
+                _dtype = np.dtype(npz[key].dtype, metadata={k:value for k, value in zip(h.dtype.fields.keys(), v)})
+                result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
     def save(self, event_id, output_path=None) -> Path:
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
-        np.savez(filename, **self.result)
+        try:
+            metadata_type = np.dtype(
+                [("run_id", int), ("event_id", int), ("mjd", float), ("nside", int)],
+                )
+            h = np.array([(self.result[k].dtype.metadata["run_id"],
+                           self.result[k].dtype.metadata["event_id"],
+                           self.result[k].dtype.metadata["mjd"],
+                           self.result[k].dtype.metadata["nside"]) for k in self.result],
+                         dtype=metadata_type)
+            np.savez(filename, header=h, **self.result)
+        except TypeError:
+            np.savez(filename, **self.result)
         return Path(filename)

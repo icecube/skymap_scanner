@@ -714,7 +714,10 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
-    result = ScanResult.from_nsides_dict(nsides_dict)
+    result = ScanResult.from_nsides_dict(nsides_dict,
+                                         pixeler.event_header.run_id,
+                                         pixeler.event_header.event_id,
+                                         pixeler.event_mjd)
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
