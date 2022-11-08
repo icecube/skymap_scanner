@@ -156,6 +156,15 @@ class ScanResult:
 
         return diff_vals, test_vals
 
+    def has_metadata(self) -> bool:
+        """ Check that the minimum metadata is set
+        """
+        for mk in "run_id event_id mjd event_type nside".split():
+            for k in self.result:
+                if mk not in self.result[k].dtype.metadata:
+                    return False
+        return True
+
     def is_close(
         self,
         other: "ScanResult",
@@ -247,32 +256,22 @@ class ScanResult:
         return int(key.split("nside-")[1])
 
     @classmethod
-    def from_nsides_dict(cls, nsides_dict: NSidesDict,
-                         run_id: Optional[int] = None,
-                         event_id: Optional[int] = None,
-                         mjd: Optional[float] = None) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict, **kwargs) -> "ScanResult":
         """Factory method for nsides_dict."""
-        result = cls.load_pixels(nsides_dict, run_id, event_id, mjd)
+        result = cls.load_pixels(nsides_dict, **kwargs)
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, nsides_dict: NSidesDict,
-                    run_id: Optional[int] = None,
-                    event_id: Optional[int] = None,
-                    mjd: Optional[float] = None):
+    def load_pixels(cls, nsides_dict: NSidesDict, **kwargs):
         logger = logging.getLogger(__name__)
 
         out = dict()
         for nside, pixel_dict in nsides_dict.items():
-            _dtype = np.dtype(cls.PIXEL_TYPE, metadata={"run_id": run_id,
-                                                        "event_id": event_id,
-                                                        "mjd": mjd,
-                                                        "nside": nside})
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **kwargs))
             n = len(pixel_dict)
             v = np.zeros(n, dtype=_dtype)
 
             logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
-
             for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
                 if (
                     not isinstance(pixreco, PixelReco)
@@ -326,14 +325,13 @@ class ScanResult:
         if output_path is not None:
             filename = output_path / Path(filename)
         try:
-            metadata_type = np.dtype(
-                [("run_id", int), ("event_id", int), ("mjd", float), ("nside", int)],
+            metadata_dtype = np.dtype(
+                [(k, type(v)) if not isinstance(v, str) else (k, f"U{len(v)}")
+                 for k, v in next(iter(self.result.values())).dtype.metadata.items()],
                 )
-            h = np.array([(self.result[k].dtype.metadata["run_id"],
-                           self.result[k].dtype.metadata["event_id"],
-                           self.result[k].dtype.metadata["mjd"],
-                           self.result[k].dtype.metadata["nside"]) for k in self.result],
-                         dtype=metadata_type)
+            h = np.array([tuple(self.result[k].dtype.metadata[mk] for mk in metadata_dtype.fields)
+                           for k in self.result],
+                         dtype=metadata_dtype)
             np.savez(filename, header=h, **self.result)
         except TypeError:
             np.savez(filename, **self.result)

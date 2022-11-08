@@ -32,7 +32,7 @@ from .. import recos
 from ..utils import extract_json_message, pixelreco
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
-from ..utils.utils import get_event_mjd
+from ..utils.utils import get_event_mjd, parse_event_id
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
@@ -714,10 +714,12 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # write out .npz file
+    _, _, event_type = parse_event_id(event_id)
     result = ScanResult.from_nsides_dict(nsides_dict,
-                                         pixeler.event_header.run_id,
-                                         pixeler.event_header.event_id,
-                                         pixeler.event_mjd)
+                                         run_id=pixeler.event_header.run_id,
+                                         event_id=pixeler.event_header.event_id,
+                                         mjd=pixeler.event_mjd,
+                                         event_type=event_type)
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
