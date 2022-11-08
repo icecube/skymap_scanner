@@ -45,6 +45,7 @@ class ScanResult:
     def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
         self.result = result
+        self.logger.debug(f"Metadata for this result: {[self.result[_].dtype.metadata for _ in self.result]}")
 
         # bookkeeping for comparing values
         self.require_close = {  # w/ rtol values
