@@ -310,13 +310,31 @@ class ScanResult:
     def load(cls, filename) -> "ScanResult":
         npz = np.load(filename)
         result = dict()
-        for key in npz.keys():
-            result[key] = npz[key]
+        if "header" not in npz:
+            for key in npz.keys():
+                result[key] = npz[key]
+        else:
+            h = npz["header"]
+            for v in h:
+                key = cls.format_nside(v['nside'])
+                _dtype = np.dtype(npz[key].dtype, metadata={k:value for k, value in zip(h.dtype.fields.keys(), v)})
+                result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
     def save(self, event_id, output_path=None) -> Path:
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
-        np.savez(filename, **self.result)
+        try:
+            metadata_type = np.dtype(
+                [("run_id", int), ("event_id", int), ("mjd", float), ("nside", int)],
+                )
+            h = np.array([(self.result[k].dtype.metadata["run_id"],
+                           self.result[k].dtype.metadata["event_id"],
+                           self.result[k].dtype.metadata["mjd"],
+                           self.result[k].dtype.metadata["nside"]) for k in self.result],
+                         dtype=metadata_type)
+            np.savez(filename, header=h, **self.result)
+        except TypeError:
+            np.savez(filename, **self.result)
         return Path(filename)
