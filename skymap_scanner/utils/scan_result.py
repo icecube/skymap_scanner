@@ -156,6 +156,15 @@ class ScanResult:
 
         return diff_vals, test_vals
 
+    def has_metadata(self) -> bool:
+        """ Check that the minimum metadata is set
+        """
+        for mk in "run_id event_id mjd event_type nside".split():
+            for k in self.result:
+                if mk not in self.result[k].dtype.metadata:
+                    return False
+        return True
+
     def is_close(
         self,
         other: "ScanResult",
