@@ -23,6 +23,7 @@ from .plotting_tools import (hp_ticklabels,
                              AstroMollweideAxes,
                              format_fits_header,
                              plot_catalog)
+from .utils import create_event_id
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
@@ -55,7 +56,7 @@ class ScanResult:
     )
     ATOL = 1.0e-8  # 1.0e-8 is the default used by np.isclose()
 
-    def __init__(self, result: Dict[str, np.ndarray], event_id: str=''):
+    def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
         self.result = result
         self.logger.debug(f"Metadata for this result: {[self.result[_].dtype.metadata for _ in self.result]}")
@@ -174,6 +175,8 @@ class ScanResult:
         """
         for mk in "run_id event_id mjd event_type nside".split():
             for k in self.result:
+                if self.result[k].dtype.metadata is None:
+                    return False
                 if mk not in self.result[k].dtype.metadata:
                     return False
         return True
@@ -259,22 +262,6 @@ class ScanResult:
     """
     Auxiliary methods
     """
-    @staticmethod
-    def parse_event_id(event_id_string):
-        parts = event_id_string.split('.')
-        if len(parts) != 3:
-            raise RuntimeError("event ID must have 3 parts separated by '.'")
-
-        if not parts[0].startswith("run"):
-            raise RuntimeError("event ID run part does not start with \"run\"")
-        if not parts[1].startswith("evt"):
-            raise RuntimeError("event ID event part does not start with \"evt\"")
-
-        run = int(parts[0][3:])
-        event = int(parts[1][3:])
-        evt_type = parts[2]
-        return (run, event, evt_type)
-
     @staticmethod
     def format_nside(nside):
         return f"nside-{nside}"
@@ -394,13 +381,17 @@ class ScanResult:
             if "nside-" not in k:
                 raise RuntimeError("\"nside\" not in result file..")
 
-        run_id, event_id, event_type = self.parse_event_id(self.event_id)
+        if self.has_metadata():
+            run_id, event_id, event_type, mjd = [
+                self.result[k].dtype.metadata[_] for _ in "run_id event_id event_type mjd".split()]
+        else:
+            self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
+            run_id, event_id, event_type, mjd = [0]*4
+        unique_id = create_event_id(run_id, event_id)
 
-        # mjd = get_event_mjd(state_dict)
+        plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
-        plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: TODO"
-
-        plot_filename = f"{self.event_id}.{'plot_zoomed.' if dozoom else ''}pdf"
+        plot_filename = f"{unique_id}.{'plot_zoomed.' if dozoom else ''}pdf"
         print(f"saving plot to {plot_filename}")
 
         nsides = [self.parse_nside(_) for _ in self.result]
@@ -652,19 +643,23 @@ class ScanResult:
             if "nside-" not in k:
                 raise RuntimeError("\"nside\" not in result file..")
 
-        run_id, event_id, event_type = self.parse_event_id(self.event_id)
+        if self.has_metadata():
+            run_id, event_id, event_type, mjd = [
+                self.result[k].dtype.metadata[_] for _ in "run_id event_id event_type mjd".split()]
+        else:
+            self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
+            run_id, event_id, event_type, mjd = [0]*4
+        unique_id = create_event_id(run_id, event_id)
 
-        # mjd = get_event_mjd(state_dict)
-
-        plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: TODO"
+        plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
         nsides = [self.parse_nside(_) for _ in self.result]
         print(f"available nsides: {nsides}")
 
         if systematics is not True:
-            plot_filename = self.event_id + ".plot_zoomed_wilks.pdf"
+            plot_filename = unique_id + ".plot_zoomed_wilks.pdf"
         else:
-            plot_filename = self.event_id + ".plot_zoomed.pdf"
+            plot_filename = unique_id + ".plot_zoomed.pdf"
         print("saving plot to {0}".format(plot_filename))
 
         nsides = [self.parse_nside(_) for _ in self.result]
@@ -938,7 +933,7 @@ class ScanResult:
             ras = list(np.asarray(saving_contours[i][0]).T[0])
             decs = list(np.asarray(saving_contours[i][0]).T[1])
             tab = {"ra (rad)": ras, "dec (rad)": decs}
-            savename = self.event_id + ".contour_" + val + ".txt"
+            savename = unique_id + ".contour_" + val + ".txt"
             try:
                 ascii.write(tab, savename, overwrite=True)
                 print("Dumping to", savename)
@@ -955,7 +950,7 @@ class ScanResult:
                 log_func("Memory Error prevented contours from being written")
 
         uncertainty = [(ra_minus, ra_plus), (dec_minus, dec_plus)]
-        fits_header = format_fits_header(self.parse_event_id(self.event_id), 0, 
+        fits_header = format_fits_header((run_id, event_id, event_type), 0, 
             np.degrees(minRA), np.degrees(minDec), uncertainty,
            )
         mmap_nside = healpy.get_nside(master_map)
@@ -1038,12 +1033,12 @@ class ScanResult:
 
         if dosave:
             # Dump the whole contour
-            path = self.event_id + ".contour.pkl"
+            path = unique_id + ".contour.pkl"
             print("Saving contour to", path)
             with open(path, "wb") as f:
                 pickle.dump(saving_contours, f)
 
-            healpy.write_map(f"{self.event_id}.skymap_nside_{mmap_nside}.fits.gz",
+            healpy.write_map(f"{unique_id}.skymap_nside_{mmap_nside}.fits.gz",
                 equatorial_map, coord = 'C', column_names = ['2LLH'],
                 extra_header = fits_header, overwrite=True)
 
