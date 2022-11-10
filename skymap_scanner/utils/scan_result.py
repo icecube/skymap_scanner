@@ -387,7 +387,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = create_event_id(run_id, event_id)
+        unique_id = f'{create_event_id(run_id, event_id)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -649,7 +649,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = create_event_id(run_id, event_id)
+        unique_id = f'{create_event_id(run_id, event_id)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
