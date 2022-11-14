@@ -58,6 +58,7 @@ def write_json(frame):
     fullmsg = {key: value for (key, value) in (list(msg.items()) + list(pnfmsg.items())) if key !='frames'}
     with open(f'{fullmsg["unique_id"]}.json', 'w') as f:
         json.dump(fullmsg, f)
+        print(f'Wrote {fullmsg["unique_id"]}.json')
 
 
 def main():
