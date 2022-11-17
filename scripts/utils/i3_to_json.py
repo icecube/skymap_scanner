@@ -11,6 +11,14 @@ from icecube.full_event_followup import frame_packet_to_i3live_json, i3live_json
 def alertify(frame):
     if 'SplitUncleanedInIcePulses' not in frame:
         return False
+
+    if isinstance(frame['I3SuperDST'], dataclasses.I3RecoPulseSeriesMapApplySPECorrection):
+        print('It seems like I3SuperDST is an instance of I3RecoPulseSeriesMapApplySPECorrection... converting to I3SuperDST')
+        frame['I3SuperDST_tmp'] = frame['I3SuperDST']
+        del frame['I3SuperDST']
+        frame['I3SuperDST'] = dataclasses.I3SuperDST(
+            dataclasses.I3RecoPulseSeriesMap.from_frame(frame, 'I3SuperDST_tmp'))
+        
     print('It seems like your i3 file is missing some cool keys')
     print(frame)
     print('I will add some fake ones')
