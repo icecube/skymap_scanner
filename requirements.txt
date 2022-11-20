@@ -79,11 +79,11 @@ typing-extensions==4.4.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools[coloredlogs]==1.6.9
+wipac-dev-tools[coloredlogs]==1.6.10
     # via
     #   skymap-scanner (setup.py)
     #   wipac-mqclient
-wipac-mqclient[pulsar]==0.6.4
+wipac-mqclient[pulsar]==0.6.7
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)

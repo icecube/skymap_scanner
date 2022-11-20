@@ -174,7 +174,7 @@ class MillipedeWilks(RecoInterface):
             MuonPhotonicsService=MillipedeWilks.muon_service,
             CascadePhotonicsService=MillipedeWilks.cascade_service,
             ShowerRegularization=0,
-            PhotonsPerBin=15,
+            UseUnhitDOMs=False,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
             ReadoutWindow=MillipedeWilks.pulsesName_cleaned+'TimeRange',
@@ -265,7 +265,19 @@ class MillipedeWilks(RecoInterface):
             PositionShiftType='None')
 
         tray.Add('I3SimpleFitter',
-             SeedService='firstFitSeed',
+                 SeedService='firstFitSeed',
+                 OutputName='MillipedeStarting2ndPass_simplex',
+                 Parametrization='fineSteps',
+                 LogLikelihood='millipedellh',
+                 Minimizer='isimplex')
+
+        tray.AddService('I3BasicSeedServiceFactory', 'secondsimplexseed',
+            FirstGuesses=['MillipedeStarting2ndPass_simplex'],
+            TimeShiftType='TNone',
+            PositionShiftType='None')
+
+        tray.Add('I3SimpleFitter',
+             SeedService='secondsimplexseed',
              OutputName='MillipedeStarting2ndPass',
              Parametrization='fineSteps',
              LogLikelihood='millipedellh',
