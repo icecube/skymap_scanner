@@ -83,7 +83,7 @@ The server will exit on its own once it has received and processed all the recon
 
 All will exit on fatal errors (for clients, use HTCondor to manage re-launching). The in-progress pixel reconstruction is abandoned when a client fails, so there is no concern for duplicate reconstructions at the server. The pre-reconstructed pixel will be re-queued to be delivered to a different client.
 
-#### 5. Converting i3 to json and scaling up
+### Converting i3 to json and scaling up
 You may want to run on events stored in i3 files. To convert those into a json format readable by the scanner, you can do
 ```
 cd scripts/utils
