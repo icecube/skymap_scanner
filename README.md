@@ -8,7 +8,10 @@ A distributed system that performs a likelihood scan of event directions for rea
 `skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with `skymap_scanner.utils` (utility functions) and `skymap_scanner.recos` (`icetray` reco-specific logic). Additional, package-independent, utility scripts are in `scripts/utils/`.
 
 ### Example Startup
+You will need to get a pulsar broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
+
 #### 1. Launch the Server
+The server can be launched from anywhere with a stable network connection. You can run it from the cobalts for example. For now, set `--timeout-to-clients` and `--timeout-from-clients` to a large value like 300000. This will persist the server in case the clients don't start up right away.
 ##### Figure Your Args
 ```
     --startup-json-dir DIR_TO_PUT_STARTUP_JSON \
@@ -28,7 +31,7 @@ The server will create a `startup.json` file that has necessary info to launch a
 ##### Run It
 ###### with Singularity
 ```
-singularity run skymap_scanner.sif \
+singularity run /cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z" \
     python -m skymap_scanner.server \
     YOUR_ARGS
 ```
@@ -39,6 +42,10 @@ singularity run skymap_scanner.sif \
 ```
 
 #### 2. Launch Each Client
+The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `BROKER_ADDRESS` and `AUTH_TOKEN` as the server, and the path to the startup json file created by the server. 
+
+On sub-2, suggest setting `--timeout-to-clients` and `--timeout-from-clients` to a reasonable number like 3600s. This should keep workers long enough to process through the reconstructions and release them once the jobs are complete.
+
 ##### Figure Your Args
 ```
     --broker BROKER_ADDRESS \
@@ -75,6 +82,38 @@ When the server is finished processing reconstructions, it will write a single `
 The server will exit on its own once it has received and processed all the reconstructions. The server will write a directory, like `run00127907.evt000020178442.HESE/`, to `--cache-dir`. The clients will exit according to their receiving-queue's timeout value (`--timeout-to-clients`).
 
 All will exit on fatal errors (for clients, use HTCondor to manage re-launching). The in-progress pixel reconstruction is abandoned when a client fails, so there is no concern for duplicate reconstructions at the server. The pre-reconstructed pixel will be re-queued to be delivered to a different client.
+
+#### 5. Converting i3 to json and scaling up
+You may want to run on events stored in i3 files. To convert those into a json format readable by the scanner, you can do
+```
+cd scripts/utils
+python i3_to_json.py --basegcd /data/user/followup/baseline_gcds/baseline_gcd_136897.i3 EVENT_GCD.i3 EVENT_FILE.i3
+```
+This will pull all the events in the i3 file into `run*.evt*.json` which can be passed as an argument to the server.
+
+For now, it's easy to scale up using the command line. Multiple server instances can be run simultaneously and a separate submit file created for each one.
+
+```
+ls *.json | xargs -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{} --broker BROKER_ADDRESS --auth-token AUTH_TOKEN --timeout-to-clients 300000 --timeout-from-clients 300000'
+```
+
+Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/user/{}.condor'` using the template condor submit file below. Then you should be able to just run `condor_submit /scratch/user/*.condor`.
+
+```
+executable = /bin/sh                                                                                                                                                                                                                           
+arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --broker BROKER_ADDRESS --auth-token AUTH_TOKEN --timeout-to-clients 3600 --timeout-from-clients 3600 --startup-json-dir .
++SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
+Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
+output = /scratch/tyuan/scan/UID.out
+error = /scratch/tyuan/scan/UID.err
+log = /scratch/tyuan/scan/UID.log
++FileSystemDomain = "blah"
+should_transfer_files = YES
+transfer_input_files = /path/to/json/UID/startup.json 
+request_cpus = 1                                                                                                                                                                                                                               request_memory = 8GB
+notification = Error
+queue 300 
+```
 
 ### Additional Configuration
 #### Environment Variables
