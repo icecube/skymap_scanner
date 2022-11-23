@@ -6,6 +6,7 @@ from I3Tray import I3Tray
 from icecube.filterscripts import alerteventfollowup, filter_globals
 from icecube import icetray, dataclasses, gulliver, recclasses
 from icecube.full_event_followup import frame_packet_to_i3live_json, i3live_json_to_frame_packet
+from icecube import astro
 
 
 def alertify(frame):
@@ -64,6 +65,11 @@ def write_json(frame):
     msg = json.loads(frame[filter_globals.alert_candidate_full_message].value)
     pnfmsg = json.loads(pnf)
     fullmsg = {key: value for (key, value) in (list(msg.items()) + list(pnfmsg.items())) if key !='frames'}
+    if 'I3MCTree' in frame:
+        prim = dataclasses.get_most_energetic_primary(frame['I3MCTree'])
+        ra, dec = astro.dir_to_equa(prim.dir.zenith, prim.dir.azimuth,
+                                    frame['I3EventHeader'].start_time.mod_julian_day_double)
+        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy}
     with open(f'{fullmsg["unique_id"]}.json', 'w') as f:
         json.dump(fullmsg, f)
         print(f'Wrote {fullmsg["unique_id"]}.json')
@@ -74,12 +80,12 @@ def main():
         description='Extract CausalQTot and MJD data from i3 to h5')
 
     parser.add_argument('i3s', nargs='+', help='input i3s')
-    parser.add_argument('--basegcd', default=os.path.os.path.expandvars('$I3_DATA/GCD/GeoCalibDetectorStatus_2020.Run134142.Pass2_V0.i3.gz'),
+    parser.add_argument('--basegcd', default='/data/user/followup/baseline_gcds/baseline_gcd_136897.i3',
                         type=str,
-                        help='gcd file')
+                        help='baseline gcd file for creating the GCD diff')
     parser.add_argument('--nframes', type=int, default=None, help='number of frames to process')
     parser.add_argument('-o', '--out', default='/dev/null',
-                        help='output file')
+                        help='output I3 file')
     args = parser.parse_args()
 
     tray = I3Tray()
