@@ -630,6 +630,15 @@ class ScanResult:
         if final_channels is None:
             final_channels=["#test_messaging"]
 
+        def bounding_box(ra, dec, theta, phi):
+            shift = ra-180
+
+            ra_plus = np.max((np.degrees(phi)-shift)%360) - 180
+            ra_minus = np.min((np.degrees(phi)-shift)%360) - 180
+            dec_plus = (np.max(theta)-np.pi/2.)*180./np.pi - dec
+            dec_minus = (np.min(theta)-np.pi/2.)*180./np.pi - dec
+            return ra_plus, ra_minus, dec_plus, dec_minus
+
         y_inches = 3.85
         x_inches = 6.
         dpi = 1200.
@@ -756,25 +765,15 @@ class ScanResult:
                     contour.T[1] + 2.*np.pi, contour.T[1]
                     )
 
+
         # Find the rough extent of the contours to bound the plot
         contours = contours_by_level[-1]
-        ra_plus = None
         ra = minRA * 180./np.pi
         dec = minDec * 180./np.pi
-        for contour in contours:
-            theta, phi = contour.T
-            if ra_plus is None:
-                ra_plus = np.max(phi)*180./np.pi - ra
-                ra_minus = np.min(phi)*180./np.pi - ra
-                dec_plus = (np.max(theta)-np.pi/2.)*180./np.pi - dec
-                dec_minus = (np.min(theta)-np.pi/2.)*180./np.pi - dec
-            else:
-                ra_plus = max(ra_plus, np.max(phi)*180./np.pi - ra)
-                ra_minus = min(ra_minus, np.min(phi)*180./np.pi - ra)
-                dec_plus = max(dec_plus, (np.max(theta)-np.pi/2.)*180./np.pi - dec)
-                dec_minus = min(dec_minus, (np.min(theta)-np.pi/2.)*180./np.pi - dec)
+        theta, phi = np.concatenate(contours_by_level[-1]).T
+        ra_plus, ra_minus, dec_plus, dec_minus = bounding_box(ra, dec, theta, phi)
         lonra = [min(-3., ra_minus), max(3., ra_plus)]
-        latra = [min(-2., dec_minus), max(2., dec_plus)]
+        latra = [max(-90, min(-2., dec_minus)), min(90, max(2., dec_plus))]
 
         #Begin the figure 
         plt.clf()
@@ -819,7 +818,7 @@ class ScanResult:
             contour_labels, contour_colors, contours_by_level):
             contour_area = 0 
             for contour in contours:
-                contour_area += area(contour)
+                contour_area += area((contour-ra+np.pi/2)%np.pi)
             contour_area = abs(contour_area)
             contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
             contour_label = contour_label + ' - area: {0:.2f} sqdeg'.format(
@@ -864,18 +863,8 @@ class ScanResult:
         dec = minDec * 180./np.pi
         for l, contours in enumerate(contours_by_level[:2]):
             ra_plus = None
-            for contour in contours:
-                theta, phi = contour.T
-                if ra_plus is None:
-                    ra_plus = np.max(phi)*180./np.pi - ra
-                    ra_minus = np.min(phi)*180./np.pi - ra
-                    dec_plus = (np.max(theta)-np.pi/2.)*180./np.pi - dec
-                    dec_minus = (np.min(theta)-np.pi/2.)*180./np.pi - dec
-                else:
-                    ra_plus = max(ra_plus, np.max(phi)*180./np.pi - ra)
-                    ra_minus = min(ra_minus, np.min(phi)*180./np.pi - ra)
-                    dec_plus = max(dec_plus, (np.max(theta)-np.pi/2.)*180./np.pi - dec)
-                    dec_minus = min(dec_minus, (np.min(theta)-np.pi/2.)*180./np.pi - dec)
+            theta, phi = np.concatenate(contours).T
+            ra_plus, ra_minus, dec_plus, dec_minus = bounding_box(ra, dec, theta, phi)
             contain_txt = "Approximating the {0}% error region as a rectangle, we get:".format(["50", "90"][l]) + " \n" + \
                           "\t RA = {0:.2f} + {1:.2f} - {2:.2f}".format(
                               ra, ra_plus, np.abs(ra_minus)) + " \n" + \
