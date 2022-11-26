@@ -180,6 +180,7 @@ class MillipedeWilks(RecoInterface):
             ReadoutWindow=MillipedeWilks.pulsesName_cleaned+'TimeRange',
             Pulses=MillipedeWilks.pulsesName_cleaned,
             BinSigma=3,
+            MinTimeWidth=25,
             RelUncertainty=0.3)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
