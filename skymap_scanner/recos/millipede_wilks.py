@@ -49,11 +49,20 @@ class MillipedeWilks(RecoInterface):
     for fname in [_base % "abs", _base % "prob", _effd]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
-    cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0,
-        effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/')
-    )
+    try:
+        cascade_service = photonics_service.I3PhotoSplineService(
+            _base % "abs", _base % "prob", timingSigma=0.0,
+            effectivedistancetable = _effd,
+            tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'),
+            quantileEpsilon=1
+            )
+    except ArgumentError:
+        cascade_service = photonics_service.I3PhotoSplineService(
+            _base % "abs", _base % "prob", timingSigma=0.0,
+            effectivedistancetable = _effd,
+            tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'),
+            )
+
     muon_service = None
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
