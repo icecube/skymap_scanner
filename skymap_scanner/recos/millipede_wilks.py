@@ -56,7 +56,9 @@ class MillipedeWilks(RecoInterface):
             tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'),
             quantileEpsilon=1
             )
-    except ArgumentError:
+    except Exception as e:
+        if (not str(e).startswith("Python argument types in")):
+            raise
         cascade_service = photonics_service.I3PhotoSplineService(
             _base % "abs", _base % "prob", timingSigma=0.0,
             effectivedistancetable = _effd,
