@@ -17,13 +17,7 @@ import healpy
 import meander
 
 from .pixelreco import NSidesDict, PixelReco
-from .plotting_tools import (hp_ticklabels,
-                             RaFormatter,
-                             DecFormatter,
-                             AstroMollweideAxes,
-                             format_fits_header,
-                             plot_catalog)
-from .utils import create_event_id
+
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
@@ -358,6 +352,9 @@ class ScanResult:
                     log_func=None,
                     upload_func=None,
                     final_channels=None):
+        from .plotting_tools import RaFormatter, DecFormatter
+        from .utils import create_event_id
+
         if log_func is None:
             def log_func(x):
                 print(x)
@@ -553,7 +550,7 @@ class ScanResult:
             ax.set_xlim( [lower_x, upper_x][::-1])
             ax.set_ylim( [lower_y, upper_y])
 
-            ax.xaxis.set_major_formatter(DecFormatter())
+            ax.xaxis.set_major_formatter(RaFormatter())
             ax.yaxis.set_major_formatter(DecFormatter())
 
             factor = 0.25*(np.pi/180.)
@@ -619,6 +616,11 @@ class ScanResult:
                            final_channels=None):
         """ Uses healpy to plot a map
         """
+        from .plotting_tools import (hp_ticklabels,
+                                     format_fits_header,
+                                     plot_catalog)
+        from .utils import create_event_id
+
         if log_func is None:
             def log_func(x):
                 print(x)
