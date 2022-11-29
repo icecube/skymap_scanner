@@ -1,4 +1,4 @@
-FROM icecube/icetray:combo-main-devel
+FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04
 
 
 #
