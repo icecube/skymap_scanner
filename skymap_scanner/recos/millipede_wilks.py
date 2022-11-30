@@ -198,13 +198,14 @@ class MillipedeWilks(RecoInterface):
 
         tray.context['isimplex'] = lilliput.IMinuitMinimizer(
             MaxIterations=2000,
-            Tolerance=0.1,
+            Tolerance=0.01,
             Algorithm="SIMPLEX",
-            MinuitPrintLevel=2
+            MinuitPrintLevel=2,
+            MinuitPrecision=numpy.finfo('float32').eps
         )
         tray.context['imigrad'] = lilliput.IMinuitMinimizer(
             MaxIterations=1000,
-            Tolerance=0.1,
+            Tolerance=0.01,
             Algorithm="MIGRAD",
             WithGradients=True,
             FlatnessCheck=False,
