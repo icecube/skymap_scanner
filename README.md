@@ -97,16 +97,16 @@ For now, it's easy to scale up using the command line. Multiple server instances
 ls *.json | xargs -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{} --broker BROKER_ADDRESS --auth-token AUTH_TOKEN --timeout-to-clients 300000 --timeout-from-clients 300000'
 ```
 
-Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/user/{}.condor'` using the template condor submit file below. Then you should be able to just run `condor_submit /scratch/user/*.condor`.
+Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run `ls /scratch/$USER/run*.condor|xargs -I{} condor_submit {}`.
 
 ```
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --broker BROKER_ADDRESS --auth-token AUTH_TOKEN --timeout-to-clients 3600 --timeout-from-clients 3600 --startup-json-dir .
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
-output = /scratch/tyuan/scan/UID.out
-error = /scratch/tyuan/scan/UID.err
-log = /scratch/tyuan/scan/UID.log
+output = /scratch/$USER/UID.out
+error = /scratch/$USER/UID.err
+log = /scratch/$USER/UID.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
 transfer_input_files = /path/to/json/UID/startup.json 
