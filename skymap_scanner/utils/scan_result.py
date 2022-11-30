@@ -550,7 +550,7 @@ class ScanResult:
             ax.set_xlim( [lower_x, upper_x][::-1])
             ax.set_ylim( [lower_y, upper_y])
 
-            ax.xaxis.set_major_formatter(RaFormatter())
+            ax.xaxis.set_major_formatter(DecFormatter())
             ax.yaxis.set_major_formatter(DecFormatter())
 
             factor = 0.25*(np.pi/180.)
