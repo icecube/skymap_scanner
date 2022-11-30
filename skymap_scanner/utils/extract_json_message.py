@@ -13,8 +13,8 @@ from .. import config as cfg
 from . import LOGGER
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
+from .simple import create_event_id
 from .utils import (
-    create_event_id,
     hash_frame_packet,
     load_GCD_frame_packet_from_file,
     rewrite_frame_stop,
@@ -32,7 +32,6 @@ def extract_GCD_diff_base_filename(frame_packet):
         for key in list(frame.keys()):
             if frame.get_stop(key) != frame.Stop: continue # only look at native stops
             if not key.endswith('Diff'): continue # skip non-diff keys
-            base_filename = frame[key].base_filename
 
             if GCD_diff_base_filename is None:
                 GCD_diff_base_filename = frame[key].base_filename

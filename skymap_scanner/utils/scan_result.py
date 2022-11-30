@@ -353,7 +353,7 @@ class ScanResult:
                     upload_func=None,
                     final_channels=None):
         from .plotting_tools import RaFormatter, DecFormatter
-        from .utils import create_event_id
+        from .simple import create_event_id
 
         if log_func is None:
             def log_func(x):
@@ -619,7 +619,7 @@ class ScanResult:
         from .plotting_tools import (hp_ticklabels,
                                      format_fits_header,
                                      plot_catalog)
-        from .utils import create_event_id
+        from .simple import create_event_id
 
         if log_func is None:
             def log_func(x):
