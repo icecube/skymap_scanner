@@ -20,8 +20,8 @@ RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_effectivedistanc
         http://prod-exe.icecube.wisc.edu/spline-tables/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits
 
 # install baseline GCDs
-RUN mkdir /opt/i3-data/baseline_gcds && \
-    wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd https://icecube:skua@convey.icecube.wisc.edu/data/user/followup/baseline_gcds/ && \
+# RUN mkdir /opt/i3-data/baseline_gcds && \
+RUN wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd https://icecube:skua@convey.icecube.wisc.edu/data/user/followup/baseline_gcds/ && \
     chmod -R u+rwX,go+rX,go-w /opt/i3-data/baseline_gcds
 RUN ls /opt/i3-data/baseline_gcds
 
