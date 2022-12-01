@@ -361,22 +361,22 @@ class ScanResult:
 
     @property
     def min_llh(self):
-        return self.bestfit['llh']
+        return self.best_fit['llh']
 
     @cached_property
-    def bestfit(self):
-        minllh = np.inf
+    def best_fit(self):
+        _minllh = np.inf
         for k in self.result:
             _res = self.result[k]
             _min = _res['llh'].min()
-            if _min < minllh:
-                minllh = _min
-                bestfit = _res[_res['llh'].argmin()]
-        return bestfit
+            if _min < _minllh:
+                _minllh = _min
+                _bestfit = _res[_res['llh'].argmin()]
+        return _bestfit
 
     @property
-    def direction(self):
-        minDec, minRA = healpy.pix2ang(self.bestfit.dtype.metadata['nside'], self.bestfit['index'])
+    def best_dir(self):
+        minDec, minRA = healpy.pix2ang(self.best_fit.dtype.metadata['nside'], self.best_fit['index'])
         minDec = minDec - np.pi/2.
         return minRA, minDec
 
