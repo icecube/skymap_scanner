@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 import io
 import pickle
 from astropy.io import ascii
+from functools import cached_property
 
 import numpy as np
 import matplotlib
@@ -53,6 +54,7 @@ class ScanResult:
     def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
         self.result = result
+        self.nsides = sorted([self.parse_nside(key) for key in self.result])
         self.logger.debug(f"Metadata for this result: {[self.result[_].dtype.metadata for _ in self.result]}")
 
         # bookkeeping for comparing values
@@ -311,8 +313,7 @@ class ScanResult:
         # keys have a 'nside-NNN' format but we just want to extract the nside values to build the string
         # parsing back and forth numbers to strings is not the most elegant choice but works for now
         # TODO: possibly better to use integer values as keys in self.result
-        nsides = sorted([self.parse_nside(key) for key in self.result])
-        return "_".join([str(nside) for nside in nsides])
+        return "_".join([str(nside) for nside in self.nsides])
 
     @classmethod
     def load(cls, filename) -> "ScanResult":
@@ -345,6 +346,31 @@ class ScanResult:
         except TypeError:
             np.savez(filename, **self.result)
         return Path(filename)
+
+    """
+    Querying
+    """
+
+    def llh(self, ra, dec):
+        for nside in self.nsides[::-1]:
+            grid_pix = healpy.ang2pix(nside, dec + np.pi/2., ra)
+            _res = self.result[self.format_nside(nside)]
+            llh = _res[_res['index']==grid_pix]['llh']
+            if llh.size > 0:
+                return llh
+
+    @cached_property
+    def min_llh(self):
+        minllh = np.inf
+        for nside in self.nsides[::-1]:
+            _min = self.result[self.format_nside(nside)]['llh'].min()
+            if _min < minllh:
+                minllh = _min
+        return minllh
+
+    """
+    Plotting routines
+    """
 
     def create_plot(self,
                     dosave=False,
@@ -391,7 +417,7 @@ class ScanResult:
         plot_filename = f"{unique_id}.{'plot_zoomed.' if dozoom else ''}pdf"
         print(f"saving plot to {plot_filename}")
 
-        nsides = [self.parse_nside(_) for _ in self.result]
+        nsides = self.nsides
         print(f"available nsides: {nsides}")
 
         maps = []
@@ -414,7 +440,7 @@ class ScanResult:
         grid_pix = None
 
         # now plot maps above each other
-        for nside in sorted(nsides):
+        for nside in nsides:
             print(("constructing map for nside {0}...".format(nside)))
             # grid_pix = healpy.ang2pix(nside, THETA, PHI)
             grid_pix = healpy.ang2pix(nside, DEC + np.pi/2., RA)
@@ -664,7 +690,7 @@ class ScanResult:
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
-        nsides = [self.parse_nside(_) for _ in self.result]
+        nsides = self.nsides
         print(f"available nsides: {nsides}")
 
         if systematics is not True:
@@ -673,14 +699,14 @@ class ScanResult:
             plot_filename = unique_id + ".plot_zoomed.pdf"
         print("saving plot to {0}".format(plot_filename))
 
-        nsides = [self.parse_nside(_) for _ in self.result]
+        nsides = self.nsides
         print(f"available nsides: {nsides}")
 
         grid_map = dict()
         max_nside = max(nsides)
         master_map = np.full(healpy.nside2npix(max_nside), np.nan)
 
-        for nside in sorted(nsides):
+        for nside in nsides:
             print("constructing map for nside {0}...".format(nside))
             npix = healpy.nside2npix(nside)
 

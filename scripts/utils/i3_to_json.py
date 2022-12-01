@@ -67,9 +67,10 @@ def write_json(frame):
     fullmsg = {key: value for (key, value) in (list(msg.items()) + list(pnfmsg.items())) if key !='frames'}
     if 'I3MCTree' in frame:
         prim = dataclasses.get_most_energetic_primary(frame['I3MCTree'])
+        muhi = dataclasses.get_most_energetic_muon(frame['I3MCTree'])
         ra, dec = astro.dir_to_equa(prim.dir.zenith, prim.dir.azimuth,
                                     frame['I3EventHeader'].start_time.mod_julian_day_double)
-        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy}
+        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy, 'emuhi': muhi.energy}
     with open(f'{fullmsg["unique_id"]}.json', 'w') as f:
         json.dump(fullmsg, f)
         print(f'Wrote {fullmsg["unique_id"]}.json')
