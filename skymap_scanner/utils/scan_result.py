@@ -359,14 +359,26 @@ class ScanResult:
             if llh.size > 0:
                 return llh
 
-    @cached_property
+    @property
     def min_llh(self):
+        return self.bestfit['llh']
+
+    @cached_property
+    def bestfit(self):
         minllh = np.inf
-        for nside in self.nsides[::-1]:
-            _min = self.result[self.format_nside(nside)]['llh'].min()
+        for k in self.result:
+            _res = self.result[k]
+            _min = _res['llh'].min()
             if _min < minllh:
                 minllh = _min
-        return minllh
+                bestfit = _res[_res['llh'].argmin()]
+        return bestfit
+
+    @property
+    def direction(self):
+        minDec, minRA = healpy.pix2ang(self.bestfit.dtype.metadata['nside'], self.bestfit['index'])
+        minDec = minDec - np.pi/2.
+        return minRA, minDec
 
     """
     Plotting routines
@@ -379,7 +391,7 @@ class ScanResult:
                     upload_func=None,
                     final_channels=None):
         from .plotting_tools import RaFormatter, DecFormatter
-        from .simple import create_event_id
+        from .icetrayless import create_event_id
 
         if log_func is None:
             def log_func(x):
@@ -645,7 +657,7 @@ class ScanResult:
         from .plotting_tools import (hp_ticklabels,
                                      format_fits_header,
                                      plot_catalog)
-        from .simple import create_event_id
+        from .icetrayless import create_event_id
 
         if log_func is None:
             def log_func(x):

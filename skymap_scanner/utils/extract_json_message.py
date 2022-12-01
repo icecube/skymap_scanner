@@ -13,7 +13,7 @@ from .. import config as cfg
 from . import LOGGER
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
-from .simple import create_event_id
+from .icetrayless import create_event_id
 from .utils import (
     hash_frame_packet,
     load_GCD_frame_packet_from_file,

@@ -33,7 +33,7 @@ from ..utils import extract_json_message, pixelreco
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
-from ..utils.simple import parse_event_id
+from ..utils.icetrayless import parse_event_id
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
