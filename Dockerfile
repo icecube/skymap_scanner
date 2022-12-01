@@ -1,12 +1,11 @@
-FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04
-
+FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04-2022-11-29
 
 #
 # Get Data
 #
 
 # we need more spline tables (since we need to potentially re-do onlineL2)
-# RUN mkdir -p /opt/i3-data/photon-tables/splines/
+RUN mkdir -p /opt/i3-data/photon-tables/splines/
 RUN ls /opt/i3-data
 RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10_V2.fits \
         http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_abs_z20a10_V2.fits
@@ -20,7 +19,7 @@ RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_effectivedistanc
         http://prod-exe.icecube.wisc.edu/spline-tables/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits
 
 # install baseline GCDs
-# RUN mkdir /opt/i3-data/baseline_gcds && \
+RUN mkdir /opt/i3-data/baseline_gcds && \
 RUN wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd https://icecube:skua@convey.icecube.wisc.edu/data/user/followup/baseline_gcds/ && \
     chmod -R u+rwX,go+rX,go-w /opt/i3-data/baseline_gcds
 RUN ls /opt/i3-data/baseline_gcds
