@@ -98,6 +98,29 @@ class MillipedeWilks(RecoInterface):
         # exclude bright DOMs
         ExcludedDOMs = exclusionList
 
+        def skipunhits(frame, output, pulses):
+            keepstrings = [1,3,5,14,16,18,20,31,33,35,37,39,51,53,55,57,59,68,70,72,74]
+            keepoms = list(range(1,60,5))
+            all_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(
+                frame, pulses)
+            omgeo = frame['I3Geometry']
+            geo = omgeo.omgeo
+            unhits = dataclasses.I3VectorOMKey()
+            for k, v in geo.iteritems():
+                if v.omtype != dataclasses.I3OMGeo.OMType.IceCube:
+                    continue
+                if k.string not in keepstrings:
+                    if k not in all_pulses.keys():
+                        unhits.append(k)
+                else:
+                    if k not in all_pulses.keys() and k.om not in keepoms:
+                        unhits.append(k)
+
+            frame[output] = unhits
+
+        tray.Add(skipunhits, output='OtherUnhits', pulses=MillipedeWilks.pulsesName)
+        ExcludedDOMs.append('OtherUnhits')
+
         ##################
 
         def _weighted_quantile_arg(values, weights, q=0.5):
@@ -176,7 +199,6 @@ class MillipedeWilks(RecoInterface):
             MuonPhotonicsService=MillipedeWilks.muon_service,
             CascadePhotonicsService=MillipedeWilks.cascade_service,
             ShowerRegularization=0,
-            UseUnhitDOMs=False,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
             ReadoutWindow=MillipedeWilks.pulsesName_cleaned+'TimeRange',
