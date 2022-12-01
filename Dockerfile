@@ -6,7 +6,7 @@ FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04
 #
 
 # we need more spline tables (since we need to potentially re-do onlineL2)
-RUN mkdir -p /opt/i3-data/photon-tables/splines/
+# RUN mkdir -p /opt/i3-data/photon-tables/splines/
 RUN ls /opt/i3-data
 RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10_V2.fits \
         http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_abs_z20a10_V2.fits
