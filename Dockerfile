@@ -1,4 +1,4 @@
-FROM [--platform=amd64] icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04
+FROM [--platform=amd64] icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04-2022-11-29 as icetray-base-devel
 
 
 #
