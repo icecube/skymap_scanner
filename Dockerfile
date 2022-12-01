@@ -1,5 +1,4 @@
-FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04-2022-11-29:latest
-
+FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04-2022-11-29
 
 #
 # Get Data
