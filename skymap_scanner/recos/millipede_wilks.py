@@ -218,12 +218,12 @@ class MillipedeWilks(RecoInterface):
         #                 MinuitStrategy=0, # Don't try to check local curvature
         #                 )
 
-        coars_steps = dict(StepX=10.*I3Units.m,
-                           StepY=10.*I3Units.m,
-                           StepZ=10.*I3Units.m,
+        coars_steps = dict(StepX=100.*I3Units.m,
+                           StepY=100.*I3Units.m,
+                           StepZ=100.*I3Units.m,
                            StepZenith=0.,
                            StepAzimuth=0.,
-                           StepT=25.*I3Units.ns,
+                           StepT=250.*I3Units.ns,
                            ShowerSpacing=5.*I3Units.m,
                            MuonSpacing=0,
                            Boundary=700*I3Units.m)
@@ -238,7 +238,7 @@ class MillipedeWilks(RecoInterface):
                            Boundary=700*I3Units.m)
         if seed is not None:
             logger.debug('Updating StepXYZ')
-            MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
+            MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 150*I3Units.m)
             MillipedeWilks.UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
