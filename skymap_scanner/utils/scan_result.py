@@ -812,8 +812,10 @@ class ScanResult:
         dec = minDec * 180./np.pi
         theta, phi = np.concatenate(contours_by_level[-1]).T
         ra_plus, ra_minus, dec_plus, dec_minus = bounding_box(ra, dec, theta, phi)
-        lonra = [min(-3., ra_minus), max(3., ra_plus)]
-        latra = [max(-90, min(-2., dec_minus)), min(90, max(2., dec_plus))]
+        ra_bound = min(15, max(3, max(-ra_minus, ra_plus)))
+        dec_bound = min(15, max(2, max(-dec_minus, dec_plus)))
+        lonra = [-ra_bound, ra_bound]
+        latra = [-dec_bound, dec_bound]
 
         #Begin the figure 
         plt.clf()
