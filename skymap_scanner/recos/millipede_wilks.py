@@ -228,18 +228,6 @@ class MillipedeWilks(RecoInterface):
             MinuitPrintLevel=2
             )
 
-        ## TODO: try this MIGRAD, which fails
-        # tray.AddService("I3GulliverMinuit2Factory", 'migrad',
-        #                 MaxIterations=1000,
-        #                 Tolerance=0.1,
-        #                 Algorithm="MIGRAD",
-        #                 WithGradients=True,
-        #                 FlatnessCheck=False,
-        #                 IgnoreEDM=True, # Don't report convergence failures
-        #                 CheckGradient=False, # Don't die on gradient errors
-        #                 MinuitStrategy=0, # Don't try to check local curvature
-        #                 )
-
         coars_steps = dict(StepX=100.*I3Units.m,
                            StepY=100.*I3Units.m,
                            StepZ=100.*I3Units.m,
@@ -265,7 +253,7 @@ class MillipedeWilks(RecoInterface):
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}'],
+            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}', f'{cfg.OUTPUT_PARTICLE_NAME}_fallback'],
             TimeShiftType='TNone',
             PositionShiftType='None')
 
