@@ -203,7 +203,7 @@ class MillipedeWilks(RecoInterface):
             PartialExclusion=True,
             ReadoutWindow=MillipedeWilks.pulsesName_cleaned+'TimeRange',
             Pulses=MillipedeWilks.pulsesName_cleaned,
-            BinSigma=3,
+            BinSigma=2,
             MinTimeWidth=25,
             RelUncertainty=0.3)
 
