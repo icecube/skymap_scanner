@@ -1,5 +1,7 @@
 """Init."""
 
+# isort: skip_file
+
 # NOTE:
 #  MQClient needs to be the *FIRST* import so C++ bindings can be made ASAP
 #  before any other dependency. Previously, there were issues when this
