@@ -5,7 +5,7 @@
 # NOTE: Import order matters here, due to establishing C++ bindings.
 # 1st
 try:
-    from icecube import icetray, dataclasses, recclasses
+    from icecube import recclasses
 except ModuleNotFoundError:
     # side note: there's a chance we want to run scanner modules w/out icecube
     pass
