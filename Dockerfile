@@ -61,7 +61,7 @@ RUN tree -f $I3_DATA
 #
 
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd && apt-get clean
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd default-jre && apt-get clean
 RUN sudo apt-get install python3-pip -y
 RUN python3 -m pip install --upgrade pip
 RUN pip install .
