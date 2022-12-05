@@ -12,9 +12,8 @@ import os
 import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union, Set
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, TypeVar, Union
 
-import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
@@ -30,12 +29,14 @@ from wipac_dev_tools import logging_tools
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message, pixelreco
+from ..utils.icetrayless import parse_event_id
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
-from ..utils.icetrayless import parse_event_id
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+
+import healpy  # type: ignore[import] # isort: skip
 
 
 class DuplicatePixelRecoException(Exception):

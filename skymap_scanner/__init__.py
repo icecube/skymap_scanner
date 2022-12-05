@@ -1,17 +1,5 @@
 """Init."""
 
-# isort: skip_file
-
-# NOTE: Import order matters here, due to establishing C++ bindings.
-# 1st
-try:
-    from icecube import recclasses
-except ModuleNotFoundError:
-    # side note: there's a chance we want to run scanner modules w/out icecube
-    pass
-# 2nd
-import mqclient
-
 # version is a human-readable version number.
 
 # version_info is a four-tuple for programmatic comparison. The first
