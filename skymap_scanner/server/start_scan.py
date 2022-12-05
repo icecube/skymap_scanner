@@ -1,6 +1,7 @@
 """The Skymap Scanner Server."""
 
 # pylint: disable=invalid-name,import-error
+# isort: skip_file
 
 import argparse
 import asyncio
@@ -14,7 +15,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, TypeVar, Union
 
-import mqclient as mq
+import mqclient as mq  # move this above others
+
+import healpy  # type: ignore[import]
 import numpy
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
@@ -35,8 +38,6 @@ from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
-
-import healpy  # type: ignore[import] # isort: skip
 
 
 class DuplicatePixelRecoException(Exception):
