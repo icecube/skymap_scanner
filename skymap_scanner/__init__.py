@@ -6,7 +6,7 @@
 # 1st
 try:
     from icecube import icetray, dataclasses, recclasses
-except ImportError:
+except ModuleNotFoundError:
     # side note: there's a chance we want to run scanner modules w/out icecube
     pass
 # 2nd
