@@ -60,10 +60,17 @@ RUN tree -f $I3_DATA
 # Add Python Packages
 #
 
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd default-jre && apt-get clean
-RUN sudo apt-get install python3-pip -y
+RUN apt-get update 
+RUN apt-get install -y --no-install-recommends apt-utils
+RUN apt-get update 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd 
+# Stuff for pulsar 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre protobuf-compiler python3-pybind11
+RUN apt-get clean
+RUN apt-get install python3-pip -y
 RUN python3 -m pip install --upgrade pip
+# Stuff for pulsar 
+RUN python3 -m pip install pulsar-client==2.10.2
 RUN pip install .
 
 
