@@ -1,5 +1,11 @@
 """Init."""
 
+# NOTE:
+#  MQClient needs to be the *FIRST* import so C++ bindings can be made ASAP
+#  before any other dependency. Previously, there were issues when this
+#  was preceded by `import healpy`.
+import mqclient
+
 # version is a human-readable version number.
 
 # version_info is a four-tuple for programmatic comparison. The first
