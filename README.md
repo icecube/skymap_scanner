@@ -37,8 +37,14 @@ singularity run /cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_sc
 ```
 ###### or with Docker
 ```
+# side note: you may want to first set environment variables, see below
 ./scripts/launch_scripts/docker/launch_server.sh \
     YOUR_ARGS
+```
+_NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
+```
+export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
+export SKYSCAN_DOCKER_PULL_POLICY='' # defaults to '--pull=always'
 ```
 
 #### 2. Launch Each Client
@@ -69,10 +75,16 @@ echo my_client_args.json  # just an example
 _NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-json` file._
 ###### or Manually (Docker)
 ```
+# side note: you may want to first set environment variables, see below
 ./scripts/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
 ./scripts/launch_scripts/docker/launch_client.sh \
     --startup-json-dir DIR_WITH_STARTUP_JSON \
     YOUR_ARGS
+```
+_NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
+```
+export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
+export SKYSCAN_DOCKER_PULL_POLICY='' # defaults to '--pull=always'
 ```
 
 #### 3. Results
