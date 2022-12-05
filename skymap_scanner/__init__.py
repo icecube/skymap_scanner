@@ -2,10 +2,14 @@
 
 # isort: skip_file
 
-# NOTE:
-#  MQClient needs to be the *FIRST* import so C++ bindings can be made ASAP
-#  before any other dependency. Previously, there were issues when this
-#  was preceded by `import healpy`.
+# NOTE: Import order matters here, due to establishing C++ bindings.
+# 1st
+try:
+    from icecube import icetray, dataclasses, recclasses
+except ImportError:
+    # side note: there's a chance we want to run scanner modules w/out icecube
+    pass
+# 2nd
 import mqclient
 
 # version is a human-readable version number.
