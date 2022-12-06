@@ -44,7 +44,7 @@ singularity run /cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_sc
 _NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
-export SKYSCAN_DOCKER_PULL_ALWAYS='' # defaults to '--pull=always'
+export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
 ```
 
 #### 2. Launch Each Client
@@ -84,7 +84,7 @@ _NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP
 _NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
-export SKYSCAN_DOCKER_PULL_ALWAYS='' # defaults to '--pull=always'
+export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
 ```
 
 #### 3. Results
