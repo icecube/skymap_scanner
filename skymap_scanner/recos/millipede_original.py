@@ -43,7 +43,7 @@ class MillipedeOriginal(RecoInterface):
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_TESTDATA/photospline")
+    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
     _base = os.path.join(_splinedir, "ems_mie_z20_a10.%s.fits")
     for fname in [_base % "abs", _base % "prob"]:
         if not os.path.exists(fname):
