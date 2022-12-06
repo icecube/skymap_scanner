@@ -66,7 +66,7 @@ fi
 
 
 # Run
-docker run --network="host" $SKYSCAN_DOCKER_PULL_ALWAYS --rm -i \
+docker run --network="host" $pull_policy --rm -i \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \

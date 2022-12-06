@@ -73,7 +73,7 @@ fi
 
 
 # Run
-docker run --network="host" $SKYSCAN_DOCKER_PULL_ALWAYS --rm -i \
+docker run --network="host" $pull_policy --rm -i \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
