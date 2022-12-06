@@ -32,7 +32,7 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: ./Dockerfile
+          file: Dockerfile
           tags: icecube/skymap_scanner:local
 
   test-run-singularity-dummy-reco:
@@ -52,8 +52,9 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: ./Dockerfile
+          file: Dockerfile
           tags: icecube/skymap_scanner:local
+          load: true
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.1.2
@@ -153,8 +154,9 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: ./Dockerfile
+          file: Dockerfile
           tags: icecube/skymap_scanner:local
+          load: true
       - name: Run
         run: |
           set -x
@@ -234,8 +236,9 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: ./Dockerfile
+          file: Dockerfile
           tags: icecube/skymap_scanner:local
+          load: true
       - name: Run
         run: |
           # grab the GCDQp_packet key and throw into a file
