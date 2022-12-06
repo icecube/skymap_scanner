@@ -1,4 +1,9 @@
-FROM icecube/icetray:icetray-devel-v1.4.1-ubuntu22.04-2022-11-29 as build
+#
+# Define the base image icetray version
+#
+ARG ICETRAY_VERSION=v1.4.1-ubuntu22.04-2022-11-29
+
+FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION as build
 
 #
 # Add Packages
@@ -23,7 +28,7 @@ RUN cd pulsar-client-python && git submodule update --init \
 #
 # Now make the prod image
 #
-FROM icecube/icetray:icetray-prod-v1.4.1-ubuntu22.04-2022-11-29 as prod 
+FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
 
 
 #
@@ -86,8 +91,7 @@ RUN pip install .
 
 #
 # ENTRYPOINT
+# Inherited from icetray image as /usr/local/icetray/env-shell.sh
 #
 
-# set the entry point so that module is called with any parameters given to the `docker run` command
-#ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
 CMD []
