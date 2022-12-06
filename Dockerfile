@@ -57,20 +57,29 @@ RUN tree -f $I3_DATA
 
 
 #
+# Add Packages
+#
+RUN apt-get update 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils
+RUN apt-get update 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd default-jre protobuf-compiler python3-pybind11 python3-pip 
+RUN apt-get clean
+
+#
+# Manually compile Pulsar
+#
+RUN git clone https://github.com/apache/pulsar-client-cpp
+RUN cd pulsar-client-cpp && cmake -DBUILD_TESTS=OFF . && make -j2
+RUN git clone https://github.com/apache/pulsar-client-python
+RUN cd pulsar-client-python && git submodule update --init \
+    && cmake -DCMAKE_PREFIX_PATH=../pulsar-client-cpp -B build \
+    && cmake --build build && cmake --install build \
+    && python3 ./setup.py bdist_wheel \
+    && python3 -m pip install dist/pulsar_client-*.whl --force-reinstall
+
+#
 # Add Python Packages
 #
-
-RUN apt-get update 
-RUN apt-get install -y --no-install-recommends apt-utils
-RUN apt-get update 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y bzip2 zstd 
-# Stuff for pulsar 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre protobuf-compiler python3-pybind11
-RUN apt-get clean
-RUN apt-get install python3-pip -y
-RUN python3 -m pip install --upgrade pip
-# Stuff for pulsar 
-RUN python3 -m pip install pulsar-client==2.10.2
 RUN pip install .
 
 
