@@ -77,7 +77,7 @@ jobs:
           mkdir $SKYSCAN_OUTPUT_DIR
 
           # Launch Server
-          singularity run /tmp/skymap_scanner.sif \
+          singularity run skymap_scanner.sif \
             python -m skymap_scanner.server \
             --reco-algo dummy \
             --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
@@ -100,7 +100,7 @@ jobs:
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
-            singularity run /tmp/skymap_scanner.sif \
+            singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
               --startup-json-dir . \
               --broker $BROKER_ADDRESS \
