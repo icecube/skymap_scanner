@@ -1,7 +1,7 @@
 #
 # Define the base image icetray version
 #
-ARG ICETRAY_VERSION=v1.4.1-ubuntu22.04-2022-11-29
+ARG ICETRAY_VERSION=v1.4.1-ubuntu22.04
 
 FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION as build
 
