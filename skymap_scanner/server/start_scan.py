@@ -398,6 +398,28 @@ class PixelsToReco:
             )
             yield from self._gen_pixel_variations(nside=nside, pixel=pix)
 
+    def i3particle(self, position, direction, energy, time):
+        # generate the particle from scratch
+        particle = dataclasses.I3Particle()
+        particle.shape = dataclasses.I3Particle.ParticleShape.InfiniteTrack
+        particle.fit_status = dataclasses.I3Particle.FitStatus.OK
+        particle.pos = position
+        particle.dir = direction
+        if self.reco_algo == 'millipede_original':
+            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
+            particle.time = time
+        else:
+            LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
+            # given direction and vertex position, calculate time from CAD
+            particle.time = self.refine_vertex_time(
+                position,
+                time,
+                direction,
+                self.pulseseries_hlc,
+                self.omgeo)
+        particle.energy = energy
+        return particle
+
     def _gen_pixel_variations(
         self,
         nside: icetray.I3Int,
@@ -448,36 +470,25 @@ class PixelsToReco:
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         for i in range(0,len(self.pos_variations)):
+            p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
+
             if self.reco_algo == 'millipede_wilks':
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
-            p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
-
-            thisPosition = position+posVariation
-
-            # generate the particle from scratch
-            particle = dataclasses.I3Particle()
-            particle.shape = dataclasses.I3Particle.ParticleShape.InfiniteTrack
-            particle.fit_status = dataclasses.I3Particle.FitStatus.OK
-            particle.pos = thisPosition
-            particle.dir = direction
-            if self.reco_algo == 'millipede_original':
-                LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
-                particle.time = time
-            else:
-                LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
-                # given direction and vertex position, calculate time from CAD
-                particle.time = self.refine_vertex_time(
-                    thisPosition,
-                    time,
-                    direction,
-                    self.pulseseries_hlc,
-                    self.omgeo)
-            particle.energy = energy
-            p_frame[f'{self.output_particle_name}'] = particle
-
+                if position != self.fallback_position:
+                    # add fallback pos as an extra first guess
+                    p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
+                        self.fallback_position+posVariation,
+                        direction,
+                        self.fallback_energy,
+                        self.fallback_time)
+                    
+            p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
+                                                                      direction,
+                                                                      energy,
+                                                                      time)
             # generate a new event header
             eventHeader = dataclasses.I3EventHeader(self.event_header)
             eventHeader.sub_event_stream = "SCAN_nside%04u_pixel%04u_posvar%04u" % (nside, pixel, i)

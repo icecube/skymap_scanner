@@ -507,7 +507,7 @@ class ScanResult:
         print(f"preparing plot: {plot_filename}...")
 
         # the color map to use
-        cmap = matplotlib.cm.magma_r
+        cmap = matplotlib.cm.plasma_r
         cmap.set_under(alpha=0.) # make underflows transparent
         cmap.set_bad(alpha=1., color=(1.,0.,0.)) # make NaNs bright red
 
@@ -777,7 +777,7 @@ class ScanResult:
 
         print("preparing plot: {0}...".format(plot_filename))
 
-        cmap = matplotlib.cm.magma_r
+        cmap = matplotlib.cm.plasma_r
         cmap.set_under('w')
         cmap.set_bad(alpha=1., color=(1.,0.,0.)) # make NaNs bright red
 

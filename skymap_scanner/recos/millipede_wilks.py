@@ -49,11 +49,13 @@ class MillipedeWilks(RecoInterface):
     for fname in [_base % "abs", _base % "prob", _effd]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
+
     cascade_service = photonics_service.I3PhotoSplineService(
         _base % "abs", _base % "prob", timingSigma=0.0,
         effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/')
-    )
+        tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'),
+        quantileEpsilon=1
+        )
     muon_service = None
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
@@ -95,6 +97,29 @@ class MillipedeWilks(RecoInterface):
                        ListNames = ["BrightDOMs"])
         # exclude bright DOMs
         ExcludedDOMs = exclusionList
+
+        def skipunhits(frame, output, pulses):
+            keepstrings = [1,3,5,14,16,18,20,31,33,35,37,39,51,53,55,57,59,68,70,72,74]
+            keepoms = list(range(1,60,5))
+            all_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(
+                frame, pulses)
+            omgeo = frame['I3Geometry']
+            geo = omgeo.omgeo
+            unhits = dataclasses.I3VectorOMKey()
+            for k, v in geo.iteritems():
+                if v.omtype != dataclasses.I3OMGeo.OMType.IceCube:
+                    continue
+                if k.string not in keepstrings:
+                    if k not in all_pulses.keys():
+                        unhits.append(k)
+                else:
+                    if k not in all_pulses.keys() and k.om not in keepoms:
+                        unhits.append(k)
+
+            frame[output] = unhits
+
+        tray.Add(skipunhits, output='OtherUnhits', pulses=MillipedeWilks.pulsesName)
+        ExcludedDOMs.append('OtherUnhits')
 
         ##################
 
@@ -174,25 +199,26 @@ class MillipedeWilks(RecoInterface):
             MuonPhotonicsService=MillipedeWilks.muon_service,
             CascadePhotonicsService=MillipedeWilks.cascade_service,
             ShowerRegularization=0,
-            UseUnhitDOMs=False,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
             ReadoutWindow=MillipedeWilks.pulsesName_cleaned+'TimeRange',
             Pulses=MillipedeWilks.pulsesName_cleaned,
-            BinSigma=3,
+            BinSigma=2,
+            MinTimeWidth=25,
             RelUncertainty=0.3)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 
         tray.context['isimplex'] = lilliput.IMinuitMinimizer(
             MaxIterations=2000,
-            Tolerance=0.1,
+            Tolerance=0.01,
             Algorithm="SIMPLEX",
-            MinuitPrintLevel=2
+            MinuitPrintLevel=2,
+            MinuitPrecision=numpy.finfo('float32').eps
         )
         tray.context['imigrad'] = lilliput.IMinuitMinimizer(
             MaxIterations=1000,
-            Tolerance=0.1,
+            Tolerance=0.01,
             Algorithm="MIGRAD",
             WithGradients=True,
             FlatnessCheck=False,
@@ -202,24 +228,12 @@ class MillipedeWilks(RecoInterface):
             MinuitPrintLevel=2
             )
 
-        ## TODO: try this MIGRAD, which fails
-        # tray.AddService("I3GulliverMinuit2Factory", 'migrad',
-        #                 MaxIterations=1000,
-        #                 Tolerance=0.1,
-        #                 Algorithm="MIGRAD",
-        #                 WithGradients=True,
-        #                 FlatnessCheck=False,
-        #                 IgnoreEDM=True, # Don't report convergence failures
-        #                 CheckGradient=False, # Don't die on gradient errors
-        #                 MinuitStrategy=0, # Don't try to check local curvature
-        #                 )
-
-        coars_steps = dict(StepX=10.*I3Units.m,
-                           StepY=10.*I3Units.m,
-                           StepZ=10.*I3Units.m,
+        coars_steps = dict(StepX=100.*I3Units.m,
+                           StepY=100.*I3Units.m,
+                           StepZ=100.*I3Units.m,
                            StepZenith=0.,
                            StepAzimuth=0.,
-                           StepT=25.*I3Units.ns,
+                           StepT=250.*I3Units.ns,
                            ShowerSpacing=5.*I3Units.m,
                            MuonSpacing=0,
                            Boundary=700*I3Units.m)
@@ -234,12 +248,12 @@ class MillipedeWilks(RecoInterface):
                            Boundary=700*I3Units.m)
         if seed is not None:
             logger.debug('Updating StepXYZ')
-            MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 15*I3Units.m)
+            MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 150*I3Units.m)
             MillipedeWilks.UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}'],
+            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}', f'{cfg.OUTPUT_PARTICLE_NAME}_fallback'],
             TimeShiftType='TNone',
             PositionShiftType='None')
 
