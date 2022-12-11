@@ -89,9 +89,7 @@ COPY . .
 RUN pip install .
 
 
-#
-# ENTRYPOINT
-# Inherited from icetray image as /usr/local/icetray/env-shell.sh
-#
+# set the entry point so that module is called with any parameters given to the `docker run` command
+ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
 
 CMD []
