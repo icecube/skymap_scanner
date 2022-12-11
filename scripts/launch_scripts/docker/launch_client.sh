@@ -57,21 +57,21 @@ set -x
 
 
 # Figure where to get image
-PULL_POLICY="--pull=always"
-IMAGE_TAG="latest"
-if [ "$LOOK_FOR_LOCAL_IMAGE" == "1" ]; then
-    PULL_POLICY=""
-    IMAGE_TAG="local"
+# Figure pull policy
+if [[ ${SKYSCAN_DOCKER_PULL_ALWAYS:-"1"} == "0" ]]; then
+    pull_policy=""
+else
+    pull_policy="--pull=always"
 fi
 
 
 # Run
-docker run --network="host" $PULL_POLICY --rm -i \
+docker run --network="host" $pull_policy --rm -i \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:=900}" \
-    icecube/skymap_scanner:$IMAGE_TAG \
+    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:-900}" \
+    icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
     python -m skymap_scanner.client \
     $PY_ARGS
