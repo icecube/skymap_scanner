@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-astropy==5.1.1
+astropy==5.2
     # via
     #   healpy
     #   skymap-scanner (setup.py)
@@ -34,7 +34,7 @@ humanfriendly==10.0
     # via coloredlogs
 idna==3.4
     # via requests
-iminuit==2.17.0
+iminuit==2.18.0
     # via skymap-scanner (setup.py)
 kiwisolver==1.4.4
     # via matplotlib
