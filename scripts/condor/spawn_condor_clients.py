@@ -159,9 +159,10 @@ def main() -> None:
         type=lambda x: wait_for_file(x, 60 * 25),
     )
     parser.add_argument(
-        "--client-args-json",
+        "--client-args",
         required=True,
-        help="a JSON file containing the python CL arguments to pass to skymap_scanner.client",
+        nargs="+",
+        help="n 'key:value' pairs containing the python CL arguments to pass to skymap_scanner.client",
     )
 
     args = parser.parse_args()
@@ -172,9 +173,11 @@ def main() -> None:
     scratch = make_condor_scratch_dir()
 
     # get client args
-    with open(args.client_args_json) as f:
-        client_args = " ".join(f"{k} {v}" for k, v in json.load(f).items())
-        logging.info(f"Client Args: {client_args}")
+    client_args = ""
+    for carg_value in args.client_args:
+        carg, value = carg_value.split(":", maxsplit=1)
+        client_args += f" --{carg} {value} "
+    logging.info(f"Client Args: {client_args}")
     if "--startup-json-dir" in client_args:
         raise RuntimeError(
             "The '--client-args-json' file cannot include \"--startup-json-dir\". "
