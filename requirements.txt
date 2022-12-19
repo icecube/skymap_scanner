@@ -44,7 +44,7 @@ matplotlib==3.6.2
     #   skymap-scanner (setup.py)
 meander==0.0.3
     # via skymap-scanner (setup.py)
-numpy==1.23.5
+numpy==1.24.0
     # via
     #   astropy
     #   contourpy
