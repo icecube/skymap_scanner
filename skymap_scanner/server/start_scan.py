@@ -12,7 +12,7 @@ import os
 import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union, Set
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, TypeVar, Union
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -30,10 +30,10 @@ from wipac_dev_tools import logging_tools
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message, pixelreco
+from ..utils.icetrayless import parse_event_id
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd
-from ..utils.icetrayless import parse_event_id
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
@@ -577,7 +577,7 @@ class PixelRecoCollector:
         event_id: str,
         global_start_time: float,
         slack_interface: SlackInterface,
-        pixreco_ids_sent: Set[Tuple[int, int, int]]
+        pixreco_ids_sent: Set[Tuple[int, int, int]],
     ) -> None:
         self.finder = BestPixelRecoFinder(
             n_posvar=n_posvar,
@@ -616,7 +616,7 @@ class PixelRecoCollector:
             raise DuplicatePixelRecoException(
                 f"Pixel-reco received not in sent set, it is probably from an earlier iteration: {pixreco.id_tuple}"
             )
-            
+
         self.pixreco_ids_received.add(pixreco.id_tuple)
         logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
@@ -727,11 +727,13 @@ async def serve(
 
     # write out .npz file
     _, _, event_type = parse_event_id(event_id)
-    result = ScanResult.from_nsides_dict(nsides_dict,
-                                         run_id=pixeler.event_header.run_id,
-                                         event_id=pixeler.event_header.event_id,
-                                         mjd=pixeler.event_mjd,
-                                         event_type=event_type)
+    result = ScanResult.from_nsides_dict(
+        nsides_dict,
+        run_id=pixeler.event_header.run_id,
+        event_id=pixeler.event_header.event_id,
+        mjd=pixeler.event_mjd,
+        event_type=event_type,
+    )
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final slack message
@@ -775,9 +777,7 @@ async def serve_scan_iteration(
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             _tup = pixelreco.pixel_to_tuple(pframe)
-            LOGGER.info(
-                f"Sending message M#{i} ({_tup})..."
-            )
+            LOGGER.info(f"Sending message M#{i} ({_tup})...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
@@ -804,7 +804,7 @@ async def serve_scan_iteration(
         event_id=event_id,
         global_start_time=global_start_time,
         slack_interface=slack_interface,
-        pixreco_ids_sent=pixreco_ids_sent
+        pixreco_ids_sent=pixreco_ids_sent,
     )
 
     # get pixel-recos from client(s), collect and save
@@ -821,7 +821,7 @@ async def serve_scan_iteration(
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if col.pixreco_ids_sent==col.pixreco_ids_received:
+                if col.pixreco_ids_sent == col.pixreco_ids_received:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
@@ -940,29 +940,16 @@ def main() -> None:
         type=Path,
     )
     parser.add_argument(
-        "--min-nside",
-        default=cfg.MIN_NSIDE_DEFAULT,
-        help="The first scan-iteration's nside value",
+        "--nsides",
+        default=[cfg.MIN_NSIDE_DEFAULT, cfg.MAX_NSIDE_DEFAULT],
+        help="The nside values to use for each iteration",
+        nargs='*',
         type=lambda x: int(
             _validate_arg(
                 x,
                 x.isnumeric() and is_pow_of_two(int(x)),
                 argparse.ArgumentTypeError(
-                    f"--min-nside must be an integer power of two (not {x})"
-                ),
-            ),
-        ),
-    )
-    parser.add_argument(
-        "--max-nside",
-        default=cfg.MAX_NSIDE_DEFAULT,
-        help="The final scan-iteration's nside value",
-        type=lambda x: int(
-            _validate_arg(
-                x,
-                x.isnumeric() and is_pow_of_two(int(x)),
-                argparse.ArgumentTypeError(
-                    f"--max-nside must be an integer power of two (not {x})"
+                    f"'--nsides' values must be an integer power of two (not {x})"
                 ),
             )
         ),
@@ -1025,6 +1012,13 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    # nsides
+    args.nsides = sorted(args.nsides)
+    if len(args.nsides) > 2:
+        raise argparse.ArgumentTypeError("'--nsides' cannot contain more than 2 values")
+    min_nside = args.nsides[0]
+    max_nside = args.nsides[-1]  # if --nsides is only one value, then also grab index-0
+
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():
         raise NotADirectoryError(args.gcd_dir)
@@ -1052,8 +1046,8 @@ def main() -> None:
     mq_basename = write_startup_json(
         args.startup_json_dir,
         event_id,
-        args.min_nside,
-        args.max_nside,
+        min_nside,
+        max_nside,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
@@ -1074,8 +1068,8 @@ def main() -> None:
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             mini_test_variations=args.mini_test_variations,
-            min_nside=args.min_nside,
-            max_nside=args.max_nside,
+            min_nside=min_nside,
+            max_nside=max_nside,
         )
     )
     LOGGER.info("Done.")
