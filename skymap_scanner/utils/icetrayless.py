@@ -1,5 +1,5 @@
-def create_event_id(run_id, event_id):
-    return "run{0:08d}.evt{1:012d}.HESE".format(run_id, event_id)
+def create_event_id(run_id, event_id, event_type=None):
+    return f"run{run_id:08d}.evt{event_id:012d}.{event_type}"
 
 
 def parse_event_id(event_id_string):

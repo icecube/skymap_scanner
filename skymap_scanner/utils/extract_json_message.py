@@ -60,6 +60,19 @@ def extract_json_message(json_data, reco_algo: str, filestager, cache_dir="./cac
     # try to load existing pixels if there are any
     return load_scan_state(event_id, state_dict, reco_algo, cache_dir=cache_dir)
 
+def __extract_event_type(physics_frame):
+    if "AlertShortFollowupMsg" in physics_frame:
+        alert_keys = json.loads(physics_frame["AlertShortFollowupMsg"].value).keys()
+        if "hese" in alert_keys:
+            return "HESE"
+        elif "ehe" in alert_keys:
+            return "EHE"
+        elif "neutrino" in alert_keys:
+            return "neutrino"
+        elif "estres" in alert_keys:
+            return "ESTRES"
+    return None
+
 def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
@@ -80,7 +93,8 @@ def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="
     if "I3EventHeader" not in physics_frame:
         raise RuntimeError("No I3EventHeader in Physics frame")
     header = physics_frame["I3EventHeader"]
-    event_id_string = create_event_id(header.run_id, header.event_id)
+    event_id_string = create_event_id(header.run_id, header.event_id,
+                                      __extract_event_type(physics_frame))
     LOGGER.debug("event ID is {0}".format(event_id_string))
 
     # create the cache directory if necessary

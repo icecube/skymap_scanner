@@ -422,7 +422,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id(run_id, event_id)}_{self.get_nside_string()}'
+        unique_id = f'{create_event_id(run_id, event_id, event_type)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -698,7 +698,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id(run_id, event_id)}_{self.get_nside_string()}'
+        unique_id = f'{create_event_id(run_id, event_id, event_type)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -951,7 +951,7 @@ class ScanResult:
         saving_contours = []
         for contours in contours_by_level:
             saving_contours.append([])
-            for contours in contours:
+            for contour in contours:
                 saving_contours[-1].append([])
                 theta, phi = contour.T
                 ras = phi
