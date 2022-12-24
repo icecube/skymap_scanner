@@ -71,6 +71,12 @@ def __extract_event_type(physics_frame):
             return "neutrino"
         elif "estres" in alert_keys:
             return "ESTRES"
+    elif "HESE_llhratio" in physics_frame:
+        return "HESE"
+    elif "Estres_p_miss" in physics_frame:
+        return "ESTRES"
+    elif "PoleEHEOphelia_ImpLF" in physics_frame:
+        return "EHE"
     return None
 
 def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
