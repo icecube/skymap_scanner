@@ -313,7 +313,7 @@ class PixelsToReco:
         if mini_test_variations:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variation_distance,0.,0.)
+                # dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
             if self.reco_algo == 'millipede_original':
@@ -698,7 +698,7 @@ async def serve(
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
         mini_test_variations=mini_test_variations,
-        reco_algo=reco_algo
+        reco_algo=reco_algo,
     )
 
     slack_interface = SlackInterface()
