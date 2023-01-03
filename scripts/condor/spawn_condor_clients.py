@@ -67,6 +67,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             f"""executable = /bin/sh
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .
 +SingularityImage = "{singularity_image}"
+getenv = SKYSCAN_*
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
 log = {scratch}/skymap_scanner.log

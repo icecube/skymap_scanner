@@ -176,7 +176,7 @@ class ProgressReporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         if override_timestamp or (
-            current_time - self.last_time_reported > cfg.env.SKYSCAN_REPORT_INTERVAL_SEC
+            current_time - self.last_time_reported > cfg.ENV.SKYSCAN_REPORT_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
@@ -188,7 +188,7 @@ class ProgressReporter:
         current_time = time.time()
         if override_timestamp or (
             current_time - self.last_time_reported_skymap
-            > cfg.env.SKYSCAN_PLOT_INTERVAL_SEC
+            > cfg.ENV.SKYSCAN_PLOT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
             if self.skydriver_rc:
@@ -217,7 +217,7 @@ class ProgressReporter:
         if self.pixreco_ct == 0:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {cfg.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
+            message += f"I will report back again in {cfg.ENV.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
 
         return message
 
@@ -954,16 +954,11 @@ def main() -> None:
         help="run w/ minimal variations for testing (mini-scale)",
     )
 
-    # skydriver args
+    # skydriver
     parser.add_argument(
         "--skydriver",
         default="",
         help="The SkyDriver REST interface URL to connect to",
-    )
-    parser.add_argument(
-        "--skydriver-auth",
-        default="",
-        help="The SkyDriver REST interface authentication token to use",
     )
 
     # mq args
@@ -972,12 +967,6 @@ def main() -> None:
         "--broker",
         required=True,
         help="The MQ broker URL to connect to",
-    )
-    parser.add_argument(
-        "-a",
-        "--broker-auth",
-        default="",
-        help="The MQ authentication token to use",
     )
     parser.add_argument(
         "--timeout-to-clients",
@@ -1061,20 +1050,20 @@ def main() -> None:
         "pulsar",
         address=args.broker,
         name=f"to-clients-{mq_basename}",
-        auth_token=args.broker_auth,
+        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=args.timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
         "pulsar",
         address=args.broker,
         name=f"from-clients-{mq_basename}",
-        auth_token=args.broker_auth,
+        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=args.timeout_from_clients,
     )
 
     # make skydriver REST connection
     if args.skydriver:
-        skydriver_rc = RestClient(args.skydriver, token=args.skydriver_auth)
+        skydriver_rc = RestClient(args.skydriver, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH)
     else:
         skydriver_rc = None
 

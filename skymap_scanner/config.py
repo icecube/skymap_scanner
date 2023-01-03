@@ -67,8 +67,8 @@ class EnvConfig:
 
     SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
     SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
-    SKYSCAN_SLACK_API_KEY: str = ""
-    SKYSCAN_SLACK_CHANNEL: str = "#gfu_live"
+    SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
+    SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
 
     def __post_init__(self) -> None:
         """Check values."""
@@ -82,4 +82,4 @@ class EnvConfig:
             )
 
 
-env = from_environment_as_dataclass(EnvConfig)
+ENV = from_environment_as_dataclass(EnvConfig)

@@ -13,14 +13,18 @@ You will need to get a pulsar broker address and authentication token to pass to
 #### 1. Launch the Server
 The server can be launched from anywhere with a stable network connection. You can run it from the cobalts for example. For now, set `--timeout-to-clients` and `--timeout-from-clients` to a large value like 300000. This will persist the server in case the clients don't start up right away.
 ##### Figure Your Args
+###### Environment Variables
+```
+export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)
+```
+###### Command-Line Arguments
 ```
     --startup-json-dir DIR_TO_PUT_STARTUP_JSON \
     --cache-dir `pwd`/server_cache \
     --output-dir `pwd` \
     --reco-algo millipede \
     --event-file `pwd`/run00136662-evt000035405932-BRONZE.pkl \  # could also be a .json file
-    --broker <BROKER_ADDRESS> \
-    --broker-auth `cat ~/skyscan-broker.token` \
+    --broker BROKER_ADDRESS \
     --timeout-to-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT \
     --timeout-from-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT \
 ```
@@ -48,14 +52,18 @@ export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=alway
 ```
 
 #### 2. Launch Each Client
-The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `BROKER_ADDRESS` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
+The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `--broker` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
 
 On sub-2, suggest setting `--timeout-to-clients` and `--timeout-from-clients` to a reasonable number like 3600s. This should keep workers long enough to process through the reconstructions and release them once the jobs are complete.
 
 ##### Figure Your Args
+###### Environment Variables
+```
+export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)
+```
+###### Command-Line Arguments
 ```
     --broker BROKER_ADDRESS \
-    --broker-auth BROKER_AUTH \
     --timeout-to-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT \
     --timeout-from-clients SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 ```
@@ -106,15 +114,19 @@ This will pull all the events in the i3 file into `run*.evt*.json` which can be 
 For now, it's easy to scale up using the command line. Multiple server instances can be run simultaneously and a separate submit file created for each one. To run `N` servers in parallel
 
 ```
+export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)
 ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{} --broker BROKER_ADDRESS --broker-auth BROKER_AUTH --timeout-to-clients 300000 --timeout-from-clients 300000'
 ```
 
-Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run `ls /scratch/$USER/run*.condor|head -nN|xargs -I{} condor_submit {}`.
-
+Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run:
+```
+export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)
+ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 ```
 executable = /bin/sh 
-arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --broker BROKER_ADDRESS --broker-auth BROKER_AUTH --timeout-to-clients 3600 --timeout-from-clients 3600 --startup-json-dir .
+arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --broker BROKER_ADDRESS --timeout-to-clients 3600 --timeout-from-clients 3600 --startup-json-dir .
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
+getenv = SKYSCAN_*
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
@@ -130,7 +142,7 @@ queue 300
 
 ### Additional Configuration
 #### Environment Variables
-When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). See `skymap_scanner.config.env` for more detail.
+When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). See `skymap_scanner.config.ENV` for more detail.
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
