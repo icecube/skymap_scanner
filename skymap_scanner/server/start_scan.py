@@ -654,12 +654,8 @@ async def serve(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD: str,
     output_dir: str,
-    broker: str,  # for mq
-    auth_token: str,  # for mq
-    queue_to_clients: str,  # for mq
-    queue_from_clients: str,  # for mq
-    timeout_to_clients: int,  # for mq
-    timeout_from_clients: int,  # for mq
+    to_clients_queue: mq.Queue,
+    from_clients_queue: mq.Queue,
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
@@ -671,22 +667,6 @@ async def serve(
 
     if not nsides_dict:
         nsides_dict = {}
-
-    LOGGER.info("Making MQClient queue connections...")
-    to_clients_queue = mq.Queue(
-        "pulsar",
-        address=broker,
-        name=queue_to_clients,
-        auth_token=auth_token,
-        timeout=timeout_to_clients,
-    )
-    from_clients_queue = mq.Queue(
-        "pulsar",
-        address=broker,
-        name=queue_from_clients,
-        auth_token=auth_token,
-        timeout=timeout_from_clients,
-    )
 
     pixeler = PixelsToReco(
         nsides_dict=nsides_dict,
@@ -1052,6 +1032,23 @@ def main() -> None:
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
 
+    # make mq connections
+    LOGGER.info("Making MQClient queue connections...")
+    to_clients_queue = mq.Queue(
+        "pulsar",
+        address=args.broker,
+        name=f"to-clients-{mq_basename}",
+        auth_token=args.auth_token,
+        timeout=args.timeout_to_clients,
+    )
+    from_clients_queue = mq.Queue(
+        "pulsar",
+        address=args.broker,
+        name=f"from-clients-{mq_basename}",
+        auth_token=args.auth_token,
+        timeout=args.timeout_from_clients,
+    )
+
     # go!
     asyncio.get_event_loop().run_until_complete(
         serve(
@@ -1061,12 +1058,8 @@ def main() -> None:
             GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
             baseline_GCD=state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
             output_dir=args.output_dir,
-            broker=args.broker,
-            auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{mq_basename}",
-            queue_from_clients=f"from-clients-{mq_basename}",
-            timeout_to_clients=args.timeout_to_clients,
-            timeout_from_clients=args.timeout_from_clients,
+            to_clients_queue=to_clients_queue,
+            from_clients_queue=from_clients_queue,
             mini_test_variations=args.mini_test_variations,
             min_nside=min_nside,
             max_nside=max_nside,
