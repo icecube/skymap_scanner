@@ -25,6 +25,7 @@ from icecube import (  # type: ignore[import]
     full_event_followup,
     icetray,
 )
+from rest_tools.client import RestClient
 from wipac_dev_tools import logging_tools
 
 from .. import config as cfg
@@ -47,12 +48,6 @@ class DuplicatePixelRecoException(Exception):
     """
 
 
-class SlackInterface:
-    """Dummy class for now."""
-
-    active = False
-
-
 def is_pow_of_two(value: Union[int, float]) -> bool:
     """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
     if isinstance(value, float):
@@ -72,30 +67,27 @@ class ProgressReporter:
 
     def __init__(
         self,
+        global_start_time: float,
         nsides_dict: pixelreco.NSidesDict,
-        n_pixreco: int,
-        n_posvar: int,
         min_nside: int,
         max_nside: int,
         event_id: str,
-        slack_interface: SlackInterface,
+        skydriver_rc: Optional[RestClient],
     ) -> None:
         """
         Arguments:
+            `global_start_time`
+                - the start time (epoch) of the entire scan
             `nsides_dict`
                 - the nsides_dict
-            `n_pixreco`
-                - number of expected pixel-recos
-            `n_posvar`
-                - number of potion variations per pixel
             `min_nside`
                 - min nside value
             `max_nside`
                 - max nside value
             `event_id`
                 - the event id
-            `slack_interface`
-                - a connection to Slack
+            `skydriver_rc`
+                - a connection to the SkyDriver REST interface
 
         Environment Variables:
             `REPORT_INTERVAL_SEC`
@@ -103,22 +95,17 @@ class ProgressReporter:
             `PLOT_INTERVAL_SEC`
                 - make a skymap plot with this interval
         """
+        self.global_start_time = global_start_time
         self.nsides_dict = nsides_dict
-        self.slack_interface = slack_interface
+        self.skydriver_rc = skydriver_rc
 
-        if n_pixreco <= 0:
-            raise ValueError(f"n_pixreco is not positive: {n_pixreco}")
-        self.n_pixreco = n_pixreco
-
-        if n_posvar <= 0:
-            raise ValueError(f"n_posvar is not positive: {n_posvar}")
-        self.n_posvar = n_posvar
+        self._n_pixreco: Optional[int] = None
+        self._n_posvar: Optional[int] = None
+        self.pixreco_ct = 0
 
         self.min_nside = min_nside
         self.max_nside = max_nside
         self.event_id = event_id
-
-        self.pixreco_ct = 0
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
@@ -127,12 +114,45 @@ class ProgressReporter:
         self.time_before_reporter = 0.0
         self.global_start_time = 0.0
 
-    def initial_report(self, global_start_time: float) -> None:
-        """Send an initial report/log/plot."""
+    def new_iteration(self, n_pixreco: int, n_posvar: int) -> None:
+        """Send an initial report/log/plot.
+
+        Arguments:
+            `n_pixreco`
+                - number of expected pixel-recos
+            `n_posvar`
+                - number of position variations per pixel
+        """
+        self.n_pixreco = n_pixreco
+        self.n_posvar = n_posvar
+        self.pixreco_ct = 0
         self.reporter_start_time = time.time()
-        self.time_before_reporter = self.reporter_start_time - global_start_time
-        self.global_start_time = global_start_time
+        self.time_before_reporter = self.reporter_start_time - self.global_start_time
         self._report(override_timestamp=True)
+
+    @property
+    def n_pixreco(self) -> int:
+        if self._n_pixreco is None:
+            raise Exception("ProgressReporter instance never called 'new_iteration()'")
+        return self._n_pixreco
+
+    @n_pixreco.setter
+    def n_pixreco(self, val: int) -> None:
+        if val <= 0:
+            raise ValueError(f"n_pixreco is not positive: {val}")
+        self._n_pixreco = val
+
+    @property
+    def n_posvar(self) -> int:
+        if self._n_posvar is None:
+            raise Exception("ProgressReporter instance never called 'new_iteration()'")
+        return self._n_posvar
+
+    @n_posvar.setter
+    def n_posvar(self, val: int) -> None:
+        if val <= 0:
+            raise ValueError(f"n_posvar is not positive: {val}")
+        self._n_posvar = val
 
     def record_pixreco(self) -> None:
         """Send reports/logs/plots if needed."""
@@ -160,8 +180,8 @@ class ProgressReporter:
         ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
-            if self.slack_interface.active:
-                self.slack_interface.post(status_report)
+            if self.skydriver_rc:
+                self.skydriver_rc.post(status_report)
             LOGGER.info(status_report)
 
         # check if we need to send a report to the skymap logger
@@ -171,8 +191,8 @@ class ProgressReporter:
             > cfg.env.SKYSCAN_PLOT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
-            if self.slack_interface.active:
-                self.slack_interface.post_skymap_plot(self.nsides_dict)
+            if self.skydriver_rc:
+                self.skydriver_rc.post_skymap_plot(self.nsides_dict)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -248,8 +268,9 @@ class ProgressReporter:
 
         return msg
 
-    def finish(self) -> None:
-        """Check if all the pixel-recos were received & make a final report."""
+    def finish_iteration(self) -> None:
+        """Check if all the pixel-recos were received & make a final report
+        (for iteration)."""
         if not self.pixreco_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
@@ -260,6 +281,19 @@ class ProgressReporter:
             )
 
         self._final_report()
+
+    def final_message(self, npz_fpath: Path):
+        msg = (
+            f"The Skymap Scanner has finished.\n"
+            f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
+            f"Runtime: {dt.timedelta(seconds=int(time.time() - self.global_start_time))}\n"
+            f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
+            f"Output File: {os.path.basename(npz_fpath)}"
+        )
+        LOGGER.info(msg)
+        if self.skydriver_rc:
+            self.skydriver_rc.post(msg)
+            self.skydriver_rc.post_skymap_plot(self.nsides_dict)
 
 
 # fmt: off
@@ -571,37 +605,24 @@ class PixelRecoCollector:
     def __init__(
         self,
         n_posvar: int,  # Number of position variations to collect
-        min_nside: int,
-        max_nside: int,
         nsides_dict: pixelreco.NSidesDict,
-        event_id: str,
-        global_start_time: float,
-        slack_interface: SlackInterface,
+        progress_reporter: ProgressReporter,
         pixreco_ids_sent: Set[Tuple[int, int, int]],
     ) -> None:
-        self.finder = BestPixelRecoFinder(
-            n_posvar=n_posvar,
-        )
-        self.progress_reporter = ProgressReporter(
-            nsides_dict,
-            len(pixreco_ids_sent),
-            n_posvar,
-            min_nside,
-            max_nside,
-            event_id,
-            slack_interface,
-        )
+        self.finder = BestPixelRecoFinder(n_posvar=n_posvar)
+        self.progress_reporter = progress_reporter
         self.nsides_dict = nsides_dict
-        self.global_start_time = global_start_time
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
         self.pixreco_ids_sent = pixreco_ids_sent
 
     def __enter__(self) -> "PixelRecoCollector":
-        self.progress_reporter.initial_report(self.global_start_time)
+        self.progress_reporter.new_iteration(
+            len(self.pixreco_ids_sent), self.finder.n_posvar
+        )
         return self
 
     def __exit__(self, *args: Any) -> None:
-        self.progress_reporter.finish()
+        self.progress_reporter.finish_iteration()
         self.finder.finish()
 
     def collect(self, pixreco: pixelreco.PixelReco) -> None:
@@ -659,6 +680,7 @@ async def serve(
     mini_test_variations: bool,
     min_nside: int,
     max_nside: int,
+    skydriver_rc: Optional[RestClient],
 ) -> pixelreco.NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
@@ -681,7 +703,14 @@ async def serve(
         reco_algo=reco_algo,
     )
 
-    slack_interface = SlackInterface()
+    progress_reporter = ProgressReporter(
+        global_start_time,
+        nsides_dict,
+        min_nside,
+        max_nside,
+        event_id,
+        skydriver_rc,
+    )
 
     # Start the scan iteration loop
     total_n_pixreco = 0
@@ -691,11 +720,9 @@ async def serve(
             to_clients_queue,
             from_clients_queue,
             reco_algo,
-            event_id,
             nsides_dict,
-            global_start_time,
             pixeler,
-            slack_interface,
+            progress_reporter,
         )
         if not n_pixreco:  # we're done
             break
@@ -716,18 +743,8 @@ async def serve(
     )
     npz_fpath = result.save(event_id, output_dir)
 
-    # log & post final slack message
-    final_message = (
-        f"The Skymap Scanner has finished.\n"
-        f"Start / End: {dt.datetime.fromtimestamp(int(global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
-        f"Runtime: {dt.timedelta(seconds=int(time.time() - global_start_time))}\n"
-        f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
-        f"Output File: {os.path.basename(npz_fpath)}"
-    )
-    LOGGER.info(final_message)
-    if slack_interface.active:
-        slack_interface.post(final_message)
-        slack_interface.post_skymap_plot(nsides_dict)
+    # log & post final report message
+    progress_reporter.final_message(npz_fpath)
 
     return nsides_dict
 
@@ -736,11 +753,9 @@ async def serve_scan_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     reco_algo: str,
-    event_id: str,
     nsides_dict: pixelreco.NSidesDict,
-    global_start_time: float,
     pixeler: PixelsToReco,
-    slack_interface: SlackInterface,
+    progress_reporter: ProgressReporter,
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
 
@@ -778,12 +793,8 @@ async def serve_scan_iteration(
 
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
-        min_nside=pixeler.min_nside,
-        max_nside=pixeler.max_nside,
         nsides_dict=nsides_dict,
-        event_id=event_id,
-        global_start_time=global_start_time,
-        slack_interface=slack_interface,
+        progress_reporter=progress_reporter,
         pixreco_ids_sent=pixreco_ids_sent,
     )
 
@@ -943,6 +954,18 @@ def main() -> None:
         help="run w/ minimal variations for testing (mini-scale)",
     )
 
+    # skydriver args
+    parser.add_argument(
+        "--skydriver",
+        default="",
+        help="The SkyDriver REST interface URL to connect to",
+    )
+    parser.add_argument(
+        "--skydriver-auth",
+        default="",
+        help="The SkyDriver REST interface authentication token to use",
+    )
+
     # mq args
     parser.add_argument(
         "-b",
@@ -1049,6 +1072,12 @@ def main() -> None:
         timeout=args.timeout_from_clients,
     )
 
+    # make skydriver REST connection
+    if args.skydriver:
+        skydriver_rc = RestClient(args.skydriver, token=args.skydriver_auth)
+    else:
+        skydriver_rc = None
+
     # go!
     asyncio.get_event_loop().run_until_complete(
         serve(
@@ -1063,6 +1092,7 @@ def main() -> None:
             mini_test_variations=args.mini_test_variations,
             min_nside=min_nside,
             max_nside=max_nside,
+            skydriver_rc=skydriver_rc,
         )
     )
     LOGGER.info("Done.")
