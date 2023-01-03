@@ -313,7 +313,7 @@ class PixelsToReco:
         if mini_test_variations:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
-                # dataclasses.I3Position(-variation_distance,0.,0.)
+                dataclasses.I3Position(-variation_distance,0.,0.)
             ]
         else:
             if self.reco_algo == 'millipede_original':
