@@ -89,8 +89,7 @@ jobs:
             --log DEBUG \
             --log-third-party INFO \
             --mini-test-variations \
-            --min-nside 1 \
-            --max-nside 1 \
+            --nsides 1 \
             &
 
           ./scripts/launch_scripts/wait_for_startup_json.sh .
@@ -175,8 +174,7 @@ jobs:
             --log DEBUG \
             --log-third-party INFO \
             --mini-test-variations \
-            --min-nside 1 \
-            --max-nside 1 \
+            --nsides 1 \
             &
 
           ./scripts/launch_scripts/wait_for_startup_json.sh .
