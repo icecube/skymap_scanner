@@ -952,7 +952,7 @@ def main() -> None:
     )
     parser.add_argument(
         "-a",
-        "--auth-token",
+        "--broker-auth",
         default="",
         help="The MQ authentication token to use",
     )
@@ -1038,14 +1038,14 @@ def main() -> None:
         "pulsar",
         address=args.broker,
         name=f"to-clients-{mq_basename}",
-        auth_token=args.auth_token,
+        auth_token=args.broker_auth,
         timeout=args.timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
         "pulsar",
         address=args.broker,
         name=f"from-clients-{mq_basename}",
-        auth_token=args.auth_token,
+        auth_token=args.broker_auth,
         timeout=args.timeout_from_clients,
     )
 
