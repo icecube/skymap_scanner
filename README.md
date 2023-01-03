@@ -103,13 +103,13 @@ python i3_to_json.py --basegcd /data/user/followup/baseline_gcds/baseline_gcd_13
 ```
 This will pull all the events in the i3 file into `run*.evt*.json` which can be passed as an argument to the server.
 
-For now, it's easy to scale up using the command line. Multiple server instances can be run simultaneously and a separate submit file created for each one.
+For now, it's easy to scale up using the command line. Multiple server instances can be run simultaneously and a separate submit file created for each one. To run `N` servers in parallel
 
 ```
-ls *.json | xargs -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{} --broker BROKER_ADDRESS --auth-token AUTH_TOKEN --timeout-to-clients 300000 --timeout-from-clients 300000'
+ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{} --broker BROKER_ADDRESS --auth-token AUTH_TOKEN --timeout-to-clients 300000 --timeout-from-clients 300000'
 ```
 
-Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run `ls /scratch/$USER/run*.condor|xargs -I{} condor_submit {}`.
+Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run `ls /scratch/$USER/run*.condor|head -nN|xargs -I{} condor_submit {}`.
 
 ```
 executable = /bin/sh 
