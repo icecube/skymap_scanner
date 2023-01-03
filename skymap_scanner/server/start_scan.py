@@ -282,7 +282,7 @@ class ProgressReporter:
 
         self._final_report()
 
-    def final_message(self, npz_fpath: Path):
+    def final_message(self, npz_fpath: Path, total_n_pixreco: int):
         msg = (
             f"The Skymap Scanner has finished.\n"
             f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
@@ -744,7 +744,7 @@ async def serve(
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final report message
-    progress_reporter.final_message(npz_fpath)
+    progress_reporter.final_message(npz_fpath, total_n_pixreco)
 
     return nsides_dict
 
