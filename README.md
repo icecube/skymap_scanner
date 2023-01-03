@@ -135,8 +135,5 @@ When the server and client(s) are launched within Docker containers, all environ
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
 
-#### Runtime-Configurable Reconstructions _(Work in Progress)_
-Recos are registered by being placed in a dedicated module within the `skymap_scanner.recos` sub-package. Each module must contain a class of the same name (eg: `skymap_scanner.recos.foo` has `skymap_scanner.recos.foo.Foo`) that fully inherits from `skymap_scanner.recos.RecoInterface`. This includes implementing the static methods: `traysegment()` (for IceTray) and `to_pixelreco()` (for MQ).
-On the command line, choosing your reco is provided via `--reco-algo` (on the server).
-##### Caveats
-There ~may be~ ~most likely~ definitely is some millipede-specific logic in the server, upstream of the icetray(s). This will need to be fixed before we can publicize that reconstructions are actually configurable. See https://github.com/icecube/skymap_scanner/issues/8.
+#### Runtime-Configurable Reconstructions
+Recos are registered by being placed in a dedicated module within the `skymap_scanner.recos` sub-package. Each module must contain a class of the same name (eg: `skymap_scanner.recos.foo` has `skymap_scanner.recos.foo.Foo`) that fully inherits from `skymap_scanner.recos.RecoInterface`. This includes implementing the static methods: `traysegment()` (for IceTray) and `to_pixelreco()` (for MQ). Specialized reco-specific logic in the upstream/pixel-generation phase is done on an ad-hoc basis, eg: `if reco_algo == 'millipede_original': ...`. On the command line, choosing your reco is provided via `--reco-algo` (on the server).
