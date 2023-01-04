@@ -1,6 +1,5 @@
 """For encapsulating the results of an event scan in a single instance."""
 
-# fmt: off
 
 import io
 import itertools as it
@@ -9,7 +8,7 @@ import logging
 import pickle
 from functools import cached_property
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, TypedDict
 
 import healpy
 import matplotlib
@@ -22,11 +21,32 @@ from matplotlib import text
 
 from .pixelreco import NSidesDict, PixelReco
 
+###############################################################################
+# DATA TYPES
+
+PixelTuple = Tuple[int, float, float, float]
+
+
+class JSONPixelTupleDict(TypedDict):
+    columns: List[str]
+    data: List[PixelTuple]
+
+
+PyDictResult = Dict[str, JSONPixelTupleDict]
+
+
+###############################################################################
+# EXCPETIONS
+
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
 
 
+###############################################################################
+# MAIN CLASS
+
+# fmt: off
 class ScanResult:
     """This class parses a nsides_dict and stores the relevant numeric result
     of the scan. Ideally it should serve as the basic data structure for
@@ -371,21 +391,71 @@ class ScanResult:
             np.savez(filename, **self.result)
         return Path(filename)
 
-    def to_json(self) -> Dict[str, Dict[str, Union[int, float]]]:
-        """Get a dict representation (used for serialization)."""
-        dicto = {}
+    """
+    Serialize/deserialize (input / output)
+    """
+
+    @classmethod
+    def deserialize(cls, pydict: PyDictResult) -> "ScanResult":
+        """Deserialize from a python-native dict."""
+        result = dict()
+
+        for nside, pixeltuple_dict in pydict.items():
+            if pixeltuple_dict['columns'] != cls.PIXEL_TYPE.tolist():
+                raise ValueError(
+                    f"JSON result has invalid 'columns' entry "
+                    f"({pixeltuple_dict['columns']}) should be {cls.PIXEL_TYPE.tolist()}"
+                )
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=cls.parse_nside(nside)))
+            nside_pixel_values = np.zeros(len(pixeltuple_dict['data']), dtype=_dtype)
+
+            for pix_tuple in sorted(pixeltuple_dict['data'], key=lambda x: x[0]):
+                nside_pixel_values[pix_tuple[0]] = pix_tuple
+
+            result[cls.format_nside(nside)] = nside_pixel_values
+
+        return cls(result)
+
+    def serialize(self) -> PyDictResult:
+        """Serialize as a python-native dict.
+
+        Example:
+        {
+            'nside-8': {
+                "columns": [
+                    "index",
+                    "llh",
+                    "E_in",
+                    "E_tot"
+                ],
+                "data": [
+                    [
+                        0,
+                        496.81227052,
+                        4643.8910975498,
+                        4736.3116335241
+                    ],
+                    [
+                        1,
+                        503.6851841852,
+                        5058.9879730721,
+                        585792.3192455448
+                    ],
+                    ...
+                ]
+            },
+            ...
+        }
+        """
+        pydict = {}
         for nside in self.result:
             df = pd.DataFrame(
                 self.result[nside],
                 columns=list(self.PIXEL_TYPE.fields.keys()),  # type: ignore[union-attr]
             )
-            dicto[nside] = df.to_json(orient='index')
-        return dicto
-
-    @classmethod
-    def from_json(self, data: Dict[str, Dict[str, Union[int, float]]]) -> "ScanResult":
-        """Load from a dict representation (used for de-serialization)."""
-        raise NotImplementedError()
+            pydict[nside] = df.to_dict(orient='split')
+            pydict[nside].pop('index')  # index is not necessary
+        return pydict
 
     """
     Querying

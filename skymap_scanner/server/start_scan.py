@@ -282,10 +282,15 @@ class ProgressReporter:
         self._final_report()
 
     def final_result(self, result: ScanResult, total_n_pixreco: int):
-        json_result = result.to_json()
+        serialized = result.serialize()
         from pprint import pprint
 
-        pprint(json_result)
+        pprint(serialized)
+
+        # TODO: remove
+        result_2 = ScanResult.deserialize(serialized)
+        assert result == result_2
+
         msg = (
             f"The Skymap Scanner has finished.\n"
             f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
@@ -293,6 +298,8 @@ class ProgressReporter:
             f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
         )
         LOGGER.info(msg)
+
+        # TODO: send serialized
         if self.skydriver_rc:
             self.skydriver_rc.post(msg)
             self.skydriver_rc.post_skymap_plot(self.nsides_dict)

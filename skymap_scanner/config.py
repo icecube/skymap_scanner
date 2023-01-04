@@ -69,7 +69,7 @@ class EnvConfig:
     SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
-    SKYSCAN_NEW_MQ_BASENAME_OVERRIDE: str = ""  # globally unique prefix for queue names
+    SKYSCAN_NEW_MQ_BASENAME_OVERRIDE: str = ""  # globally unique suffix for queue names
 
     def __post_init__(self) -> None:
         """Check values."""
