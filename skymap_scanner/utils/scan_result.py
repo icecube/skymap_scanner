@@ -56,8 +56,25 @@ class ScanResult:
 
     def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
+
+        # validate result data
+        if not isinstance(result, dict):
+            raise ValueError("'result' must be an instance of Dict[str, np.ndarray]")
+        for nside in result:
+            try:
+                self.parse_nside(nside)
+            except (KeyError, ValueError) as e:
+                raise ValueError(f"'result' has invalid nside key: {nside}") from e
+            if not isinstance(result[nside], np.ndarray):
+                raise ValueError("'result' must be an instance of Dict[str, np.ndarray]")
+            if result[nside].dtype != self.PIXEL_TYPE:
+                raise ValueError(
+                    f"'result' has invalid dtype {result[nside].dtype} "
+                    f"should be {self.PIXEL_TYPE}"
+                )
         self.result = result
         self.nsides = sorted([self.parse_nside(key) for key in self.result])
+
         self.logger.debug(f"Metadata for this result: {[self.result[_].dtype.metadata for _ in self.result]}")
 
         # bookkeeping for comparing values
@@ -260,54 +277,14 @@ class ScanResult:
     """
     Auxiliary methods
     """
+
     @staticmethod
-    def format_nside(nside):
+    def format_nside(nside) -> str:
         return f"nside-{nside}"
 
     @staticmethod
-    def parse_nside(key):
+    def parse_nside(key) -> int:
         return int(key.split("nside-")[1])
-
-    @classmethod
-    def from_nsides_dict(cls, nsides_dict: NSidesDict, **kwargs) -> "ScanResult":
-        """Factory method for nsides_dict."""
-        result = cls.load_pixels(nsides_dict, **kwargs)
-        return cls(result)
-
-    @classmethod
-    def load_pixels(cls, nsides_dict: NSidesDict, **kwargs) -> dict:
-        logger = logging.getLogger(__name__)
-
-        out = dict()
-        for nside, pixel_dict in nsides_dict.items():
-            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **kwargs))
-            n = len(pixel_dict)
-            v = np.zeros(n, dtype=_dtype)
-
-            logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
-            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
-                if (
-                    not isinstance(pixreco, PixelReco)
-                    or nside != pixreco.nside
-                    or pixel_id != pixreco.pixel
-                ):
-                    msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
-                    logging.error(msg)
-                    raise ValueError(msg)
-                v[i] = (
-                    pixreco.pixel,  # index
-                    pixreco.llh,  # llh
-                    pixreco.reco_losses_inside,  # E_in
-                    pixreco.reco_losses_total,  # E_tot
-                )
-            key = cls.format_nside(nside)
-            out[key] = v
-
-        return out
-
-    """
-    np input / output
-    """
 
     def get_nside_string(self):
         """Returns a string string listing the nside values to be included in
@@ -317,8 +294,51 @@ class ScanResult:
         # TODO: possibly better to use integer values as keys in self.result
         return "_".join([str(nside) for nside in self.nsides])
 
+    """
+    nsides-dict input
+    """
+
     @classmethod
-    def load(cls, filename) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict, **kwargs) -> "ScanResult":
+        """Factory method for nsides_dict."""
+        logger = logging.getLogger(__name__)
+
+        result = dict()
+        for nside, pixel_dict in nsides_dict.items():
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **kwargs))
+            nside_pixel_values = np.zeros(len(pixel_dict), dtype=_dtype)
+            logger.info(f"nside {nside} has {len(pixel_dict)} pixels / {12 * nside**2} total.")
+
+            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
+                nside_pixel_values[i] = cls._pixelreco_to_tuple(pixreco, nside, pixel_id)
+
+            result[cls.format_nside(nside)] = nside_pixel_values
+
+        return cls(result)
+
+    @staticmethod
+    def _pixelreco_to_tuple(pixreco: PixelReco, nside: int, pixel_id: int) -> PixelTuple:
+        if (
+            not isinstance(pixreco, PixelReco)
+            or nside != pixreco.nside
+            or pixel_id != pixreco.pixel
+        ):
+            msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
+            logging.error(msg)
+            raise ValueError(msg)
+        return (
+            pixreco.pixel,  # index
+            pixreco.llh,  # llh
+            pixreco.reco_losses_inside,  # E_in
+            pixreco.reco_losses_total,  # E_tot
+        )
+
+    """
+    NPZ input / output
+    """
+
+    @classmethod
+    def from_npz(cls, filename) -> "ScanResult":
         """Load from npz-file."""
         npz = np.load(filename)
         result = dict()
@@ -333,7 +353,7 @@ class ScanResult:
                 result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
-    def save(self, event_id, output_path=None) -> Path:
+    def to_npz(self, event_id, output_path=None) -> Path:
         """Save to npz-file."""
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:

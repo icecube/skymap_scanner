@@ -57,15 +57,15 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    if not ScanResult.load(args.actual).has_metadata():
+    if not ScanResult.from_npz(args.actual).has_metadata():
         if do_assert:
             assert False
         sys.exit(1)
 
     compare_then_exit(
-        ScanResult.load(args.actual),
+        ScanResult.from_npz(args.actual),
         args.actual,
-        ScanResult.load(args.expected),
+        ScanResult.from_npz(args.expected),
         args.expected,
         args.do_assert,
         args.diff_out_dir,

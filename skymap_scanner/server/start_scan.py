@@ -743,7 +743,7 @@ async def serve(
         mjd=pixeler.event_mjd,
         event_type=event_type,
     )
-    npz_fpath = result.save(event_id, output_dir)
+    npz_fpath = result.to_npz(event_id, output_dir)
 
     # log & post final report message
     progress_reporter.final_result(result, total_n_pixreco)

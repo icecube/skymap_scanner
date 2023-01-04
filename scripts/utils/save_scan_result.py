@@ -47,7 +47,7 @@ def main():
     The output filename is partially built inside the ScanResult class.
     """
     result = ScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
-    output_file = result.save(eventID, output_path=args.output_path)
+    output_file = result.to_npz(eventID, output_path=args.output_path)
 
     print(f"Saved to {output_file}")
 
