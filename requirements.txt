@@ -44,7 +44,7 @@ matplotlib==3.6.2
     #   skymap-scanner (setup.py)
 meander==0.0.3
     # via skymap-scanner (setup.py)
-numpy==1.24.0
+numpy==1.24.1
     # via
     #   astropy
     #   contourpy
@@ -58,9 +58,9 @@ packaging==22.0
     # via
     #   astropy
     #   matplotlib
-pillow==9.3.0
+pillow==9.4.0
     # via matplotlib
-pulsar-client==2.10.2
+pulsar-client==3.0.0
     # via wipac-mqclient
 pyerfa==2.0.0.1
     # via astropy
@@ -72,12 +72,10 @@ pyyaml==6.0
     # via astropy
 requests==2.28.1
     # via wipac-dev-tools
-scipy==1.9.3
+scipy==1.10.0
     # via healpy
 six==1.16.0
-    # via
-    #   pulsar-client
-    #   python-dateutil
+    # via python-dateutil
 typing-extensions==4.4.0
     # via wipac-dev-tools
 urllib3==1.26.13
