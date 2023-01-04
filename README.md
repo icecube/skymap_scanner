@@ -140,6 +140,11 @@ notification = Error
 queue 300 
 ```
 
+You may also need to add this line to the condor submit file if running `millipede_wilks` as some resources have been removed from the image.
+```
+environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmfs/icecube.opensciencegrid.org/data/i3-test-data-svn/trunk"
+```
+
 ### Additional Configuration
 #### Environment Variables
 When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). See `skymap_scanner.config.ENV` for more detail.
