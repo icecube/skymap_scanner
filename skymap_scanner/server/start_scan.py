@@ -282,13 +282,14 @@ class ProgressReporter:
 
         self._final_report()
 
-    def final_message(self, npz_fpath: Path, total_n_pixreco: int):
+    def final_result(self, result: ScanResult, total_n_pixreco: int):
+        json_result = result.to_json()
+        print(json_result)
         msg = (
             f"The Skymap Scanner has finished.\n"
             f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
             f"Runtime: {dt.timedelta(seconds=int(time.time() - self.global_start_time))}\n"
             f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
-            f"Output File: {os.path.basename(npz_fpath)}"
         )
         LOGGER.info(msg)
         if self.skydriver_rc:
@@ -744,7 +745,8 @@ async def serve(
     npz_fpath = result.save(event_id, output_dir)
 
     # log & post final report message
-    progress_reporter.final_message(npz_fpath, total_n_pixreco)
+    progress_reporter.final_result(result, total_n_pixreco)
+    LOGGER.info(f"Output File: {os.path.basename(npz_fpath)}")
 
     return nsides_dict
 

@@ -1,21 +1,24 @@
 """For encapsulating the results of an event scan in a single instance."""
 
+# fmt: off
+
+import io
 import itertools as it
 import json
 import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import io
 import pickle
-from astropy.io import ascii
 from functools import cached_property
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
-import numpy as np
-import matplotlib
-from matplotlib import text
-from matplotlib import pyplot as plt
 import healpy
+import matplotlib
 import meander
+import numpy as np
+import pandas as pd
+from astropy.io import ascii
+from matplotlib import pyplot as plt
+from matplotlib import text
 
 from .pixelreco import NSidesDict, PixelReco
 
@@ -167,8 +170,7 @@ class ScanResult:
         return diff_vals, test_vals
 
     def has_metadata(self) -> bool:
-        """ Check that the minimum metadata is set
-        """
+        """Check that the minimum metadata is set."""
         for mk in "run_id event_id mjd event_type nside".split():
             for k in self.result:
                 if self.result[k].dtype.metadata is None:
@@ -273,7 +275,7 @@ class ScanResult:
         return cls(result)
 
     @classmethod
-    def load_pixels(cls, nsides_dict: NSidesDict, **kwargs):
+    def load_pixels(cls, nsides_dict: NSidesDict, **kwargs) -> dict:
         logger = logging.getLogger(__name__)
 
         out = dict()
@@ -303,7 +305,7 @@ class ScanResult:
 
         return out
 
-    """ 
+    """
     np input / output
     """
 
@@ -317,6 +319,7 @@ class ScanResult:
 
     @classmethod
     def load(cls, filename) -> "ScanResult":
+        """Load from npz-file."""
         npz = np.load(filename)
         result = dict()
         if "header" not in npz:
@@ -331,6 +334,7 @@ class ScanResult:
         return cls(result=result)
 
     def save(self, event_id, output_path=None) -> Path:
+        """Save to npz-file."""
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:
             filename = output_path / Path(filename)
@@ -346,6 +350,22 @@ class ScanResult:
         except TypeError:
             np.savez(filename, **self.result)
         return Path(filename)
+
+    def to_json(self) -> Dict[str, Dict[str, Union[int, float]]]:
+        """Get a dict representation (used for serialization)."""
+        dicto = {}
+        for nside in self.result:
+            df = pd.DataFrame(
+                self.result[nside],
+                columns=list(self.PIXEL_TYPE.fields.keys()),  # type: ignore[union-attr]
+            )
+            dicto[nside] = df.to_json(orient='index')
+        return dicto
+
+    @classmethod
+    def from_json(self, data: Dict[str, Dict[str, Union[int, float]]]) -> "ScanResult":
+        """Load from a dict representation (used for de-serialization)."""
+        raise NotImplementedError()
 
     """
     Querying
@@ -390,8 +410,8 @@ class ScanResult:
                     log_func=None,
                     upload_func=None,
                     final_channels=None):
-        from .plotting_tools import RaFormatter, DecFormatter
         from .icetrayless import create_event_id
+        from .plotting_tools import DecFormatter, RaFormatter
 
         if log_func is None:
             def log_func(x):
@@ -583,7 +603,7 @@ class ScanResult:
             lower_x = max(minRA  - x_width*np.pi/180., 0.)
             upper_x = min(minRA  + x_width*np.pi/180., 2 * np.pi)
             lower_y = max(minDec -y_width*np.pi/180., -np.pi/2.)
-            upper_y = min(minDec + y_width*np.pi/180., np.pi/2.) 
+            upper_y = min(minDec + y_width*np.pi/180., np.pi/2.)
 
             ax.set_xlim( [lower_x, upper_x][::-1])
             ax.set_ylim( [lower_y, upper_y])
@@ -612,6 +632,7 @@ class ScanResult:
         ax.grid(True, color='k', alpha=0.5)
 
         from matplotlib import patheffects
+
         # Otherwise, add the path effects.
         effects = [patheffects.withStroke(linewidth=1.1, foreground='w')]
         for artist in ax.findobj(text.Text):
@@ -652,12 +673,9 @@ class ScanResult:
                            plot_bounding_box=False,
                            plot_4fgl=False,
                            final_channels=None):
-        """ Uses healpy to plot a map
-        """
-        from .plotting_tools import (hp_ticklabels,
-                                     format_fits_header,
-                                     plot_catalog)
+        """Uses healpy to plot a map."""
         from .icetrayless import create_event_id
+        from .plotting_tools import format_fits_header, hp_ticklabels, plot_catalog
 
         if log_func is None:
             def log_func(x):
@@ -767,7 +785,7 @@ class ScanResult:
         grid_value = grid_value - min_value
         min_value = 0.
 
-        # show 2 * delta_LLH 
+        # show 2 * delta_LLH
         grid_value = grid_value * 2.
 
         # Do same for the healpy map
@@ -801,7 +819,7 @@ class ScanResult:
         # Check for RA values that are out of bounds
         for level in contours_by_level:
             for contour in level:
-                contour.T[1] = np.where(contour.T[1] < 0., 
+                contour.T[1] = np.where(contour.T[1] < 0.,
                     contour.T[1] + 2.*np.pi, contour.T[1]
                     )
 
@@ -817,7 +835,7 @@ class ScanResult:
         lonra = [-ra_bound, ra_bound]
         latra = [-dec_bound, dec_bound]
 
-        #Begin the figure 
+        #Begin the figure
         plt.clf()
         # Rotate into healpy coordinates
         lon, lat = np.degrees(minRA), -np.degrees(minDec)
@@ -839,7 +857,7 @@ class ScanResult:
 
         # Plot the best-fit location
         # This requires some more coordinate transformations
-        healpy.projplot(minDec + np.pi/2., minRA, 
+        healpy.projplot(minDec + np.pi/2., minRA,
             '*', ms=5, label=r'scan best fit', color='black', zorder=2)
 
         # Use Green's theorem to compute the area
@@ -856,9 +874,9 @@ class ScanResult:
             return a
 
         # Plot the contours
-        for contour_level, contour_label, contour_color, contours in zip(contour_levels, 
+        for contour_level, contour_label, contour_color, contours in zip(contour_levels,
             contour_labels, contour_colors, contours_by_level):
-            contour_area = 0 
+            contour_area = 0
             for contour in contours:
                 contour_area += area((contour-ra+np.pi/2)%np.pi)
             contour_area = abs(contour_area)
@@ -869,14 +887,14 @@ class ScanResult:
             for contour in contours:
                 theta, phi = contour.T
                 if first:
-                    healpy.projplot(theta, phi, linewidth=2, c=contour_color, 
+                    healpy.projplot(theta, phi, linewidth=2, c=contour_color,
                         label=contour_label)
                 else:
                     healpy.projplot(theta, phi, linewidth=2, c=contour_color)
                 first = False
 
         # Add some grid lines
-        healpy.graticule(dpar=2, dmer=2, force=True) 
+        healpy.graticule(dpar=2, dmer=2, force=True)
 
         # Set some axis limits
         lower_ra = minRA + np.radians(lonra[0])
@@ -892,8 +910,8 @@ class ScanResult:
         upper_lat = max(tmp_lower_lat, tmp_upper_lat)
 
         # Label the axes
-        hp_ticklabels(zoom=True, lonra=lonra, latra=latra, 
-            rot=(lon,lat,0), 
+        hp_ticklabels(zoom=True, lonra=lonra, latra=latra,
+            rot=(lon,lat,0),
             bounds=(lower_lon, upper_lon, lower_lat, upper_lat))
 
         if plot_4fgl:
@@ -911,12 +929,12 @@ class ScanResult:
                           "\t RA = {0:.2f} + {1:.2f} - {2:.2f}".format(
                               ra, ra_plus, np.abs(ra_minus)) + " \n" + \
                           "\t Dec = {0:.2f} + {1:.2f} - {2:.2f}".format(
-                              dec, dec_plus, np.abs(dec_minus))                
+                              dec, dec_plus, np.abs(dec_minus))
             log_func(contain_txt)
         if plot_bounding_box:
             bounding_ras = []; bounding_decs = []
             # lower bound
-            bounding_ras.extend(list(np.linspace(ra+ra_minus, 
+            bounding_ras.extend(list(np.linspace(ra+ra_minus,
                 ra+ra_plus, 10)))
             bounding_decs.extend([dec+dec_minus]*10)
             # right bound
@@ -944,7 +962,7 @@ class ScanResult:
             bounding_contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
             contour_label = r'90% Bounding rectangle' + ' - area: {0:.2f} sqdeg'.format(
                 bounding_contour_area)
-            healpy.projplot(bounding_theta, bounding_phi, linewidth=0.75, 
+            healpy.projplot(bounding_theta, bounding_phi, linewidth=0.75,
                 c='r', linestyle='dashed', label=contour_label)
 
         # Output contours in RA, dec instead of theta, phi
@@ -973,15 +991,15 @@ class ScanResult:
                     #output = str.encode(savename)
                     if dosave:
                         ascii.write(tab, output, overwrite=True)
-                    output.seek(0) 
+                    output.seek(0)
                     print(upload_func(output, savename, savename))
-                    output.truncate(0) 
+                    output.truncate(0)
                     del output
             except OSError:
                 log_func("Memory Error prevented contours from being written")
 
         uncertainty = [(ra_minus, ra_plus), (dec_minus, dec_plus)]
-        fits_header = format_fits_header((run_id, event_id, event_type), 0, 
+        fits_header = format_fits_header((run_id, event_id, event_type), 0,
             np.degrees(minRA), np.degrees(minDec), uncertainty,
            )
         mmap_nside = healpy.get_nside(master_map)
@@ -992,7 +1010,7 @@ class ScanResult:
         def fixpixnumber(nside,pixels):
             th_o, phi_o = healpy.pix2ang(nside, pixels)
             dec_o = th_o - np.pi/2
-            th_fixed = np.pi/2 - dec_o 
+            th_fixed = np.pi/2 - dec_o
             pix_fixed = healpy.ang2pix(nside, th_fixed, phi_o)
             return pix_fixed
         pixels = np.arange(len(master_map))
@@ -1004,9 +1022,8 @@ class ScanResult:
         if np.sum(np.isnan([extra_ra, extra_dec, extra_radius])) == 0:
 
             def circular_contour(ra, dec, sigma, nside):
-                """For plotting circular contours on skymaps
-                ra, dec, sigma all expected in radians
-                """
+                """For plotting circular contours on skymaps ra, dec, sigma all
+                expected in radians."""
                 dec = np.pi/2. - dec
                 sigma = np.rad2deg(sigma)
                 delta, step, bins = 0, 0, 0
