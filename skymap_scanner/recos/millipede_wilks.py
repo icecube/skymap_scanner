@@ -53,7 +53,7 @@ class MillipedeWilks(RecoInterface):
     cascade_service = photonics_service.I3PhotoSplineService(
         _base % "abs", _base % "prob", timingSigma=0.0,
         effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_TESTDATA/ice-models/ICEMODEL/spice_bfr-v2/'),
+        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_bfr-v2/'),
         quantileEpsilon=1
         )
     muon_service = None
