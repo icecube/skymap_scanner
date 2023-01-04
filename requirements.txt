@@ -57,6 +57,7 @@ numpy==1.24.1
     #   healpy
     #   iminuit
     #   matplotlib
+    #   pandas
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
@@ -64,6 +65,8 @@ packaging==22.0
     # via
     #   astropy
     #   matplotlib
+pandas==1.5.2
+    # via skymap-scanner (setup.py)
 pillow==9.4.0
     # via matplotlib
 pulsar-client==3.0.0
@@ -77,7 +80,11 @@ pyjwt[crypto]==2.5.0
 pyparsing==3.0.9
     # via matplotlib
 python-dateutil==2.8.2
-    # via matplotlib
+    # via
+    #   matplotlib
+    #   pandas
+pytz==2022.7
+    # via pandas
 pyyaml==6.0
     # via astropy
 qrcode==7.3.1
