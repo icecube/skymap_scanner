@@ -4,28 +4,16 @@ import argparse
 import asyncio
 import json
 import logging
-import time
 from pathlib import Path
-from typing import Optional
 
 import ewms_pilot
-from wipac_dev_tools import logging_tools
-
-from .. import config as cfg
+from wipac_dev_tools import argparse_tools, logging_tools
 
 LOGGER = logging.getLogger("skyscan.client")
 
 
 def main() -> None:
     """Start up Client service."""
-
-    def _create_dir(val: str) -> Optional[Path]:
-        if not val:
-            return None
-        path = Path(val)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform reco scans on pixels "
@@ -42,17 +30,11 @@ def main() -> None:
             "The directory with the 'startup.json' file to startup the client "
             "(has keys 'mq_basename', 'baseline_GCD_file', and 'GCDQp_packet')"
         ),
-        type=Path,
-    )
-
-    # "physics" args
-    parser.add_argument(
-        # we aren't going to use this arg, but just check if it exists for incoming pixels
-        "-g",
-        "--gcd-dir",
-        default=cfg.DEFAULT_GCD_DIR,
-        help="The GCD directory to use",
-        type=Path,
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
+        ),
     )
 
     # mq args
@@ -98,7 +80,7 @@ def main() -> None:
     parser.add_argument(
         "--debug-directory",
         default="",
-        type=_create_dir,
+        type=argparse_tools.create_dir,
         help="a directory to write all the incoming/outgoing .pkl files "
         "(useful for debugging)",
     )
@@ -113,15 +95,15 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    # check if Baseline GCD directory is reachable (also checks default value)
-    if not Path(args.gcd_dir).is_dir():
-        raise NotADirectoryError(args.gcd_dir)
-
     # read startup.json
     with open(args.startup_json_dir / "startup.json", "rb") as f:
         startup_json_dict = json.load(f)
     with open("GCDQp_packet.json", "w") as f:
         json.dump(startup_json_dict["GCDQp_packet"], f)
+
+    # check if baseline GCD file is reachable
+    if not Path(startup_json_dict["baseline_GCD_file"]).exists():
+        raise FileNotFoundError(args.gcd_dir)
 
     cmd = (
         f"python -m skymap_scanner.client.reco_icetray "

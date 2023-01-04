@@ -42,7 +42,9 @@ if debug_dir:
     py_args += f"--debug-directory /local/debug "
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
-    py_args += f"--gcd-dir /local/gcd "
+    #
+    # NOTE: WE ARE NOT FORWARDING THIS ARG TO THE SCRIPT B/C ITS PASSED WITHIN THE STARTUP.JSON
+    #
 if startup:
     dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-json-dir "
     py_args += f"--startup-json-dir /local/startup-json-dir "

@@ -8,11 +8,10 @@ import datetime as dt
 import itertools as it
 import json
 import logging
-import os
 import pickle
 import time
-from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, TypeVar, Union
+from pathlib import Path, PurePosixPath
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -26,7 +25,7 @@ from icecube import (  # type: ignore[import]
     icetray,
 )
 from rest_tools.client import RestClient
-from wipac_dev_tools import logging_tools
+from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
@@ -748,7 +747,7 @@ async def serve(
 
     # log & post final report message
     progress_reporter.final_result(result, total_n_pixreco)
-    LOGGER.info(f"Output File: {os.path.basename(npz_fpath)}")
+    LOGGER.info(f"Output File: {PurePosixPath(npz_fpath).name}")
 
     return nsides_dict
 
@@ -865,24 +864,15 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    T = TypeVar("T")
-
-    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
-        """Validation `val` by checking `test` and raise `exc` if that is
-        falsy."""
-        if test:
-            return val
-        raise exc
-
     # directory args
     parser.add_argument(
         "--startup-json-dir",
         required=True,
         help="The dir to save the JSON needed to spawn clients",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
         ),
     )
     parser.add_argument(
@@ -890,10 +880,10 @@ def main() -> None:
         "--cache-dir",
         required=True,
         help="The cache directory to use",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
         ),
     )
     parser.add_argument(
@@ -901,10 +891,10 @@ def main() -> None:
         "--output-dir",
         required=True,
         help="The directory to write out the .npz file",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
         ),
     )
 
@@ -919,9 +909,9 @@ def main() -> None:
         "--event-file",
         required=True,
         help="The file containing the event to scan (.pkl or .json)",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
+            (x.endswith(".pkl") or x.endswith(".json")) and Path(x).is_file(),
             argparse.ArgumentTypeError(
                 f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
             ),
@@ -940,10 +930,10 @@ def main() -> None:
         help="The nside values to use for each iteration",
         nargs='*',
         type=lambda x: int(
-            _validate_arg(
-                x,
+            argparse_tools.validate_arg(
+                x,  # wait to cast, in case not numeric
                 x.isnumeric() and is_pow_of_two(int(x)),
-                argparse.ArgumentTypeError(
+                ValueError(
                     f"'--nsides' values must be an integer power of two (not {x})"
                 ),
             )
