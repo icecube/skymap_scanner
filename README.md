@@ -147,7 +147,7 @@ environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmf
 
 ### Additional Configuration
 #### Environment Variables
-When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). See `skymap_scanner.config.ENV` for more detail.
+When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-prefixed variables and `PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC` are also forwarded. See `skymap_scanner.config.ENV` for more detail.
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
