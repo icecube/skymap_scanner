@@ -284,7 +284,9 @@ class ProgressReporter:
 
     def final_result(self, result: ScanResult, total_n_pixreco: int):
         json_result = result.to_json()
-        print(json_result)
+        from pprint import pprint
+
+        pprint(json_result)
         msg = (
             f"The Skymap Scanner has finished.\n"
             f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
