@@ -33,7 +33,7 @@ from ..utils import extract_json_message, pixelreco
 from ..utils.icetrayless import parse_event_id
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
-from ..utils.utils import get_event_mjd
+from ..utils.utils import get_event_mjd, pow_of_two
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
@@ -45,20 +45,6 @@ class DuplicatePixelRecoException(Exception):
     For example, a pixel-reco (message) that has the same NSide, Pixel
     ID, and Variation ID as an already received message.
     """
-
-
-def is_pow_of_two(value: Union[int, float]) -> bool:
-    """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
-    if isinstance(value, float):
-        if not value.is_integer():  # type: ignore[union-attr]
-            return False
-        value = int(value)
-
-    if not isinstance(value, int):
-        return False
-
-    # I know, I know, no one likes bit shifting... buuuut...
-    return (value != 0) and (value & (value - 1) == 0)
 
 
 class ProgressReporter:
@@ -873,6 +859,11 @@ def write_startup_json(
 
 def main() -> None:
     """Get command-line arguments and perform event scan via clients."""
+
+    def _nside_and_pixelextension(val: str) -> Tuple[int, int]:
+        nside, ext = val.split(":")
+        return pow_of_two(nside), int(ext)
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up server to serve pixels to clients and save pixel-reconstructions "
@@ -944,18 +935,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--nsides",
-        default=[cfg.MIN_NSIDE_DEFAULT, cfg.MAX_NSIDE_DEFAULT],
-        help="The nside values to use for each iteration",
-        nargs='*',
-        type=lambda x: int(
-            argparse_tools.validate_arg(
-                x,  # wait to cast, in case not numeric
-                x.isnumeric() and is_pow_of_two(int(x)),
-                ValueError(
-                    f"'--nsides' values must be an integer power of two (not {x})"
-                ),
-            )
+        default=[
+            (cfg.MIN_NSIDE_DEFAULT, 12),
+            (cfg.MAX_NSIDE_DEFAULT, 24),
+        ],  # TODO: [(8,12), (64,12), (512,24)]
+        help=(
+            "The nside values to use for each iteration, "
+            "each ':'-paired with their pixel extension value. "
+            "Example: --nsides 8:12 64:12 512:24"
         ),
+        nargs='*',
+        type=_nside_and_pixelextension,
     )
 
     # testing/debugging args
@@ -1018,10 +1008,19 @@ def main() -> None:
 
     # nsides
     args.nsides = sorted(args.nsides)
+    if list(set(n[0] for n in args.nsides)) != [n[0] for n in args.nsides]:
+        raise argparse.ArgumentTypeError(
+            f"'--nsides' cannot contain duplicate nsides: {args.nsides}"
+        )
+    # TODO - actually implement variable nside sequences (https://github.com/icecube/skymap_scanner/issues/79)
+    # for now...
     if len(args.nsides) > 2:
         raise argparse.ArgumentTypeError("'--nsides' cannot contain more than 2 values")
-    min_nside = args.nsides[0]
-    max_nside = args.nsides[-1]  # if --nsides is only one value, then also grab index-0
+    min_nside = args.nsides[0][0]
+    max_nside = args.nsides[-1][0]  # if only one value, then also grab index-0
+    logging.warning(
+        f"Variable nside sequences not yet implemented: using {min_nside=} & {max_nside=}"
+    )
 
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():
