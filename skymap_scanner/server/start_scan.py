@@ -113,7 +113,7 @@ class ProgressReporter:
         self.time_before_reporter = 0.0
         self.global_start_time = 0.0
 
-    def new_iteration(self, n_pixreco: int, n_posvar: int) -> None:
+    async def new_iteration(self, n_pixreco: int, n_posvar: int) -> None:
         """Send an initial report/log/plot.
 
         Arguments:
@@ -127,7 +127,7 @@ class ProgressReporter:
         self.pixreco_ct = 0
         self.reporter_start_time = time.time()
         self.time_before_reporter = self.reporter_start_time - self.global_start_time
-        self._report(override_timestamp=True)
+        await self._report(override_timestamp=True)
 
     @property
     def n_pixreco(self) -> int:
@@ -153,20 +153,20 @@ class ProgressReporter:
             raise ValueError(f"n_posvar is not positive: {val}")
         self._n_posvar = val
 
-    def record_pixreco(self) -> None:
+    async def record_pixreco(self) -> None:
         """Send reports/logs/plots if needed."""
         self.pixreco_ct += 1
         if self.pixreco_ct == 1:
             # always report the first received pixreco so we know things are rolling
-            self._report(override_timestamp=True)
+            await self._report(override_timestamp=True)
         else:
-            self._report()
+            await self._report()
 
-    def _final_report(self) -> None:
+    async def _final_report(self) -> None:
         """Send a final, complete report/log/plot."""
-        self._report(override_timestamp=True)
+        await self._report(override_timestamp=True)
 
-    def _report(self, override_timestamp: bool = False) -> None:
+    async def _report(self, override_timestamp: bool = False) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
             f"Collected: {self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
@@ -180,7 +180,7 @@ class ProgressReporter:
             self.last_time_reported = current_time
             status_report = self.get_status_report()
             if self.skydriver_rc:
-                self.skydriver_rc.post(status_report)
+                await self.skydriver_rc.post(status_report)
             LOGGER.info(status_report)
 
         # check if we need to send a report to the skymap logger
@@ -191,7 +191,7 @@ class ProgressReporter:
         ):
             self.last_time_reported_skymap = current_time
             if self.skydriver_rc:
-                self.skydriver_rc.post_skymap_plot(self.nsides_dict)
+                await self.skydriver_rc.post_skymap_plot(self.nsides_dict)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -267,7 +267,7 @@ class ProgressReporter:
 
         return msg
 
-    def finish_iteration(self) -> None:
+    async def finish_iteration(self) -> None:
         """Check if all the pixel-recos were received & make a final report
         (for iteration)."""
         if not self.pixreco_ct:
@@ -279,9 +279,9 @@ class ProgressReporter:
                 f"{self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
             )
 
-        self._final_report()
+        await self._final_report()
 
-    def final_result(self, result: ScanResult, total_n_pixreco: int):
+    async def final_result(self, result: ScanResult, total_n_pixreco: int) -> None:
         serialized = result.serialize()
         from pprint import pprint
 
@@ -306,8 +306,8 @@ class ProgressReporter:
 
         # TODO: send serialized
         if self.skydriver_rc:
-            self.skydriver_rc.post(msg)
-            self.skydriver_rc.post_skymap_plot(self.nsides_dict)
+            await self.skydriver_rc.post(msg)
+            await self.skydriver_rc.post_skymap_plot(self.nsides_dict)
 
 
 # fmt: off
@@ -629,17 +629,17 @@ class PixelRecoCollector:
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
         self.pixreco_ids_sent = pixreco_ids_sent
 
-    def __enter__(self) -> "PixelRecoCollector":
-        self.progress_reporter.new_iteration(
+    async def __aenter__(self) -> "PixelRecoCollector":
+        await self.progress_reporter.new_iteration(
             len(self.pixreco_ids_sent), self.finder.n_posvar
         )
         return self
 
-    def __exit__(self, *args: Any) -> None:
-        self.progress_reporter.finish_iteration()
+    async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
+        await self.progress_reporter.finish_iteration()
         self.finder.finish()
 
-    def collect(self, pixreco: pixelreco.PixelReco) -> None:
+    async def collect(self, pixreco: pixelreco.PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
         LOGGER.debug(f"{self.nsides_dict=}")
 
@@ -679,7 +679,7 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        self.progress_reporter.record_pixreco()
+        await self.progress_reporter.record_pixreco()
 
 
 async def serve(
@@ -759,7 +759,7 @@ async def serve(
     print(f"NPZ FILE SIZE: {npz_fpath.stat().st_size}")
 
     # log & post final report message
-    progress_reporter.final_result(result, total_n_pixreco)
+    await progress_reporter.final_result(result, total_n_pixreco)
     LOGGER.info(f"Output File: {PurePosixPath(npz_fpath).name}")
 
     return nsides_dict
@@ -816,7 +816,7 @@ async def serve_scan_iteration(
 
     # get pixel-recos from client(s), collect and save
     LOGGER.info("Receiving pixel-recos from clients...")
-    with collector as col:  # enter collector 1st for detecting when no pixel-recos received
+    async with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
             async for pixreco in sub:
                 if not isinstance(pixreco, pixelreco.PixelReco):
@@ -824,7 +824,7 @@ async def serve_scan_iteration(
                         f"Message not {pixelreco.PixelReco}: {type(pixreco)}"
                     )
                 try:
-                    col.collect(pixreco)
+                    await col.collect(pixreco)
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
@@ -868,7 +868,7 @@ def write_startup_json(
         json.dump(json_dict, f)
     LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
 
-    return json_dict["mq_basename"]
+    return json_dict["mq_basename"]  # type: ignore[no-any-return]
 
 
 def main() -> None:
