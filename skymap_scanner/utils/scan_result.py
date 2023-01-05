@@ -8,7 +8,7 @@ import logging
 import pickle
 from functools import cached_property
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 import healpy
 import matplotlib
@@ -29,6 +29,7 @@ PixelTuple = Tuple[int, float, float, float]
 
 class PyDictNSidePixels(TypedDict):
     columns: List[str]
+    metadata: Dict[str, Any]
     data: List[List[Union[int, float]]]
 
 
@@ -401,14 +402,30 @@ class ScanResult:
         result = dict()
 
         for nside, pydict_nside_pixels in pydict.items():
+            # validate keys
+            if set(pydict_nside_pixels.keys()) != {'columns', 'metadata', 'data'}:
+                raise ValueError(f"PyDictResult entry has extra/missing keys: {pydict_nside_pixels.keys()}")
+
+            # check 'columns'
             if pydict_nside_pixels['columns'] != list(cls.PIXEL_TYPE.names):  # type: ignore[arg-type]
                 raise ValueError(
-                    f"JSON result has invalid 'columns' entry "
+                    f"PyDictResult entry has invalid 'columns' entry "
                     f"({pydict_nside_pixels['columns']}) should be {list(cls.PIXEL_TYPE.names)}"  # type: ignore[arg-type]
                 )
-            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=cls.parse_nside(nside)))
-            result_nside_pixels = np.zeros(len(pydict_nside_pixels['data']), dtype=_dtype)
 
+            # check 'metadata'
+            try:
+                if pydict_nside_pixels['metadata']['nside'] != cls.parse_nside(nside):
+                    raise ValueError(
+                        f"PyDictResult entry has incorrect 'metadata'.'nside' value: "
+                        f"{pydict_nside_pixels['metadata']['nside']} should be {cls.parse_nside(nside)}"
+                    )
+            except (KeyError, TypeError) as e:
+                raise ValueError("PyDictResult entry has missing key 'nside'") from e
+
+            # read/convert
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=pydict_nside_pixels['metadata'])
+            result_nside_pixels = np.zeros(len(pydict_nside_pixels['data']), dtype=_dtype)
             for i, pix_4list in enumerate(sorted(pydict_nside_pixels['data'], key=lambda x: x[0])):
                 result_nside_pixels[i] = tuple(pix_4list)
 
@@ -428,6 +445,10 @@ class ScanResult:
                     "E_in",
                     "E_tot"
                 ],
+                "metadata": {
+                    "nside": 8,
+                    ...
+                }
                 "data": [
                     [
                         0,
@@ -451,10 +472,11 @@ class ScanResult:
         for nside in self.result:
             df = pd.DataFrame(
                 self.result[nside],
-                columns=list(self.PIXEL_TYPE.fields.keys()),  # type: ignore[union-attr]
+                columns=list(self.result[nside].dtype.names),
             )
             pydict[nside] = df.to_dict(orient='split')
             pydict[nside].pop('index')  # index is not necessary
+            pydict[nside]['metadata'] = dict(self.result[nside].dtype.metadata)
         return pydict
 
     """
