@@ -119,7 +119,7 @@ def main() -> None:
     LOGGER.info(
         f"Starting up a Skymap Scanner client for event: {startup_json_dict['mq_basename']=}"
     )
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         ewms_pilot.consume_and_reply(
             cmd=cmd,
             broker_client="pulsar",

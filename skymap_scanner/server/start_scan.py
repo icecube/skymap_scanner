@@ -1080,7 +1080,7 @@ def main() -> None:
         skydriver_rc = None
 
     # go!
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         serve(
             reco_algo=args.reco_algo,
             event_id=event_id,
