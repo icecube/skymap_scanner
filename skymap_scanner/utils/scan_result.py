@@ -400,19 +400,19 @@ class ScanResult:
         """Deserialize from a python-native dict."""
         result = dict()
 
-        for nside, pixeltuple_dict in pydict.items():
-            if pixeltuple_dict['columns'] != list(cls.PIXEL_TYPE.names):  # type: ignore[arg-type]
+        for nside, pydict_nside_pixels in pydict.items():
+            if pydict_nside_pixels['columns'] != list(cls.PIXEL_TYPE.names):  # type: ignore[arg-type]
                 raise ValueError(
                     f"JSON result has invalid 'columns' entry "
-                    f"({pixeltuple_dict['columns']}) should be {list(cls.PIXEL_TYPE.names)}"  # type: ignore[arg-type]
+                    f"({pydict_nside_pixels['columns']}) should be {list(cls.PIXEL_TYPE.names)}"  # type: ignore[arg-type]
                 )
             _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=cls.parse_nside(nside)))
-            nside_pixel_values = np.zeros(len(pixeltuple_dict['data']), dtype=_dtype)
+            result_nside_pixels = np.zeros(len(pydict_nside_pixels['data']), dtype=_dtype)
 
-            for i, pix_tuple in enumerate(sorted(pixeltuple_dict['data'], key=lambda x: x[0])):
-                nside_pixel_values[i] = tuple(pix_tuple)
+            for i, pix_4list in enumerate(sorted(pydict_nside_pixels['data'], key=lambda x: x[0])):
+                result_nside_pixels[i] = tuple(pix_4list)
 
-            result[cls.format_nside(nside)] = nside_pixel_values
+            result[cls.format_nside(nside)] = result_nside_pixels
 
         return cls(result)
 
