@@ -401,7 +401,7 @@ class ScanResult:
         result = dict()
 
         for nside, pixeltuple_dict in pydict.items():
-            if pixeltuple_dict['columns'] != cls.PIXEL_TYPE.tolist():
+            if pixeltuple_dict['columns'] != list(cls.PIXEL_TYPE.names):
                 raise ValueError(
                     f"JSON result has invalid 'columns' entry "
                     f"({pixeltuple_dict['columns']}) should be {cls.PIXEL_TYPE.tolist()}"
