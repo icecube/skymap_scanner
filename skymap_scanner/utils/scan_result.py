@@ -8,7 +8,7 @@ import logging
 import pickle
 from functools import cached_property
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, TypedDict
+from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 import healpy
 import matplotlib
@@ -27,12 +27,12 @@ from .pixelreco import NSidesDict, PixelReco
 PixelTuple = Tuple[int, float, float, float]
 
 
-class JSONPixelTupleDict(TypedDict):
+class PyDictNSidePixels(TypedDict):
     columns: List[str]
-    data: List[PixelTuple]
+    data: List[List[Union[int, float]]]
 
 
-PyDictResult = Dict[str, JSONPixelTupleDict]
+PyDictResult = Dict[str, PyDictNSidePixels]
 
 
 ###############################################################################
@@ -410,8 +410,7 @@ class ScanResult:
             nside_pixel_values = np.zeros(len(pixeltuple_dict['data']), dtype=_dtype)
 
             for i, pix_tuple in enumerate(sorted(pixeltuple_dict['data'], key=lambda x: x[0])):
-                print(pix_tuple)
-                nside_pixel_values[i] = pix_tuple
+                nside_pixel_values[i] = tuple(pix_tuple)
 
             result[cls.format_nside(nside)] = nside_pixel_values
 
