@@ -412,7 +412,7 @@ class ScanResult:
             for i, pix_4list in enumerate(sorted(pydict_nside_pixels['data'], key=lambda x: x[0])):
                 result_nside_pixels[i] = tuple(pix_4list)
 
-            result[cls.format_nside(nside)] = result_nside_pixels
+            result[nside] = result_nside_pixels
 
         return cls(result)
 
