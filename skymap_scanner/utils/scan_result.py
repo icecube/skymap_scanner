@@ -359,7 +359,7 @@ class ScanResult:
     """
 
     @classmethod
-    def from_npz(cls, filename) -> "ScanResult":
+    def from_npz(cls, filename: Union[str, Path]) -> "ScanResult":
         """Load from npz-file."""
         npz = np.load(filename)
         result = dict()
@@ -374,7 +374,7 @@ class ScanResult:
                 result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
-    def to_npz(self, event_id, output_path=None) -> Path:
+    def to_npz(self, event_id: str, output_path: Union[str, Path, None] = None) -> Path:
         """Save to npz-file."""
         filename = event_id + "_" + self.get_nside_string() + ".npz"
         if output_path is not None:

@@ -674,7 +674,7 @@ async def serve(
     nsides_dict: Optional[pixelreco.NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD: str,
-    output_dir: str,
+    output_dir: Optional[Path],
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     mini_test_variations: bool,
@@ -742,7 +742,6 @@ async def serve(
         event_type=event_type,
     )
     npz_fpath = result.to_npz(event_id, output_dir)
-    print(f"NPZ FILE SIZE: {npz_fpath.stat().st_size}")
 
     # log & post final report message
     await progress_reporter.final_result(result, total_n_pixreco)
@@ -898,7 +897,7 @@ def main() -> None:
     parser.add_argument(
         "-o",
         "--output-dir",
-        required=True,
+        default=None,
         help="The directory to write out the .npz file",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
@@ -1077,6 +1076,10 @@ def main() -> None:
         skydriver_rc = RestClient(args.skydriver, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH)
     else:
         skydriver_rc = None
+        if not args.output_dir:
+            raise RuntimeError(
+                "Must include either --output-dir or --skydriver, otherwise you won't see your results!"
+            )
 
     # go!
     asyncio.run(
