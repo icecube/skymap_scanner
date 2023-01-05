@@ -30,7 +30,7 @@ cryptography==39.0.0
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.1.3
+ewms-pilot==0.1.4
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
