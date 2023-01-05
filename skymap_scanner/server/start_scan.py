@@ -291,6 +291,11 @@ class ProgressReporter:
         result_2 = ScanResult.deserialize(serialized)
         assert result == result_2
 
+        json_fpath = Path('result.json')
+        with open(json_fpath, 'w') as f:
+            json.dump(serialized, f)
+        print(f"JSON FILE SIZE: {json_fpath.stat().st_size}")
+
         msg = (
             f"The Skymap Scanner has finished.\n"
             f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
@@ -751,6 +756,7 @@ async def serve(
         event_type=event_type,
     )
     npz_fpath = result.to_npz(event_id, output_dir)
+    print(f"NPZ FILE SIZE: {npz_fpath.stat().st_size}")
 
     # log & post final report message
     progress_reporter.final_result(result, total_n_pixreco)
