@@ -447,7 +447,6 @@ class ScanResult:
             ...
         }
         """
-        from pprint import pprint
         pydict = {}
         for nside in self.result:
             df = pd.DataFrame(
@@ -455,9 +454,7 @@ class ScanResult:
                 columns=list(self.PIXEL_TYPE.fields.keys()),  # type: ignore[union-attr]
             )
             pydict[nside] = df.to_dict(orient='split')
-            pprint(pydict[nside])
             pydict[nside].pop('index')  # index is not necessary
-            pprint(pydict[nside])
         return pydict
 
     """
