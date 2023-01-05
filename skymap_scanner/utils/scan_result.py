@@ -401,16 +401,17 @@ class ScanResult:
         result = dict()
 
         for nside, pixeltuple_dict in pydict.items():
-            if pixeltuple_dict['columns'] != list(cls.PIXEL_TYPE.names):
+            if pixeltuple_dict['columns'] != list(cls.PIXEL_TYPE.names):  # type: ignore[arg-type]
                 raise ValueError(
                     f"JSON result has invalid 'columns' entry "
-                    f"({pixeltuple_dict['columns']}) should be {cls.PIXEL_TYPE.tolist()}"
+                    f"({pixeltuple_dict['columns']}) should be {list(cls.PIXEL_TYPE.names)}"  # type: ignore[arg-type]
                 )
             _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=cls.parse_nside(nside)))
             nside_pixel_values = np.zeros(len(pixeltuple_dict['data']), dtype=_dtype)
 
-            for pix_tuple in sorted(pixeltuple_dict['data'], key=lambda x: x[0]):
-                nside_pixel_values[pix_tuple[0]] = pix_tuple
+            for i, pix_tuple in enumerate(sorted(pixeltuple_dict['data'], key=lambda x: x[0])):
+                print(pix_tuple)
+                nside_pixel_values[i] = pix_tuple
 
             result[cls.format_nside(nside)] = nside_pixel_values
 
