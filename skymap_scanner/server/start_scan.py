@@ -11,7 +11,7 @@ import logging
 import pickle
 import time
 from pathlib import Path, PurePosixPath
-from pprint import pprint
+from pprint import pformat
 from typing import Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
@@ -33,10 +33,12 @@ from .. import recos
 from ..utils import extract_json_message, pixelreco
 from ..utils.icetrayless import parse_event_id
 from ..utils.load_scan_state import get_baseline_gcd_frames
-from ..utils.scan_result import ScanResult
+from ..utils.scan_result import PyDictResult, ScanResult
 from ..utils.utils import get_event_mjd, pow_of_two
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+
+Progress = Dict[str, Union[str, Dict[str, str]]]
 
 
 class DuplicatePixelRecoException(Exception):
@@ -170,7 +172,7 @@ class ProgressReporter:
             > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
-            await self.send_progress(self.get_status_report())
+            await self.send_progress(self.get_progress())
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
@@ -185,79 +187,93 @@ class ProgressReporter:
         """Get ScanResult."""
         return ScanResult.from_nsides_dict(self.nsides_dict, **self.result_metadata)
 
-    def get_status_report(self) -> str:
+    def get_progress(self) -> Progress:
         """Make a status report string."""
+        progress: Progress = {}
         if self.pixreco_ct == self.n_pixreco:
-            message = "I am done with this scan iteration!\n\n"
+            progress['summary'] = "I am done with this scan iteration!"
         elif self.pixreco_ct:
-            message = "I am busy scanning pixels.\n\n"
+            progress['summary'] = "I am busy scanning pixels."
         else:
-            message = "I am starting up the next scan iteration...\n\n"
+            progress['summary'] = "I am starting up the next scan iteration..."
 
-        message += (
-            f"{self.get_nsides_dict_report()}"  # ends w/ '\n'
-            "Config:\n"
-            f" - event: {self.event_id}\n"
-            f" - min nside: {self.min_nside}\n"  # TODO: replace with nsides & implement
-            f" - max nside: {self.max_nside}\n"  # TODO: remove
-            f" - position variations (reconstructions) per pixel: {self.n_posvar}\n"
-            f"{self.get_processing_stats_report()}"  # ends w/ '\n'
-            f"\n"
-        )
+        progress['config'] = {
+            'event': self.event_id,
+            'min nside': self.min_nside,  # TODO: replace with nsides
+            'max nside': self.max_nside,  # TODO: remove
+            'position variations (reconstructions) per pixel': self.n_posvar,
+        }
+
+        progress['nsides'] = self._get_nsides_dict_progress()
+        progress['processing'] = self._get_processing_progress()
 
         if self.pixreco_ct == 0:
-            message += "I will report back when I start getting pixel-reconstructions."
+            msg = "I will report back when I start getting pixel-reconstructions."
+            progress['epilogue'] = msg
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
+            msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
+            progress['epilogue'] = msg
 
-        return message
+        return progress
 
-    def get_processing_stats_report(self) -> str:
+    def _get_processing_progress(self) -> Progress:
         """Get a multi-line report on processing stats."""
         elapsed = time.time() - self.reporter_start_time
-        msg = (
-            "Processing Stats:\n"
-            f" - Started\n"
-            f"    * {dt.datetime.fromtimestamp(int(self.global_start_time))} [entire scan]\n"
-            f"    * {dt.datetime.fromtimestamp(int(self.reporter_start_time))} [this iteration]\n"
-            f" - Complete\n"
-            f"    * {((self.pixreco_ct/self.n_pixreco)*100):.1f}% "
-            f"({self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar} pixels, "
-            f"{self.pixreco_ct}/{self.n_pixreco} recos) [this iteration]\n"
-            f" - Elapsed Runtime\n"
-            f"    * {dt.timedelta(seconds=int(elapsed))} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=int(elapsed+self.time_before_reporter))} [this iteration + prior processing]\n"
-        )
+        proc_stats = {
+            "started": {
+                'entire scan': str(
+                    dt.datetime.fromtimestamp(int(self.global_start_time))
+                ),
+                'this iteration': str(
+                    dt.datetime.fromtimestamp(int(self.reporter_start_time))
+                ),
+            },
+            "complete": {
+                'this iteration': {
+                    f"{((self.pixreco_ct/self.n_pixreco)*100):.1f}% "
+                    f"({self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar} pixels, {self.pixreco_ct}/{self.n_pixreco} recos)"
+                }
+            },
+            "elapsed runtime": {
+                'this iteration': str(dt.timedelta(seconds=int(elapsed))),
+                'this iteration + prior processing': str(
+                    dt.timedelta(seconds=int(elapsed + self.time_before_reporter))
+                ),
+            },
+        }
         if not self.pixreco_ct:  # we can't predict
-            return msg
+            return proc_stats
 
         secs_per_pixreco = elapsed / self.pixreco_ct
         secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
-        msg += (
-            f" - Rate\n"
-            f"    * {dt.timedelta(seconds=int(secs_per_pixreco*self.n_posvar))} per pixel ({dt.timedelta(seconds=int(secs_per_pixreco))} per reco)\n"
-            f" - Predicted Time Left\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
-            f" - Predicted Total Runtime\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted))} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted+self.time_before_reporter))} [this iteration + prior processing]\n"
+        proc_stats.update(
+            {
+                'Rate': f"{dt.timedelta(seconds=int(secs_per_pixreco*self.n_posvar))} per pixel ({dt.timedelta(seconds=int(secs_per_pixreco))} per reco)",
+                'predicted time left': {
+                    'this iteration': str(
+                        dt.timedelta(seconds=int(secs_predicted - elapsed))
+                    )
+                },
+                'predicted total runtime': {
+                    'this iteration': str(dt.timedelta(seconds=int(secs_predicted))),
+                    'this iteration + prior processing': str(
+                        dt.timedelta(
+                            seconds=int(secs_predicted + self.time_before_reporter)
+                        )
+                    ),
+                },
+            }
         )
-        return msg
 
-    def get_nsides_dict_report(self) -> str:
+        return proc_stats
+
+    def _get_nsides_dict_progress(self) -> Progress:
         """Get a multi-line progress report of the nsides_dict's contents."""
-        msg = "Iterations with Saved Pixels:\n"
-        if not self.nsides_dict:
-            msg += " - no pixels are done yet\n"
-        else:
-
-            def nside_line(nside: int, npixels: int) -> str:
-                return f" - {npixels} pixels, nside={nside}\n"
-
+        saved = {}
+        if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
-                msg += nside_line(nside, len(self.nsides_dict[nside]))
-
-        return msg
+                saved[nside] = len(self.nsides_dict[nside])
+        return {"saved pixels": saved}
 
     async def recos_complete(self) -> None:
         """Check if all the pixel-recos were received & make a final report."""
@@ -275,40 +291,39 @@ class ProgressReporter:
     async def final_result(self, total_n_pixreco: int) -> ScanResult:
         """Get, log, and send final results to SkyDriver."""
         result = self.get_result()
-
-        progress = (
-            f"The Skymap Scanner has finished.\n"
-            f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
-            f"Runtime: {dt.timedelta(seconds=int(time.time() - self.global_start_time))}\n"
-            f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
-        )
+        progress = {
+            'summary': "The Skymap Scanner has finished.",
+            'start/end': f"{dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}",
+            'runtime': str(
+                dt.timedelta(seconds=int(time.time() - self.global_start_time))
+            ),
+            'total pixel-reconstructions': total_n_pixreco,
+        }
         LOGGER.info(progress)
 
-        serialized = await self.send_result(result, is_final=True)
-        pprint(serialized)
+        await self.send_result(result, is_final=True)
         await self.send_progress(progress)
 
         return result
 
-    async def send_progress(self, progress: dict) -> None:
+    async def send_progress(self, progress: Progress) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
-        LOGGER.info(progress)
+        LOGGER.info(pformat(progress, indent=4))
         if not self.skydriver_rc:
             return
 
         body = {'progress': progress}
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
-    async def send_result(self, result: ScanResult, is_final: bool) -> dict:
+    async def send_result(self, result: ScanResult, is_final: bool) -> None:
         """Send result to SkyDriver (if the connection is established)."""
         serialized = result.serialize()
-        LOGGER.info(serialized)
+        LOGGER.info(pformat(serialized, indent=4))
         if not self.skydriver_rc:
-            return serialized
+            return
 
         body = {'json_dict': serialized, 'is_final': is_final}
         await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
-        return serialized
 
 
 # fmt: off
