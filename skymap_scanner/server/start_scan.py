@@ -340,7 +340,6 @@ class PixelsToReco:
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
-        mini_test_variations: bool,
         reco_algo: str
     ) -> None:
         """
@@ -359,8 +358,6 @@ class PixelsToReco:
                 - name of an I3Position to use as the vertex position for the coarsest scan
             `output_particle_name`
                 - name of the output I3Particle
-            `mini_test_variations`
-                - whether this is a mini test scan (fewer variations)
             `reco_algo`
                 - name of the reconstruction algorithm to run
         """
@@ -372,14 +369,13 @@ class PixelsToReco:
 
         # Get Position Variations
         variation_distance = 20.*I3Units.m
-        # Production Scan or Mini-Test Scan?
-        if mini_test_variations:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variation_distance,0.,0.)
-            ]
-        else:
-            if self.reco_algo == 'millipede_original':
+        if self.reco_algo == 'millipede_original':
+            if cfg.ENV.SKYSCAN_MINI_TEST:
+                self.pos_variations = [
+                    dataclasses.I3Position(0.,0.,0.),
+                    dataclasses.I3Position(-variation_distance,0.,0.)
+                ]
+            else:
                 self.pos_variations = [
                     dataclasses.I3Position(0.,0.,0.),
                     dataclasses.I3Position(-variation_distance,0.,0.),
@@ -388,17 +384,17 @@ class PixelsToReco:
                     dataclasses.I3Position(0., variation_distance,0.),
                     dataclasses.I3Position(0.,0.,-variation_distance),
                     dataclasses.I3Position(0.,0., variation_distance)
-                    ]
-            else:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    ]
+                ]
+        else:
+            self.pos_variations = [
+                dataclasses.I3Position(0.,0.,0.),
+            ]
 
         # Set nside values
         if max_nside < min_nside:
             raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
-        self.min_nside = min_nside # TODO: replace with nsides & implement
-        self.max_nside = max_nside # TODO: remove
+        self.min_nside = min_nside  # TODO: replace with nsides & implement
+        self.max_nside = max_nside  # TODO: remove
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -708,7 +704,6 @@ async def serve(
     output_dir: Optional[Path],
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
-    mini_test_variations: bool,
     min_nside: int,  # TODO: replace with nsides & implement
     max_nside: int,  # TODO: remove
     skydriver_rc: Optional[RestClient],
@@ -730,7 +725,6 @@ async def serve(
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
-        mini_test_variations=mini_test_variations,
         reco_algo=reco_algo,
     )
 
@@ -982,14 +976,6 @@ def main() -> None:
         type=_nside_and_pixelextension,
     )
 
-    # testing/debugging args
-    parser.add_argument(
-        "--mini-test-variations",
-        default=False,
-        action="store_true",
-        help="run w/ minimal variations for testing (mini-scale)",
-    )
-
     # skydriver
     parser.add_argument(
         "--skydriver",
@@ -1128,7 +1114,6 @@ def main() -> None:
             output_dir=args.output_dir,
             to_clients_queue=to_clients_queue,
             from_clients_queue=from_clients_queue,
-            mini_test_variations=args.mini_test_variations,
             min_nside=min_nside,  # TODO: replace with args.nsides & implement
             max_nside=max_nside,  # TODO: remove
             skydriver_rc=skydriver_rc,

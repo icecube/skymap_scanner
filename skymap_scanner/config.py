@@ -70,6 +70,7 @@ class EnvConfig:
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
+    SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
 
     def __post_init__(self) -> None:
         """Check values."""
