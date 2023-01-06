@@ -11,7 +11,8 @@ import logging
 import pickle
 import time
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from pprint import pprint
+from typing import Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -48,19 +49,23 @@ class DuplicatePixelRecoException(Exception):
 
 
 class ProgressReporter:
-    """Manage various means for reporting progress during a scan-iteration."""
+    """Manage various means for reporting progress during & after scanning."""
 
     def __init__(
         self,
+        scan_id: str,
         global_start_time: float,
         nsides_dict: pixelreco.NSidesDict,
         min_nside: int,
         max_nside: int,
         event_id: str,
         skydriver_rc: Optional[RestClient],
+        result_metadata: dict,
     ) -> None:
         """
         Arguments:
+            `scan_id`
+                - the unique id of this scan
             `global_start_time`
                 - the start time (epoch) of the entire scan
             `nsides_dict`
@@ -73,16 +78,20 @@ class ProgressReporter:
                 - the event id
             `skydriver_rc`
                 - a connection to the SkyDriver REST interface
+            `result_metadata`
+                - a collection of metadata to include along with ScanResult instances
 
         Environment Variables:
-            `REPORT_INTERVAL_SEC`
-                - make a report with this interval
-            `PLOT_INTERVAL_SEC`
-                - make a skymap plot with this interval
+            `SKYSCAN_PROGRESS_INTERVAL_SEC`
+                - produce a progress report with this interval
+            `SKYSCAN_RESULT_INTERVAL_SEC`
+                - produce a (partial) skymap result with this interval
         """
+        self.scan_id = scan_id
         self.global_start_time = global_start_time
         self.nsides_dict = nsides_dict
         self.skydriver_rc = skydriver_rc
+        self.result_metadata = result_metadata
 
         self._n_pixreco: Optional[int] = None
         self._n_posvar: Optional[int] = None
@@ -161,23 +170,26 @@ class ProgressReporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         if override_timestamp or (
-            current_time - self.last_time_reported > cfg.ENV.SKYSCAN_REPORT_INTERVAL_SEC
+            current_time - self.last_time_reported
+            > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             status_report = self.get_status_report()
-            if self.skydriver_rc:
-                await self.skydriver_rc.post(status_report)
+            await self.send_progress(status_report)
             LOGGER.info(status_report)
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
         if override_timestamp or (
             current_time - self.last_time_reported_skymap
-            > cfg.ENV.SKYSCAN_PLOT_INTERVAL_SEC
+            > cfg.ENV.SKYSCAN_RESULT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
-            if self.skydriver_rc:
-                await self.skydriver_rc.post_skymap_plot(self.nsides_dict)
+            await self.send_result(self.get_result(), is_final=False)
+
+    def get_result(self) -> ScanResult:
+        """Get ScanResult."""
+        return ScanResult.from_nsides_dict(self.nsides_dict, **self.result_metadata)
 
     def get_status_report(self) -> str:
         """Make a status report string."""
@@ -202,7 +214,7 @@ class ProgressReporter:
         if self.pixreco_ct == 0:
             message += "I will report back when I start getting pixel-reconstructions."
         elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {cfg.ENV.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
+            message += f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
 
         return message
 
@@ -267,33 +279,43 @@ class ProgressReporter:
 
         await self._final_report()
 
-    async def final_result(self, result: ScanResult, total_n_pixreco: int) -> None:
-        serialized = result.serialize()
-        from pprint import pprint
+    async def final_result(self, total_n_pixreco: int) -> ScanResult:
+        """Get, log, and send final results to SkyDriver."""
+        result = self.get_result()
 
-        pprint(serialized)
-
-        # TODO: remove
-        result_2 = ScanResult.deserialize(serialized)
-        assert result == result_2
-
-        json_fpath = Path('result.json')
-        with open(json_fpath, 'w') as f:
-            json.dump(serialized, f)
-        print(f"JSON FILE SIZE: {json_fpath.stat().st_size}")
-
-        msg = (
+        progress = (
             f"The Skymap Scanner has finished.\n"
             f"Start / End: {dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
             f"Runtime: {dt.timedelta(seconds=int(time.time() - self.global_start_time))}\n"
             f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
         )
-        LOGGER.info(msg)
+        LOGGER.info(progress)
 
-        # TODO: send serialized
         if self.skydriver_rc:
-            await self.skydriver_rc.post(msg)
-            await self.skydriver_rc.post_skymap_plot(self.nsides_dict)
+            await self.send_progress(progress)
+            serialized = await self.send_result(result, is_final=True)
+
+        pprint(serialized)
+        return result
+
+    async def send_progress(self, progress: dict) -> None:
+        """Send progress to SkyDriver."""
+        if not self.skydriver_rc:
+            return
+
+        body = {'progress': progress}
+        await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
+
+    async def send_result(self, result: ScanResult, is_final: bool) -> dict:
+        """Send result to SkyDriver."""
+        serialized = result.serialize()
+
+        if not self.skydriver_rc:
+            return serialized
+
+        body = {'json_dict': serialized, 'is_final': is_final}
+        await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
+        return serialized
 
 
 # fmt: off
@@ -669,6 +691,7 @@ class PixelRecoCollector:
 
 
 async def serve(
+    scan_id: str,
     reco_algo: str,
     event_id: str,
     nsides_dict: Optional[pixelreco.NSidesDict],
@@ -703,13 +726,21 @@ async def serve(
         reco_algo=reco_algo,
     )
 
+    _, _, event_type = parse_event_id(event_id)
     progress_reporter = ProgressReporter(
+        scan_id,
         global_start_time,
         nsides_dict,
         min_nside,
         max_nside,
         event_id,
         skydriver_rc,
+        dict(
+            run_id=pixeler.event_header.run_id,
+            event_id=pixeler.event_header.event_id,
+            mjd=pixeler.event_mjd,
+            event_type=event_type,
+        ),
     )
 
     # Start the scan iteration loop
@@ -732,19 +763,11 @@ async def serve(
     if not total_n_pixreco:
         raise RuntimeError("No pixels were ever sent.")
 
-    # write out .npz file
-    _, _, event_type = parse_event_id(event_id)
-    result = ScanResult.from_nsides_dict(
-        nsides_dict,
-        run_id=pixeler.event_header.run_id,
-        event_id=pixeler.event_header.event_id,
-        mjd=pixeler.event_mjd,
-        event_type=event_type,
-    )
-    npz_fpath = result.to_npz(event_id, output_dir)
+    # get, log, & post final results
+    result = await progress_reporter.final_result(total_n_pixreco)
 
-    # log & post final report message
-    await progress_reporter.final_result(result, total_n_pixreco)
+    # write out .npz file
+    npz_fpath = result.to_npz(event_id, output_dir)
     LOGGER.info(f"Output File: {PurePosixPath(npz_fpath).name}")
 
     return nsides_dict
@@ -1085,6 +1108,7 @@ def main() -> None:
     # go!
     asyncio.run(
         serve(
+            scan_id=scan_id,
             reco_algo=args.reco_algo,
             event_id=event_id,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
