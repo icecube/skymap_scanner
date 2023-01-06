@@ -174,9 +174,7 @@ class ProgressReporter:
             > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
-            status_report = self.get_status_report()
-            await self.send_progress(status_report)
-            LOGGER.info(status_report)
+            await self.send_progress(self.get_status_report())
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
@@ -291,15 +289,15 @@ class ProgressReporter:
         )
         LOGGER.info(progress)
 
-        if self.skydriver_rc:
-            await self.send_progress(progress)
-            serialized = await self.send_result(result, is_final=True)
+        await self.send_progress(progress)
+        serialized = await self.send_result(result, is_final=True)
 
         pprint(serialized)
         return result
 
     async def send_progress(self, progress: dict) -> None:
-        """Send progress to SkyDriver."""
+        """Send progress to SkyDriver (if the connection is established)."""
+        LOGGER.info(progress)
         if not self.skydriver_rc:
             return
 
@@ -307,9 +305,9 @@ class ProgressReporter:
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
     async def send_result(self, result: ScanResult, is_final: bool) -> dict:
-        """Send result to SkyDriver."""
+        """Send result to SkyDriver (if the connection is established)."""
         serialized = result.serialize()
-
+        LOGGER.info(serialized)
         if not self.skydriver_rc:
             return serialized
 
@@ -361,7 +359,6 @@ class PixelsToReco:
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
         self.reco_algo = reco_algo.lower()
-
 
         # Get Position Variations
         variation_distance = 20.*I3Units.m
@@ -767,8 +764,9 @@ async def serve(
     result = await progress_reporter.final_result(total_n_pixreco)
 
     # write out .npz file
-    npz_fpath = result.to_npz(event_id, output_dir)
-    LOGGER.info(f"Output File: {PurePosixPath(npz_fpath).name}")
+    if output_dir:
+        npz_fpath = result.to_npz(event_id, output_dir)
+        LOGGER.info(f"Output File: {PurePosixPath(npz_fpath).name}")
 
     return nsides_dict
 
