@@ -56,8 +56,8 @@ class ProgressReporter:
         scan_id: str,
         global_start_time: float,
         nsides_dict: pixelreco.NSidesDict,
-        min_nside: int,
-        max_nside: int,
+        min_nside: int,  # TODO: replace with nsides & implement
+        max_nside: int,  # TODO: remove
         event_id: str,
         skydriver_rc: Optional[RestClient],
         result_metadata: dict,
@@ -97,8 +97,8 @@ class ProgressReporter:
         self._n_posvar: Optional[int] = None
         self.pixreco_ct = 0
 
-        self.min_nside = min_nside
-        self.max_nside = max_nside
+        self.min_nside = min_nside  # TODO: replace with nsides & implement
+        self.max_nside = max_nside  # TODO: remove
         self.event_id = event_id
 
         # all set by calling initial_report()
@@ -202,8 +202,8 @@ class ProgressReporter:
             f"{self.get_nsides_dict_report()}"  # ends w/ '\n'
             "Config:\n"
             f" - event: {self.event_id}\n"
-            f" - min nside: {self.min_nside}\n"
-            f" - max nside: {self.max_nside}\n"
+            f" - min nside: {self.min_nside}\n"  # TODO: replace with nsides & implement
+            f" - max nside: {self.max_nside}\n"  # TODO: remove
             f" - position variations (reconstructions) per pixel: {self.n_posvar}\n"
             f"{self.get_processing_stats_report()}"  # ends w/ '\n'
             f"\n"
@@ -325,8 +325,8 @@ class PixelsToReco:
         nsides_dict: pixelreco.NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         baseline_GCD: str,
-        min_nside: int,
-        max_nside: int,
+        min_nside: int,  # TODO: replace with nsides & implement
+        max_nside: int,  # TODO: remove
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
@@ -387,8 +387,8 @@ class PixelsToReco:
         # Set nside values
         if max_nside < min_nside:
             raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
-        self.min_nside = min_nside
-        self.max_nside = max_nside
+        self.min_nside = min_nside # TODO: replace with nsides & implement
+        self.max_nside = max_nside # TODO: remove
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -431,6 +431,7 @@ class PixelsToReco:
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
+            # TODO: replace with self.nsides & implement
             self.nsides_dict, min_nside=self.min_nside, max_nside=self.max_nside
         )
         if len(pixels_to_refine) == 0:
@@ -698,8 +699,8 @@ async def serve(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     mini_test_variations: bool,
-    min_nside: int,
-    max_nside: int,
+    min_nside: int,  # TODO: replace with nsides & implement
+    max_nside: int,  # TODO: remove
     skydriver_rc: Optional[RestClient],
 ) -> pixelreco.NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
@@ -714,8 +715,8 @@ async def serve(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
         baseline_GCD=baseline_GCD,
-        min_nside=min_nside,
-        max_nside=max_nside,
+        min_nside=min_nside,  # TODO: replace with nsides & implement
+        max_nside=max_nside,  # TODO: remove
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
@@ -728,8 +729,8 @@ async def serve(
         scan_id,
         global_start_time,
         nsides_dict,
-        min_nside,
-        max_nside,
+        min_nside,  # TODO: replace with nsides & implement
+        max_nside,  # TODO: remove
         event_id,
         skydriver_rc,
         dict(
@@ -844,8 +845,8 @@ async def serve_scan_iteration(
 def write_startup_json(
     startup_json_dir: Path,
     event_id: str,
-    min_nside: int,
-    max_nside: int,
+    min_nside: int,  # TODO: replace with nsides & implement
+    max_nside: int,  # TODO: remove
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> str:
@@ -858,6 +859,8 @@ def write_startup_json(
     if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
         scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
     else:
+        # TODO: replace with nsides & implement
+        # scan_id = f"{event_id}-{'-'.join(f'{n}:{x}' for n,x in nsides)}-{int(time.time())}"
         scan_id = f"{event_id}-{min_nside}-{max_nside}-{int(time.time())}"
 
     json_dict = {
@@ -1040,7 +1043,7 @@ def main() -> None:
     min_nside = args.nsides[0][0]
     max_nside = args.nsides[-1][0]  # if only one value, then also grab index-0
     logging.warning(
-        f"Variable nside sequences not yet implemented: using {min_nside=} & {max_nside=}"
+        f"VARIABLE NSIDE SEQUENCES NOT YET IMPLEMENTED: using {min_nside=} & {max_nside=} with default pixel-extension values"
     )
 
     # check if Baseline GCD directory is reachable (also checks default value)
@@ -1070,8 +1073,8 @@ def main() -> None:
     scan_id = write_startup_json(
         args.startup_json_dir,
         event_id,
-        min_nside,
-        max_nside,
+        min_nside,  # TODO: replace with args.nsides & implement
+        max_nside,  # TODO: remove
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
@@ -1116,8 +1119,8 @@ def main() -> None:
             to_clients_queue=to_clients_queue,
             from_clients_queue=from_clients_queue,
             mini_test_variations=args.mini_test_variations,
-            min_nside=min_nside,
-            max_nside=max_nside,
+            min_nside=min_nside,  # TODO: replace with args.nsides & implement
+            max_nside=max_nside,  # TODO: remove
             skydriver_rc=skydriver_rc,
         )
     )
