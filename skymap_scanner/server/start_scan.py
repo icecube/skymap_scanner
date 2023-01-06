@@ -108,7 +108,7 @@ class ProgressReporter:
         self.time_before_reporter = 0.0
         self.global_start_time = 0.0
 
-    async def new_iteration(self, n_pixreco: int, n_posvar: int) -> None:
+    async def start(self, n_pixreco: int, n_posvar: int) -> None:
         """Send an initial report/log/plot.
 
         Arguments:
@@ -122,12 +122,12 @@ class ProgressReporter:
         self.pixreco_ct = 0
         self.reporter_start_time = time.time()
         self.time_before_reporter = self.reporter_start_time - self.global_start_time
-        await self._report(override_timestamp=True)
+        await self._report(bypass_timers=True)
 
     @property
     def n_pixreco(self) -> int:
         if self._n_pixreco is None:
-            raise Exception("ProgressReporter instance never called 'new_iteration()'")
+            raise Exception("ProgressReporter instance never called 'start()'")
         return self._n_pixreco
 
     @n_pixreco.setter
@@ -139,7 +139,7 @@ class ProgressReporter:
     @property
     def n_posvar(self) -> int:
         if self._n_posvar is None:
-            raise Exception("ProgressReporter instance never called 'new_iteration()'")
+            raise Exception("ProgressReporter instance never called 'start()'")
         return self._n_posvar
 
     @n_posvar.setter
@@ -153,15 +153,11 @@ class ProgressReporter:
         self.pixreco_ct += 1
         if self.pixreco_ct == 1:
             # always report the first received pixreco so we know things are rolling
-            await self._report(override_timestamp=True)
+            await self._report(bypass_timers=True)
         else:
             await self._report()
 
-    async def _final_report(self) -> None:
-        """Send a final, complete report/log/plot."""
-        await self._report(override_timestamp=True)
-
-    async def _report(self, override_timestamp: bool = False) -> None:
+    async def _report(self, bypass_timers: bool = False) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
             f"Collected: {self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
@@ -169,7 +165,7 @@ class ProgressReporter:
 
         # check if we need to send a report to the logger
         current_time = time.time()
-        if override_timestamp or (
+        if bypass_timers or (
             current_time - self.last_time_reported
             > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
@@ -178,7 +174,7 @@ class ProgressReporter:
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
-        if override_timestamp or (
+        if bypass_timers or (
             current_time - self.last_time_reported_skymap
             > cfg.ENV.SKYSCAN_RESULT_INTERVAL_SEC
         ):
@@ -263,9 +259,8 @@ class ProgressReporter:
 
         return msg
 
-    async def finish_iteration(self) -> None:
-        """Check if all the pixel-recos were received & make a final report
-        (for iteration)."""
+    async def recos_complete(self) -> None:
+        """Check if all the pixel-recos were received & make a final report."""
         if not self.pixreco_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
@@ -275,7 +270,7 @@ class ProgressReporter:
                 f"{self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
             )
 
-        await self._final_report()
+        await self._report(bypass_timers=True)
 
     async def final_result(self, total_n_pixreco: int) -> ScanResult:
         """Get, log, and send final results to SkyDriver."""
@@ -289,10 +284,10 @@ class ProgressReporter:
         )
         LOGGER.info(progress)
 
-        await self.send_progress(progress)
         serialized = await self.send_result(result, is_final=True)
-
         pprint(serialized)
+        await self.send_progress(progress)
+
         return result
 
     async def send_progress(self, progress: dict) -> None:
@@ -636,13 +631,13 @@ class PixelRecoCollector:
         self.pixreco_ids_sent = pixreco_ids_sent
 
     async def __aenter__(self) -> "PixelRecoCollector":
-        await self.progress_reporter.new_iteration(
+        await self.progress_reporter.start(
             len(self.pixreco_ids_sent), self.finder.n_posvar
         )
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
-        await self.progress_reporter.finish_iteration()
+        await self.progress_reporter.recos_complete()
         self.finder.finish()
 
     async def collect(self, pixreco: pixelreco.PixelReco) -> None:
