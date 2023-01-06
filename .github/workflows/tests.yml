@@ -92,7 +92,6 @@ jobs:
             --broker $BROKER_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
-            --mini-test-variations \
             --nsides 1:12 \
             &
 
@@ -177,7 +176,6 @@ jobs:
             --broker $BROKER_ADDRESS \
             --log DEBUG \
             --log-third-party INFO \
-            --mini-test-variations \
             --nsides 1:12 \
             &
 
