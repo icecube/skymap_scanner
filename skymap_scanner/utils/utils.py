@@ -17,7 +17,9 @@ def pow_of_two(value: Any) -> int:
     """Return int-cast of `value` if it is an integer power of two (2^n)."""
     intval = int(value)  # -> ValueError
     # I know, I know, no one likes bit shifting... buuuut...
-    return (intval != 0) and (intval & (intval - 1) == 0)
+    if (intval != 0) and (intval & (intval - 1) == 0):
+        return intval
+    raise ValueError(f"Not a power of two (2^n) {value}")
 
 
 def get_event_mjd(frame_packet: List[icetray.I3Frame]):
