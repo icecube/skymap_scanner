@@ -12,7 +12,7 @@ import pickle
 import time
 from pathlib import Path, PurePosixPath
 from pprint import pformat
-from typing import Dict, Iterator, List, Optional, Set, Tuple
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -33,7 +33,7 @@ from .. import recos
 from ..utils import extract_json_message, pixelreco
 from ..utils.icetrayless import parse_event_id
 from ..utils.load_scan_state import get_baseline_gcd_frames
-from ..utils.scan_result import PyDictResult, ScanResult
+from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd, pow_of_two
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
@@ -341,7 +341,7 @@ class PixelsToReco:
         input_pos_name: str,
         output_particle_name: str,
         mini_test_variations: bool,
-        reco_algo:str
+        reco_algo: str
     ) -> None:
         """
         Arguments:
