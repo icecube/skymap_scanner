@@ -1042,8 +1042,8 @@ def main() -> None:
     # for now...
     if len(args.nsides) > 2:
         raise argparse.ArgumentTypeError("'--nsides' cannot contain more than 2 values")
-    min_nside = args.nsides[0][0]
-    max_nside = args.nsides[-1][0]  # if only one value, then also grab index-0
+    min_nside = args.nsides[0]
+    max_nside = args.nsides[-1]  # if only one value, then also grab index-0
     logging.warning(
         f"VARIABLE NSIDE SEQUENCES NOT YET IMPLEMENTED: using {min_nside=} & {max_nside=} with default pixel-extension values"
     )
