@@ -65,21 +65,21 @@ class RecoAlgo(enum.Enum):
 class EnvConfig:
     """For storing environment variables, typed."""
 
-    SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
-    SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
+    SKYSCAN_PROGRESS_INTERVAL_SEC: int = 5 * 60
+    SKYSCAN_RESULT_INTERVAL_SEC: int = 30 * 60
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
-    SKYSCAN_NEW_MQ_BASENAME_OVERRIDE: str = ""  # globally unique suffix for queue names
+    SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
 
     def __post_init__(self) -> None:
         """Check values."""
-        if self.SKYSCAN_REPORT_INTERVAL_SEC <= 0:
+        if self.SKYSCAN_PROGRESS_INTERVAL_SEC <= 0:
             raise ValueError(
-                f"Env Var: SKYSCAN_REPORT_INTERVAL_SEC is not positive: {self.SKYSCAN_REPORT_INTERVAL_SEC}"
+                f"Env Var: SKYSCAN_PROGRESS_INTERVAL_SEC is not positive: {self.SKYSCAN_PROGRESS_INTERVAL_SEC}"
             )
-        if self.SKYSCAN_PLOT_INTERVAL_SEC <= 0:
+        if self.SKYSCAN_RESULT_INTERVAL_SEC <= 0:
             raise ValueError(
-                f"Env Var: SKYSCAN_PLOT_INTERVAL_SEC is not positive: {self.SKYSCAN_PLOT_INTERVAL_SEC}"
+                f"Env Var: SKYSCAN_RESULT_INTERVAL_SEC is not positive: {self.SKYSCAN_RESULT_INTERVAL_SEC}"
             )
 
 

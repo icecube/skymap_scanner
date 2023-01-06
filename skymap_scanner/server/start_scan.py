@@ -830,17 +830,18 @@ def write_startup_json(
 ) -> str:
     """Write startup JSON file for client-spawning.
 
-    Return the mq_basename string.
+    Return the scan_id string.
     """
     json_file = startup_json_dir / "startup.json"
 
-    if cfg.ENV.SKYSCAN_NEW_MQ_BASENAME_OVERRIDE:
-        mq_basename = cfg.ENV.SKYSCAN_NEW_MQ_BASENAME_OVERRIDE
+    if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
+        scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
     else:
-        mq_basename = f"{event_id}-{min_nside}-{max_nside}-{int(time.time())}"
+        scan_id = f"{event_id}-{min_nside}-{max_nside}-{int(time.time())}"
 
     json_dict = {
-        "mq_basename": mq_basename,
+        "scan_id": scan_id,
+        "mq_basename": scan_id,
         "baseline_GCD_file": baseline_GCD_file,
         "GCDQp_packet": json.loads(
             full_event_followup.frame_packet_to_i3live_json(
@@ -853,7 +854,7 @@ def write_startup_json(
         json.dump(json_dict, f)
     LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
 
-    return json_dict["mq_basename"]  # type: ignore[no-any-return]
+    return json_dict["scan_id"]  # type: ignore[no-any-return]
 
 
 def main() -> None:
@@ -1045,7 +1046,7 @@ def main() -> None:
     )
 
     # write startup files for client-spawning
-    mq_basename = write_startup_json(
+    scan_id = write_startup_json(
         args.startup_json_dir,
         event_id,
         min_nside,
@@ -1059,14 +1060,14 @@ def main() -> None:
     to_clients_queue = mq.Queue(
         "pulsar",
         address=args.broker,
-        name=f"to-clients-{mq_basename}",
+        name=f"to-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=args.timeout_to_clients,
     )
     from_clients_queue = mq.Queue(
         "pulsar",
         address=args.broker,
-        name=f"from-clients-{mq_basename}",
+        name=f"from-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=args.timeout_from_clients,
     )
