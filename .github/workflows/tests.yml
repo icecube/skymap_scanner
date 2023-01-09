@@ -202,10 +202,10 @@ jobs:
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
           done
-      - name: Test Output Against Known Result (.npz)
+      - name: Test Output Against Known Result (.npz/.json)
         run: |
           ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
+          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
           echo $outfile
 
           pip install .  # don't need icecube, so no docker container needed
