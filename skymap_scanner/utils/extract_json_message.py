@@ -13,7 +13,7 @@ from .. import config as cfg
 from . import LOGGER
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
-from .icetrayless import create_event_id
+from .icetrayless import create_event_id_string
 from .utils import (
     hash_frame_packet,
     load_GCD_frame_packet_from_file,
@@ -99,7 +99,7 @@ def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="
     if "I3EventHeader" not in physics_frame:
         raise RuntimeError("No I3EventHeader in Physics frame")
     header = physics_frame["I3EventHeader"]
-    event_id_string = create_event_id(header.run_id, header.event_id,
+    event_id_string = create_event_id_string(header.run_id, header.event_id,
                                       __extract_event_type(physics_frame))
     LOGGER.debug("event ID is {0}".format(event_id_string))
 

@@ -550,7 +550,7 @@ class ScanResult:
                     log_func=None,
                     upload_func=None,
                     final_channels=None):
-        from .icetrayless import create_event_id
+        from .icetrayless import create_event_id_string
         from .plotting_tools import DecFormatter, RaFormatter
 
         if log_func is None:
@@ -582,7 +582,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id(run_id, event_id, event_type)}_{self.get_nside_string()}'
+        unique_id = f'{create_event_id_string(run_id, event_id, event_type)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -814,7 +814,7 @@ class ScanResult:
                            plot_4fgl=False,
                            final_channels=None):
         """Uses healpy to plot a map."""
-        from .icetrayless import create_event_id
+        from .icetrayless import create_event_id_string
         from .plotting_tools import format_fits_header, hp_ticklabels, plot_catalog
 
         if log_func is None:
@@ -856,7 +856,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id(run_id, event_id, event_type)}_{self.get_nside_string()}'
+        unique_id = f'{create_event_id_string(run_id, event_id, event_type)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
