@@ -369,7 +369,7 @@ class ScanResult:
     """
 
     @classmethod
-    def from_npz(cls, filename: Union[str, Path]) -> "ScanResult":
+    def read_npz(cls, filename: Union[str, Path]) -> "ScanResult":
         """Load from .npz file."""
         npz = np.load(filename)
         result = dict()
@@ -406,7 +406,7 @@ class ScanResult:
     """
 
     @classmethod
-    def from_json(cls, filename: Union[str, Path]) -> "ScanResult":
+    def read_json(cls, filename: Union[str, Path]) -> "ScanResult":
         """Load from .json file."""
         with open(filename) as f:
             pydict = json.load(f)
