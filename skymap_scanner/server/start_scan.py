@@ -221,8 +221,9 @@ class ProgressReporter:
             },
             "complete": {
                 'this iteration': {
-                    f"{((self.pixreco_ct/self.n_pixreco)*100):.1f}% "
-                    f"({self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar} pixels, {self.pixreco_ct}/{self.n_pixreco} recos)"
+                    'percent': (self.pixreco_ct / self.n_pixreco) * 100,
+                    'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
+                    'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
                 }
             },
             "elapsed runtime": {
@@ -242,7 +243,12 @@ class ProgressReporter:
         secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
         proc_stats.update(
             {
-                'Rate': f"{dt.timedelta(seconds=int(secs_per_pixreco*self.n_posvar))} per pixel ({dt.timedelta(seconds=int(secs_per_pixreco))} per reco)",
+                'Rate': {
+                    'per pixel': str(
+                        dt.timedelta(seconds=int(secs_per_pixreco * self.n_posvar))
+                    ),
+                    'per reco': str(dt.timedelta(seconds=int(secs_per_pixreco))),
+                },
                 'predicted time left': {
                     'this iteration': str(
                         dt.timedelta(seconds=int(secs_predicted - elapsed))
@@ -287,13 +293,15 @@ class ProgressReporter:
         result = self.get_result()
         progress = {
             'summary': "The Skymap Scanner has finished.",
-            'start/end': f"{dt.datetime.fromtimestamp(int(self.global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}",
+            'start/end': [
+                str(dt.datetime.fromtimestamp(int(self.global_start_time))),
+                str(dt.datetime.fromtimestamp(int(time.time()))),
+            ],
             'runtime': str(
                 dt.timedelta(seconds=int(time.time() - self.global_start_time))
             ),
             'total pixel-reconstructions': total_n_pixreco,
         }
-        LOGGER.info(progress)
 
         await self.send_result(result, is_final=True)
         await self.send_progress(progress)
