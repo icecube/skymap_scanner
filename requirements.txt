@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-astropy==5.2
+astropy==5.2.1
     # via
     #   healpy
     #   skymap-scanner (setup.py)
@@ -12,7 +12,7 @@ asyncstdlib==3.10.5
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-cachetools==5.2.0
+cachetools==5.2.1
     # via wipac-rest-tools
 certifi==2022.12.7
     # via
@@ -61,7 +61,7 @@ numpy==1.24.1
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-packaging==22.0
+packaging==23.0
     # via
     #   astropy
     #   matplotlib
