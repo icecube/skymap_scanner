@@ -211,7 +211,7 @@ jobs:
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
-            --expected tests/data/results_npz/$(basename $outfile) \
+            --expected $(echo tests/data/results_npz/$(basename $outfile) | sed 's/.json/.npz/g') \
             --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls *.diff.json) && false)
