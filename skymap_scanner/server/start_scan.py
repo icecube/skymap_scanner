@@ -112,7 +112,6 @@ class ProgressReporter:
         self.last_time_reported_skymap = 0.0
         self.reporter_start_time = 0.0
         self.time_before_reporter = 0.0
-        self.global_start_time = 0.0
 
     async def start(self, n_pixreco: int) -> None:
         """Send an initial report/log/plot.
@@ -226,6 +225,9 @@ class ProgressReporter:
                 }
             },
             "elapsed runtime": {
+                'prior processing': str(
+                    dt.timedelta(seconds=int(self.time_before_reporter))
+                ),
                 'this iteration': str(dt.timedelta(seconds=int(elapsed))),
                 'this iteration + prior processing': str(
                     dt.timedelta(seconds=int(elapsed + self.time_before_reporter))
