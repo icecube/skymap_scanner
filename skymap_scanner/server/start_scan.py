@@ -10,7 +10,7 @@ import json
 import logging
 import pickle
 import time
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
@@ -60,6 +60,7 @@ class ProgressReporter:
         nsides_dict: pixelreco.NSidesDict,
         min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        n_posvar: int,
         event_id: str,
         skydriver_rc: Optional[RestClient],
         result_metadata: dict,
@@ -76,6 +77,8 @@ class ProgressReporter:
                 - min nside value
             `max_nside`
                 - max nside value
+            `n_posvar`
+                - number of position variations per pixel
             `event_id`
                 - the event id
             `skydriver_rc`
@@ -95,8 +98,11 @@ class ProgressReporter:
         self.skydriver_rc = skydriver_rc
         self.result_metadata = result_metadata
 
+        if n_posvar <= 0:
+            raise ValueError(f"n_posvar is not positive: {n_posvar}")
+        self.n_posvar = n_posvar
+
         self._n_pixreco: Optional[int] = None
-        self._n_posvar: Optional[int] = None
         self.pixreco_ct = 0
 
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
@@ -110,7 +116,7 @@ class ProgressReporter:
         self.time_before_reporter = 0.0
         self.global_start_time = 0.0
 
-    async def start(self, n_pixreco: int, n_posvar: int) -> None:
+    async def start(self, n_pixreco: int) -> None:
         """Send an initial report/log/plot.
 
         Arguments:
@@ -120,7 +126,6 @@ class ProgressReporter:
                 - number of position variations per pixel
         """
         self.n_pixreco = n_pixreco
-        self.n_posvar = n_posvar
         self.pixreco_ct = 0
         self.reporter_start_time = time.time()
         self.time_before_reporter = self.reporter_start_time - self.global_start_time
@@ -137,18 +142,6 @@ class ProgressReporter:
         if val <= 0:
             raise ValueError(f"n_pixreco is not positive: {val}")
         self._n_pixreco = val
-
-    @property
-    def n_posvar(self) -> int:
-        if self._n_posvar is None:
-            raise Exception("ProgressReporter instance never called 'start()'")
-        return self._n_posvar
-
-    @n_posvar.setter
-    def n_posvar(self, val: int) -> None:
-        if val <= 0:
-            raise ValueError(f"n_posvar is not positive: {val}")
-        self._n_posvar = val
 
     async def record_pixreco(self) -> None:
         """Send reports/logs/plots if needed."""
@@ -635,21 +628,19 @@ class PixelRecoCollector:
         progress_reporter: ProgressReporter,
         pixreco_ids_sent: Set[Tuple[int, int, int]],
     ) -> None:
-        self.finder = BestPixelRecoFinder(n_posvar=n_posvar)
+        self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
         self.progress_reporter = progress_reporter
         self.nsides_dict = nsides_dict
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
         self.pixreco_ids_sent = pixreco_ids_sent
 
     async def __aenter__(self) -> "PixelRecoCollector":
-        await self.progress_reporter.start(
-            len(self.pixreco_ids_sent), self.finder.n_posvar
-        )
+        await self.progress_reporter.start(len(self.pixreco_ids_sent))
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
         await self.progress_reporter.recos_complete()
-        self.finder.finish()
+        self._finder.finish()
 
     async def collect(self, pixreco: pixelreco.PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
@@ -669,7 +660,7 @@ class PixelRecoCollector:
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
-        best = self.finder.cache_and_get_best(pixreco)
+        best = self._finder.cache_and_get_best(pixreco)
         LOGGER.info(f"Cached pixel-reco {pixreco.id_tuple} {pixreco}")
 
         # save best pixreco (if we got it)
@@ -735,6 +726,7 @@ async def serve(
         nsides_dict,
         min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        len(pixeler.pos_variations),
         event_id,
         skydriver_rc,
         dict(
