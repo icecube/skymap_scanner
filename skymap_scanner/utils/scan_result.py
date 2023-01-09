@@ -307,13 +307,23 @@ class ScanResult:
     def parse_nside(key) -> int:
         return int(key.split("nside-")[1])
 
-    def get_nside_string(self):
+    def get_nside_string(self) -> str:
         """Returns a string string listing the nside values to be included in
         the output filename."""
         # keys have a 'nside-NNN' format but we just want to extract the nside values to build the string
         # parsing back and forth numbers to strings is not the most elegant choice but works for now
         # TODO: possibly better to use integer values as keys in self.result
         return "_".join([str(nside) for nside in self.nsides])
+
+    def get_filename(self, event_id: str, extension: str, output_dir: Union[str, Path, None] = None) -> Path:
+        """Make a filepath for writing representations of `self` to disk."""
+        if not extension.startswith('.'):
+            extension = '.' + extension
+
+        filename = Path(f"{event_id}_{self.get_nside_string()}{extension}")
+        if output_dir is not None:
+            filename = output_dir / Path(filename)
+        return filename
 
     """
     nsides-dict input
@@ -360,7 +370,7 @@ class ScanResult:
 
     @classmethod
     def from_npz(cls, filename: Union[str, Path]) -> "ScanResult":
-        """Load from npz-file."""
+        """Load from .npz file."""
         npz = np.load(filename)
         result = dict()
         if "header" not in npz:
@@ -374,11 +384,10 @@ class ScanResult:
                 result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
-    def to_npz(self, event_id: str, output_path: Union[str, Path, None] = None) -> Path:
-        """Save to npz-file."""
-        filename = event_id + "_" + self.get_nside_string() + ".npz"
-        if output_path is not None:
-            filename = output_path / Path(filename)
+    def to_npz(self, event_id: str, output_dir: Union[str, Path, None] = None) -> Path:
+        """Save to .npz file."""
+        filename = self.get_filename(event_id, '.npz', output_dir)
+
         try:
             metadata_dtype = np.dtype(
                 [(k, type(v)) if not isinstance(v, str) else (k, f"U{len(v)}")
@@ -391,6 +400,25 @@ class ScanResult:
         except TypeError:
             np.savez(filename, **self.result)
         return Path(filename)
+
+    """
+    JSON input / output
+    """
+
+    @classmethod
+    def from_json(cls, filename: Union[str, Path]) -> "ScanResult":
+        """Load from .json file."""
+        with open(filename) as f:
+            pydict = json.load(f)
+        return cls.deserialize(pydict)
+
+    def to_json(self, event_id: str, output_dir: Union[str, Path, None] = None) -> Path:
+        """Save to .json file."""
+        filename = self.get_filename(event_id, '.json', output_dir)
+        pydict = self.serialize()
+        with open(filename, 'w') as f:
+            json.dump(pydict, f, indent=4)
+        return filename
 
     """
     Serialize/deserialize (input / output)

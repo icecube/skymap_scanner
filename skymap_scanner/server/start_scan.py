@@ -768,10 +768,11 @@ async def serve(
     # get, log, & post final results
     result = await progress_reporter.final_result(total_n_pixreco)
 
-    # write out .npz file
+    # write out .npz & .json files
     if output_dir:
         npz_fpath = result.to_npz(event_id, output_dir)
-        LOGGER.info(f"Output File: {PurePosixPath(npz_fpath).name}")
+        json_fpath = result.to_json(event_id, output_dir)
+        LOGGER.info(f"Output Files: {npz_fpath}, {json_fpath}")
 
     return nsides_dict
 
