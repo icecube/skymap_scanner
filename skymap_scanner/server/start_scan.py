@@ -6,12 +6,10 @@ import argparse
 import asyncio
 import datetime as dt
 import itertools as it
-import json
 import logging
 import pickle
 import time
 from pathlib import Path
-from pprint import pformat
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
@@ -34,7 +32,7 @@ from ..utils import extract_json_message, pixelreco
 from ..utils.icetrayless import parse_event_id
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
-from ..utils.utils import get_event_mjd, pow_of_two
+from ..utils.utils import get_event_mjd, pow_of_two, pyobj_to_string_repr
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 
@@ -301,7 +299,7 @@ class ProgressReporter:
 
     async def send_progress(self, progress: Progress) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
-        LOGGER.info(pformat(progress, indent=4))
+        LOGGER.info(pyobj_to_string_repr(progress))
         if not self.skydriver_rc:
             return
 
@@ -311,7 +309,7 @@ class ProgressReporter:
     async def send_result(self, result: ScanResult, is_final: bool) -> None:
         """Send result to SkyDriver (if the connection is established)."""
         serialized = result.serialize()
-        LOGGER.info(pformat(serialized, indent=4))
+        LOGGER.info(pyobj_to_string_repr(serialized))
         if not self.skydriver_rc:
             return
 

@@ -4,7 +4,9 @@
 # pylint: skip-file
 
 import hashlib
+import json
 import os
+from pprint import pformat
 from typing import Any, List, Optional, Tuple
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
@@ -20,6 +22,15 @@ def pow_of_two(value: Any) -> int:
     if (intval != 0) and (intval & (intval - 1) == 0):
         return intval
     raise ValueError(f"Not a power of two (2^n) {value}")
+
+
+def pyobj_to_string_repr(obj: Any) -> str:
+    """Get the string repr of obj, an indented JSON if possible."""
+    try:
+        return json.dumps(obj, indent=4)
+    except:  # noqa: E722
+        pass
+    return pformat(obj, indent=4)
 
 
 def get_event_mjd(frame_packet: List[icetray.I3Frame]):
