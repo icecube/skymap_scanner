@@ -191,7 +191,7 @@ class ProgressReporter:
             > cfg.ENV.SKYSCAN_RESULT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
-            await self._send_result(is_final=False)
+            await self._send_result()
 
     def _get_result(self) -> ScanResult:
         """Get ScanResult."""
