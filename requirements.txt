@@ -106,7 +106,7 @@ types-cryptography==3.3.23.2
     # via pyjwt
 typing-extensions==4.4.0
     # via wipac-dev-tools
-urllib3==1.26.13
+urllib3==1.26.14
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.10
     # via
