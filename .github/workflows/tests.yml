@@ -22,6 +22,8 @@ env:
   SKYSCAN_DOCKER_PULL_ALWAYS: 0
   SKYSCAN_DOCKER_IMAGE_TAG: local
   SKYSCAN_MINI_TEST: 'yes'
+  SKYSCAN_LOG: DEBUG
+  SKYSCAN_LOG_THIRD_PARTY: INFO
 
 jobs:
 
@@ -90,8 +92,6 @@ jobs:
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
             --broker $BROKER_ADDRESS \
-            --log DEBUG \
-            --log-third-party INFO \
             --nsides 1:12 \
             &
 
@@ -107,8 +107,6 @@ jobs:
               python -m skymap_scanner.client \
               --startup-json-dir . \
               --broker $BROKER_ADDRESS \
-              --log DEBUG \
-              --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\tclient #$i launched"
@@ -174,8 +172,6 @@ jobs:
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
             --broker $BROKER_ADDRESS \
-            --log DEBUG \
-            --log-third-party INFO \
             --nsides 1:12 \
             &
 
@@ -190,8 +186,6 @@ jobs:
             ./scripts/launch_scripts/docker/launch_client.sh \
               --startup-json-dir . \
               --broker $BROKER_ADDRESS \
-              --log DEBUG \
-              --log-third-party INFO \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\tclient #$i launched"
@@ -275,8 +269,7 @@ jobs:
             --in-pkl /local/pkls/in.pkl \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
-            --out-pkl /local/pkls/out.pkl \
-            --log DEBUG
+            --out-pkl /local/pkls/out.pkl
 
 
       - name: Test Output Against Known Result (.pkl)
