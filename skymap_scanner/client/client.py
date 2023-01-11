@@ -46,18 +46,6 @@ def main() -> None:
         required=True,
         help="The MQ broker URL to connect to",
     )
-    parser.add_argument(
-        "--timeout-to-clients",
-        default=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-        type=int,
-        help="timeout (seconds) for messages TO client(s)",
-    )
-    parser.add_argument(
-        "--timeout-from-clients",
-        default=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
-        type=int,
-        help="timeout (seconds) for messages FROM client(s)",
-    )
 
     # testing/debugging args
     parser.add_argument(
@@ -108,8 +96,8 @@ def main() -> None:
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_to_clients=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_from_clients=f"from-clients-{startup_json_dict['mq_basename']}",
-            timeout_to_clients=args.timeout_to_clients,
-            timeout_from_clients=args.timeout_from_clients,
+            timeout_to_clients=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+            timeout_from_clients=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
             debug_dir=args.debug_directory,
         )
     )

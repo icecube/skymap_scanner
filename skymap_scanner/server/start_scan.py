@@ -1084,18 +1084,6 @@ def main() -> None:
         required=True,
         help="The MQ broker URL to connect to",
     )
-    parser.add_argument(
-        "--timeout-to-clients",
-        default=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-        type=int,
-        help="timeout (seconds) for messages TO client(s)",
-    )
-    parser.add_argument(
-        "--timeout-from-clients",
-        default=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
-        type=int,
-        help="timeout (seconds) for messages FROM client(s)",
-    )
 
     args = parser.parse_args()
     logging_tools.set_level(
@@ -1164,14 +1152,14 @@ def main() -> None:
         address=args.broker,
         name=f"to-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-        timeout=args.timeout_to_clients,
+        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
     )
     from_clients_queue = mq.Queue(
         "pulsar",
         address=args.broker,
         name=f"from-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-        timeout=args.timeout_from_clients,
+        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
 
     # make skydriver REST connection
