@@ -210,8 +210,8 @@ class ProgressReporter:
 
         progress['summary'] = summary_msg
         progress['epilogue'] = epilogue_msg
-        progress['nsides'] = self._get_nsides_dict_progress()
-        progress['processing'] = self._get_processing_progress()
+        progress['tallies'] = self._get_tallies()
+        progress['processing_stats'] = self._get_processing_progress()
 
         return progress
 
@@ -228,16 +228,6 @@ class ProgressReporter:
                 'this iteration': str(
                     dt.datetime.fromtimestamp(int(self.reporter_start_time))
                 ),
-            },
-            "complete": {
-                # TODO: change to running total for https://github.com/icecube/skymap_scanner/issues/84
-                # ADD 'entire scan':
-                # TODO: add tally for each nside (async) -- do we know when an nside is complete?
-                'this iteration': {
-                    'percent': (self.pixreco_ct / self.n_pixreco) * 100,
-                    'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
-                    'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
-                }
             },
             "runtime": {
                 'prior processing': str(
@@ -273,6 +263,13 @@ class ProgressReporter:
             # NOTE: this is a simple average, may want to visit more sophisticated methods
             secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
             proc_stats['predictions'] = {
+                # TODO:
+                # 'remaining': {
+                #     # counts are downplayed using 'amount remaining' so we never report percent done
+                #     'percent': ##,
+                #     'pixels': ###/###,
+                #     'recos': ####/####,
+                # },
                 'time left': {
                     # TODO: replace w/ 'entire scan'
                     'this iteration': str(
@@ -291,13 +288,23 @@ class ProgressReporter:
 
         return proc_stats
 
-    def _get_nsides_dict_progress(self) -> Progress:
-        """Get a multi-line progress report of the nsides_dict's contents."""
+    def _get_tallies(self) -> dict:
+        """Get a multi-dict progress report of the nsides_dict's contents."""
         saved = {}
         if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
                 saved[nside] = len(self.nsides_dict[nside])
-        return {"saved pixels": saved}
+        return {
+            'by_nside': saved,
+            'total': sum(s for s in saved.values()),  # total completed pixels
+            # TODO: for #84: uncomment sense this will now be scan-wide total & remove 'this iteration' dict
+            # 'total_recos': self.pixreco_ct,
+            'this iteration': {
+                'percent': (self.pixreco_ct / self.n_pixreco) * 100,
+                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
+                'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
+            },
+        }
 
     async def final_computing_report(self) -> None:
         """Check if all the pixel-recos were received & make a final report."""
