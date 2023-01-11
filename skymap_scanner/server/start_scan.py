@@ -380,13 +380,8 @@ class ProgressReporter:
 
         if total_n_pixreco:
             # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
-            progress['processing']['complete'].update(
-                {
-                    'percent': 100,
-                    'pixels': f"{total_n_pixreco/self.n_posvar}/{total_n_pixreco/self.n_posvar}",
-                    'recos': f"{total_n_pixreco}/{total_n_pixreco}",
-                }
-            )
+            # see _get_tallies()
+            progress['tallies']['total_recos'] = total_n_pixreco
 
         LOGGER.info(pyobj_to_string_repr(progress))
         if not self.skydriver_rc:
