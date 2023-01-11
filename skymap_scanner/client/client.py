@@ -103,7 +103,7 @@ def main() -> None:
 
     # check if baseline GCD file is reachable
     if not Path(startup_json_dict["baseline_GCD_file"]).exists():
-        raise FileNotFoundError(args.gcd_dir)
+        raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
 
     cmd = (
         f"python -m skymap_scanner.client.reco_icetray "
