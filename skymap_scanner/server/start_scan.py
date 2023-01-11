@@ -114,7 +114,6 @@ class ProgressReporter:
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.reporter_start_time = 0.0
-        self.time_before_reporter = 0.0
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
@@ -132,7 +131,6 @@ class ProgressReporter:
         self.n_pixreco = n_pixreco
         self.pixreco_ct = 0
         self.reporter_start_time = time.time()
-        self.time_before_reporter = self.reporter_start_time - self.global_start_time
         await self._make_reports_if_needed(
             bypass_timers=True,
             summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
@@ -220,18 +218,21 @@ class ProgressReporter:
     def _get_processing_progress(self) -> Progress:
         """Get a multi-line report on processing stats."""
         elapsed = time.time() - self.reporter_start_time
+        time_before_reporter = self.reporter_start_time - self.global_start_time
         proc_stats = {
             "start": {
                 'entire scan': str(
                     dt.datetime.fromtimestamp(int(self.global_start_time))
                 ),
+                # TODO: add a start time for each nside (async)
                 'this iteration': str(
                     dt.datetime.fromtimestamp(int(self.reporter_start_time))
                 ),
             },
             "complete": {
                 # TODO: change to running total for https://github.com/icecube/skymap_scanner/issues/84
-                # simply make dict, instead of nested dict
+                # ADD 'entire scan':
+                # TODO: add tally for each nside (async) -- do we know when an nside is complete?
                 'this iteration': {
                     'percent': (self.pixreco_ct / self.n_pixreco) * 100,
                     'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
@@ -240,11 +241,12 @@ class ProgressReporter:
             },
             "runtime": {
                 'prior processing': str(
-                    dt.timedelta(seconds=int(self.time_before_reporter))
+                    dt.timedelta(seconds=int(time_before_reporter))
                 ),
+                # TODO: remove 'iterations' -- no replacement b/c async, that's OK
                 'this iteration': str(dt.timedelta(seconds=int(elapsed))),
                 'this iteration + prior processing': str(
-                    dt.timedelta(seconds=int(elapsed + self.time_before_reporter))
+                    dt.timedelta(seconds=int(elapsed + time_before_reporter))
                 ),
                 'total': str(
                     dt.timedelta(seconds=int(time.time() - self.global_start_time))
@@ -255,7 +257,6 @@ class ProgressReporter:
             return proc_stats
 
         secs_per_pixreco = elapsed / self.pixreco_ct
-        secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
         proc_stats['rate'] = {
             'per-pixel': str(
                 dt.timedelta(seconds=int(secs_per_pixreco * self.n_posvar))
@@ -269,18 +270,21 @@ class ProgressReporter:
             proc_stats['finished'] = True
         else:
             # MAKE PREDICTIONS
+            # NOTE: this is a simple average, may want to visit more sophisticated methods
+            secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
             proc_stats['predictions'] = {
                 'time left': {
+                    # TODO: replace w/ 'entire scan'
                     'this iteration': str(
                         dt.timedelta(seconds=int(secs_predicted - elapsed))
                     )
                 },
                 'total runtime at finish': {
+                    # TODO: replace w/ 'total reconstruction'
                     'this iteration': str(dt.timedelta(seconds=int(secs_predicted))),
+                    # TODO: replace w/ 'entire scan'
                     'this iteration + prior processing': str(
-                        dt.timedelta(
-                            seconds=int(secs_predicted + self.time_before_reporter)
-                        )
+                        dt.timedelta(seconds=int(secs_predicted + time_before_reporter))
                     ),
                 },
             }
