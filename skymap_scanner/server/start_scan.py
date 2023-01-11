@@ -11,7 +11,7 @@ import logging
 import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -115,8 +115,32 @@ class ProgressReporter:
         self.last_time_reported_skymap = 0.0
         self.reporter_start_time = 0.0
 
+        self._call_order = {
+            'current_previous': {  # current_fucntion: previous_fucntion(s)
+                self.precomputing_report: [None],
+                self.start_computing: [
+                    self.precomputing_report,
+                    self.final_computing_report,  # TODO: remove for #84
+                ],
+                self.record_pixreco: [self.start_computing, self.record_pixreco],
+                self.final_computing_report: [self.record_pixreco],
+                self.after_computing_report: [self.final_computing_report],
+            },
+            'last_called': None,
+        }
+
+    def _check_call_order(self, current: Callable) -> None:  # type: ignore[type-arg]
+        """Make sure we're calling everything in order."""
+        if (
+            self._call_order['last_called']  # type: ignore[operator]
+            not in self._call_order['current_previous'][current]  # type: ignore[index]
+        ):
+            RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
+        self._call_order['last_called'] = current  # type: ignore[assignment]
+
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
+        self._check_call_order(self.precomputing_report)
         await self._send_progress(summary_msg="The Skymap Scanner has started up.")
 
     async def start_computing(self, n_pixreco: int) -> None:
@@ -128,6 +152,7 @@ class ProgressReporter:
             `n_posvar`
                 - number of position variations per pixel
         """
+        self._check_call_order(self.start_computing)
         self.n_pixreco = n_pixreco
         self.pixreco_ct = 0
         self.reporter_start_time = time.time()
@@ -139,7 +164,9 @@ class ProgressReporter:
     @property
     def n_pixreco(self) -> int:
         if self._n_pixreco is None:
-            raise Exception("ProgressReporter instance never called 'start()'")
+            raise RuntimeError(
+                f"'self._n_pixreco' is None (did you forget to call {self.start_computing}?)"
+            )
         return self._n_pixreco
 
     @n_pixreco.setter
@@ -150,6 +177,7 @@ class ProgressReporter:
 
     async def record_pixreco(self) -> None:
         """Send reports/logs/plots if needed."""
+        self._check_call_order(self.record_pixreco)
         self.pixreco_ct += 1
         if self.pixreco_ct == 1:
             # always report the first received pixreco so we know things are rolling
@@ -308,6 +336,7 @@ class ProgressReporter:
 
     async def final_computing_report(self) -> None:
         """Check if all the pixel-recos were received & make a final report."""
+        self._check_call_order(self.final_computing_report)
         if not self.pixreco_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
@@ -327,6 +356,7 @@ class ProgressReporter:
         total_n_pixreco: int,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> ScanResult:
         """Get, log, and send final results to SkyDriver."""
+        self._check_call_order(self.after_computing_report)
         self.is_event_scan_done = True
         result = await self._send_result()
         await self._send_progress(
