@@ -322,16 +322,23 @@ class ProgressReporter:
         if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
                 saved[nside] = len(self.nsides_dict[nside])
+
+        # TODO: remove for #84
+        if self._n_pixreco is not None:
+            this_iteration = (
+                {
+                    'percent': (self.pixreco_ct / self.n_pixreco) * 100,
+                    'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
+                    'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
+                },
+            )
+
         return {
             'by_nside': saved,
             'total': sum(s for s in saved.values()),  # total completed pixels
             # TODO: for #84: uncomment sense this will now be scan-wide total & remove 'this iteration' dict
             # 'total_recos': self.pixreco_ct,
-            'this iteration': {
-                'percent': (self.pixreco_ct / self.n_pixreco) * 100,
-                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
-                'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
-            },
+            'this_iteration': this_iteration,  # TODO: remove for #84
         }
 
     async def final_computing_report(self) -> None:
