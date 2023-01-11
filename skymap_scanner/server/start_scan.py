@@ -204,6 +204,8 @@ class ProgressReporter:
                 )
             elif self.pixreco_ct != self.n_pixreco:
                 epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
+            else:
+                epilogue_msg = ""
             await self._send_progress(summary_msg, epilogue_msg)
 
         # check if we need to send a report to the skymap logger
