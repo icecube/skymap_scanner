@@ -9,7 +9,7 @@ from pathlib import Path
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from . import config as cfg
+from .. import config as cfg
 
 LOGGER = logging.getLogger("skyscan.client")
 
