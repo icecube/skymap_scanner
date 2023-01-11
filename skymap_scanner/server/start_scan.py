@@ -57,10 +57,9 @@ class ProgressReporter:
         scan_id: str,
         global_start_time: float,
         nsides_dict: pixelreco.NSidesDict,
+        n_posvar: int,
         min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-        n_posvar: int,
-        event_id: str,
         skydriver_rc: Optional[RestClient],
         event_metadata: dict,
     ) -> None:
@@ -72,14 +71,12 @@ class ProgressReporter:
                 - the start time (epoch) of the entire scan
             `nsides_dict`
                 - the nsides_dict
+            `n_posvar`
+                - number of position variations per pixel
             `min_nside`
                 - min nside value
             `max_nside`
                 - max nside value
-            `n_posvar`
-                - number of position variations per pixel
-            `event_id`
-                - the event id
             `skydriver_rc`
                 - a connection to the SkyDriver REST interface
             `event_metadata`
@@ -96,8 +93,6 @@ class ProgressReporter:
         self.scan_id = scan_id
         self.global_start_time = global_start_time
         self.nsides_dict = nsides_dict
-        self.skydriver_rc = skydriver_rc
-        self.event_metadata = event_metadata
 
         if n_posvar <= 0:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
@@ -108,7 +103,8 @@ class ProgressReporter:
 
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-        self.event_id = event_id
+        self.skydriver_rc = skydriver_rc
+        self.event_metadata = event_metadata
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
@@ -831,10 +827,9 @@ async def serve(
         scan_id,
         global_start_time,
         nsides_dict,
+        len(pixeler.pos_variations),
         min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-        len(pixeler.pos_variations),
-        event_id_string,
         skydriver_rc,
         pixeler.get_event_metadata(event_id_string),
     )
