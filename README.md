@@ -54,7 +54,8 @@ export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=alway
 #### 2. Launch Each Client
 The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `--broker` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
 
-On sub-2, suggest setting `--timeout-to-clients` and `--timeout-from-clients` to a reasonable number like 3600s. This should keep workers long enough to process through the reconstructions and release them once the jobs are complete.
+##### In-Production Usage Note: timeout values
+On sub-2, suggest setting `--timeout-to-clients` and `--timeout-from-clients` to a reasonable number like 3600 (seconds). This should keep workers long enough to process through the reconstructions and release them once the jobs are complete. You may want to manually kill the workers once your scan is complete, since they will each have to wait for an additional `--timeout-to-clients`-seconds to expire.
 
 ##### Figure Your Args
 ###### Environment Variables
@@ -103,7 +104,7 @@ The server will exit on its own once it has received and processed all the recon
 
 All will exit on fatal errors (for clients, use HTCondor to manage re-launching). The in-progress pixel reconstruction is abandoned when a client fails, so there is no concern for duplicate reconstructions at the server. The pre-reconstructed pixel will be re-queued to be delivered to a different client.
 
-### Converting i3 to json and scaling up
+### In-Production Usage Note: Converting i3 to json and scaling up
 You may want to run on events stored in i3 files. To convert those into a json format readable by the scanner, you can do
 ```
 cd scripts/utils
