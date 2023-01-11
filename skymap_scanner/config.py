@@ -67,9 +67,14 @@ class EnvConfig:
 
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 5 * 60
     SKYSCAN_RESULT_INTERVAL_SEC: int = 30 * 60
+    # broker/mq vars
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
+    SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 1  # (sec) for messages TO client(s)
+    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 60 * 30  # (sec) for messages FROM client(s)
+    # skydriver vars
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
+    # testing/debug vars
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
 
     def __post_init__(self) -> None:

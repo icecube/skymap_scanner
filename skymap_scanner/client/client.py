@@ -48,13 +48,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--timeout-to-clients",
-        default=60 * 1,
+        default=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
         type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
-        default=60 * 30,
+        default=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
         type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
