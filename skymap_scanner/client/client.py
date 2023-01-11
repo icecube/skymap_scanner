@@ -9,6 +9,8 @@ from pathlib import Path
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
+from . import config as cfg
+
 LOGGER = logging.getLogger("skyscan.client")
 
 
@@ -43,12 +45,6 @@ def main() -> None:
         "--broker",
         required=True,
         help="The MQ broker URL to connect to",
-    )
-    parser.add_argument(
-        "-a",
-        "--auth-token",
-        default="",
-        help="The MQ authentication token to use",
     )
     parser.add_argument(
         "--timeout-to-clients",
@@ -124,7 +120,7 @@ def main() -> None:
             cmd=cmd,
             broker_client="pulsar",
             broker_address=args.broker,
-            auth_token=args.auth_token,
+            auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_to_clients=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_from_clients=f"from-clients-{startup_json_dict['mq_basename']}",
             timeout_to_clients=args.timeout_to_clients,
