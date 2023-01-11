@@ -65,8 +65,8 @@ class RecoAlgo(enum.Enum):
 class EnvConfig:
     """For storing environment variables, typed."""
 
-    SKYSCAN_PROGRESS_INTERVAL_SEC: int = 5 * 60
-    SKYSCAN_RESULT_INTERVAL_SEC: int = 30 * 60
+    SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
+    SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
     # broker/mq vars
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
     SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 1  # (sec) for messages TO client(s)
