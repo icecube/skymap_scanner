@@ -59,19 +59,6 @@ def main() -> None:
         help="timeout (seconds) for messages FROM client(s)",
     )
 
-    # logging args
-    parser.add_argument(
-        "-l",
-        "--log",
-        default="INFO",
-        help="the output logging level (for first-party loggers)",
-    )
-    parser.add_argument(
-        "--log-third-party",
-        default="WARNING",
-        help="the output logging level for third-party loggers",
-    )
-
     # testing/debugging args
     parser.add_argument(
         "--debug-directory",
@@ -83,9 +70,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log,
+        cfg.ENV.SKYSCAN_LOG,
         first_party_loggers=["skyscan", ewms_pilot.pilot.LOGGER],
-        third_party_level=args.log_third_party,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
         use_coloredlogs=True,
         future_third_parties=["google", "pika"],  # at most only one will be used
     )
@@ -107,8 +94,6 @@ def main() -> None:
         f" --out-pkl out.pkl"
         f" --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
-        f" --log {args.log}"
-        f" --log-third-party {args.log_third_party}"
     )
 
     # go!

@@ -74,6 +74,9 @@ class EnvConfig:
     # skydriver vars
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
+    # logging vars
+    SKYSCAN_LOG: str = "INFO"
+    SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
     # testing/debug vars
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
 
