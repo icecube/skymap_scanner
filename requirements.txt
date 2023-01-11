@@ -34,7 +34,7 @@ ewms-pilot==0.1.4
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
-healpy==1.16.1
+healpy==1.16.2
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
