@@ -3,7 +3,6 @@
 import argparse
 import datetime as dt
 import getpass
-import json
 import logging
 import os
 import subprocess
@@ -67,6 +66,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             f"""executable = /bin/sh
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .
 +SingularityImage = "{singularity_image}"
+getenv = SKYSCAN_*, EWMS_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC
 output = {scratch}/skymap_scanner.out
 error = {scratch}/skymap_scanner.err
 log = {scratch}/skymap_scanner.log
@@ -159,9 +159,10 @@ def main() -> None:
         type=lambda x: wait_for_file(x, 60 * 25),
     )
     parser.add_argument(
-        "--client-args-json",
+        "--client-args",
         required=True,
-        help="a JSON file containing the python CL arguments to pass to skymap_scanner.client",
+        nargs="+",
+        help="n 'key:value' pairs containing the python CL arguments to pass to skymap_scanner.client",
     )
 
     args = parser.parse_args()
@@ -172,12 +173,14 @@ def main() -> None:
     scratch = make_condor_scratch_dir()
 
     # get client args
-    with open(args.client_args_json) as f:
-        client_args = " ".join(f"{k} {v}" for k, v in json.load(f).items())
-        logging.info(f"Client Args: {client_args}")
+    client_args = ""
+    for carg_value in args.client_args:
+        carg, value = carg_value.split(":", maxsplit=1)
+        client_args += f" --{carg} {value} "
+    logging.info(f"Client Args: {client_args}")
     if "--startup-json-dir" in client_args:
         raise RuntimeError(
-            "The '--client-args-json' file cannot include \"--startup-json-dir\". "
+            "The '--client-args' file cannot include \"--startup-json-dir\". "
             "This needs to be defined explicitly with '--startup-json'."
         )
 

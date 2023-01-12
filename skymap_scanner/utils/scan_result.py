@@ -1,29 +1,53 @@
 """For encapsulating the results of an event scan in a single instance."""
 
+
+import io
 import itertools as it
 import json
 import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import io
 import pickle
-from astropy.io import ascii
 from functools import cached_property
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
-import numpy as np
-import matplotlib
-from matplotlib import text
-from matplotlib import pyplot as plt
 import healpy
+import matplotlib
 import meander
+import numpy as np
+import pandas as pd
+from astropy.io import ascii
+from matplotlib import pyplot as plt
+from matplotlib import text
 
 from .pixelreco import NSidesDict, PixelReco
+
+###############################################################################
+# DATA TYPES
+
+PixelTuple = Tuple[int, float, float, float]
+
+
+class PyDictNSidePixels(TypedDict):
+    columns: List[str]
+    metadata: Dict[str, Any]
+    data: List[List[Union[int, float]]]
+
+
+PyDictResult = Dict[str, PyDictNSidePixels]
+
+
+###############################################################################
+# EXCPETIONS
 
 
 class InvalidPixelValueError(Exception):
     """Raised when a pixel-value is illegal."""
 
 
+###############################################################################
+# MAIN CLASS
+
+# fmt: off
 class ScanResult:
     """This class parses a nsides_dict and stores the relevant numeric result
     of the scan. Ideally it should serve as the basic data structure for
@@ -53,8 +77,25 @@ class ScanResult:
 
     def __init__(self, result: Dict[str, np.ndarray]):
         self.logger = logging.getLogger(__name__)
+
+        # validate result data
+        if not isinstance(result, dict):
+            raise ValueError("'result' must be an instance of Dict[str, np.ndarray]")
+        for nside in result:
+            try:
+                self.parse_nside(nside)
+            except (KeyError, ValueError) as e:
+                raise ValueError(f"'result' has invalid nside key: {nside}") from e
+            if not isinstance(result[nside], np.ndarray):
+                raise ValueError("'result' must be an instance of Dict[str, np.ndarray]")
+            if result[nside].dtype != self.PIXEL_TYPE:
+                raise ValueError(
+                    f"'result' has invalid dtype {result[nside].dtype} "
+                    f"should be {self.PIXEL_TYPE}"
+                )
         self.result = result
         self.nsides = sorted([self.parse_nside(key) for key in self.result])
+
         self.logger.debug(f"Metadata for this result: {[self.result[_].dtype.metadata for _ in self.result]}")
 
         # bookkeeping for comparing values
@@ -167,8 +208,7 @@ class ScanResult:
         return diff_vals, test_vals
 
     def has_metadata(self) -> bool:
-        """ Check that the minimum metadata is set
-        """
+        """Check that the minimum metadata is set."""
         for mk in "run_id event_id mjd event_type nside".split():
             for k in self.result:
                 if self.result[k].dtype.metadata is None:
@@ -258,56 +298,16 @@ class ScanResult:
     """
     Auxiliary methods
     """
+
     @staticmethod
-    def format_nside(nside):
+    def format_nside(nside) -> str:
         return f"nside-{nside}"
 
     @staticmethod
-    def parse_nside(key):
+    def parse_nside(key) -> int:
         return int(key.split("nside-")[1])
 
-    @classmethod
-    def from_nsides_dict(cls, nsides_dict: NSidesDict, **kwargs) -> "ScanResult":
-        """Factory method for nsides_dict."""
-        result = cls.load_pixels(nsides_dict, **kwargs)
-        return cls(result)
-
-    @classmethod
-    def load_pixels(cls, nsides_dict: NSidesDict, **kwargs):
-        logger = logging.getLogger(__name__)
-
-        out = dict()
-        for nside, pixel_dict in nsides_dict.items():
-            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **kwargs))
-            n = len(pixel_dict)
-            v = np.zeros(n, dtype=_dtype)
-
-            logger.info(f"nside {nside} has {n} pixels / {12 * nside**2} total.")
-            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
-                if (
-                    not isinstance(pixreco, PixelReco)
-                    or nside != pixreco.nside
-                    or pixel_id != pixreco.pixel
-                ):
-                    msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
-                    logging.error(msg)
-                    raise ValueError(msg)
-                v[i] = (
-                    pixreco.pixel,  # index
-                    pixreco.llh,  # llh
-                    pixreco.reco_losses_inside,  # E_in
-                    pixreco.reco_losses_total,  # E_tot
-                )
-            key = cls.format_nside(nside)
-            out[key] = v
-
-        return out
-
-    """ 
-    np input / output
-    """
-
-    def get_nside_string(self):
+    def get_nside_string(self) -> str:
         """Returns a string string listing the nside values to be included in
         the output filename."""
         # keys have a 'nside-NNN' format but we just want to extract the nside values to build the string
@@ -315,8 +315,62 @@ class ScanResult:
         # TODO: possibly better to use integer values as keys in self.result
         return "_".join([str(nside) for nside in self.nsides])
 
+    def get_filename(self, event_id: str, extension: str, output_dir: Union[str, Path, None] = None) -> Path:
+        """Make a filepath for writing representations of `self` to disk."""
+        if not extension.startswith('.'):
+            extension = '.' + extension
+
+        filename = Path(f"{event_id}_{self.get_nside_string()}{extension}")
+        if output_dir is not None:
+            filename = output_dir / Path(filename)
+        return filename
+
+    """
+    nsides-dict input
+    """
+
     @classmethod
-    def load(cls, filename) -> "ScanResult":
+    def from_nsides_dict(cls, nsides_dict: NSidesDict, **kwargs) -> "ScanResult":
+        """Factory method for nsides_dict."""
+        logger = logging.getLogger(__name__)
+
+        result = dict()
+        for nside, pixel_dict in nsides_dict.items():
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **kwargs))
+            nside_pixel_values = np.zeros(len(pixel_dict), dtype=_dtype)
+            logger.info(f"nside {nside} has {len(pixel_dict)} pixels / {12 * nside**2} total.")
+
+            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
+                nside_pixel_values[i] = cls._pixelreco_to_tuple(pixreco, nside, pixel_id)
+
+            result[cls.format_nside(nside)] = nside_pixel_values
+
+        return cls(result)
+
+    @staticmethod
+    def _pixelreco_to_tuple(pixreco: PixelReco, nside: int, pixel_id: int) -> PixelTuple:
+        if (
+            not isinstance(pixreco, PixelReco)
+            or nside != pixreco.nside
+            or pixel_id != pixreco.pixel
+        ):
+            msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
+            logging.error(msg)
+            raise ValueError(msg)
+        return (
+            pixreco.pixel,  # index
+            pixreco.llh,  # llh
+            pixreco.reco_losses_inside,  # E_in
+            pixreco.reco_losses_total,  # E_tot
+        )
+
+    """
+    NPZ input / output
+    """
+
+    @classmethod
+    def read_npz(cls, filename: Union[str, Path]) -> "ScanResult":
+        """Load from .npz file."""
         npz = np.load(filename)
         result = dict()
         if "header" not in npz:
@@ -330,10 +384,10 @@ class ScanResult:
                 result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
-    def save(self, event_id, output_path=None) -> Path:
-        filename = event_id + "_" + self.get_nside_string() + ".npz"
-        if output_path is not None:
-            filename = output_path / Path(filename)
+    def to_npz(self, event_id: str, output_dir: Union[str, Path, None] = None) -> Path:
+        """Save to .npz file."""
+        filename = self.get_filename(event_id, '.npz', output_dir)
+
         try:
             metadata_dtype = np.dtype(
                 [(k, type(v)) if not isinstance(v, str) else (k, f"U{len(v)}")
@@ -346,6 +400,112 @@ class ScanResult:
         except TypeError:
             np.savez(filename, **self.result)
         return Path(filename)
+
+    """
+    JSON input / output
+    """
+
+    @classmethod
+    def read_json(cls, filename: Union[str, Path]) -> "ScanResult":
+        """Load from .json file."""
+        with open(filename) as f:
+            pydict = json.load(f)
+        return cls.deserialize(pydict)
+
+    def to_json(self, event_id: str, output_dir: Union[str, Path, None] = None) -> Path:
+        """Save to .json file."""
+        filename = self.get_filename(event_id, '.json', output_dir)
+        pydict = self.serialize()
+        with open(filename, 'w') as f:
+            json.dump(pydict, f, indent=4)
+        return filename
+
+    """
+    Serialize/deserialize (input / output)
+    """
+
+    @classmethod
+    def deserialize(cls, pydict: PyDictResult) -> "ScanResult":
+        """Deserialize from a python-native dict."""
+        result = dict()
+
+        for nside, pydict_nside_pixels in pydict.items():
+            # validate keys
+            if set(pydict_nside_pixels.keys()) != {'columns', 'metadata', 'data'}:
+                raise ValueError(f"PyDictResult entry has extra/missing keys: {pydict_nside_pixels.keys()}")
+
+            # check 'columns'
+            if pydict_nside_pixels['columns'] != list(cls.PIXEL_TYPE.names):  # type: ignore[arg-type]
+                raise ValueError(
+                    f"PyDictResult entry has invalid 'columns' entry "
+                    f"({pydict_nside_pixels['columns']}) should be {list(cls.PIXEL_TYPE.names)}"  # type: ignore[arg-type]
+                )
+
+            # check 'metadata'
+            try:
+                if pydict_nside_pixels['metadata']['nside'] != cls.parse_nside(nside):
+                    raise ValueError(
+                        f"PyDictResult entry has incorrect 'metadata'.'nside' value: "
+                        f"{pydict_nside_pixels['metadata']['nside']} should be {cls.parse_nside(nside)}"
+                    )
+            except (KeyError, TypeError) as e:
+                raise ValueError("PyDictResult entry has missing key 'nside'") from e
+
+            # read/convert
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=pydict_nside_pixels['metadata'])
+            result_nside_pixels = np.zeros(len(pydict_nside_pixels['data']), dtype=_dtype)
+            for i, pix_4list in enumerate(sorted(pydict_nside_pixels['data'], key=lambda x: x[0])):
+                result_nside_pixels[i] = tuple(pix_4list)
+
+            result[nside] = result_nside_pixels
+
+        return cls(result)
+
+    def serialize(self) -> PyDictResult:
+        """Serialize as a python-native dict.
+
+        Example:
+        {
+            'nside-8': {
+                "columns": [
+                    "index",
+                    "llh",
+                    "E_in",
+                    "E_tot"
+                ],
+                "metadata": {
+                    "nside": 8,
+                    ...
+                }
+                "data": [
+                    [
+                        0,
+                        496.81227052,
+                        4643.8910975498,
+                        4736.3116335241
+                    ],
+                    [
+                        1,
+                        503.6851841852,
+                        5058.9879730721,
+                        585792.3192455448
+                    ],
+                    ...
+                ]
+            },
+            ...
+        }
+        """
+        pydict = {}
+        for nside in self.result:
+            df = pd.DataFrame(
+                self.result[nside],
+                columns=list(self.result[nside].dtype.names),
+            )
+            pydict[nside] = df.to_dict(orient='split')
+            pydict[nside].pop('index')  # index is not necessary
+            pydict[nside]['metadata'] = dict(self.result[nside].dtype.metadata)
+        return pydict
 
     """
     Querying
@@ -390,8 +550,8 @@ class ScanResult:
                     log_func=None,
                     upload_func=None,
                     final_channels=None):
-        from .plotting_tools import RaFormatter, DecFormatter
-        from .icetrayless import create_event_id
+        from .icetrayless import create_event_id_string
+        from .plotting_tools import DecFormatter, RaFormatter
 
         if log_func is None:
             def log_func(x):
@@ -422,7 +582,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id(run_id, event_id, event_type)}_{self.get_nside_string()}'
+        unique_id = f'{create_event_id_string(run_id, event_id, event_type)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -583,7 +743,7 @@ class ScanResult:
             lower_x = max(minRA  - x_width*np.pi/180., 0.)
             upper_x = min(minRA  + x_width*np.pi/180., 2 * np.pi)
             lower_y = max(minDec -y_width*np.pi/180., -np.pi/2.)
-            upper_y = min(minDec + y_width*np.pi/180., np.pi/2.) 
+            upper_y = min(minDec + y_width*np.pi/180., np.pi/2.)
 
             ax.set_xlim( [lower_x, upper_x][::-1])
             ax.set_ylim( [lower_y, upper_y])
@@ -612,6 +772,7 @@ class ScanResult:
         ax.grid(True, color='k', alpha=0.5)
 
         from matplotlib import patheffects
+
         # Otherwise, add the path effects.
         effects = [patheffects.withStroke(linewidth=1.1, foreground='w')]
         for artist in ax.findobj(text.Text):
@@ -652,12 +813,9 @@ class ScanResult:
                            plot_bounding_box=False,
                            plot_4fgl=False,
                            final_channels=None):
-        """ Uses healpy to plot a map
-        """
-        from .plotting_tools import (hp_ticklabels,
-                                     format_fits_header,
-                                     plot_catalog)
-        from .icetrayless import create_event_id
+        """Uses healpy to plot a map."""
+        from .icetrayless import create_event_id_string
+        from .plotting_tools import format_fits_header, hp_ticklabels, plot_catalog
 
         if log_func is None:
             def log_func(x):
@@ -698,7 +856,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id(run_id, event_id, event_type)}_{self.get_nside_string()}'
+        unique_id = f'{create_event_id_string(run_id, event_id, event_type)}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -767,7 +925,7 @@ class ScanResult:
         grid_value = grid_value - min_value
         min_value = 0.
 
-        # show 2 * delta_LLH 
+        # show 2 * delta_LLH
         grid_value = grid_value * 2.
 
         # Do same for the healpy map
@@ -801,7 +959,7 @@ class ScanResult:
         # Check for RA values that are out of bounds
         for level in contours_by_level:
             for contour in level:
-                contour.T[1] = np.where(contour.T[1] < 0., 
+                contour.T[1] = np.where(contour.T[1] < 0.,
                     contour.T[1] + 2.*np.pi, contour.T[1]
                     )
 
@@ -817,7 +975,7 @@ class ScanResult:
         lonra = [-ra_bound, ra_bound]
         latra = [-dec_bound, dec_bound]
 
-        #Begin the figure 
+        #Begin the figure
         plt.clf()
         # Rotate into healpy coordinates
         lon, lat = np.degrees(minRA), -np.degrees(minDec)
@@ -839,7 +997,7 @@ class ScanResult:
 
         # Plot the best-fit location
         # This requires some more coordinate transformations
-        healpy.projplot(minDec + np.pi/2., minRA, 
+        healpy.projplot(minDec + np.pi/2., minRA,
             '*', ms=5, label=r'scan best fit', color='black', zorder=2)
 
         # Use Green's theorem to compute the area
@@ -856,9 +1014,9 @@ class ScanResult:
             return a
 
         # Plot the contours
-        for contour_level, contour_label, contour_color, contours in zip(contour_levels, 
+        for contour_level, contour_label, contour_color, contours in zip(contour_levels,
             contour_labels, contour_colors, contours_by_level):
-            contour_area = 0 
+            contour_area = 0
             for contour in contours:
                 contour_area += area((contour-ra+np.pi/2)%np.pi)
             contour_area = abs(contour_area)
@@ -869,14 +1027,14 @@ class ScanResult:
             for contour in contours:
                 theta, phi = contour.T
                 if first:
-                    healpy.projplot(theta, phi, linewidth=2, c=contour_color, 
+                    healpy.projplot(theta, phi, linewidth=2, c=contour_color,
                         label=contour_label)
                 else:
                     healpy.projplot(theta, phi, linewidth=2, c=contour_color)
                 first = False
 
         # Add some grid lines
-        healpy.graticule(dpar=2, dmer=2, force=True) 
+        healpy.graticule(dpar=2, dmer=2, force=True)
 
         # Set some axis limits
         lower_ra = minRA + np.radians(lonra[0])
@@ -892,8 +1050,8 @@ class ScanResult:
         upper_lat = max(tmp_lower_lat, tmp_upper_lat)
 
         # Label the axes
-        hp_ticklabels(zoom=True, lonra=lonra, latra=latra, 
-            rot=(lon,lat,0), 
+        hp_ticklabels(zoom=True, lonra=lonra, latra=latra,
+            rot=(lon,lat,0),
             bounds=(lower_lon, upper_lon, lower_lat, upper_lat))
 
         if plot_4fgl:
@@ -911,12 +1069,12 @@ class ScanResult:
                           "\t RA = {0:.2f} + {1:.2f} - {2:.2f}".format(
                               ra, ra_plus, np.abs(ra_minus)) + " \n" + \
                           "\t Dec = {0:.2f} + {1:.2f} - {2:.2f}".format(
-                              dec, dec_plus, np.abs(dec_minus))                
+                              dec, dec_plus, np.abs(dec_minus))
             log_func(contain_txt)
         if plot_bounding_box:
             bounding_ras = []; bounding_decs = []
             # lower bound
-            bounding_ras.extend(list(np.linspace(ra+ra_minus, 
+            bounding_ras.extend(list(np.linspace(ra+ra_minus,
                 ra+ra_plus, 10)))
             bounding_decs.extend([dec+dec_minus]*10)
             # right bound
@@ -944,7 +1102,7 @@ class ScanResult:
             bounding_contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
             contour_label = r'90% Bounding rectangle' + ' - area: {0:.2f} sqdeg'.format(
                 bounding_contour_area)
-            healpy.projplot(bounding_theta, bounding_phi, linewidth=0.75, 
+            healpy.projplot(bounding_theta, bounding_phi, linewidth=0.75,
                 c='r', linestyle='dashed', label=contour_label)
 
         # Output contours in RA, dec instead of theta, phi
@@ -973,15 +1131,15 @@ class ScanResult:
                     #output = str.encode(savename)
                     if dosave:
                         ascii.write(tab, output, overwrite=True)
-                    output.seek(0) 
+                    output.seek(0)
                     print(upload_func(output, savename, savename))
-                    output.truncate(0) 
+                    output.truncate(0)
                     del output
             except OSError:
                 log_func("Memory Error prevented contours from being written")
 
         uncertainty = [(ra_minus, ra_plus), (dec_minus, dec_plus)]
-        fits_header = format_fits_header((run_id, event_id, event_type), 0, 
+        fits_header = format_fits_header((run_id, event_id, event_type), 0,
             np.degrees(minRA), np.degrees(minDec), uncertainty,
            )
         mmap_nside = healpy.get_nside(master_map)
@@ -992,7 +1150,7 @@ class ScanResult:
         def fixpixnumber(nside,pixels):
             th_o, phi_o = healpy.pix2ang(nside, pixels)
             dec_o = th_o - np.pi/2
-            th_fixed = np.pi/2 - dec_o 
+            th_fixed = np.pi/2 - dec_o
             pix_fixed = healpy.ang2pix(nside, th_fixed, phi_o)
             return pix_fixed
         pixels = np.arange(len(master_map))
@@ -1004,9 +1162,8 @@ class ScanResult:
         if np.sum(np.isnan([extra_ra, extra_dec, extra_radius])) == 0:
 
             def circular_contour(ra, dec, sigma, nside):
-                """For plotting circular contours on skymaps
-                ra, dec, sigma all expected in radians
-                """
+                """For plotting circular contours on skymaps ra, dec, sigma all
+                expected in radians."""
                 dec = np.pi/2. - dec
                 sigma = np.rad2deg(sigma)
                 delta, step, bins = 0, 0, 0

@@ -19,7 +19,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     photonics_service,
 )
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
-from wipac_dev_tools import logging_tools
+from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
@@ -168,7 +168,7 @@ def reco_pixel(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"]
+        seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 
     # Write reco out
@@ -179,7 +179,7 @@ def reco_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if out_pkl.exists():
+        if out_pkl.exists():  # check in case the tray is re-writing this file
             raise FileExistsError(out_pkl)
         save_to_disk_cache(frame, out_pkl.parent)
         with open(out_pkl, "wb") as f:
@@ -236,13 +236,21 @@ def main() -> None:
         "--in-pkl",
         required=True,
         help="a pkl file containing the pixel to reconstruct",
-        type=Path,
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            Path(x).is_file(),
+            FileNotFoundError(x),
+        ),
     )
     parser.add_argument(
         "--out-pkl",
         required=True,
         help="a pkl file to write the reconstruction to",
-        type=Path,
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            not Path(x).exists(),  # want to not exist
+            FileExistsError(x),
+        ),
     )
 
     # extra "physics" args
@@ -251,34 +259,29 @@ def main() -> None:
         dest="GCDQp_packet_json",
         required=True,
         help="a JSON file containing the GCDQp_packet (list of I3Frames)",
-        type=Path,
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            Path(x).is_file(),
+            FileNotFoundError(x),
+        ),
     )
     parser.add_argument(
         "--baseline-gcd-file",
         dest="baseline_GCD_file",
         required=True,
-        help="the baseline_GCD_file string",
-        type=str,
-    )
-
-    # logging args
-    parser.add_argument(
-        "-l",
-        "--log",
-        default="INFO",
-        help="the output logging level (for first-party loggers)",
-    )
-    parser.add_argument(
-        "--log-third-party",
-        default="WARNING",
-        help="the output logging level for third-party loggers",
+        help="the baseline GCD file",
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            Path(x).is_file(),
+            FileNotFoundError(x),
+        ),
     )
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log,
+        cfg.ENV.SKYSCAN_LOG,
         first_party_loggers="skyscan",
-        third_party_level=args.log_third_party,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
@@ -296,7 +299,13 @@ def main() -> None:
         )
 
     # go!
-    reco_pixel(reco_algo, pframe, GCDQp_packet, args.baseline_GCD_file, args.out_pkl)
+    reco_pixel(
+        reco_algo,
+        pframe,
+        GCDQp_packet,
+        str(args.baseline_GCD_file),
+        args.out_pkl,
+    )
     LOGGER.info("Done reco'ing pixel.")
 
 

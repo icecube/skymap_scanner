@@ -65,21 +65,33 @@ class RecoAlgo(enum.Enum):
 class EnvConfig:
     """For storing environment variables, typed."""
 
-    SKYSCAN_REPORT_INTERVAL_SEC: int = 5 * 60
-    SKYSCAN_PLOT_INTERVAL_SEC: int = 30 * 60
-    SKYSCAN_SLACK_API_KEY: str = ""
-    SKYSCAN_SLACK_CHANNEL: str = "#gfu_live"
+    SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
+    SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
+    # broker/mq vars
+    SKYSCAN_BROKER_ADDRESS: str = ""  # broker / mq address
+    SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
+    SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 1  # (sec) for messages TO client(s)
+    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 60 * 30  # (sec) for messages FROM client(s)
+    # skydriver vars
+    SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address
+    SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
+    SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
+    # logging vars
+    SKYSCAN_LOG: str = "INFO"
+    SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
+    # testing/debug vars
+    SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
 
     def __post_init__(self) -> None:
         """Check values."""
-        if self.SKYSCAN_REPORT_INTERVAL_SEC <= 0:
+        if self.SKYSCAN_PROGRESS_INTERVAL_SEC <= 0:
             raise ValueError(
-                f"Env Var: SKYSCAN_REPORT_INTERVAL_SEC is not positive: {self.SKYSCAN_REPORT_INTERVAL_SEC}"
+                f"Env Var: SKYSCAN_PROGRESS_INTERVAL_SEC is not positive: {self.SKYSCAN_PROGRESS_INTERVAL_SEC}"
             )
-        if self.SKYSCAN_PLOT_INTERVAL_SEC <= 0:
+        if self.SKYSCAN_RESULT_INTERVAL_SEC <= 0:
             raise ValueError(
-                f"Env Var: SKYSCAN_PLOT_INTERVAL_SEC is not positive: {self.SKYSCAN_PLOT_INTERVAL_SEC}"
+                f"Env Var: SKYSCAN_RESULT_INTERVAL_SEC is not positive: {self.SKYSCAN_RESULT_INTERVAL_SEC}"
             )
 
 
-env = from_environment_as_dataclass(EnvConfig)
+ENV = from_environment_as_dataclass(EnvConfig)

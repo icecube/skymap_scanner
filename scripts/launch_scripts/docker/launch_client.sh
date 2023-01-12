@@ -42,7 +42,9 @@ if debug_dir:
     py_args += f"--debug-directory /local/debug "
 if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
-    py_args += f"--gcd-dir /local/gcd "
+    #
+    # NOTE: WE ARE NOT FORWARDING THIS ARG TO THE SCRIPT B/C ITS PASSED WITHIN THE STARTUP.JSON
+    #
 if startup:
     dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-json-dir "
     py_args += f"--startup-json-dir /local/startup-json-dir "
@@ -71,6 +73,7 @@ docker run --network="host" $pull_policy --rm -i \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
+    $(env | grep '^EWMS_' | awk '$0="--env "$0') \
     --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:-900}" \
     icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
     python -m skymap_scanner.client \

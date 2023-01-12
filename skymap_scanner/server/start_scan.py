@@ -8,11 +8,9 @@ import datetime as dt
 import itertools as it
 import json
 import logging
-import os
-import pickle
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TypeVar, Union, Set
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -25,17 +23,21 @@ from icecube import (  # type: ignore[import]
     full_event_followup,
     icetray,
 )
-from wipac_dev_tools import logging_tools
+from rest_tools.client import RestClient
+from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message, pixelreco
+from ..utils.icetrayless import parse_event_id_string
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
-from ..utils.utils import get_event_mjd
-from ..utils.icetrayless import parse_event_id
+from ..utils.utils import get_event_mjd, pow_of_two, pyobj_to_string_repr
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .utils import fetch_event_contents
+
+Progress = Dict[str, Any]
 
 
 class DuplicatePixelRecoException(Exception):
@@ -47,107 +49,143 @@ class DuplicatePixelRecoException(Exception):
     """
 
 
-class SlackInterface:
-    """Dummy class for now."""
-
-    active = False
-
-
-def is_pow_of_two(value: Union[int, float]) -> bool:
-    """Return whether `value` is an integer power of two [1, 2, 4, ...)."""
-    if isinstance(value, float):
-        if not value.is_integer():  # type: ignore[union-attr]
-            return False
-        value = int(value)
-
-    if not isinstance(value, int):
-        return False
-
-    # I know, I know, no one likes bit shifting... buuuut...
-    return (value != 0) and (value & (value - 1) == 0)
-
-
 class ProgressReporter:
-    """Manage various means for reporting progress during a scan-iteration."""
+    """Manage various means for reporting progress during & after scanning."""
 
     def __init__(
         self,
+        scan_id: str,
+        global_start_time: float,
         nsides_dict: pixelreco.NSidesDict,
-        n_pixreco: int,
         n_posvar: int,
-        min_nside: int,
-        max_nside: int,
-        event_id: str,
-        slack_interface: SlackInterface,
+        min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        skydriver_rc: Optional[RestClient],
+        event_metadata: dict,
     ) -> None:
         """
         Arguments:
+            `scan_id`
+                - the unique id of this scan
+            `global_start_time`
+                - the start time (epoch) of the entire scan
             `nsides_dict`
                 - the nsides_dict
-            `n_pixreco`
-                - number of expected pixel-recos
             `n_posvar`
-                - number of potion variations per pixel
+                - number of position variations per pixel
             `min_nside`
                 - min nside value
             `max_nside`
                 - max nside value
-            `event_id`
-                - the event id
-            `slack_interface`
-                - a connection to Slack
+            `skydriver_rc`
+                - a connection to the SkyDriver REST interface
+            `event_metadata`
+                - a collection of metadata to include along with ScanResult instances
 
         Environment Variables:
-            `REPORT_INTERVAL_SEC`
-                - make a report with this interval
-            `PLOT_INTERVAL_SEC`
-                - make a skymap plot with this interval
+            `SKYSCAN_PROGRESS_INTERVAL_SEC`
+                - produce a progress report with this interval
+            `SKYSCAN_RESULT_INTERVAL_SEC`
+                - produce a (partial) skymap result with this interval
         """
-        self.nsides_dict = nsides_dict
-        self.slack_interface = slack_interface
+        self.is_event_scan_done = False
 
-        if n_pixreco <= 0:
-            raise ValueError(f"n_pixreco is not positive: {n_pixreco}")
-        self.n_pixreco = n_pixreco
+        self.scan_id = scan_id
+        self.global_start_time = global_start_time
+        self.nsides_dict = nsides_dict
 
         if n_posvar <= 0:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
 
-        self.min_nside = min_nside
-        self.max_nside = max_nside
-        self.event_id = event_id
-
+        self._n_pixreco: Optional[int] = None
         self.pixreco_ct = 0
+
+        self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        self.skydriver_rc = skydriver_rc
+        self.event_metadata = event_metadata
 
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.reporter_start_time = 0.0
-        self.time_before_reporter = 0.0
-        self.global_start_time = 0.0
 
-    def initial_report(self, global_start_time: float) -> None:
-        """Send an initial report/log/plot."""
+        self._call_order = {
+            'current_previous': {  # current_fucntion: previous_fucntion(s)
+                self.precomputing_report: [None],
+                self.start_computing: [
+                    self.precomputing_report,
+                    self.final_computing_report,  # TODO: remove for #84
+                ],
+                self.record_pixreco: [self.start_computing, self.record_pixreco],
+                self.final_computing_report: [self.record_pixreco],
+                self.after_computing_report: [self.final_computing_report],
+            },
+            'last_called': None,
+        }
+
+    def _check_call_order(self, current: Callable) -> None:  # type: ignore[type-arg]
+        """Make sure we're calling everything in order."""
+        if (
+            self._call_order['last_called']  # type: ignore[operator]
+            not in self._call_order['current_previous'][current]  # type: ignore[index]
+        ):
+            RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
+        self._call_order['last_called'] = current  # type: ignore[assignment]
+
+    async def precomputing_report(self) -> None:
+        """Make a report before ANYTHING is computed."""
+        self._check_call_order(self.precomputing_report)
+        await self._send_progress(summary_msg="The Skymap Scanner has started up.")
+
+    async def start_computing(self, n_pixreco: int) -> None:
+        """Send an initial report/log/plot.
+
+        Arguments:
+            `n_pixreco`
+                - number of expected pixel-recos
+            `n_posvar`
+                - number of position variations per pixel
+        """
+        self._check_call_order(self.start_computing)
+        self.n_pixreco = n_pixreco
+        self.pixreco_ct = 0
         self.reporter_start_time = time.time()
-        self.time_before_reporter = self.reporter_start_time - global_start_time
-        self.global_start_time = global_start_time
-        self._report(override_timestamp=True)
+        await self._make_reports_if_needed(
+            bypass_timers=True,
+            summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
+        )
 
-    def record_pixreco(self) -> None:
+    @property
+    def n_pixreco(self) -> int:
+        if self._n_pixreco is None:
+            raise RuntimeError(
+                f"'self._n_pixreco' is None (did you forget to call {self.start_computing}?)"
+            )
+        return self._n_pixreco
+
+    @n_pixreco.setter
+    def n_pixreco(self, val: int) -> None:
+        if val <= 0:
+            raise ValueError(f"n_pixreco is not positive: {val}")
+        self._n_pixreco = val
+
+    async def record_pixreco(self) -> None:
         """Send reports/logs/plots if needed."""
+        self._check_call_order(self.record_pixreco)
         self.pixreco_ct += 1
         if self.pixreco_ct == 1:
             # always report the first received pixreco so we know things are rolling
-            self._report(override_timestamp=True)
+            await self._make_reports_if_needed(bypass_timers=True)
         else:
-            self._report()
+            await self._make_reports_if_needed()
 
-    def _final_report(self) -> None:
-        """Send a final, complete report/log/plot."""
-        self._report(override_timestamp=True)
-
-    def _report(self, override_timestamp: bool = False) -> None:
+    async def _make_reports_if_needed(
+        self,
+        bypass_timers: bool = False,
+        summary_msg: str = "The Skymap Scanner is busy scanning pixels.",
+    ) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
             f"Collected: {self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
@@ -155,101 +193,154 @@ class ProgressReporter:
 
         # check if we need to send a report to the logger
         current_time = time.time()
-        if override_timestamp or (
-            current_time - self.last_time_reported > cfg.env.SKYSCAN_REPORT_INTERVAL_SEC
+        if bypass_timers or (
+            current_time - self.last_time_reported
+            > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
-            status_report = self.get_status_report()
-            if self.slack_interface.active:
-                self.slack_interface.post(status_report)
-            LOGGER.info(status_report)
+            if self.pixreco_ct == 0:
+                epilogue_msg = (
+                    "I will report back when I start getting pixel-reconstructions."
+                )
+            elif self.pixreco_ct != self.n_pixreco:
+                epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
+            else:
+                epilogue_msg = ""
+            await self._send_progress(summary_msg, epilogue_msg)
 
         # check if we need to send a report to the skymap logger
         current_time = time.time()
-        if override_timestamp or (
+        if bypass_timers or (
             current_time - self.last_time_reported_skymap
-            > cfg.env.SKYSCAN_PLOT_INTERVAL_SEC
+            > cfg.ENV.SKYSCAN_RESULT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
-            if self.slack_interface.active:
-                self.slack_interface.post_skymap_plot(self.nsides_dict)
+            await self._send_result()
 
-    def get_status_report(self) -> str:
+    def _get_result(self) -> ScanResult:
+        """Get ScanResult."""
+        return ScanResult.from_nsides_dict(self.nsides_dict, **self.event_metadata)
+
+    def _get_progress(self, summary_msg: str, epilogue_msg: str) -> Progress:
         """Make a status report string."""
-        if self.pixreco_ct == self.n_pixreco:
-            message = "I am done with this scan iteration!\n\n"
-        elif self.pixreco_ct:
-            message = "I am busy scanning pixels.\n\n"
-        else:
-            message = "I am starting up the next scan iteration...\n\n"
+        progress: Progress = {}
+        progress['metadata'] = {
+            'event': self.event_metadata,
+            'scan': {
+                'scan_id': self.scan_id,
+                'min nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
+                'max nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+                'position variations (reconstructions) per pixel': self.n_posvar,
+            },
+        }
 
-        message += (
-            f"{self.get_nsides_dict_report()}"  # ends w/ '\n'
-            "Config:\n"
-            f" - event: {self.event_id}\n"
-            f" - min nside: {self.min_nside}\n"
-            f" - max nside: {self.max_nside}\n"
-            f" - position variations (reconstructions) per pixel: {self.n_posvar}\n"
-            f"{self.get_processing_stats_report()}"  # ends w/ '\n'
-            f"\n"
-        )
+        progress['summary'] = summary_msg
+        progress['epilogue'] = epilogue_msg
+        progress['tallies'] = self._get_tallies()
+        progress['processing_stats'] = self._get_processing_progress()
 
-        if self.pixreco_ct == 0:
-            message += "I will report back when I start getting pixel-reconstructions."
-        elif self.pixreco_ct != self.n_pixreco:
-            message += f"I will report back again in {cfg.env.SKYSCAN_REPORT_INTERVAL_SEC} seconds."
+        return progress
 
-        return message
-
-    def get_processing_stats_report(self) -> str:
+    def _get_processing_progress(self) -> Progress:
         """Get a multi-line report on processing stats."""
         elapsed = time.time() - self.reporter_start_time
-        msg = (
-            "Processing Stats:\n"
-            f" - Started\n"
-            f"    * {dt.datetime.fromtimestamp(int(self.global_start_time))} [entire scan]\n"
-            f"    * {dt.datetime.fromtimestamp(int(self.reporter_start_time))} [this iteration]\n"
-            f" - Complete\n"
-            f"    * {((self.pixreco_ct/self.n_pixreco)*100):.1f}% "
-            f"({self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar} pixels, "
-            f"{self.pixreco_ct}/{self.n_pixreco} recos) [this iteration]\n"
-            f" - Elapsed Runtime\n"
-            f"    * {dt.timedelta(seconds=int(elapsed))} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=int(elapsed+self.time_before_reporter))} [this iteration + prior processing]\n"
-        )
+        time_before_reporter = self.reporter_start_time - self.global_start_time
+        proc_stats = {
+            "start": {
+                'entire scan': str(
+                    dt.datetime.fromtimestamp(int(self.global_start_time))
+                ),
+                # TODO: add a start time for each nside (async)
+                'this iteration': str(
+                    dt.datetime.fromtimestamp(int(self.reporter_start_time))
+                ),
+            },
+            "runtime": {
+                'prior processing': str(
+                    dt.timedelta(seconds=int(time_before_reporter))
+                ),
+                # TODO: remove 'iterations' -- no replacement b/c async, that's OK
+                'this iteration': str(dt.timedelta(seconds=int(elapsed))),
+                'this iteration + prior processing': str(
+                    dt.timedelta(seconds=int(elapsed + time_before_reporter))
+                ),
+                'total': str(
+                    dt.timedelta(seconds=int(time.time() - self.global_start_time))
+                ),
+            },
+        }
         if not self.pixreco_ct:  # we can't predict
-            return msg
+            return proc_stats
 
         secs_per_pixreco = elapsed / self.pixreco_ct
-        secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
-        msg += (
-            f" - Rate\n"
-            f"    * {dt.timedelta(seconds=int(secs_per_pixreco*self.n_posvar))} per pixel ({dt.timedelta(seconds=int(secs_per_pixreco))} per reco)\n"
-            f" - Predicted Time Left\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted-elapsed))} [this iteration]\n"
-            f" - Predicted Total Runtime\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted))} [this iteration]\n"
-            f"    * {dt.timedelta(seconds=int(secs_predicted+self.time_before_reporter))} [this iteration + prior processing]\n"
-        )
-        return msg
+        proc_stats['rate'] = {
+            'per-pixel': str(
+                dt.timedelta(seconds=int(secs_per_pixreco * self.n_posvar))
+            ),
+            'per-reco': str(dt.timedelta(seconds=int(secs_per_pixreco))),
+        }
 
-    def get_nsides_dict_report(self) -> str:
-        """Get a multi-line progress report of the nsides_dict's contents."""
-        msg = "Iterations with Saved Pixels:\n"
-        if not self.nsides_dict:
-            msg += " - no pixels are done yet\n"
+        if self.is_event_scan_done:
+            # SCAN IS DONE
+            proc_stats['end'] = str(dt.datetime.fromtimestamp(int(time.time())))
+            proc_stats['finished'] = True
         else:
+            # MAKE PREDICTIONS
+            # NOTE: this is a simple average, may want to visit more sophisticated methods
+            secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
+            proc_stats['predictions'] = {
+                # TODO:
+                # 'remaining': {
+                #     # counts are downplayed using 'amount remaining' so we never report percent done
+                #     'percent': ##,
+                #     'pixels': ###/###,
+                #     'recos': ####/####,
+                # },
+                'time left': {
+                    # TODO: replace w/ 'entire scan'
+                    'this iteration': str(
+                        dt.timedelta(seconds=int(secs_predicted - elapsed))
+                    )
+                },
+                'total runtime at finish': {
+                    # TODO: replace w/ 'total reconstruction'
+                    'this iteration': str(dt.timedelta(seconds=int(secs_predicted))),
+                    # TODO: replace w/ 'entire scan'
+                    'this iteration + prior processing': str(
+                        dt.timedelta(seconds=int(secs_predicted + time_before_reporter))
+                    ),
+                },
+            }
 
-            def nside_line(nside: int, npixels: int) -> str:
-                return f" - {npixels} pixels, nside={nside}\n"
+        return proc_stats
 
+    def _get_tallies(self) -> dict:
+        """Get a multi-dict progress report of the nsides_dict's contents."""
+        saved = {}
+        if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
-                msg += nside_line(nside, len(self.nsides_dict[nside]))
+                saved[nside] = len(self.nsides_dict[nside])
 
-        return msg
+        # TODO: remove for #84
+        this_iteration = {}  # type: ignore[var-annotated]
+        if self._n_pixreco is not None:
+            this_iteration = {
+                'percent': (self.pixreco_ct / self.n_pixreco) * 100,
+                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
+                'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
+            }
 
-    def finish(self) -> None:
+        return {
+            'by_nside': saved,
+            'total': sum(s for s in saved.values()),  # total completed pixels
+            # TODO: for #84: uncomment b/c this will now be scan-wide total & remove 'this iteration' dict
+            # 'total_recos': self.pixreco_ct,
+            'this_iteration': this_iteration,  # TODO: remove for #84
+        }
+
+    async def final_computing_report(self) -> None:
         """Check if all the pixel-recos were received & make a final report."""
+        self._check_call_order(self.final_computing_report)
         if not self.pixreco_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
@@ -259,7 +350,59 @@ class ProgressReporter:
                 f"{self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
             )
 
-        self._final_report()
+        await self._make_reports_if_needed(
+            bypass_timers=True,
+            summary_msg="The Skymap Scanner has finished this iteration of pixels.",
+        )
+
+    async def after_computing_report(
+        self,
+        total_n_pixreco: int,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+    ) -> ScanResult:
+        """Get, log, and send final results to SkyDriver."""
+        self._check_call_order(self.after_computing_report)
+        self.is_event_scan_done = True
+        result = await self._send_result()
+        await self._send_progress(
+            "The Skymap Scanner has finished.",
+            total_n_pixreco=total_n_pixreco,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+        )
+        return result
+
+    async def _send_progress(
+        self,
+        summary_msg: str,
+        epilogue_msg: str = '',
+        total_n_pixreco: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+    ) -> None:
+        """Send progress to SkyDriver (if the connection is established)."""
+        progress = self._get_progress(summary_msg, epilogue_msg)
+
+        if total_n_pixreco:
+            # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+            # see _get_tallies()
+            progress['tallies']['total_recos'] = total_n_pixreco
+
+        LOGGER.info(pyobj_to_string_repr(progress))
+        if not self.skydriver_rc:
+            return
+
+        body = {'progress': progress}
+        await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
+
+    async def _send_result(self) -> ScanResult:
+        """Send result to SkyDriver (if the connection is established)."""
+        result = self._get_result()
+        serialized = result.serialize()
+
+        LOGGER.info(pyobj_to_string_repr(serialized))
+        if not self.skydriver_rc:
+            return result
+
+        body = {'json_dict': serialized, 'is_final': self.is_event_scan_done}
+        await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
+
+        return result
 
 
 # fmt: off
@@ -271,13 +414,12 @@ class PixelsToReco:
         nsides_dict: pixelreco.NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         baseline_GCD: str,
-        min_nside: int,
-        max_nside: int,
+        min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
-        mini_test_variations: bool,
-        reco_algo:str
+        reco_algo: str
     ) -> None:
         """
         Arguments:
@@ -295,8 +437,6 @@ class PixelsToReco:
                 - name of an I3Position to use as the vertex position for the coarsest scan
             `output_particle_name`
                 - name of the output I3Particle
-            `mini_test_variations`
-                - whether this is a mini test scan (fewer variations)
             `reco_algo`
                 - name of the reconstruction algorithm to run
         """
@@ -306,17 +446,15 @@ class PixelsToReco:
         self.output_particle_name = output_particle_name
         self.reco_algo = reco_algo.lower()
 
-
         # Get Position Variations
         variation_distance = 20.*I3Units.m
-        # Production Scan or Mini-Test Scan?
-        if mini_test_variations:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-                dataclasses.I3Position(-variation_distance,0.,0.)
-            ]
-        else:
-            if self.reco_algo == 'millipede_original':
+        if self.reco_algo == 'millipede_original':
+            if cfg.ENV.SKYSCAN_MINI_TEST:
+                self.pos_variations = [
+                    dataclasses.I3Position(0.,0.,0.),
+                    dataclasses.I3Position(-variation_distance,0.,0.)
+                ]
+            else:
                 self.pos_variations = [
                     dataclasses.I3Position(0.,0.,0.),
                     dataclasses.I3Position(-variation_distance,0.,0.),
@@ -325,17 +463,17 @@ class PixelsToReco:
                     dataclasses.I3Position(0., variation_distance,0.),
                     dataclasses.I3Position(0.,0.,-variation_distance),
                     dataclasses.I3Position(0.,0., variation_distance)
-                    ]
-            else:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    ]
+                ]
+        else:
+            self.pos_variations = [
+                dataclasses.I3Position(0.,0.,0.),
+            ]
 
         # Set nside values
         if max_nside < min_nside:
             raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
-        self.min_nside = min_nside
-        self.max_nside = max_nside
+        self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -378,6 +516,7 @@ class PixelsToReco:
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
+            # TODO: replace with self.nsides & implement
             self.nsides_dict, min_nside=self.min_nside, max_nside=self.max_nside
         )
         if len(pixels_to_refine) == 0:
@@ -484,7 +623,7 @@ class PixelsToReco:
                         direction,
                         self.fallback_energy,
                         self.fallback_time)
-                    
+
             p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
                                                                       direction,
                                                                       energy,
@@ -503,6 +642,21 @@ class PixelsToReco:
                 f"({pixelreco.pixel_to_tuple(p_frame)}) ({posVariation=})..."
             )
             yield p_frame
+
+    def get_event_metadata(self, event_id_string: str) -> dict:
+        """Get metadata describing the event."""
+        run, event, event_type = parse_event_id_string(event_id_string)
+        if run != self.event_header.run_id or event != self.event_header.event_id:
+            raise Exception(
+                f"Run/Event Mismatch: {event_id_string} vs "
+                f"({self.event_header.run_id=}, {self.event_header.event_id=})"
+            )
+        return {
+            'run_id': self.event_header.run_id,
+            'event_id': self.event_header.event_id,
+            'mjd': self.event_mjd,
+            'event_type': event_type,
+        }
 
 
 # fmt: on
@@ -571,40 +725,25 @@ class PixelRecoCollector:
     def __init__(
         self,
         n_posvar: int,  # Number of position variations to collect
-        min_nside: int,
-        max_nside: int,
         nsides_dict: pixelreco.NSidesDict,
-        event_id: str,
-        global_start_time: float,
-        slack_interface: SlackInterface,
-        pixreco_ids_sent: Set[Tuple[int, int, int]]
+        progress_reporter: ProgressReporter,
+        pixreco_ids_sent: Set[Tuple[int, int, int]],
     ) -> None:
-        self.finder = BestPixelRecoFinder(
-            n_posvar=n_posvar,
-        )
-        self.progress_reporter = ProgressReporter(
-            nsides_dict,
-            len(pixreco_ids_sent),
-            n_posvar,
-            min_nside,
-            max_nside,
-            event_id,
-            slack_interface,
-        )
+        self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
+        self.progress_reporter = progress_reporter
         self.nsides_dict = nsides_dict
-        self.global_start_time = global_start_time
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
         self.pixreco_ids_sent = pixreco_ids_sent
 
-    def __enter__(self) -> "PixelRecoCollector":
-        self.progress_reporter.initial_report(self.global_start_time)
+    async def __aenter__(self) -> "PixelRecoCollector":
+        await self.progress_reporter.start_computing(len(self.pixreco_ids_sent))
         return self
 
-    def __exit__(self, *args: Any) -> None:
-        self.progress_reporter.finish()
-        self.finder.finish()
+    async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
+        await self.progress_reporter.final_computing_report()
+        self._finder.finish()
 
-    def collect(self, pixreco: pixelreco.PixelReco) -> None:
+    async def collect(self, pixreco: pixelreco.PixelReco) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
         LOGGER.debug(f"{self.nsides_dict=}")
 
@@ -616,13 +755,13 @@ class PixelRecoCollector:
             raise DuplicatePixelRecoException(
                 f"Pixel-reco received not in sent set, it is probably from an earlier iteration: {pixreco.id_tuple}"
             )
-            
+
         self.pixreco_ids_received.add(pixreco.id_tuple)
         logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
-        best = self.finder.cache_and_get_best(pixreco)
+        best = self._finder.cache_and_get_best(pixreco)
         LOGGER.info(f"Cached pixel-reco {pixreco.id_tuple} {pixreco}")
 
         # save best pixreco (if we got it)
@@ -644,64 +783,54 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        self.progress_reporter.record_pixreco()
+        await self.progress_reporter.record_pixreco()
 
 
 async def serve(
+    scan_id: str,
     reco_algo: str,
-    event_id: str,
+    event_id_string: str,
     nsides_dict: Optional[pixelreco.NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD: str,
-    output_dir: str,
-    broker: str,  # for mq
-    auth_token: str,  # for mq
-    queue_to_clients: str,  # for mq
-    queue_from_clients: str,  # for mq
-    timeout_to_clients: int,  # for mq
-    timeout_from_clients: int,  # for mq
-    mini_test_variations: bool,
-    min_nside: int,
-    max_nside: int,
+    output_dir: Optional[Path],
+    to_clients_queue: mq.Queue,
+    from_clients_queue: mq.Queue,
+    min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+    max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+    skydriver_rc: Optional[RestClient],
 ) -> pixelreco.NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
     global_start_time = time.time()
-    LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id=}")
+    LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id_string=}")
 
     if not nsides_dict:
         nsides_dict = {}
-
-    LOGGER.info("Making MQClient queue connections...")
-    to_clients_queue = mq.Queue(
-        "pulsar",
-        address=broker,
-        name=queue_to_clients,
-        auth_token=auth_token,
-        timeout=timeout_to_clients,
-    )
-    from_clients_queue = mq.Queue(
-        "pulsar",
-        address=broker,
-        name=queue_from_clients,
-        auth_token=auth_token,
-        timeout=timeout_from_clients,
-    )
 
     pixeler = PixelsToReco(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
         baseline_GCD=baseline_GCD,
-        min_nside=min_nside,
-        max_nside=max_nside,
+        min_nside=min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
-        mini_test_variations=mini_test_variations,
-        reco_algo=reco_algo
+        reco_algo=reco_algo,
     )
 
-    slack_interface = SlackInterface()
+    progress_reporter = ProgressReporter(
+        scan_id,
+        global_start_time,
+        nsides_dict,
+        len(pixeler.pos_variations),
+        min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        skydriver_rc,
+        pixeler.get_event_metadata(event_id_string),
+    )
+    await progress_reporter.precomputing_report()
 
     # Start the scan iteration loop
     total_n_pixreco = 0
@@ -711,11 +840,9 @@ async def serve(
             to_clients_queue,
             from_clients_queue,
             reco_algo,
-            event_id,
             nsides_dict,
-            global_start_time,
             pixeler,
-            slack_interface,
+            progress_reporter,
         )
         if not n_pixreco:  # we're done
             break
@@ -725,27 +852,15 @@ async def serve(
     if not total_n_pixreco:
         raise RuntimeError("No pixels were ever sent.")
 
-    # write out .npz file
-    _, _, event_type = parse_event_id(event_id)
-    result = ScanResult.from_nsides_dict(nsides_dict,
-                                         run_id=pixeler.event_header.run_id,
-                                         event_id=pixeler.event_header.event_id,
-                                         mjd=pixeler.event_mjd,
-                                         event_type=event_type)
-    npz_fpath = result.save(event_id, output_dir)
+    # get, log, & post final results
+    # TODO: remove 'total_n_pixreco' for https://github.com/icecube/skymap_scanner/issues/84
+    result = await progress_reporter.after_computing_report(total_n_pixreco)
 
-    # log & post final slack message
-    final_message = (
-        f"The Skymap Scanner has finished.\n"
-        f"Start / End: {dt.datetime.fromtimestamp(int(global_start_time))} – {dt.datetime.fromtimestamp(int(time.time()))}\n"
-        f"Runtime: {dt.timedelta(seconds=int(time.time() - global_start_time))}\n"
-        f"Total Pixel-Reconstructions: {total_n_pixreco}\n"
-        f"Output File: {os.path.basename(npz_fpath)}"
-    )
-    LOGGER.info(final_message)
-    if slack_interface.active:
-        slack_interface.post(final_message)
-        slack_interface.post_skymap_plot(nsides_dict)
+    # write out .npz & .json files
+    if output_dir:
+        npz_fpath = result.to_npz(event_id_string, output_dir)
+        json_fpath = result.to_json(event_id_string, output_dir)
+        LOGGER.info(f"Output Files: {npz_fpath}, {json_fpath}")
 
     return nsides_dict
 
@@ -754,11 +869,9 @@ async def serve_scan_iteration(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     reco_algo: str,
-    event_id: str,
     nsides_dict: pixelreco.NSidesDict,
-    global_start_time: float,
     pixeler: PixelsToReco,
-    slack_interface: SlackInterface,
+    progress_reporter: ProgressReporter,
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
 
@@ -775,9 +888,7 @@ async def serve_scan_iteration(
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
             _tup = pixelreco.pixel_to_tuple(pframe)
-            LOGGER.info(
-                f"Sending message M#{i} ({_tup})..."
-            )
+            LOGGER.info(f"Sending message M#{i} ({_tup})...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
@@ -798,18 +909,14 @@ async def serve_scan_iteration(
 
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
-        min_nside=pixeler.min_nside,
-        max_nside=pixeler.max_nside,
         nsides_dict=nsides_dict,
-        event_id=event_id,
-        global_start_time=global_start_time,
-        slack_interface=slack_interface,
-        pixreco_ids_sent=pixreco_ids_sent
+        progress_reporter=progress_reporter,
+        pixreco_ids_sent=pixreco_ids_sent,
     )
 
     # get pixel-recos from client(s), collect and save
     LOGGER.info("Receiving pixel-recos from clients...")
-    with collector as col:  # enter collector 1st for detecting when no pixel-recos received
+    async with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
             async for pixreco in sub:
                 if not isinstance(pixreco, pixelreco.PixelReco):
@@ -817,11 +924,11 @@ async def serve_scan_iteration(
                         f"Message not {pixelreco.PixelReco}: {type(pixreco)}"
                     )
                 try:
-                    col.collect(pixreco)
+                    await col.collect(pixreco)
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
-                if col.pixreco_ids_sent==col.pixreco_ids_received:
+                if col.pixreco_ids_sent == col.pixreco_ids_received:
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
@@ -830,20 +937,28 @@ async def serve_scan_iteration(
 
 def write_startup_json(
     startup_json_dir: Path,
-    event_id: str,
-    min_nside: int,
-    max_nside: int,
+    event_id_string: str,
+    min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+    max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> str:
     """Write startup JSON file for client-spawning.
 
-    Return the mq_basename string.
+    Return the scan_id string.
     """
     json_file = startup_json_dir / "startup.json"
 
+    if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
+        scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
+    else:
+        # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        # scan_id = f"{event_id}-{'-'.join(f'{n}:{x}' for n,x in nsides)}-{int(time.time())}"
+        scan_id = f"{event_id_string}-{min_nside}-{max_nside}-{int(time.time())}"
+
     json_dict = {
-        "mq_basename": f"{event_id}-{min_nside}-{max_nside}-{int(time.time())}",  # TODO: make string shorter,
+        "scan_id": scan_id,
+        "mq_basename": scan_id,
         "baseline_GCD_file": baseline_GCD_file,
         "GCDQp_packet": json.loads(
             full_event_followup.frame_packet_to_i3live_json(
@@ -856,11 +971,19 @@ def write_startup_json(
         json.dump(json_dict, f)
     LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
 
-    return json_dict["mq_basename"]
+    return json_dict["scan_id"]  # type: ignore[no-any-return]
 
 
 def main() -> None:
     """Get command-line arguments and perform event scan via clients."""
+
+    def _nside_and_pixelextension(val: str) -> int:  # -> Tuple[int, int]:
+        val = val.split(":")[0]  # for SkyDriver until real implementation (below)
+        return pow_of_two(val)
+        # TODO: use code below instead (https://github.com/icecube/skymap_scanner/issues/79)
+        # nside, ext = val.split(":")
+        # return pow_of_two(nside), int(ext)
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up server to serve pixels to clients and save pixel-reconstructions "
@@ -870,24 +993,15 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    T = TypeVar("T")
-
-    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
-        """Validation `val` by checking `test` and raise `exc` if that is
-        falsy."""
-        if test:
-            return val
-        raise exc
-
     # directory args
     parser.add_argument(
         "--startup-json-dir",
         required=True,
         help="The dir to save the JSON needed to spawn clients",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
         ),
     )
     parser.add_argument(
@@ -895,21 +1009,21 @@ def main() -> None:
         "--cache-dir",
         required=True,
         help="The cache directory to use",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
         ),
     )
     parser.add_argument(
         "-o",
         "--output-dir",
-        required=True,
+        default=None,
         help="The directory to write out the .npz file",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            os.path.isdir(x),
-            argparse.ArgumentTypeError(f"NotADirectoryError: {x}"),
+            Path(x).is_dir(),
+            NotADirectoryError(x),
         ),
     )
 
@@ -922,11 +1036,11 @@ def main() -> None:
     parser.add_argument(
         "-e",
         "--event-file",
-        required=True,
+        default=None,
         help="The file containing the event to scan (.pkl or .json)",
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            (x.endswith(".pkl") or x.endswith(".json")) and os.path.isfile(x),
+            (x.endswith(".pkl") or x.endswith(".json")) and Path(x).is_file(),
             argparse.ArgumentTypeError(
                 f"Invalid Event: '{x}' Event needs to be a .pkl or .json file."
             ),
@@ -940,107 +1054,71 @@ def main() -> None:
         type=Path,
     )
     parser.add_argument(
-        "--min-nside",
-        default=cfg.MIN_NSIDE_DEFAULT,
-        help="The first scan-iteration's nside value",
-        type=lambda x: int(
-            _validate_arg(
-                x,
-                x.isnumeric() and is_pow_of_two(int(x)),
-                argparse.ArgumentTypeError(
-                    f"--min-nside must be an integer power of two (not {x})"
-                ),
-            ),
+        "--nsides",
+        default=[
+            cfg.MIN_NSIDE_DEFAULT,
+            cfg.MAX_NSIDE_DEFAULT,
+        ],  # TODO: [(8,12), (64,12), (512,24)] (https://github.com/icecube/skymap_scanner/issues/79)
+        help=(
+            "The min and max nside value, if one value is given only do that one iteration"
+            # TODO: use message below instead (https://github.com/icecube/skymap_scanner/issues/79)
+            # "The nside values to use for each iteration, "
+            # "each ':'-paired with their pixel extension value. "
+            # "Example: --nsides 8:12 64:12 512:24"
         ),
-    )
-    parser.add_argument(
-        "--max-nside",
-        default=cfg.MAX_NSIDE_DEFAULT,
-        help="The final scan-iteration's nside value",
-        type=lambda x: int(
-            _validate_arg(
-                x,
-                x.isnumeric() and is_pow_of_two(int(x)),
-                argparse.ArgumentTypeError(
-                    f"--max-nside must be an integer power of two (not {x})"
-                ),
-            )
-        ),
-    )
-
-    # testing/debugging args
-    parser.add_argument(
-        "--mini-test-variations",
-        default=False,
-        action="store_true",
-        help="run w/ minimal variations for testing (mini-scale)",
-    )
-
-    # mq args
-    parser.add_argument(
-        "-b",
-        "--broker",
-        required=True,
-        help="The MQ broker URL to connect to",
-    )
-    parser.add_argument(
-        "-a",
-        "--auth-token",
-        default="",
-        help="The MQ authentication token to use",
-    )
-    parser.add_argument(
-        "--timeout-to-clients",
-        default=60 * 1,
-        type=int,
-        help="timeout (seconds) for messages TO client(s)",
-    )
-    parser.add_argument(
-        "--timeout-from-clients",
-        default=60 * 30,
-        type=int,
-        help="timeout (seconds) for messages FROM client(s)",
-    )
-
-    # logging args
-    parser.add_argument(
-        "-l",
-        "--log",
-        default="INFO",
-        help="the output logging level (for first-party loggers)",
-    )
-    parser.add_argument(
-        "--log-third-party",
-        default="WARNING",
-        help="the output logging level for third-party loggers",
+        nargs='*',
+        type=_nside_and_pixelextension,
     )
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log,
+        cfg.ENV.SKYSCAN_LOG,
         first_party_loggers="skyscan",
-        third_party_level=args.log_third_party,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
         use_coloredlogs=True,
         future_third_parties=["google", "pika"],  # at most only one will be used
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    # nsides
+    args.nsides = sorted(args.nsides)
+    # TODO: un-comment validity check below (https://github.com/icecube/skymap_scanner/issues/79)
+    # if list(set(n[0] for n in args.nsides)) != [n[0] for n in args.nsides]:
+    #     raise argparse.ArgumentTypeError(
+    #         f"'--nsides' cannot contain duplicate nsides: {args.nsides}"
+    #     )
+    # TODO - actually implement variable nside sequences (https://github.com/icecube/skymap_scanner/issues/79)
+    # for now...
+    if len(args.nsides) > 2:
+        raise argparse.ArgumentTypeError("'--nsides' cannot contain more than 2 values")
+    min_nside = args.nsides[0]
+    max_nside = args.nsides[-1]  # if only one value, then also grab index-0
+    logging.warning(
+        f"VARIABLE NSIDE SEQUENCES NOT YET IMPLEMENTED: using {min_nside=} & {max_nside=} with default pixel-extension values"
+    )
+
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():
         raise NotADirectoryError(args.gcd_dir)
 
-    # read event file
-    if args.event_file.suffix == ".json":
-        # json
-        with open(args.event_file, "r") as f:
-            event_contents = json.load(f)
+    # make skydriver REST connection
+    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        skydriver_rc = RestClient(
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH
+        )
     else:
-        # pickle
-        with open(args.event_file, "rb") as f:
-            event_contents = pickle.load(f)
+        skydriver_rc = None
+        if not args.output_dir:
+            raise RuntimeError(
+                "Must include either --output-dir or SKYSCAN_SKYDRIVER_ADDRESS (env var), "
+                f"otherwise you won't see your results!"
+            )
+
+    # read event file
+    event_contents = fetch_event_contents(args.event_file, skydriver_rc)
 
     # get inputs (load event_id + state_dict cache)
-    event_id, state_dict = extract_json_message.extract_json_message(
+    event_id_string, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
         filestager=dataio.get_stagers(),
@@ -1049,33 +1127,47 @@ def main() -> None:
     )
 
     # write startup files for client-spawning
-    mq_basename = write_startup_json(
+    scan_id = write_startup_json(
         args.startup_json_dir,
-        event_id,
-        args.min_nside,
-        args.max_nside,
+        event_id_string,
+        min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+        max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
 
+    # make mq connections
+    LOGGER.info("Making MQClient queue connections...")
+    to_clients_queue = mq.Queue(
+        "pulsar",
+        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
+        name=f"to-clients-{scan_id}",
+        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
+        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+    )
+    from_clients_queue = mq.Queue(
+        "pulsar",
+        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
+        name=f"from-clients-{scan_id}",
+        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
+        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+    )
+
     # go!
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         serve(
+            scan_id=scan_id,
             reco_algo=args.reco_algo,
-            event_id=event_id,
+            event_id_string=event_id_string,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
             GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
             baseline_GCD=state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
             output_dir=args.output_dir,
-            broker=args.broker,
-            auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{mq_basename}",
-            queue_from_clients=f"from-clients-{mq_basename}",
-            timeout_to_clients=args.timeout_to_clients,
-            timeout_from_clients=args.timeout_from_clients,
-            mini_test_variations=args.mini_test_variations,
-            min_nside=args.min_nside,
-            max_nside=args.max_nside,
+            to_clients_queue=to_clients_queue,
+            from_clients_queue=from_clients_queue,
+            min_nside=min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
+            max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            skydriver_rc=skydriver_rc,
         )
     )
     LOGGER.info("Done.")

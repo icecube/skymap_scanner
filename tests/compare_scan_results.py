@@ -9,6 +9,15 @@ from skymap_scanner.utils.scan_result import ScanResult
 from wipac_dev_tools import logging_tools
 
 
+def read_file(filepath: Path) -> ScanResult:
+    if filepath.suffix == ".json":
+        return ScanResult.read_json(filepath)
+    elif filepath.suffix == ".npz":
+        return ScanResult.read_npz(filepath)
+    else:
+        raise Exception("Unsupported file type: {filepath}")
+
+
 def main():
     """
     Loads two scan results in numpy format and exit with the outcome of the comparison.
@@ -23,14 +32,14 @@ def main():
     parser.add_argument(
         "-a",
         "--actual",
-        help="The first (actual) npz file",
+        help="The first (actual) npz file (npz or json)",
         required=True,
         type=Path,
     )
     parser.add_argument(
         "-e",
         "--expected",
-        help="The second (expected) npz file",
+        help="The second (expected) file (npz or json)",
         required=True,
         type=Path,
     )
@@ -57,15 +66,15 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    if not ScanResult.load(args.actual).has_metadata():
+    if not read_file(args.actual).has_metadata():
         if do_assert:
             assert False
         sys.exit(1)
 
     compare_then_exit(
-        ScanResult.load(args.actual),
+        read_file(args.actual),
         args.actual,
-        ScanResult.load(args.expected),
+        read_file(args.expected),
         args.expected,
         args.do_assert,
         args.diff_out_dir,
