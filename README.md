@@ -129,16 +129,13 @@ ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skym
 
 Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run:
 ```
-export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000
-export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000
 ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 ```
 ```
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --broker BROKER_ADDRESS --startup-json-dir .
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-getenv = SKYSCAN_*
+environment = "SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000 SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000 SKYSCAN_BROKER_AUTH=AUTHTOKEN"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
