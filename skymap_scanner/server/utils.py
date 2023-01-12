@@ -26,7 +26,7 @@ def fetch_event_contents(
 
     if not event_file:
         raise RuntimeError(
-            "Cannot Fetch Event: must provided either '--event-file FILEPATH' or '--skydriver ADDRESS'"
+            "Cannot Fetch Event: must provide either '--event-file FILEPATH' or '--skydriver ADDRESS'"
         )
 
     # json
