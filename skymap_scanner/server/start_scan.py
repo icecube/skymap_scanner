@@ -8,7 +8,6 @@ import datetime as dt
 import itertools as it
 import json
 import logging
-import pickle
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
@@ -36,6 +35,7 @@ from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd, pow_of_two, pyobj_to_string_repr
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .utils import fetch_event_contents
 
 Progress = Dict[str, Any]
 
@@ -1036,7 +1036,7 @@ def main() -> None:
     parser.add_argument(
         "-e",
         "--event-file",
-        required=True,
+        default=None,
         help="The file containing the event to scan (.pkl or .json)",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
@@ -1116,15 +1116,18 @@ def main() -> None:
     if not Path(args.gcd_dir).is_dir():
         raise NotADirectoryError(args.gcd_dir)
 
-    # read event file
-    if args.event_file.suffix == ".json":
-        # json
-        with open(args.event_file, "r") as f:
-            event_contents = json.load(f)
+    # make skydriver REST connection
+    if args.skydriver:
+        skydriver_rc = RestClient(args.skydriver, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH)
     else:
-        # pickle
-        with open(args.event_file, "rb") as f:
-            event_contents = pickle.load(f)
+        skydriver_rc = None
+        if not args.output_dir:
+            raise RuntimeError(
+                "Must include either --output-dir or --skydriver, otherwise you won't see your results!"
+            )
+
+    # read event file
+    event_contents = fetch_event_contents(args.event_file, skydriver_rc)
 
     # get inputs (load event_id + state_dict cache)
     event_id_string, state_dict = extract_json_message.extract_json_message(
@@ -1161,16 +1164,6 @@ def main() -> None:
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
-
-    # make skydriver REST connection
-    if args.skydriver:
-        skydriver_rc = RestClient(args.skydriver, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH)
-    else:
-        skydriver_rc = None
-        if not args.output_dir:
-            raise RuntimeError(
-                "Must include either --output-dir or --skydriver, otherwise you won't see your results!"
-            )
 
     # go!
     asyncio.run(
