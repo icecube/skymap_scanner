@@ -68,10 +68,12 @@ class EnvConfig:
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
     # broker/mq vars
+    SKYSCAN_BROKER_ADDRESS: str = ""  # broker / mq address
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
     SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 1  # (sec) for messages TO client(s)
     SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 60 * 30  # (sec) for messages FROM client(s)
     # skydriver vars
+    SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
     # logging vars

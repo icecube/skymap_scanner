@@ -16,7 +16,7 @@ env:
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
-  BROKER_ADDRESS: localhost
+  SKYSCAN_BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   # SKYSCAN_PROGRESS_INTERVAL_SEC: 60
   # SKYSCAN_RESULT_INTERVAL_SEC: 300
@@ -93,7 +93,6 @@ jobs:
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
-            --broker $BROKER_ADDRESS \
             --nsides 1:12 \
             &
 
@@ -108,7 +107,6 @@ jobs:
             singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
               --startup-json-dir . \
-              --broker $BROKER_ADDRESS \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\tclient #$i launched"
@@ -173,7 +171,6 @@ jobs:
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
-            --broker $BROKER_ADDRESS \
             --nsides 1:12 \
             &
 
@@ -187,7 +184,6 @@ jobs:
           for i in $( seq 1 $nclients ); do
             ./scripts/launch_scripts/docker/launch_client.sh \
               --startup-json-dir . \
-              --broker $BROKER_ADDRESS \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\tclient #$i launched"

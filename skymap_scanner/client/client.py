@@ -39,14 +39,6 @@ def main() -> None:
         ),
     )
 
-    # mq args
-    parser.add_argument(
-        "-b",
-        "--broker",
-        required=True,
-        help="The MQ broker URL to connect to",
-    )
-
     # testing/debugging args
     parser.add_argument(
         "--debug-directory",
@@ -92,7 +84,7 @@ def main() -> None:
         ewms_pilot.consume_and_reply(
             cmd=cmd,
             broker_client="pulsar",
-            broker_address=args.broker,
+            broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_to_clients=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_from_clients=f"from-clients-{startup_json_dict['mq_basename']}",

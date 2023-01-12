@@ -21,6 +21,7 @@ For now, set `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS` and `SKYSCAN_MQ_TIMEOUT_FROM_CLIENT
 ##### Figure Your Args
 ###### Environment Variables
 ```
+export SKYSCAN_BROKER_ADRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
@@ -31,8 +32,7 @@ export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
     --cache-dir `pwd`/server_cache \
     --output-dir `pwd` \
     --reco-algo millipede \
-    --event-file `pwd`/run00136662-evt000035405932-BRONZE.pkl \  # could also be a .json file
-    --broker BROKER_ADDRESS
+    --event-file `pwd`/run00136662-evt000035405932-BRONZE.pkl  # could also be a .json file
 ```
 _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths are also fine._
 _NOTE: There are more CL arguments not shown. They have defaults._
@@ -58,7 +58,7 @@ export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=alway
 ```
 
 #### 2. Launch Each Client
-The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `--broker` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
+The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `SKYSCAN_BROKER_ADRESS` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
 
 ###### In-Production Usage Note: timeout values
 On sub-2, suggest setting `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS` and `SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS` to a reasonable number like 3600 (seconds). This should keep workers long enough to process through the reconstructions and release them once the jobs are complete. You may want to manually kill the workers once your scan is complete, since they will each have to wait for an additional `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS`-seconds to expire.
@@ -66,15 +66,13 @@ On sub-2, suggest setting `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS` and `SKYSCAN_MQ_TIMEOU
 ##### Figure Your Args
 ###### Environment Variables
 ```
+export SKYSCAN_BROKER_ADRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 ```
 ###### Command-Line Arguments
-```
-    --broker BROKER_ADDRESS
-```
-_NOTE: There are more CL arguments not shown. They have defaults._
+_See notes about '--startup-json'/--startup-json-dir' below. See client.py for additional optional args._
 ##### Run It
 ###### with Condor (via Singularity)
 You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
@@ -121,10 +119,11 @@ This will pull all the events in the i3 file into `run*.evt*.json` which can be 
 For now, it's easy to scale up using the command line. Multiple server instances can be run simultaneously and a separate submit file created for each one. To run `N` servers in parallel
 
 ```
+export SKYSCAN_BROKER_ADRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000
 export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000
-ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{} --broker BROKER_ADDRESS --broker-auth BROKER_AUTH'
+ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
 
 Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run:
@@ -133,9 +132,9 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 ```
 ```
 executable = /bin/sh 
-arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --broker BROKER_ADDRESS --startup-json-dir .
+arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --startup-json-dir .
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000 SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000 SKYSCAN_BROKER_AUTH=AUTHTOKEN"
+environment = "SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000 SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000 SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADRESS=BROKER_ADDRESS"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err

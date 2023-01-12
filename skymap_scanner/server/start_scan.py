@@ -1070,21 +1070,6 @@ def main() -> None:
         type=_nside_and_pixelextension,
     )
 
-    # skydriver
-    parser.add_argument(
-        "--skydriver",
-        default="",
-        help="The SkyDriver REST interface URL to connect to",
-    )
-
-    # mq args
-    parser.add_argument(
-        "-b",
-        "--broker",
-        required=True,
-        help="The MQ broker URL to connect to",
-    )
-
     args = parser.parse_args()
     logging_tools.set_level(
         cfg.ENV.SKYSCAN_LOG,
@@ -1117,13 +1102,16 @@ def main() -> None:
         raise NotADirectoryError(args.gcd_dir)
 
     # make skydriver REST connection
-    if args.skydriver:
-        skydriver_rc = RestClient(args.skydriver, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH)
+    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        skydriver_rc = RestClient(
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH
+        )
     else:
         skydriver_rc = None
         if not args.output_dir:
             raise RuntimeError(
-                "Must include either --output-dir or --skydriver, otherwise you won't see your results!"
+                "Must include either --output-dir or SKYSCAN_SKYDRIVER_ADDRESS (env var), "
+                f"otherwise you won't see your results!"
             )
 
     # read event file
@@ -1152,14 +1140,14 @@ def main() -> None:
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
         "pulsar",
-        address=args.broker,
+        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
         name=f"to-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
     )
     from_clients_queue = mq.Queue(
         "pulsar",
-        address=args.broker,
+        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
         name=f"from-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
