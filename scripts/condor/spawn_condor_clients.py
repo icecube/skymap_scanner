@@ -3,7 +3,6 @@
 import argparse
 import datetime as dt
 import getpass
-import json
 import logging
 import os
 import subprocess
@@ -181,7 +180,7 @@ def main() -> None:
     logging.info(f"Client Args: {client_args}")
     if "--startup-json-dir" in client_args:
         raise RuntimeError(
-            "The '--client-args-json' file cannot include \"--startup-json-dir\". "
+            "The '--client-args' file cannot include \"--startup-json-dir\". "
             "This needs to be defined explicitly with '--startup-json'."
         )
 
