@@ -24,7 +24,7 @@ charset-normalizer==3.0.1
     # via requests
 coloredlogs==15.0.1
     # via wipac-dev-tools
-contourpy==1.0.6
+contourpy==1.0.7
     # via matplotlib
 cryptography==39.0.0
     # via pyjwt
