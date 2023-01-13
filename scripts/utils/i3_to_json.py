@@ -6,7 +6,7 @@ from I3Tray import I3Tray
 from icecube.filterscripts import alerteventfollowup, filter_globals
 from icecube import icetray, dataclasses, gulliver, recclasses
 from icecube.full_event_followup import frame_packet_to_i3live_json, i3live_json_to_frame_packet
-from icecube import astro
+from icecube import astro, MuonGun, VHESelfVeto
 
 
 def alertify(frame):
@@ -70,7 +70,16 @@ def write_json(frame):
         muhi = dataclasses.get_most_energetic_muon(frame['I3MCTree'])
         ra, dec = astro.dir_to_equa(prim.dir.zenith, prim.dir.azimuth,
                                     frame['I3EventHeader'].start_time.mod_julian_day_double)
-        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy, 'emuhi': muhi.energy}
+
+        edep = 0
+        for track in MuonGun.Track.harvest(frame['I3MCTree'], frame['MMCTrackList']):
+            # Find distance to entrance and exit from sampling volume
+            intersections = VHESelfVeto.IntersectionsWithInstrumentedVolume(frame['I3Geometry'], track)
+            # Get the corresponding energies
+            e0, e1 = track.get_energy((intersections[0]-track.pos).magnitude), track.get_energy((intersections[1]-track.pos).magnitude)
+            # Accumulate
+            edep +=  (e0-e1)
+        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy, 'emuhi': muhi.energy, 'emuin':edep}
     with open(f'{fullmsg["unique_id"]}.json', 'w') as f:
         json.dump(fullmsg, f)
         print(f'Wrote {fullmsg["unique_id"]}.json')
