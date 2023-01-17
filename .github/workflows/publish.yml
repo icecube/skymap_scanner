@@ -32,7 +32,8 @@ jobs:
         android: true
         dotnet: true
         haskell: true
-        large-packages: true
+        # large-packages: true  # TODO: see below...
+        large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
         swap-storage: true
 
     - name: Checkout Project
