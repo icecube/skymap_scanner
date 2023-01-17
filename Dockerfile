@@ -16,9 +16,9 @@ RUN apt-get update && \
 # Manually compile Pulsar
 #
 WORKDIR /local
-RUN git clone https://github.com/apache/pulsar-client-cpp
+RUN git clone --depth 1 --branch v3.1.0 https://github.com/apache/pulsar-client-cpp
 RUN cd pulsar-client-cpp && cmake -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release . && make -j2 && make install
-RUN git clone https://github.com/apache/pulsar-client-python
+RUN git clone --depth 1 --branch v3.0.0 https://github.com/apache/pulsar-client-python
 RUN cd pulsar-client-python && git submodule update --init \
     && cmake -B build \
     && cmake --build build && cmake --install build \
