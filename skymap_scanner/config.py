@@ -77,17 +77,18 @@ class EnvConfig:
     # seconds -- how long client waits between receiving pixels before thinking event scan is 100% done
     #  - set to `max(reco duration) + max(subsequent iteration startup time)`
     #  - think about starved clients
-    #  - also determines final timeout (alternative: manually kill client process)
+    #  - normal expiration scenario: the scan is done, no more pixels to scan (alternative: manually kill client process)
     SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 10  # 10 mins
     #
     # seconds -- how long server waits before thinking all clients are dead
     #  - set to duration of first reco + client launch (condor)
-    #  - important if CLIENTS LAUNCH *AFTER* SERVER
-    #  - will never expire since server knows when all recos are done
+    #  - important if clients launch *AFTER* server
+    #  - normal expiration scenario: all clients died (bad condor submit file), otherwise never (server knows when all recos are done)
     SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 3 * 24 * 60 * 60  # 3 days
     #
     # seconds -- how long client waits before first message (set to duration of server startup)
-    #  - important if CLIENTS LAUNCH *BEFORE* SERVER
+    #  - important if clients launch *BEFORE* server
+    #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 30  # 30 mins
 
     # SKYDRIVER VARS
