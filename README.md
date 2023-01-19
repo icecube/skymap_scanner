@@ -15,16 +15,11 @@ You will need to get a pulsar broker address and authentication token to pass to
 #### 1. Launch the Server
 The server can be launched from anywhere with a stable network connection. You can run it from the cobalts for example.
 
-###### In-Production Usage Note: timeout values
-For now, set `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS` and `SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS` to a large value like 300000. This will persist the server in case the clients don't start up right away.
-
 ##### Figure Your Args
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
-export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 ```
 ###### Command-Line Arguments
 ```
@@ -60,16 +55,11 @@ export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=alway
 #### 2. Launch Each Client
 The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `SKYSCAN_BROKER_ADDRESS` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
 
-###### In-Production Usage Note: timeout values
-On sub-2, suggest setting `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS` and `SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS` to a reasonable number like 3600 (seconds). This should keep workers long enough to process through the reconstructions and release them once the jobs are complete. You may want to manually kill the workers once your scan is complete, since they will each have to wait for an additional `SKYSCAN_MQ_TIMEOUT_TO_CLIENTS`-seconds to expire.
-
 ##### Figure Your Args
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
-export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=$SOME_NUMBER__BUT_FYI_THERES_A_DEFAULT
 ```
 ###### Command-Line Arguments
 _See notes about '--startup-json'/--startup-json-dir' below. See client.py for additional optional args._
@@ -104,7 +94,7 @@ export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=alway
 When the server is finished processing reconstructions, it will write a single `.npz` file to `--output-dir`. See `skymap_scanner.utils.scan_result` for more detail.
 
 #### 4. Cleanup & Error Handling
-The server will exit on its own once it has received and processed all the reconstructions. The server will write a directory, like `run00127907.evt000020178442.HESE/`, to `--cache-dir`. The clients will exit according to their receiving-queue's timeout value (`SKYSCAN_MQ_TIMEOUT_TO_CLIENTS`).
+The server will exit on its own once it has received and processed all the reconstructions. The server will write a directory, like `run00127907.evt000020178442.HESE/`, to `--cache-dir`. The clients will exit according to their receiving-queue's timeout value (`SKYSCAN_MQ_TIMEOUT_TO_CLIENTS`), unless they are killed manually (`condor_rm`).
 
 All will exit on fatal errors (for clients, use HTCondor to manage re-launching). The in-progress pixel reconstruction is abandoned when a client fails, so there is no concern for duplicate reconstructions at the server. The pre-reconstructed pixel will be re-queued to be delivered to a different client.
 
@@ -121,8 +111,6 @@ For now, it's easy to scale up using the command line. Multiple server instances
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000
-export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000
 ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
 
@@ -134,7 +122,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --startup-json-dir .
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=300000 SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=300000 SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS"
+environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
@@ -156,6 +144,25 @@ environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmf
 ### Additional Configuration
 #### Environment Variables
 When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-prefixed variables and `PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC` are also forwarded. See `skymap_scanner.config.ENV` for more detail.
+##### Timeouts
+The Skymap Scanner is designed to have realistic timeouts for HTCondor. That said, there are three main timeouts which can be altered:
+```
+    # seconds -- how long client waits between receiving pixels before thinking event scan is 100% done
+    #  - set to `max(reco duration) + max(subsequent iteration startup time)`
+    #  - think about starved clients
+    #  - also determines final timeout (alternative: manually kill client process)
+    SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 10  # 10 mins
+    #
+    # seconds -- how long server waits before thinking all clients are dead
+    #  - set to duration of first reco + client launch (condor)
+    #  - important if CLIENTS LAUNCH *AFTER* SERVER
+    #  - will never expire since server knows when all recos are done
+    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 3 * 24 * 60 * 60  # 3 days
+    #
+    # seconds -- how long client waits before first message (set to duration of server startup)
+    #  - important if CLIENTS LAUNCH *BEFORE* SERVER
+    SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 30  # 30 mins
+```
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
