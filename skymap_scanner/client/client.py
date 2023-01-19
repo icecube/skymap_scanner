@@ -90,6 +90,7 @@ def main() -> None:
             queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
             timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
             timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+            timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
             debug_dir=args.debug_directory,
         )
     )
