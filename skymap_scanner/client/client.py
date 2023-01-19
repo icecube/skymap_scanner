@@ -83,7 +83,7 @@ def main() -> None:
     asyncio.run(
         ewms_pilot.consume_and_reply(
             cmd=cmd,
-            broker_client="pulsar",
+            broker_client=cfg.ENV.SKYSCAN_BROKER_CLIENT,
             broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
