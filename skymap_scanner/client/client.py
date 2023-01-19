@@ -86,10 +86,10 @@ def main() -> None:
             broker_client="pulsar",
             broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-            queue_to_clients=f"to-clients-{startup_json_dict['mq_basename']}",
-            queue_from_clients=f"from-clients-{startup_json_dict['mq_basename']}",
-            timeout_to_clients=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-            timeout_from_clients=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+            queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
+            queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
+            timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+            timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
             debug_dir=args.debug_directory,
         )
     )
