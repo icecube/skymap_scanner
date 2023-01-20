@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.1.0 (2023-01-20)
+### Feature
+* Switch to rabbitmq ([#116](https://github.com/icecube/skymap_scanner/issues/116)) ([`e632593`](https://github.com/icecube/skymap_scanner/commit/e63259397bec6af1892bad49a4b8d48b8f828b6a))
+
 ## v3.0.74 (2023-01-20)
 
 
