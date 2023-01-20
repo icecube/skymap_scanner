@@ -97,7 +97,7 @@ jobs:
             --nsides 1:12 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_json.sh .
+          ./resources/launch_scripts/wait_for_startup_json.sh .
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
@@ -166,7 +166,7 @@ jobs:
           mkdir $SKYSCAN_OUTPUT_DIR
 
           # Launch Server
-          ./scripts/launch_scripts/docker/launch_server.sh \
+          ./resources/launch_scripts/docker/launch_server.sh \
             --reco-algo millipede_original \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
@@ -175,7 +175,7 @@ jobs:
             --nsides 1:12 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_json.sh .
+          ./resources/launch_scripts/wait_for_startup_json.sh .
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
@@ -183,7 +183,7 @@ jobs:
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
-            ./scripts/launch_scripts/docker/launch_client.sh \
+            ./resources/launch_scripts/docker/launch_client.sh \
               --startup-json-dir . \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &

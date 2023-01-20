@@ -7,7 +7,7 @@ A distributed system that performs a likelihood scan of event directions for rea
 
 Skymap Scanner is the computational core of the [SkyDriver orchestration service](https://github.com/WIPACrepo/SkyDriver).
 
-`skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with `skymap_scanner.utils` (utility functions) and `skymap_scanner.recos` (`icetray` reco-specific logic). Additional, package-independent, utility scripts are in `scripts/utils/`.
+`skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with `skymap_scanner.utils` (utility functions) and `skymap_scanner.recos` (`icetray` reco-specific logic). Additional, package-independent, utility scripts are in `resources/utils/`.
 
 ### Example Startup
 You will need to get a pulsar broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
@@ -43,7 +43,7 @@ singularity run /cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_sc
 ###### or with Docker
 ```
 # side note: you may want to first set environment variables, see below
-./scripts/launch_scripts/docker/launch_server.sh \
+./resources/launch_scripts/docker/launch_server.sh \
     YOUR_ARGS
 ```
 _NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
@@ -68,7 +68,7 @@ _See notes about '--startup-json'/--startup-json-dir' below. See client.py for a
 You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
 ```
 echo my_client_args.json  # just an example
-./scripts/launch_scripts/condor/spawn_condor_clients.py \
+./resources/launch_scripts/condor/spawn_condor_clients.py \
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
@@ -79,8 +79,8 @@ _NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP
 ###### or Manually (Docker)
 ```
 # side note: you may want to first set environment variables, see below
-./scripts/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
-./scripts/launch_scripts/docker/launch_client.sh \
+./resources/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
+./resources/launch_scripts/docker/launch_client.sh \
     --startup-json-dir DIR_WITH_STARTUP_JSON \
     YOUR_ARGS
 ```
@@ -101,7 +101,7 @@ All will exit on fatal errors (for clients, use HTCondor to manage re-launching)
 ### In-Production Usage Note: Converting i3 to json and scaling up
 You may want to run on events stored in i3 files. To convert those into a json format readable by the scanner, you can do
 ```
-cd scripts/utils
+cd resources/utils
 python i3_to_json.py --basegcd /data/user/followup/baseline_gcds/baseline_gcd_136897.i3 EVENT_GCD.i3 EVENT_FILE.i3
 ```
 This will pull all the events in the i3 file into `run*.evt*.json` which can be passed as an argument to the server.
