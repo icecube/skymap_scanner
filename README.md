@@ -97,6 +97,7 @@ The client jobs can submitted via HTCondor from sub-2. Running the script below 
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ```
 ###### Command-Line Arguments
@@ -148,6 +149,7 @@ For now, it's easy to scale up using the command line. Multiple server instances
 
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
