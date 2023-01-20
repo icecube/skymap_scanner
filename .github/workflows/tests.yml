@@ -16,7 +16,8 @@ env:
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
-  SKYSCAN_BROKER_ADDRESS: localhost
+  SKYSCAN_BROKER_CLIENT: rabbitmq
+  SKYSCAN_BROKER_ADDRESS: amqp://admin:admin@localhost/test?heartbeat=600
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -40,13 +41,39 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
+
+  test-build-docker-pulsar:
+    runs-on: ubuntu-latest
+    needs: test-build-docker
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          file: Dockerfile_pulsar
+          tags: icecube/skymap_scanner:local-pulsar
 
   test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
     needs: test-build-docker
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:3.8
+        env:
+          RABBITMQ_USERNAME: admin
+          RABBITMQ_PASSWORD: admin
+          RABBITMQ_VHOST: test
+        options: --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -61,7 +88,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -72,15 +99,6 @@ jobs:
         run: |
           sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner:local
           ls -lh skymap_scanner.sif
-      - name: Checkout MQClient repo (for broker startup scripts)
-        uses: actions/checkout@v3
-        with:
-          repository: WIPACrepo/MQClient
-          path: MQClient
-      - name: Start Broker
-        run: |
-          set -x
-          ./MQClient/resources/docker-pulsar.sh
       - name: Run Singularity Container
         run: |
           mkdir $SKYSCAN_CACHE_DIR
@@ -135,19 +153,21 @@ jobs:
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:3.8
+        env:
+          RABBITMQ_USERNAME: admin
+          RABBITMQ_PASSWORD: admin
+          RABBITMQ_VHOST: test
+        options: --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
       - uses: actions/checkout@v3
-      - name: Checkout MQClient repo (for broker startup scripts)
-        uses: actions/checkout@v3
-        with:
-          repository: WIPACrepo/MQClient
-          path: MQClient
-      - name: Start Broker
-        run: |
-          set -x
-          ./MQClient/resources/docker-pulsar.sh
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build and push
@@ -155,7 +175,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -220,6 +240,17 @@ jobs:
           "GOLD",
           "JSON",
         ]
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:3.8
+        env:
+          RABBITMQ_USERNAME: admin
+          RABBITMQ_PASSWORD: admin
+          RABBITMQ_VHOST: test
+        options: --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
     steps:
       - uses: actions/checkout@v3
       - name: Set up Docker Buildx
@@ -229,7 +260,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -269,7 +300,6 @@ jobs:
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl
-
 
       - name: Test Output Against Known Result (.pkl)
         run: |

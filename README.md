@@ -9,6 +9,43 @@ Skymap Scanner is the computational core of the [SkyDriver orchestration service
 
 `skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with `skymap_scanner.utils` (utility functions) and `skymap_scanner.recos` (`icetray` reco-specific logic). Additional, package-independent, utility scripts are in `resources/utils/`.
 
+## Queue Types
+
+The default queue type in the container is RabbitMQ, since v3.1.0.
+Build `Dockerfile_pulsar` for a pulsar container.
+
+### RabbitMQ
+Env variables
+
+```
+export SKYSCAN_BROKER_CLIENT=rabbitmq
+export SKYSCAN_BROKER_ADDRESS=amqp://:<token>@<hostname>/<vhost>?heartbeat=600
+```
+
+Currently RabbitMQ uses URL parameters for settings.  This may change in future updates.
+
+Python install:
+```
+pip install .[rabbitmq]
+```
+
+### Pulsar
+Env variables
+
+```
+export SKYSCAN_BROKER_CLIENT=pulsar
+export SKYSCAN_BROKER_ADDRESS=<ip address>
+export SKYSCAN_BROKER_AUTH=<token>
+export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=600
+```
+
+Python install:
+```
+pip install .[pulsar]
+```
+
+## Pulsar Example
+
 ### Example Startup
 You will need to get a pulsar broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
 
@@ -19,6 +56,7 @@ The server can be launched from anywhere with a stable network connection. You c
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ```
 ###### Command-Line Arguments
@@ -59,6 +97,7 @@ The client jobs can submitted via HTCondor from sub-2. Running the script below 
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ```
 ###### Command-Line Arguments
@@ -110,6 +149,7 @@ For now, it's easy to scale up using the command line. Multiple server instances
 
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
