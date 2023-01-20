@@ -17,7 +17,7 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  SKYSCAN_BROKER_ADDRESS: amqp://admin:admin@localhost/test
+  SKYSCAN_BROKER_ADDRESS: amqp://admin:admin@localhost/test?heartbeat=600
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
