@@ -30,7 +30,7 @@ cryptography==39.0.0
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.1.5
+ewms-pilot==0.1.6
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
@@ -65,7 +65,7 @@ packaging==23.0
     # via
     #   astropy
     #   matplotlib
-pandas==1.5.2
+pandas==1.5.3
     # via skymap-scanner (setup.py)
 pillow==9.4.0
     # via matplotlib

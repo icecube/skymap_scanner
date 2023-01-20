@@ -83,13 +83,14 @@ def main() -> None:
     asyncio.run(
         ewms_pilot.consume_and_reply(
             cmd=cmd,
-            broker_client="pulsar",
+            broker_client=cfg.ENV.SKYSCAN_BROKER_CLIENT,
             broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-            queue_to_clients=f"to-clients-{startup_json_dict['mq_basename']}",
-            queue_from_clients=f"from-clients-{startup_json_dict['mq_basename']}",
-            timeout_to_clients=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-            timeout_from_clients=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+            queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
+            queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
+            timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+            timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+            timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
             debug_dir=args.debug_directory,
         )
     )

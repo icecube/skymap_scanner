@@ -1139,14 +1139,14 @@ def main() -> None:
     # make mq connections
     LOGGER.info("Making MQClient queue connections...")
     to_clients_queue = mq.Queue(
-        "pulsar",
+        cfg.ENV.SKYSCAN_BROKER_CLIENT,
         address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
         name=f"to-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
     )
     from_clients_queue = mq.Queue(
-        "pulsar",
+        cfg.ENV.SKYSCAN_BROKER_CLIENT,
         address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
         name=f"from-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,

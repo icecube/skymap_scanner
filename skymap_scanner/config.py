@@ -67,19 +67,41 @@ class EnvConfig:
 
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
-    # broker/mq vars
+
+    # BROKER/MQ VARS
+    SKYSCAN_BROKER_CLIENT: str = "pulsar"
     SKYSCAN_BROKER_ADDRESS: str = ""  # broker / mq address
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
-    SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 1  # (sec) for messages TO client(s)
-    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 60 * 30  # (sec) for messages FROM client(s)
-    # skydriver vars
+
+    # TIMEOUTS
+    #
+    # seconds -- how long client waits between receiving pixels before thinking event scan is 100% done
+    #  - set to `max(reco duration) + max(subsequent iteration startup time)`
+    #  - think about starved clients
+    #  - normal expiration scenario: the scan is done, no more pixels to scan (alternative: manually kill client process)
+    SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 30  # 30 mins
+    #
+    # seconds -- how long server waits before thinking all clients are dead
+    #  - set to duration of first reco + client launch (condor)
+    #  - important if clients launch *AFTER* server
+    #  - normal expiration scenario: all clients died (bad condor submit file), otherwise never (server knows when all recos are done)
+    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 3 * 24 * 60 * 60  # 3 days
+    #
+    # seconds -- how long client waits before first message (set to duration of server startup)
+    #  - important if clients launch *BEFORE* server
+    #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
+    SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
+
+    # SKYDRIVER VARS
     SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
-    # logging vars
+
+    # LOGGING VARS
     SKYSCAN_LOG: str = "INFO"
     SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
-    # testing/debug vars
+
+    # TESTING/DEBUG VARS
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
 
     def __post_init__(self) -> None:

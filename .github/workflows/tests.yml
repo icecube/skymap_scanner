@@ -18,8 +18,9 @@ env:
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
-  # SKYSCAN_PROGRESS_INTERVAL_SEC: 60
-  # SKYSCAN_RESULT_INTERVAL_SEC: 300
+  SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
+  # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
+  SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: 120
   SKYSCAN_DOCKER_PULL_ALWAYS: 0
   SKYSCAN_DOCKER_IMAGE_TAG: local
   SKYSCAN_MINI_TEST: 'yes'
@@ -96,7 +97,7 @@ jobs:
             --nsides 1:12 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_json.sh .
+          ./resources/launch_scripts/wait_for_startup_json.sh .
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
@@ -165,7 +166,7 @@ jobs:
           mkdir $SKYSCAN_OUTPUT_DIR
 
           # Launch Server
-          ./scripts/launch_scripts/docker/launch_server.sh \
+          ./resources/launch_scripts/docker/launch_server.sh \
             --reco-algo millipede_original \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
@@ -174,7 +175,7 @@ jobs:
             --nsides 1:12 \
             &
 
-          ./scripts/launch_scripts/wait_for_startup_json.sh .
+          ./resources/launch_scripts/wait_for_startup_json.sh .
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
@@ -182,7 +183,7 @@ jobs:
           mkdir $SKYSCAN_DEBUG_DIR
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
-            ./scripts/launch_scripts/docker/launch_client.sh \
+            ./resources/launch_scripts/docker/launch_client.sh \
               --startup-json-dir . \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
