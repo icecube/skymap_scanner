@@ -16,6 +16,7 @@ env:
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
+  SKYSCAN_BROKER_CLIENT: pulsar
   SKYSCAN_BROKER_ADDRESS: localhost
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
@@ -41,8 +42,15 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: Dockerfile
+          file: Dockerfile_pulsar
           tags: icecube/skymap_scanner:local
+      - name: Build and push rabbitmq
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          file: Dockerfile
+          tags: icecube/skymap_scanner:local-rabbit
 
   test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
@@ -62,7 +70,7 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: Dockerfile
+          file: Dockerfile_pulsar
           tags: icecube/skymap_scanner:local
           load: true
       - uses: eWaterCycle/setup-apptainer@v2
@@ -156,7 +164,7 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: Dockerfile
+          file: Dockerfile_pulsar
           tags: icecube/skymap_scanner:local
           load: true
       - name: Run
@@ -230,7 +238,7 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: Dockerfile
+          file: Dockerfile_pulsar
           tags: icecube/skymap_scanner:local
           load: true
       - name: Run

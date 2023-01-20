@@ -3,7 +3,51 @@
 #
 ARG ICETRAY_VERSION=v1.5.0-ubuntu22.04
 
+FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION as build
+
+#
+# Add Packages
+#
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y zstd libzstd-dev protobuf-compiler python3-pybind11 python3-pip && \
+    apt-get clean
+
+#
+# Manually compile Pulsar
+#
+WORKDIR /local
+RUN git clone --depth 1 --branch v3.1.0 https://github.com/apache/pulsar-client-cpp
+RUN cd pulsar-client-cpp && cmake -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release . && make -j2 && make install
+RUN git clone --depth 1 --branch v3.0.0 https://github.com/apache/pulsar-client-python
+RUN cd pulsar-client-python && git submodule update --init \
+    && cmake -B build \
+    && cmake --build build && cmake --install build \
+    && python3 ./setup.py bdist_wheel
+
+
+#
+# Now make the prod image
+#
 FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
+
+
+#
+# Add Packages
+#
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y libprotobuf23 python3-pybind11 python3-pip && \
+    apt-get clean
+
+
+#
+# Copy pulsar
+#
+WORKDIR /local
+COPY --from=build /usr/local/include/pulsar/ /usr/local/include/pulsar/
+COPY --from=build /usr/local/lib/libpulsar* /usr/local/lib/
+COPY --from=build /local/pulsar-client-python/dist/ pulsar-client-python/
+RUN python3 -m pip install pulsar-client-python/pulsar_client-*.whl
+
 
 
 # we need more spline tables (since we need to potentially re-do onlineL2)
@@ -42,7 +86,7 @@ FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
 #
 WORKDIR /local
 COPY . .
-RUN pip install .[rabbitmq]
+RUN pip install .[pulsar]
 
 
 # set the entry point so that module is called with any parameters given to the `docker run` command

@@ -69,7 +69,7 @@ class EnvConfig:
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
     # BROKER/MQ VARS
-    SKYSCAN_BROKER_CLIENT: str = "pulsar"
+    SKYSCAN_BROKER_CLIENT: str = "rabbitmq"
     SKYSCAN_BROKER_ADDRESS: str = ""  # broker / mq address
     SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
 
