@@ -35,7 +35,7 @@ spec:
         - wget
         - "-O" 
         - "/download/startup.json"
-        - "https://icecube:skua@user-web.icecube.wisc.edu/~briedel/$(EVENT_STARTUP_JSON)"
+        - "https://x:x@user-web.icecube.wisc.edu/~briedel/$(EVENT_STARTUP_JSON)"
         volumeMounts:
         - name: startup-config-mount
           mountPath: /download
