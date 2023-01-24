@@ -9,10 +9,9 @@ from typing import List
 
 from icecube import dataio, icetray
 
-from event_tools import EventMetadata
-
 from .. import config as cfg
 from . import LOGGER
+from .event_tools import EventMetadata
 from .pixelreco import PixelReco
 from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
