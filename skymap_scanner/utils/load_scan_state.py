@@ -77,7 +77,13 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List
     return baseline_GCD_frames
 
 
-def load_scan_state(event_id_string, state_dict, reco_algo: str, filestager=None, cache_dir="./cache/") -> dict:
+def load_scan_state(
+    event_id_string,
+    state_dict,
+    reco_algo: str,
+    filestager=None,
+    cache_dir="./cache/"
+) -> dict:
     
     geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
