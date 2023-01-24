@@ -222,26 +222,6 @@ class ProgressReporter:
         """Get ScanResult."""
         return ScanResult.from_nsides_dict(self.nsides_dict, self.event_metadata)
 
-    def _get_progress(self, summary_msg: str, epilogue_msg: str) -> StrDict:
-        """Make a status report string."""
-        progress: StrDict = {}
-        progress['metadata'] = {
-            'event': dc.asdict(self.event_metadata),
-            'scan': {
-                'scan_id': self.scan_id,
-                'min nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
-                'max nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-                'position variations (reconstructions) per pixel': self.n_posvar,
-            },
-        }
-
-        progress['summary'] = summary_msg
-        progress['epilogue'] = epilogue_msg
-        progress['tallies'] = self._get_tallies()
-        progress['processing_stats'] = self._get_processing_progress()
-
-        return progress
-
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
         elapsed = time.time() - self.reporter_start_time
@@ -377,7 +357,21 @@ class ProgressReporter:
         total_n_pixreco: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
-        progress = self._get_progress(summary_msg, epilogue_msg)
+        progress = {
+            'summary': summary_msg,
+            'epilogue': epilogue_msg,
+            'tallies': self._get_tallies(),
+            'processing_stats': self._get_processing_progress(),
+        }
+        metadata = {
+            'event': dc.asdict(self.event_metadata),
+            'scan': {
+                'scan_id': self.scan_id,
+                'min_nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
+                'max_nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+                'position_variations': self.n_posvar,
+            },
+        }
 
         if total_n_pixreco:
             # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
@@ -388,7 +382,7 @@ class ProgressReporter:
         if not self.skydriver_rc:
             return
 
-        body = {'progress': progress, 'event_id': self.event_id_string}
+        body = {'progress': progress, 'metadata': metadata}
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
     async def _send_result(self) -> ScanResult:
