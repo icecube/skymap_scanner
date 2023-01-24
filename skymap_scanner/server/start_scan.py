@@ -61,6 +61,7 @@ class ProgressReporter:
         min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         skydriver_rc: Optional[RestClient],
+        event_id_string: str,
         event_metadata: dict,
     ) -> None:
         """
@@ -79,6 +80,8 @@ class ProgressReporter:
                 - max nside value
             `skydriver_rc`
                 - a connection to the SkyDriver REST interface
+            `event_id_string`
+                - the event id/name
             `event_metadata`
                 - a collection of metadata to include along with ScanResult instances
 
@@ -104,6 +107,7 @@ class ProgressReporter:
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         self.skydriver_rc = skydriver_rc
+        self.event_id_string = event_id_string
         self.event_metadata = event_metadata
 
         # all set by calling initial_report()
@@ -387,7 +391,7 @@ class ProgressReporter:
         if not self.skydriver_rc:
             return
 
-        body = {'progress': progress}
+        body = {'progress': progress, 'event_id': self.event_id_string}
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
     async def _send_result(self) -> ScanResult:
@@ -828,6 +832,7 @@ async def serve(
         min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         skydriver_rc,
+        event_id_string,
         pixeler.get_event_metadata(event_id_string),
     )
     await progress_reporter.precomputing_report()
