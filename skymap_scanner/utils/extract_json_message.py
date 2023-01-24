@@ -5,15 +5,16 @@
 
 import json
 import os
+from typing import Tuple
 
 import numpy as np
 from icecube import dataio, full_event_followup, icetray  # type: ignore[import]
 
 from .. import config as cfg
 from . import LOGGER
+from .icetrayless import create_event_id_string
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
-from .icetrayless import create_event_id_string
 from .utils import (
     hash_frame_packet,
     load_GCD_frame_packet_from_file,
@@ -44,7 +45,14 @@ def extract_GCD_diff_base_filename(frame_packet):
     
     return GCD_diff_base_filename
 
-def extract_json_message(json_data, reco_algo: str, filestager, cache_dir="./cache/", override_GCD_filename=None):
+
+def extract_json_message(
+    json_data,
+    reco_algo: str,
+    filestager,
+    cache_dir="./cache/",
+    override_GCD_filename=None
+) -> Tuple[str, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
@@ -54,11 +62,12 @@ def extract_json_message(json_data, reco_algo: str, filestager, cache_dir="./cac
     frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
 
     r = __extract_frame_packet(frame_packet, filestager=filestager, reco_algo=reco_algo, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
-    event_id = r[1]
+    event_id_string = r[1]
     state_dict = r[2]
 
     # try to load existing pixels if there are any
-    return load_scan_state(event_id, state_dict, reco_algo, cache_dir=cache_dir)
+    return event_id_string, load_scan_state(event_id_string, state_dict, reco_algo, cache_dir=cache_dir)
+
 
 def __extract_event_type(physics_frame):
     if "AlertShortFollowupMsg" in physics_frame:

@@ -77,7 +77,7 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List
     return baseline_GCD_frames
 
 
-def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache_dir="./cache/"):
+def load_scan_state(event_id_string, state_dict, reco_algo: str, filestager=None, cache_dir="./cache/") -> dict:
     
     geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
@@ -85,9 +85,9 @@ def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache
         filestager,
     )[0]
 
-    this_event_cache_dir = os.path.join(cache_dir, event_id)
+    this_event_cache_dir = os.path.join(cache_dir, event_id_string)
     if not os.path.isdir(this_event_cache_dir):
-        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
+        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id_string, this_event_cache_dir))
 
     # get all directories
     nsides = [(int(d[5:]), os.path.join(this_event_cache_dir, d)) for d in os.listdir(this_event_cache_dir) if os.path.isdir(os.path.join(this_event_cache_dir, d)) and d.startswith("nside")]
@@ -117,7 +117,7 @@ def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache
         if len(state_dict[cfg.STATEDICT_NSIDES][nside]) == 0:
             del state_dict[cfg.STATEDICT_NSIDES][nside]
 
-    return (event_id, state_dict)
+    return state_dict
 
 
 def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
