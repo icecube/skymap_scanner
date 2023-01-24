@@ -37,7 +37,7 @@ from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .utils import fetch_event_contents
 
-Progress = Dict[str, Any]
+StrDict = Dict[str, Any]
 
 
 class DuplicatePixelRecoException(Exception):
@@ -62,7 +62,7 @@ class ProgressReporter:
         max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         skydriver_rc: Optional[RestClient],
         event_id_string: str,
-        event_metadata: dict,
+        event_metadata: StrDict,
     ) -> None:
         """
         Arguments:
@@ -225,9 +225,9 @@ class ProgressReporter:
         """Get ScanResult."""
         return ScanResult.from_nsides_dict(self.nsides_dict, **self.event_metadata)
 
-    def _get_progress(self, summary_msg: str, epilogue_msg: str) -> Progress:
+    def _get_progress(self, summary_msg: str, epilogue_msg: str) -> StrDict:
         """Make a status report string."""
-        progress: Progress = {}
+        progress: StrDict = {}
         progress['metadata'] = {
             'event': self.event_metadata,
             'scan': {
@@ -245,7 +245,7 @@ class ProgressReporter:
 
         return progress
 
-    def _get_processing_progress(self) -> Progress:
+    def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
         elapsed = time.time() - self.reporter_start_time
         time_before_reporter = self.reporter_start_time - self.global_start_time
@@ -318,7 +318,7 @@ class ProgressReporter:
 
         return proc_stats
 
-    def _get_tallies(self) -> dict:
+    def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
         saved = {}
         if self.nsides_dict:
