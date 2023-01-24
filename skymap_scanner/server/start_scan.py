@@ -4,6 +4,7 @@
 
 import argparse
 import asyncio
+import dataclasses as dc
 import datetime as dt
 import itertools as it
 import json
@@ -29,7 +30,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message, pixelreco
-from ..utils.icetrayless import parse_event_id_string
+from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
 from ..utils.utils import get_event_mjd, pow_of_two, pyobj_to_string_repr
@@ -61,8 +62,7 @@ class ProgressReporter:
         min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         skydriver_rc: Optional[RestClient],
-        event_id_string: str,
-        event_metadata: StrDict,
+        event_metadata: EventMetadata,
     ) -> None:
         """
         Arguments:
@@ -80,10 +80,8 @@ class ProgressReporter:
                 - max nside value
             `skydriver_rc`
                 - a connection to the SkyDriver REST interface
-            `event_id_string`
-                - the event id/name
             `event_metadata`
-                - a collection of metadata to include along with ScanResult instances
+                - a collection of metadata about the event
 
         Environment Variables:
             `SKYSCAN_PROGRESS_INTERVAL_SEC`
@@ -107,7 +105,6 @@ class ProgressReporter:
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         self.skydriver_rc = skydriver_rc
-        self.event_id_string = event_id_string
         self.event_metadata = event_metadata
 
         # all set by calling initial_report()
@@ -223,13 +220,13 @@ class ProgressReporter:
 
     def _get_result(self) -> ScanResult:
         """Get ScanResult."""
-        return ScanResult.from_nsides_dict(self.nsides_dict, **self.event_metadata)
+        return ScanResult.from_nsides_dict(self.nsides_dict, self.event_metadata)
 
     def _get_progress(self, summary_msg: str, epilogue_msg: str) -> StrDict:
         """Make a status report string."""
         progress: StrDict = {}
         progress['metadata'] = {
-            'event': self.event_metadata,
+            'event': dc.asdict(self.event_metadata),
             'scan': {
                 'scan_id': self.scan_id,
                 'min nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
@@ -423,7 +420,8 @@ class PixelsToReco:
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
-        reco_algo: str
+        reco_algo: str,
+        event_metadata: EventMetadata,
     ) -> None:
         """
         Arguments:
@@ -443,6 +441,8 @@ class PixelsToReco:
                 - name of the output I3Particle
             `reco_algo`
                 - name of the reconstruction algorithm to run
+            `event_metadata`
+                - a collection of metadata about the event
         """
         self.nsides_dict = nsides_dict
         self.input_pos_name = input_pos_name
@@ -491,7 +491,12 @@ class PixelsToReco:
         self.fallback_energy = numpy.nan
 
         self.event_header = p_frame["I3EventHeader"]
-        self.event_mjd = get_event_mjd(GCDQp_packet)
+        self.event_metadata = event_metadata
+        if self.event_metadata.run_id != self.event_header.run_id or self.event_metadata.event_id != self.event_header.event_id:
+            raise Exception(
+                f"Run/Event Mismatch: {self.event_metadata} vs "
+                f"({self.event_header.run_id=}, {self.event_header.event_id=})"
+            )
 
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC')
         self.omgeo = g_frame["I3Geometry"].omgeo
@@ -572,7 +577,7 @@ class PixelsToReco:
 
         dec, ra = healpy.pix2ang(nside, pixel)
         dec = dec - numpy.pi/2.
-        zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_mjd)
+        zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_metadata.mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
@@ -646,21 +651,6 @@ class PixelsToReco:
                 f"({pixelreco.pixel_to_tuple(p_frame)}) ({posVariation=})..."
             )
             yield p_frame
-
-    def get_event_metadata(self, event_id_string: str) -> dict:
-        """Get metadata describing the event."""
-        run, event, event_type = parse_event_id_string(event_id_string)
-        if run != self.event_header.run_id or event != self.event_header.event_id:
-            raise Exception(
-                f"Run/Event Mismatch: {event_id_string} vs "
-                f"({self.event_header.run_id=}, {self.event_header.event_id=})"
-            )
-        return {
-            'run_id': self.event_header.run_id,
-            'event_id': self.event_header.event_id,
-            'mjd': self.event_mjd,
-            'event_type': event_type,
-        }
 
 
 # fmt: on
@@ -793,7 +783,7 @@ class PixelRecoCollector:
 async def serve(
     scan_id: str,
     reco_algo: str,
-    event_id_string: str,
+    event_metadata: EventMetadata,
     nsides_dict: Optional[pixelreco.NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD: str,
@@ -807,7 +797,7 @@ async def serve(
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
     global_start_time = time.time()
-    LOGGER.info(f"Starting up Skymap Scanner server for event: {event_id_string=}")
+    LOGGER.info(f"Starting up Skymap Scanner server for event: {event_metadata=}")
 
     if not nsides_dict:
         nsides_dict = {}
@@ -822,6 +812,7 @@ async def serve(
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
         reco_algo=reco_algo,
+        event_metadata=event_metadata,
     )
 
     progress_reporter = ProgressReporter(
@@ -832,8 +823,7 @@ async def serve(
         min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         skydriver_rc,
-        event_id_string,
-        pixeler.get_event_metadata(event_id_string),
+        event_metadata,
     )
     await progress_reporter.precomputing_report()
 
@@ -863,8 +853,8 @@ async def serve(
 
     # write out .npz & .json files
     if output_dir:
-        npz_fpath = result.to_npz(event_id_string, output_dir)
-        json_fpath = result.to_json(event_id_string, output_dir)
+        npz_fpath = result.to_npz(event_metadata, output_dir)
+        json_fpath = result.to_json(event_metadata, output_dir)
         LOGGER.info(f"Output Files: {npz_fpath}, {json_fpath}")
 
     return nsides_dict
@@ -942,7 +932,7 @@ async def serve_scan_iteration(
 
 def write_startup_json(
     startup_json_dir: Path,
-    event_id_string: str,
+    event_metadata: EventMetadata,
     min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
     max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
     baseline_GCD_file: str,
@@ -959,7 +949,7 @@ def write_startup_json(
     else:
         # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         # scan_id = f"{event_id}-{'-'.join(f'{n}:{x}' for n,x in nsides)}-{int(time.time())}"
-        scan_id = f"{event_id_string}-{min_nside}-{max_nside}-{int(time.time())}"
+        scan_id = f"{str(event_metadata)}-{min_nside}-{max_nside}-{int(time.time())}"
 
     json_dict = {
         "scan_id": scan_id,
@@ -1123,7 +1113,7 @@ def main() -> None:
     event_contents = fetch_event_contents(args.event_file, skydriver_rc)
 
     # get inputs (load event_id + state_dict cache)
-    event_id_string, state_dict = extract_json_message.extract_json_message(
+    event_metadata, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
         filestager=dataio.get_stagers(),
@@ -1134,7 +1124,7 @@ def main() -> None:
     # write startup files for client-spawning
     scan_id = write_startup_json(
         args.startup_json_dir,
-        event_id_string,
+        event_metadata,
         min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
@@ -1163,7 +1153,7 @@ def main() -> None:
         serve(
             scan_id=scan_id,
             reco_algo=args.reco_algo,
-            event_id_string=event_id_string,
+            event_metadata=event_metadata,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
             GCDQp_packet=state_dict[cfg.STATEDICT_GCDQP_PACKET],
             baseline_GCD=state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],

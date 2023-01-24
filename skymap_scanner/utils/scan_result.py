@@ -1,6 +1,7 @@
 """For encapsulating the results of an event scan in a single instance."""
 
 
+import dataclasses
 import io
 import itertools as it
 import json
@@ -19,6 +20,7 @@ from astropy.io import ascii
 from matplotlib import pyplot as plt
 from matplotlib import text
 
+from .event_tools import EventMetadata
 from .pixelreco import NSidesDict, PixelReco
 
 ###############################################################################
@@ -315,12 +317,17 @@ class ScanResult:
         # TODO: possibly better to use integer values as keys in self.result
         return "_".join([str(nside) for nside in self.nsides])
 
-    def get_filename(self, event_id: str, extension: str, output_dir: Union[str, Path, None] = None) -> Path:
+    def get_filename(
+        self,
+        event_metadata: EventMetadata,
+        extension: str,
+        output_dir: Union[str, Path, None] = None
+    ) -> Path:
         """Make a filepath for writing representations of `self` to disk."""
         if not extension.startswith('.'):
             extension = '.' + extension
 
-        filename = Path(f"{event_id}_{self.get_nside_string()}{extension}")
+        filename = Path(f"{str(event_metadata)}_{self.get_nside_string()}{extension}")
         if output_dir is not None:
             filename = output_dir / Path(filename)
         return filename
@@ -330,13 +337,21 @@ class ScanResult:
     """
 
     @classmethod
-    def from_nsides_dict(cls, nsides_dict: NSidesDict, **kwargs) -> "ScanResult":
+    def from_nsides_dict(
+        cls,
+        nsides_dict: NSidesDict,
+        event_metadata: Optional[EventMetadata] = None
+    ) -> "ScanResult":
         """Factory method for nsides_dict."""
         logger = logging.getLogger(__name__)
 
+        event_metadata_dict = {}
+        if event_metadata:
+            event_metadata_dict = dataclasses.asdict(event_metadata)
+
         result = dict()
         for nside, pixel_dict in nsides_dict.items():
-            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **kwargs))
+            _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **event_metadata_dict))
             nside_pixel_values = np.zeros(len(pixel_dict), dtype=_dtype)
             logger.info(f"nside {nside} has {len(pixel_dict)} pixels / {12 * nside**2} total.")
 
@@ -384,9 +399,13 @@ class ScanResult:
                 result[key] = np.array(list(npz[key]), dtype=_dtype)
         return cls(result=result)
 
-    def to_npz(self, event_id: str, output_dir: Union[str, Path, None] = None) -> Path:
+    def to_npz(
+        self,
+        event_metadata: EventMetadata,
+        output_dir: Union[str, Path, None] = None,
+    ) -> Path:
         """Save to .npz file."""
-        filename = self.get_filename(event_id, '.npz', output_dir)
+        filename = self.get_filename(event_metadata, '.npz', output_dir)
 
         try:
             metadata_dtype = np.dtype(
@@ -412,9 +431,13 @@ class ScanResult:
             pydict = json.load(f)
         return cls.deserialize(pydict)
 
-    def to_json(self, event_id: str, output_dir: Union[str, Path, None] = None) -> Path:
+    def to_json(
+        self,
+        event_metadata: EventMetadata,
+        output_dir: Union[str, Path, None] = None
+    ) -> Path:
         """Save to .json file."""
-        filename = self.get_filename(event_id, '.json', output_dir)
+        filename = self.get_filename(event_metadata, '.json', output_dir)
         pydict = self.serialize()
         with open(filename, 'w') as f:
             json.dump(pydict, f, indent=4)
@@ -550,7 +573,6 @@ class ScanResult:
                     log_func=None,
                     upload_func=None,
                     final_channels=None):
-        from .icetrayless import create_event_id_string
         from .plotting_tools import DecFormatter, RaFormatter
 
         if log_func is None:
@@ -582,7 +604,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id_string(run_id, event_id, event_type)}_{self.get_nside_string()}'
+        unique_id = f'{str(EventMetadata(run_id, event_id, event_type))}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
@@ -814,7 +836,6 @@ class ScanResult:
                            plot_4fgl=False,
                            final_channels=None):
         """Uses healpy to plot a map."""
-        from .icetrayless import create_event_id_string
         from .plotting_tools import format_fits_header, hp_ticklabels, plot_catalog
 
         if log_func is None:
@@ -856,7 +877,7 @@ class ScanResult:
         else:
             self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
             run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{create_event_id_string(run_id, event_id, event_type)}_{self.get_nside_string()}'
+        unique_id = f'{str(EventMetadata(run_id, event_id, event_type))}_{self.get_nside_string()}'
 
         plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
 
