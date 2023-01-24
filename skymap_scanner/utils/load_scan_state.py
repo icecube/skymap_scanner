@@ -5,12 +5,9 @@
 # pylint: skip-file
 
 import os
-import random
-from typing import List, Tuple
+from typing import List
 
-import numpy
-from I3Tray import I3Units
-from icecube import VHESelfVeto, dataclasses, dataio, icetray
+from icecube import dataio, icetray
 
 from event_tools import EventMetadata
 

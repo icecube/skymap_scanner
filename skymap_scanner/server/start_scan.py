@@ -33,7 +33,7 @@ from ..utils import extract_json_message, pixelreco
 from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.scan_result import ScanResult
-from ..utils.utils import get_event_mjd, pow_of_two, pyobj_to_string_repr
+from ..utils.utils import pow_of_two, pyobj_to_string_repr
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .utils import fetch_event_contents
