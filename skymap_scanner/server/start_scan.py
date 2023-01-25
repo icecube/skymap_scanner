@@ -363,14 +363,11 @@ class ProgressReporter:
             'tallies': self._get_tallies(),
             'processing_stats': self._get_processing_progress(),
         }
-        metadata = {
-            'event': dc.asdict(self.event_metadata),
-            'scan': {
-                'scan_id': self.scan_id,
-                'min_nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
-                'max_nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-                'position_variations': self.n_posvar,
-            },
+        scan_metadata = {
+            'scan_id': self.scan_id,
+            'min_nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
+            'max_nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            'position_variations': self.n_posvar,
         }
 
         if total_n_pixreco:
@@ -382,7 +379,11 @@ class ProgressReporter:
         if not self.skydriver_rc:
             return
 
-        body = {'progress': progress, 'metadata': metadata}
+        body = {
+            'progress': progress,
+            'event_metadata': dc.asdict(self.event_metadata),
+            'scan_metadata': scan_metadata,
+        }
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
     async def _send_result(self) -> ScanResult:
