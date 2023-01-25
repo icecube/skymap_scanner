@@ -1,7 +1,7 @@
 """For encapsulating the results of an event scan in a single instance."""
 
 
-import dataclasses
+import dataclasses as dc
 import io
 import itertools as it
 import json
@@ -347,7 +347,7 @@ class ScanResult:
 
         event_metadata_dict = {}
         if event_metadata:
-            event_metadata_dict = dataclasses.asdict(event_metadata)
+            event_metadata_dict = dc.asdict(event_metadata)
 
         result = dict()
         for nside, pixel_dict in nsides_dict.items():
