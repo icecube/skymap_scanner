@@ -316,7 +316,7 @@ if __name__ == "__main__":
         eventID,
         args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
         cache_dir=options.CACHEDIR
-    )[1]
+    )
     pixels = choose_new_pixels_to_scan(state_dict[cfg.STATEDICT_NSIDES])
 
     print(("got", pixels))

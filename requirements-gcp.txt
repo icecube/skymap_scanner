@@ -12,7 +12,7 @@ asyncstdlib==3.10.5
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-cachetools==5.2.1
+cachetools==5.3.0
     # via
     #   google-auth
     #   wipac-rest-tools

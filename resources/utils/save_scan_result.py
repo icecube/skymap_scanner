@@ -14,9 +14,8 @@ from skymap_scanner.utils.scan_result import ScanResult
 
 
 def main():
-    """
-    Loads the scan result for a given event ID from a cache directory and writes the numerical results on a numpy file.
-    """
+    """Loads the scan result for a given event ID from a cache directory and
+    writes the numerical results on a numpy file."""
 
     logging.basicConfig(level=logging.DEBUG)
 
@@ -36,7 +35,7 @@ def main():
 
     stagers = dataio.get_stagers()
 
-    eventID, state_dict = load_cache_state(
+    state_dict = load_cache_state(
         args.event,
         cfg.RecoAlgo[args.reco_algo.upper()],
         filestager=stagers,
