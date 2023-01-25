@@ -10,8 +10,8 @@ class EventMetadata:
     run_id: int
     event_id: int
     event_type: str
-    mjd: float = 0.0
-    is_real: bool = True  # as opposed to simulation
+    mjd: float  # required but meaningless for simulated events
+    is_real: bool  # as opposed to simulation
 
     def __str__(self) -> str:
         """Use for logging & filenaming."""

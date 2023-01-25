@@ -126,8 +126,8 @@ def __extract_frame_packet(
         header.run_id,
         header.event_id,
         __extract_event_type(physics_frame),
-        mjd=get_event_mjd(frame_packet),
-        # TODO: for simulated events: set `is_real=False`
+        get_event_mjd(frame_packet),
+        is_real=True,  # TODO: for simulated events: set `is_real=False`
     )
     LOGGER.debug("event ID is {0}".format(event_metadata))
 
