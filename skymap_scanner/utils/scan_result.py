@@ -1,5 +1,7 @@
 """For encapsulating the results of an event scan in a single instance."""
 
+# fmt: off
+# pylint: skip-file
 
 import dataclasses as dc
 import io
@@ -49,7 +51,6 @@ class InvalidPixelValueError(Exception):
 ###############################################################################
 # MAIN CLASS
 
-# fmt: off
 class ScanResult:
     """This class parses a nsides_dict and stores the relevant numeric result
     of the scan. Ideally it should serve as the basic data structure for
@@ -218,6 +219,21 @@ class ScanResult:
                 if mk not in self.result[k].dtype.metadata:
                     return False
         return True
+
+    def get_event_metadata(self) -> EventMetadata:
+        """Get the EventMetadata portion of the result's metadata."""
+        if self.has_metadata():
+            first_metadata = self.result[list(self.result.keys())[0]].dtype.metadata
+            return EventMetadata(
+                first_metadata['run_id'],
+                first_metadata['event_id'],
+                first_metadata['event_type'],
+                first_metadata['mjd'],
+                first_metadata.get('is_real', True),  # assume real event
+            )
+        else:
+            self.logger.warning("Metadata doesn't seem to exist and will not be used for plotting.")
+            return EventMetadata(0, 0, '', 0, False)
 
     def is_close(
         self,
@@ -598,15 +614,9 @@ class ScanResult:
             if "nside-" not in k:
                 raise RuntimeError("\"nside\" not in result file..")
 
-        if self.has_metadata():
-            run_id, event_id, event_type, mjd = [
-                self.result[k].dtype.metadata[_] for _ in "run_id event_id event_type mjd".split()]
-        else:
-            self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
-            run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{str(EventMetadata(run_id, event_id, event_type, mjd=mjd))}_{self.get_nside_string()}'
-
-        plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
+        event_metadata = self.get_event_metadata()
+        unique_id = f'{str(event_metadata)}_{self.get_nside_string()}'
+        plot_title = f"Run: {event_metadata.run_id} Event {event_metadata.event_id}: Type: {event_metadata.event_type} MJD: {event_metadata.mjd}"
 
         plot_filename = f"{unique_id}.{'plot_zoomed.' if dozoom else ''}pdf"
         print(f"saving plot to {plot_filename}")
@@ -871,15 +881,9 @@ class ScanResult:
             if "nside-" not in k:
                 raise RuntimeError("\"nside\" not in result file..")
 
-        if self.has_metadata():
-            run_id, event_id, event_type, mjd = [
-                self.result[k].dtype.metadata[_] for _ in "run_id event_id event_type mjd".split()]
-        else:
-            self.logger.warn(f"Metadata doesn't seem to exist and will not be used for plotting.")
-            run_id, event_id, event_type, mjd = [0]*4
-        unique_id = f'{str(EventMetadata(run_id, event_id, event_type, mjd=mjd))}_{self.get_nside_string()}'
-
-        plot_title = f"Run: {run_id} Event {event_id}: Type: {event_type} MJD: {mjd}"
+        event_metadata = self.get_event_metadata()
+        unique_id = f'{str(event_metadata)}_{self.get_nside_string()}'
+        plot_title = f"Run: {event_metadata.run_id} Event {event_metadata.event_id}: Type: {event_metadata.event_type} MJD: {event_metadata.mjd}"
 
         nsides = self.nsides
         print(f"available nsides: {nsides}")
@@ -1160,9 +1164,13 @@ class ScanResult:
                 log_func("Memory Error prevented contours from being written")
 
         uncertainty = [(ra_minus, ra_plus), (dec_minus, dec_plus)]
-        fits_header = format_fits_header((run_id, event_id, event_type), 0,
-            np.degrees(minRA), np.degrees(minDec), uncertainty,
-           )
+        fits_header = format_fits_header(
+            (event_metadata.run_id, event_metadata.event_id, event_metadata.event_type),
+            0,
+            np.degrees(minRA),
+            np.degrees(minDec),
+            uncertainty,
+        )
         mmap_nside = healpy.get_nside(master_map)
 
         # Pixel numbers as is gives a map that is reflected
