@@ -114,6 +114,7 @@ jobs:
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
             --nsides 1:12 \
+            --simulated-event \  # not actually simualted, but this is just a test :D
             &
 
           ./resources/launch_scripts/wait_for_startup_json.sh .
@@ -194,6 +195,7 @@ jobs:
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
             --nsides 1:12 \
+            --real-event \
             &
 
           ./resources/launch_scripts/wait_for_startup_json.sh .
