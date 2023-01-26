@@ -2,6 +2,8 @@
 
 import dataclasses as dc
 
+MIN_REAL_RUN_ID = 100000
+
 
 @dc.dataclass
 class EventMetadata:
@@ -12,6 +14,12 @@ class EventMetadata:
     event_type: str
     mjd: float  # required but meaningless for simulated events
     is_real_event: bool  # as opposed to simulation
+
+    def __post_init__(self) -> None:
+        if self.is_real_event and self.run_id < MIN_REAL_RUN_ID:
+            raise ValueError(
+                f"Run ID Out of Range: {self.run_id} (valid range is {MIN_REAL_RUN_ID}+)"
+            )
 
     def __str__(self) -> str:
         """Use for logging & filenaming."""
