@@ -20,7 +20,7 @@ fi
 
 # wait until the startup.json file exists (with a timeout)
 waitsec="5"
-timeout="10 minutes"
+timeout=${SKYSCAN_WAIT_FOR_STARTUP_JSON:-"10 minutes"}
 endtime=$(date -ud "$timeout" +%s)  # wait this long for server startup
 while [[ $(date -u +%s) -le $endtime ]]; do
     if [[ -e "$1/startup.json" ]]; then
