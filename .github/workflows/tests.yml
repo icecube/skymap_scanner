@@ -27,7 +27,7 @@ env:
   SKYSCAN_MINI_TEST: 'yes'
   SKYSCAN_LOG: DEBUG
   SKYSCAN_LOG_THIRD_PARTY: INFO
-  # WAIT_FOR_STARTUP_JSON: "2 minutes"
+  WAIT_FOR_STARTUP_JSON: "2 minutes"
 
 jobs:
 
@@ -114,7 +114,7 @@ jobs:
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --startup-json-dir . \
             --nsides 1:12 \
-            --simulated-event \  # not actually simualted, but this is just a test :D
+            --simulated-event \
             &
 
           ./resources/launch_scripts/wait_for_startup_json.sh .

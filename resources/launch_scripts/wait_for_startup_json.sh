@@ -10,7 +10,7 @@
 ########################################################################
 
 waitsec="5"
-timeout="10 minutes"
+timeout=${WAIT_FOR_STARTUP_JSON:-"10 minutes"}
 echo "Will wait for startup.json for $timeout in $waitsec second intervals"
 
 if [ -z "$1" ]; then
