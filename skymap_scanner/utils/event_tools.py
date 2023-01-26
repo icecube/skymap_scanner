@@ -11,7 +11,7 @@ class EventMetadata:
     event_id: int
     event_type: str
     mjd: float  # required but meaningless for simulated events
-    is_real: bool  # as opposed to simulation
+    is_real_event: bool  # as opposed to simulation
 
     def __str__(self) -> str:
         """Use for logging & filenaming."""
