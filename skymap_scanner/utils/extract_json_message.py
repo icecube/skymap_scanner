@@ -51,8 +51,9 @@ def extract_json_message(
     json_data,
     reco_algo: str,
     filestager,
+    is_real_event: bool,
     cache_dir="./cache/",
-    override_GCD_filename=None
+    override_GCD_filename=None,
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
@@ -66,8 +67,9 @@ def extract_json_message(
         frame_packet,
         filestager=filestager,
         reco_algo=reco_algo,
+        is_real_event=is_real_event,
         cache_dir=cache_dir,
-        override_GCD_filename=override_GCD_filename
+        override_GCD_filename=override_GCD_filename,
     )
 
     # try to load existing pixels if there are any
@@ -99,9 +101,10 @@ def __extract_frame_packet(
     frame_packet,
     filestager,
     reco_algo: str,
+    is_real_event: bool,
     cache_dir="./cache/",
     override_GCD_filename=None,
-    pulsesName="SplitUncleanedInIcePulses"
+    pulsesName="SplitUncleanedInIcePulses",
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
@@ -127,7 +130,7 @@ def __extract_frame_packet(
         header.event_id,
         __extract_event_type(physics_frame),
         get_event_mjd(frame_packet),
-        is_real=True,  # TODO: for simulated events: set `is_real=False`
+        is_real_event,
     )
     LOGGER.debug("event ID is {0}".format(event_metadata))
 
@@ -266,61 +269,3 @@ def __extract_frame_packet(
             cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename
         },
     )
-
-
-def extract_json_messages(filenames, reco_algo: str, filestager, cache_dir="./cache", override_GCD_filename=None):
-    all_messages = []
-    return_packets = dict()
-
-    for filename in filenames:
-        with open(filename) as json_file:
-            json_data = json.load(json_file)
-
-        if isinstance(json_data, list):
-            # interpret as a list of messages
-            for m in json_data:
-                name, packet = extract_json_message(m, reco_algo, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
-                return_packets[name] = packet
-        elif isinstance(json_data, dict):
-            # interpret as a single message
-            name, packet = extract_json_message(json_data, reco_algo, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
-            return_packets[name] = packet
-        else:
-            raise RuntimeError("Cannot interpret JSON data in {0}".format(filename))
-
-    return return_packets
-
-
-
-if __name__ == "__main__":
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-g", "--override-GCD-filename", action="store", type="string",
-        default=None, dest="OVERRIDEGCDFILENAME", help="Use this GCD baseline file instead of the one referenced by the message")
-
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    filenames = args
-
-    if len(filenames) == 0:
-        raise RuntimeError("need to specify at least one input filename")
-
-    # get the file stager instance
-    stagers = dataio.get_stagers()
-
-    # do the work
-    packets = extract_json_messages(
-        filenames,
-        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
-        filestager=stagers,
-        cache_dir=options.CACHEDIR,
-        override_GCD_filename=options.OVERRIDEGCDFILENAME
-    )
-
-    print(("got:", packets))

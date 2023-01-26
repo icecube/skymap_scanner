@@ -229,7 +229,7 @@ class ScanResult:
                 first_metadata['event_id'],
                 first_metadata['event_type'],
                 first_metadata['mjd'],
-                first_metadata.get('is_real', True),  # assume real event
+                first_metadata.get('is_real_event', False),  # assume simulated event
             )
         else:
             self.logger.warning("Metadata doesn't seem to exist and will not be used for plotting.")
