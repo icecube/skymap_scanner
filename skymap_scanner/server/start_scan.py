@@ -1059,6 +1059,18 @@ def main() -> None:
         nargs='*',
         type=_nside_and_pixelextension,
     )
+    # --real-event XOR --simulated-event
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--real-event",
+        action="store_true",
+        help='include this flag if the event is real',
+    )
+    group.add_argument(
+        "--simulated-event",
+        action="store_true",
+        help='include this flag if the event was simulated',
+    )
 
     args = parser.parse_args()
     logging_tools.set_level(
@@ -1112,6 +1124,7 @@ def main() -> None:
         event_contents,
         reco_algo=args.reco_algo,
         filestager=dataio.get_stagers(),
+        is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         override_GCD_filename=str(args.gcd_dir),
     )
