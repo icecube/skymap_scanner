@@ -46,7 +46,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             else ""
         )
 
-        transfer_input_files: List[str] = [startup_json]
+        transfer_input_files: List[str] = [str(startup_json)]
 
         # NOTE:
         # In the newest version of condor we could use:
