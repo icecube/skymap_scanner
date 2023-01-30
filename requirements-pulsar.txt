@@ -117,5 +117,5 @@ wipac-mqclient[pulsar]==0.6.8
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-wipac-rest-tools==1.4.2
+wipac-rest-tools==1.4.4
     # via skymap-scanner (setup.py)
