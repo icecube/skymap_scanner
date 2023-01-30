@@ -11,6 +11,19 @@ from pathlib import Path
 from typing import List
 
 import coloredlogs  # type: ignore[import]
+import htcondor  # type: ignore[import]
+
+
+def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
+    """Get object for talking with Condor schedd."""
+    # pylint:disable=no-member
+    coll_query = htcondor.Collector(collector_address).locateAll(
+        htcondor.DaemonTypes.Schedd
+    )
+    for schedd_ad in coll_query:
+        if schedd_ad["name"].startswith(schedd_name):
+            return htcondor.Schedd(schedd_ad)
+    raise RuntimeError("no schedd found!")
 
 
 def make_condor_scratch_dir() -> str:
