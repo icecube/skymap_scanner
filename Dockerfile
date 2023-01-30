@@ -42,7 +42,7 @@ FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
 #
 WORKDIR /local
 COPY . .
-RUN pip install .[rabbitmq]
+RUN pip install .[rabbitmq,client-starter]
 
 
 # set the entry point so that module is called with any parameters given to the `docker run` command
