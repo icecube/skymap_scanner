@@ -107,14 +107,14 @@ _See notes about '--startup-json'/--startup-json-dir' below. See client.py for a
 You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
 ```
 echo my_client_args.json  # just an example
-./resources/launch_scripts/condor/spawn_condor_clients.py \
+./resources/client_starter.py \
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
     --startup-json PATH_TO_STARTUP_JSON \
     --client-args-json my_client_args.json
 ```
-_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-json` file._
+_NOTE: `client_starter.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-json` file._
 ###### or Manually (Docker)
 ```
 # side note: you may want to first set environment variables, see below
