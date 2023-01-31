@@ -127,7 +127,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--collector-address",
-        required=True,
+        default=None,
         help="the full URL address of the HTCondor collector server. Ex: foo-bar.icecube.wisc.edu",
     )
     parser.add_argument(
