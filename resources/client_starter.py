@@ -1,5 +1,7 @@
 """Make the Condor script for spawning Skymap Scanner clients."""
 
+# pylint:disable=no-member
+
 import argparse
 import datetime as dt
 import getpass
@@ -21,7 +23,6 @@ def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
         `collector_address = "foo-bar.icecube.wisc.edu"`
         `schedd_name = "baz.icecube.wisc.edu"`
     """
-    # pylint:disable=no-member
     schedd_ad = htcondor.Collector(collector_address).locate(  # ~> exception
         htcondor.DaemonTypes.Schedd, schedd_name
     )
@@ -39,7 +40,7 @@ def make_condor_scratch_dir() -> str:
     return scratch
 
 
-def make_condor_file(  # pylint: disable=R0913,R0914
+def make_condor_submit_obj(  # pylint: disable=R0913,R0914
     # condor args
     scratch: str,
     jobs: int,
@@ -49,54 +50,48 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     singularity_image: str,
     startup_json: Path,
     client_args: str,
-) -> str:
+) -> htcondor.Submit:
     """Make the condor file."""
-    condorpath = os.path.join(scratch, "condor")
+    transfer_input_files: List[str] = [str(startup_json)]
 
-    with open(condorpath, "w") as file:
-        # accounting group
-        accounting_group_attr = (
-            f'+AccountingGroup="{accounting_group}.{getpass.getuser()}"'
-            if accounting_group
-            else ""
-        )
+    # NOTE:
+    # In the newest version of condor we could use:
+    #   universe = container
+    #   container_image = ...
+    #   arguments = python -m ...
+    # But for now, we're stuck with:
+    #   executable = ...
+    #   +SingularityImage = ...
+    #   arguments = /usr/local/icetray/env-shell.sh python -m ...
+    # Because "this universe doesn't know how to do the
+    #   entrypoint, and loading the icetray env file
+    #   directly from cvmfs messes up the paths" -DS
 
-        transfer_input_files: List[str] = [str(startup_json)]
+    # write
+    submit_dict = {
+        "executable": "/bin/sh",
+        "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .",
+        "+SingularityImage": singularity_image,
+        "getenv": "SKYSCAN_*, EWMS_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
+        "output": f"{scratch}/skymap_scanner.out",
+        "error": f"{scratch}/skymap_scanner.err",
+        "log": f"{scratch}/skymap_scanner.log",
+        "+FileSystemDomain": "blah",
+        "should_transfer_files": "YES",
+        "transfer_input_files": ",".join(
+            [os.path.abspath(f) for f in transfer_input_files]
+        ),
+        "request_cpus": 1,
+        "request_memory": memory,
+        "notification": "Error",
+        "queue": jobs,
+    }
 
-        # NOTE:
-        # In the newest version of condor we could use:
-        #   universe = container
-        #   container_image = ...
-        #   arguments = python -m ...
-        # But for now, we're stuck with:
-        #   executable = ...
-        #   +SingularityImage = ...
-        #   arguments = /usr/local/icetray/env-shell.sh python -m ...
-        # Because "this universe doesn't know how to do the
-        #   entrypoint, and loading the icetray env file
-        #   directly from cvmfs messes up the paths" -DS
+    # accounting group
+    if accounting_group:
+        submit_dict["+AccountingGroup"] = f"{accounting_group}.{getpass.getuser()}"
 
-        # write
-        file.write(
-            f"""executable = /bin/sh
-arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .
-+SingularityImage = "{singularity_image}"
-getenv = SKYSCAN_*, EWMS_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC
-output = {scratch}/skymap_scanner.out
-error = {scratch}/skymap_scanner.err
-log = {scratch}/skymap_scanner.log
-+FileSystemDomain = "blah"
-should_transfer_files = YES
-transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
-request_cpus = 1
-{accounting_group_attr}
-request_memory = {memory}
-notification = Error
-queue {jobs}
-"""
-        )
-
-    return condorpath
+    return htcondor.Submit(submit_dict)
 
 
 def main() -> None:
@@ -200,7 +195,7 @@ def main() -> None:
         )
 
     # make condor file
-    condorpath = make_condor_file(
+    condorpath = make_condor_submit_obj(
         # condor args
         scratch,
         args.jobs,
