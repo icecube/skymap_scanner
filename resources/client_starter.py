@@ -26,7 +26,9 @@ def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
     schedd_ad = htcondor.Collector(collector_address).locate(  # ~> exception
         htcondor.DaemonTypes.Schedd, schedd_name
     )
-    return htcondor.Schedd(schedd_ad)
+    schedd = htcondor.Schedd(schedd_ad)
+    logging.info(f"Connected to Schedd {collector_address=} {schedd_name=}")
+    return schedd
 
 
 def make_condor_logs_subdir(directory: Path) -> Path:
@@ -34,6 +36,7 @@ def make_condor_logs_subdir(directory: Path) -> Path:
     iso_now = dt.datetime.now().isoformat(timespec="seconds")
     subdir = directory / f"skyscan-{iso_now}"
     subdir.mkdir(parents=True)
+    logging.info(f"HTCondor will write log files to {subdir}")
     return subdir
 
 
