@@ -9,10 +9,11 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple
 
 import coloredlogs  # type: ignore[import]
 import htcondor  # type: ignore[import]
+from rest_tools.client import RestClient
 
 
 def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
@@ -86,6 +87,28 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         submit_dict["+AccountingGroup"] = f"{accounting_group}.{getpass.getuser()}"
 
     return htcondor.Submit(submit_dict)
+
+
+def connect_to_skydriver() -> Tuple[Optional[RestClient], int]:
+    """Connect to SkyDriver REST server, if the needed env vars are present.
+
+    Also return the scan id.
+    """
+    address = os.getenv("SKYSCAN_SKYDRIVER_ADDRESS")
+    if not address:
+        logging.warning("Not connecting to SkyDriver")
+        return None, -1
+
+    scan_id = os.getenv("SKYSCAN_SKYDRIVER_SCAN_ID")
+    if not scan_id:
+        raise RuntimeError(
+            "Cannot connect to SkyDriver without `SKYSCAN_SKYDRIVER_SCAN_ID`"
+        )
+
+    skydriver_rc = RestClient(address, token=os.getenv("SKYSCAN_SKYDRIVER_AUTH"))
+    logging.info("Connected to SkyDriver")
+
+    return skydriver_rc, int(scan_id)
 
 
 def main() -> None:
@@ -210,13 +233,27 @@ def main() -> None:
     )
     logging.info(job_description)
 
-    # submit
+    # dryrun?
     if args.dryrun:
         logging.error("Script Aborted: Condor job not submitted")
-    else:
-        schedd = get_schedd(args.collector_address, args.schedd_name)
-        submit_result = schedd.submit(job_description, count=args.jobs)  # submit N jobs
-        logging.info(submit_result)
+        return
+
+    # make connections -- do these before submitting so we don't have any unwanted surprises
+    skydriver_rc, scan_id = connect_to_skydriver()
+    schedd = get_schedd(args.collector_address, args.schedd_name)
+
+    # submit
+    submit_result = schedd.submit(job_description, count=args.jobs)  # submit N jobs
+    logging.info(submit_result)
+
+    # report to SkyDriver
+    if skydriver_rc:
+        skydriver_rc.request_seq(
+            "PATCH",
+            f"/scan/manifest/{scan_id}",
+            {"condor_metadata": {"cluster_id": submit_result.cluster()}},
+        )
+        logging.warning("Sent cluster info to SkyDriver")
 
 
 if __name__ == "__main__":
