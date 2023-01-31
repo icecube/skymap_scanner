@@ -40,10 +40,9 @@ def make_condor_scratch_dir() -> str:
     return scratch
 
 
-def make_condor_submit_obj(  # pylint: disable=R0913,R0914
+def make_condor_job_description(  # pylint: disable=too-many-arguments
     # condor args
     scratch: str,
-    jobs: int,
     memory: str,
     accounting_group: str,
     # skymap scanner args
@@ -51,7 +50,7 @@ def make_condor_submit_obj(  # pylint: disable=R0913,R0914
     startup_json: Path,
     client_args: str,
 ) -> htcondor.Submit:
-    """Make the condor file."""
+    """Make the condor job description object."""
     transfer_input_files: List[str] = [str(startup_json)]
 
     # NOTE:
@@ -84,7 +83,6 @@ def make_condor_submit_obj(  # pylint: disable=R0913,R0914
         "request_cpus": 1,
         "request_memory": memory,
         "notification": "Error",
-        "queue": jobs,
     }
 
     # accounting group
@@ -194,11 +192,10 @@ def main() -> None:
             "This needs to be defined explicitly with '--startup-json'."
         )
 
-    # make condor file
-    condorpath = make_condor_submit_obj(
+    # make condor job description
+    job_description = make_condor_job_description(
         # condor args
         scratch,
-        args.jobs,
         args.memory,
         args.accounting_group,
         # skymap scanner args
@@ -206,14 +203,15 @@ def main() -> None:
         args.startup_json,
         client_args,
     )
+    logging.info(job_description)
 
     # Execute
     if args.dryrun:
-        logging.error(f"Script Aborted: Condor job not submitted ({condorpath}).")
+        logging.error("Script Aborted: Condor job not submitted")
     else:
-        cmd = f"condor_submit {condorpath}"
-        logging.info(cmd)
-        subprocess.check_call(cmd.split(), cwd=scratch)
+        schedd = get_schedd(args.collector_address, args.schedd_name)
+        submit_result = schedd.submit(job_description, count=args.jobs)  # submit N jobs
+        logging.info(submit_result)
 
 
 if __name__ == "__main__":
