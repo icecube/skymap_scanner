@@ -98,15 +98,9 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    def wait_for_file(path: str, wait_time: int, subpath: str = "") -> Path:
-        """Wait for `path` to exist, then return `Path` instance of `path`.
+    def wait_for_file(waitee: Path, wait_time: int) -> Path:
+        """Wait for `waitee` to exist, then return fullly-resolved path."""
 
-        If `subpath` is provided, wait for `"{path}/{subpath}"` instead.
-        """
-        if subpath:
-            waitee = Path(path) / subpath
-        else:
-            waitee = Path(path)
         elapsed_time = 0
         sleep = 5
         while not waitee.exists():
@@ -117,7 +111,7 @@ def main() -> None:
                 raise argparse.ArgumentTypeError(
                     f"FileNotFoundError: waited {wait_time}s [{waitee}]"
                 )
-        return Path(path).resolve()
+        return waitee.resolve()
 
     # helper args
     parser.add_argument(
@@ -165,7 +159,9 @@ def main() -> None:
     parser.add_argument(
         "--startup-json",
         help="The 'startup.json' file to startup each client",
-        type=lambda x: wait_for_file(x, 60 * 25),
+        type=lambda x: wait_for_file(
+            Path(x), int(os.getenv("CLIENT_STARTER_WAIT_FOR_STARTUP_JSON", "60"))
+        ),
     )
     parser.add_argument(
         "--client-args",
@@ -205,7 +201,7 @@ def main() -> None:
     )
     logging.info(job_description)
 
-    # Execute
+    # submit
     if args.dryrun:
         logging.error("Script Aborted: Condor job not submitted")
     else:
