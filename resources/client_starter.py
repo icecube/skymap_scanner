@@ -7,7 +7,6 @@ import datetime as dt
 import getpass
 import logging
 import os
-import subprocess
 import time
 from pathlib import Path
 from typing import List
@@ -29,20 +28,17 @@ def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
     return htcondor.Schedd(schedd_ad)
 
 
-def make_condor_scratch_dir() -> str:
-    """Make the condor scratch directory."""
-    scratch = os.path.join(
-        "/scratch/",
-        getpass.getuser(),
-        f"skymap-scanner-{dt.datetime.now().isoformat(timespec='seconds')}",
-    )
-    os.makedirs(scratch)
-    return scratch
+def make_condor_logs_subdir(directory: Path) -> Path:
+    """Make the condor logs subdirectory."""
+    iso_now = dt.datetime.now().isoformat(timespec="seconds")
+    subdir = directory / f"skyscan-{iso_now}"
+    subdir.mkdir(parents=True)
+    return subdir
 
 
 def make_condor_job_description(  # pylint: disable=too-many-arguments
+    logs_subdir: Path,
     # condor args
-    scratch: str,
     memory: str,
     accounting_group: str,
     # skymap scanner args
@@ -72,15 +68,15 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .",
         "+SingularityImage": singularity_image,
         "getenv": "SKYSCAN_*, EWMS_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
-        "output": f"{scratch}/skymap_scanner.out",
-        "error": f"{scratch}/skymap_scanner.err",
-        "log": f"{scratch}/skymap_scanner.log",
+        "output": str(logs_subdir / "client-$(ProcId).out"),
+        "error": str(logs_subdir / "client-$(ProcId).err"),
+        "log": str(logs_subdir / "client.log"),
         "+FileSystemDomain": "blah",
         "should_transfer_files": "YES",
         "transfer_input_files": ",".join(
             [os.path.abspath(f) for f in transfer_input_files]
         ),
-        "request_cpus": 1,
+        "request_cpus": "1",
         "request_memory": memory,
         "notification": "Error",
     }
@@ -93,14 +89,11 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
 
 
 def main() -> None:
-    """Prep and execute Condor job.
-
-    Make scratch directory and condor file.
-    """
+    """Prep and submit Condor job(s)."""
     parser = argparse.ArgumentParser(
         description=(
-            "Make Condor script for submitting Skymap Scanner clients: "
-            "Condor log files in /scratch/{user}/skymap-scanner-{datetime}."
+            "Submit Condor jobs running Skymap Scanner clients: "
+            "Condor log files to {logs_directory}/skyscan-{datetime}."
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -126,13 +119,21 @@ def main() -> None:
                 )
         return Path(path).resolve()
 
-    # condor args
+    # helper args
     parser.add_argument(
         "--dryrun",
         default=False,
         action="store_true",
         help="does everything except submitting the condor job(s)",
     )
+    parser.add_argument(
+        "--logs-directory",
+        required=True,
+        type=Path,
+        help="where to save logs",
+    )
+
+    # condor args
     parser.add_argument(
         "--accounting-group",
         default="",
@@ -177,8 +178,7 @@ def main() -> None:
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    # make condor scratch directory
-    scratch = make_condor_scratch_dir()
+    logs_subdir = make_condor_logs_subdir(args.logs_directory)
 
     # get client args
     client_args = ""
@@ -194,8 +194,8 @@ def main() -> None:
 
     # make condor job description
     job_description = make_condor_job_description(
+        logs_subdir,
         # condor args
-        scratch,
         args.memory,
         args.accounting_group,
         # skymap scanner args
