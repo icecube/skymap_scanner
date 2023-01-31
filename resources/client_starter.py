@@ -100,7 +100,6 @@ def main() -> None:
 
     def wait_for_file(waitee: Path, wait_time: int) -> Path:
         """Wait for `waitee` to exist, then return fullly-resolved path."""
-
         elapsed_time = 0
         sleep = 5
         while not waitee.exists():
