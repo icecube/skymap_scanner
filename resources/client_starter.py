@@ -1,4 +1,4 @@
-"""Make the Condor script for spawning Skymap Scanner clients."""
+"""An HTCondor script for spawning Skymap Scanner clients."""
 
 # pylint:disable=no-member
 
@@ -16,7 +16,7 @@ import htcondor  # type: ignore[import]
 
 
 def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
-    """Get object for talking with Condor schedd.
+    """Get object for talking with HTCondor schedd.
 
     Examples:
         `collector_address = "foo-bar.icecube.wisc.edu"`
@@ -124,6 +124,16 @@ def main() -> None:
         required=True,
         type=Path,
         help="where to save logs",
+    )
+    parser.add_argument(
+        "--collector-address",
+        required=True,
+        help="the full URL address of the HTCondor collector server. Ex: foo-bar.icecube.wisc.edu",
+    )
+    parser.add_argument(
+        "--schedd-name",
+        required=True,
+        help="the full DNS name of the HTCondor Schedd server. Ex: baz.icecube.wisc.edu",
     )
 
     # condor args
