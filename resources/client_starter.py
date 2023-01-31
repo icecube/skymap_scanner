@@ -15,15 +15,17 @@ import htcondor  # type: ignore[import]
 
 
 def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
-    """Get object for talking with Condor schedd."""
+    """Get object for talking with Condor schedd.
+
+    Examples:
+        `collector_address = "foo-bar.icecube.wisc.edu"`
+        `schedd_name = "baz.icecube.wisc.edu"`
+    """
     # pylint:disable=no-member
-    coll_query = htcondor.Collector(collector_address).locateAll(
-        htcondor.DaemonTypes.Schedd
+    schedd_ad = htcondor.Collector(collector_address).locate(  # ~> exception
+        htcondor.DaemonTypes.Schedd, schedd_name
     )
-    for schedd_ad in coll_query:
-        if schedd_ad["name"].startswith(schedd_name):
-            return htcondor.Schedd(schedd_ad)
-    raise RuntimeError("no schedd found!")
+    return htcondor.Schedd(schedd_ad)
 
 
 def make_condor_scratch_dir() -> str:
