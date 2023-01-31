@@ -75,6 +75,8 @@ pyjwt[crypto]==2.5.0
     # via wipac-rest-tools
 pyparsing==3.0.9
     # via matplotlib
+pypng==0.20220715.0
+    # via qrcode
 python-dateutil==2.8.2
     # via
     #   matplotlib
@@ -83,7 +85,7 @@ pytz==2022.7.1
     # via pandas
 pyyaml==6.0
     # via astropy
-qrcode==7.3.1
+qrcode==7.4
     # via wipac-rest-tools
 requests==2.28.2
     # via
@@ -101,7 +103,9 @@ tornado==6.2
 types-cryptography==3.3.23.2
     # via pyjwt
 typing-extensions==4.4.0
-    # via wipac-dev-tools
+    # via
+    #   qrcode
+    #   wipac-dev-tools
 urllib3==1.26.14
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.10
