@@ -15,6 +15,9 @@ from typing import List, Optional, Tuple
 import coloredlogs  # type: ignore[import]
 import htcondor  # type: ignore[import]
 from rest_tools.client import RestClient
+from wipac_dev_tools import logging_tools
+
+LOGGER = logging.getLogger("clientmanager")
 
 
 def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
@@ -28,7 +31,7 @@ def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
         htcondor.DaemonTypes.Schedd, schedd_name
     )
     schedd = htcondor.Schedd(schedd_ad)
-    logging.info(f"Connected to Schedd {collector_address=} {schedd_name=}")
+    LOGGER.info(f"Connected to Schedd {collector_address=} {schedd_name=}")
     return schedd
 
 
@@ -37,7 +40,7 @@ def make_condor_logs_subdir(directory: Path) -> Path:
     iso_now = dt.datetime.now().isoformat(timespec="seconds")
     subdir = directory / f"skyscan-{iso_now}"
     subdir.mkdir(parents=True)
-    logging.info(f"HTCondor will write log files to {subdir}")
+    LOGGER.info(f"HTCondor will write log files to {subdir}")
     return subdir
 
 
@@ -100,7 +103,7 @@ def connect_to_skydriver() -> Tuple[Optional[RestClient], int]:
     """
     address = os.getenv("SKYSCAN_SKYDRIVER_ADDRESS")
     if not address:
-        logging.warning("Not connecting to SkyDriver")
+        LOGGER.warning("Not connecting to SkyDriver")
         return None, -1
 
     scan_id = os.getenv("SKYSCAN_SKYDRIVER_SCAN_ID")
@@ -110,7 +113,7 @@ def connect_to_skydriver() -> Tuple[Optional[RestClient], int]:
         )
 
     skydriver_rc = RestClient(address, token=os.getenv("SKYSCAN_SKYDRIVER_AUTH"))
-    logging.info("Connected to SkyDriver")
+    LOGGER.info("Connected to SkyDriver")
 
     return skydriver_rc, int(scan_id)
 
@@ -149,7 +152,7 @@ def main() -> None:
         elapsed_time = 0
         sleep = 5
         while not waitee.exists():
-            logging.info(f"waiting for {waitee} ({sleep}s intervals)...")
+            LOGGER.info(f"waiting for {waitee} ({sleep}s intervals)...")
             time.sleep(sleep)
             elapsed_time += sleep
             if elapsed_time >= wait_time:
@@ -227,7 +230,15 @@ def main() -> None:
 
     args = parser.parse_args()
     for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
+        LOGGER.warning(f"{arg}: {val}")
+
+    args = parser.parse_args()
+    logging_tools.set_level(
+        os.getenv("SKYSCAN_LOG", "INFO"),  # type: ignore[arg-type]
+        first_party_loggers=LOGGER,
+        third_party_level=os.getenv("SKYSCAN_LOG_THIRD_PARTY", "WARNING"),  # type: ignore[arg-type]
+    )
+    logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     logs_subdir = make_condor_logs_subdir(args.logs_directory)
 
@@ -236,7 +247,7 @@ def main() -> None:
     for carg_value in args.client_args:
         carg, value = carg_value.split(":", maxsplit=1)
         client_args += f" --{carg} {value} "
-    logging.info(f"Client Args: {client_args}")
+    LOGGER.info(f"Client Args: {client_args}")
     if "--startup-json-dir" in client_args:
         raise RuntimeError(
             "The '--client-args' file cannot include \"--startup-json-dir\". "
@@ -254,11 +265,11 @@ def main() -> None:
         args.startup_json,
         client_args,
     )
-    logging.info(job_description)
+    LOGGER.info(job_description)
 
     # dryrun?
     if args.dryrun:
-        logging.error("Script Aborted: Condor job not submitted")
+        LOGGER.error("Script Aborted: Condor job not submitted")
         return
 
     # make connections -- do these before submitting so we don't have any unwanted surprises
@@ -267,12 +278,12 @@ def main() -> None:
 
     # submit
     submit_result = schedd.submit(job_description, count=args.jobs)  # submit N jobs
-    logging.info(submit_result)
+    LOGGER.info(submit_result)
 
     # report to SkyDriver
     if skydriver_rc:
         update_skydriver(skydriver_rc, scan_id, submit_result)
-        logging.warning("Sent cluster info to SkyDriver")
+        LOGGER.warning("Sent cluster info to SkyDriver")
 
 
 if __name__ == "__main__":
