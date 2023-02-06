@@ -54,7 +54,7 @@ nats-py[nkeys]==2.2.0
     # via wipac-mqclient
 nkeys==0.1.0
     # via nats-py
-numpy==1.24.1
+numpy==1.24.2
     # via
     #   astropy
     #   contourpy
@@ -91,7 +91,7 @@ pytz==2022.7.1
     # via pandas
 pyyaml==6.0
     # via astropy
-qrcode==7.4
+qrcode==7.4.2
     # via wipac-rest-tools
 requests==2.28.2
     # via
@@ -123,5 +123,5 @@ wipac-mqclient[nats]==0.6.8
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-wipac-rest-tools==1.4.5
+wipac-rest-tools==1.4.7
     # via skymap-scanner (setup.py)
