@@ -19,19 +19,19 @@ from wipac_dev_tools import logging_tools
 LOGGER = logging.getLogger("clientmanager")
 
 
-def get_schedd(collector_address: str, schedd_name: str) -> htcondor.Schedd:
+def get_schedd_obj(collector: str, schedd: str) -> htcondor.Schedd:
     """Get object for talking with HTCondor schedd.
 
     Examples:
-        `collector_address = "foo-bar.icecube.wisc.edu"`
-        `schedd_name = "baz.icecube.wisc.edu"`
+        `collector = "foo-bar.icecube.wisc.edu"`
+        `schedd = "baz.icecube.wisc.edu"`
     """
-    schedd_ad = htcondor.Collector(collector_address).locate(  # ~> exception
-        htcondor.DaemonTypes.Schedd, schedd_name
+    schedd_ad = htcondor.Collector(collector).locate(  # ~> exception
+        htcondor.DaemonTypes.Schedd, schedd
     )
-    schedd = htcondor.Schedd(schedd_ad)
-    LOGGER.info(f"Connected to Schedd {collector_address=} {schedd_name=}")
-    return schedd
+    schedd_obj = htcondor.Schedd(schedd_ad)
+    LOGGER.info(f"Connected to Schedd {collector=} {schedd=}")
+    return schedd_obj
 
 
 def make_condor_logs_subdir(directory: Path) -> Path:
@@ -121,8 +121,8 @@ def update_skydriver(
     skydriver_rc: RestClient,
     scan_id: int,
     submit_result: htcondor.SubmitResult,
-    collector_address: str,
-    schedd_name: str,
+    collector: str,
+    schedd: str,
 ) -> None:
     """Send SkyDriver updates from the `submit_result`."""
     skydriver_rc.request_seq(
@@ -130,8 +130,8 @@ def update_skydriver(
         f"/scan/manifest/{scan_id}",
         {
             "condor_metadata": {
-                "collector": collector_address,
-                "schedd": schedd_name,
+                "collector": collector,
+                "schedd": schedd,
                 "cluster_id": submit_result.cluster(),
                 "jobs": submit_result.num_procs(),
             }
@@ -276,10 +276,10 @@ def main() -> None:
 
     # make connections -- do these before submitting so we don't have any unwanted surprises
     skydriver_rc, scan_id = connect_to_skydriver()
-    schedd = get_schedd(args.collector_address, args.schedd_name)
+    schedd_obj = get_schedd_obj(args.collector, args.schedd)
 
     # submit
-    submit_result = schedd.submit(job_description, count=args.jobs)  # submit N jobs
+    submit_result = schedd_obj.submit(job_description, count=args.jobs)  # submit N jobs
     LOGGER.info(submit_result)
 
     # report to SkyDriver
@@ -288,8 +288,8 @@ def main() -> None:
             skydriver_rc,
             scan_id,
             submit_result,
-            args.collector_address,
-            args.schedd_name,
+            args.collector,
+            args.schedd,
         )
         LOGGER.warning("Sent cluster info to SkyDriver")
 
