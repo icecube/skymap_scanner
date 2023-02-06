@@ -178,12 +178,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--collector",
-        default=None,
+        default="",
         help="the full URL address of the HTCondor collector server. Ex: foo-bar.icecube.wisc.edu",
     )
     parser.add_argument(
         "--schedd",
-        required=True,
+        default="",
         help="the full DNS name of the HTCondor Schedd server. Ex: baz.icecube.wisc.edu",
     )
 
