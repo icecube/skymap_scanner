@@ -5,7 +5,7 @@ from rest_tools.client import ClientCredentialsAuth
 
 def get_token(address, client_id, client_secret):
     cc = ClientCredentialsAuth('', token_url=address, client_id=client_id, client_secret=client_secret)
-    return cc._make_token()
+    return cc.make_access_token()
 
 def main():
     parser = argparse.ArgumentParser(description='Get an OAuth2 token via client credentials')
