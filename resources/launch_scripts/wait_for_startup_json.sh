@@ -10,8 +10,8 @@
 ########################################################################
 
 waitsec="5"
-timeout=${WAIT_FOR_STARTUP_JSON:-"10 minutes"}
-echo "Will wait for startup.json for $timeout in $waitsec second intervals"
+timeout=${CLIENT_STARTER_WAIT_FOR_STARTUP_JSON:-"600"}
+echo "Will wait for startup.json for $timeout seconds in $waitsec second intervals"
 
 if [ -z "$1" ]; then
     echo "Usage: wait_for_startup_json.sh STARTUP_DIRECTORY"
@@ -23,7 +23,7 @@ if [ ! -d "$1" ]; then
 fi
 
 # wait until the startup.json file exists (with a timeout)
-endtime=$(date -ud "$timeout" +%s)  # wait this long for server startup
+endtime=$(date -ud "$timeout seconds" +%s)  # wait this long for server startup
 while [[ $(date -u +%s) -le $endtime ]]; do
     if [[ -e "$1/startup.json" ]]; then
         echo "Success! 'startup.json' file found:"
@@ -34,6 +34,6 @@ while [[ $(date -u +%s) -le $endtime ]]; do
     sleep $waitsec
 done
 
-echo "Failed. 'startup.json' not found within time limit ($timeout):"
+echo "Failed. 'startup.json' not found within time limit ($timeout seconds):"
 ls $1
 exit 62  # Timer expired
