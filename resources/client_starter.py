@@ -5,7 +5,6 @@
 import argparse
 import datetime as dt
 import getpass
-import json
 import logging
 import os
 import time
@@ -122,6 +121,8 @@ def update_skydriver(
     skydriver_rc: RestClient,
     scan_id: int,
     submit_result: htcondor.SubmitResult,
+    collector_address: str,
+    schedd_name: str,
 ) -> None:
     """Send SkyDriver updates from the `submit_result`."""
     skydriver_rc.request_seq(
@@ -129,9 +130,10 @@ def update_skydriver(
         f"/scan/manifest/{scan_id}",
         {
             "condor_metadata": {
+                "collector": collector_address,
+                "schedd": schedd_name,
                 "cluster_id": submit_result.cluster(),
                 "jobs": submit_result.num_procs(),
-                "cluster_ad": json.loads(submit_result.clusterad().printJson()),
             }
         },
     )
@@ -175,12 +177,12 @@ def main() -> None:
         help="where to save logs",
     )
     parser.add_argument(
-        "--collector-address",
+        "--collector",
         default=None,
         help="the full URL address of the HTCondor collector server. Ex: foo-bar.icecube.wisc.edu",
     )
     parser.add_argument(
-        "--schedd-name",
+        "--schedd",
         required=True,
         help="the full DNS name of the HTCondor Schedd server. Ex: baz.icecube.wisc.edu",
     )
@@ -282,7 +284,13 @@ def main() -> None:
 
     # report to SkyDriver
     if skydriver_rc:
-        update_skydriver(skydriver_rc, scan_id, submit_result)
+        update_skydriver(
+            skydriver_rc,
+            scan_id,
+            submit_result,
+            args.collector_address,
+            args.schedd_name,
+        )
         LOGGER.warning("Sent cluster info to SkyDriver")
 
 
