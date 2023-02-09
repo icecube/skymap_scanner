@@ -1,6 +1,7 @@
 """The Skymap Scanner Server."""
 
 # pylint: disable=invalid-name,import-error
+# fmt:quotes-ok
 
 import argparse
 import asyncio
@@ -926,7 +927,7 @@ async def serve_scan_iteration(
 
 
 def write_startup_json(
-    startup_json_dir: Path,
+    startup_json_file: Path,
     event_metadata: EventMetadata,
     min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
     max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
@@ -937,8 +938,6 @@ def write_startup_json(
 
     Return the scan_id string.
     """
-    json_file = startup_json_dir / "startup.json"
-
     if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
         scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
     else:
@@ -957,9 +956,11 @@ def write_startup_json(
         ),
     }
 
-    with open(json_file, "w") as f:
+    with open(startup_json_file, "w") as f:
         json.dump(json_dict, f)
-    LOGGER.info(f"Startup JSON: {json_file} ({json_file.stat().st_size} bytes)")
+    LOGGER.info(
+        f"Startup JSON: {startup_json_file} ({startup_json_file.stat().st_size} bytes)"
+    )
 
     return json_dict["scan_id"]  # type: ignore[no-any-return]
 
@@ -985,13 +986,13 @@ def main() -> None:
 
     # directory args
     parser.add_argument(
-        "--startup-json-dir",
+        "--startup-json-file",
         required=True,
-        help="The dir to save the JSON needed to spawn clients",
+        help="The filepath to save the JSON needed to spawn clients (the parent directory must already exist)",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            Path(x).is_dir(),
-            NotADirectoryError(x),
+            Path(x).parent.is_dir(),
+            NotADirectoryError(Path(x).parent),
         ),
     )
     parser.add_argument(
@@ -1131,7 +1132,7 @@ def main() -> None:
 
     # write startup files for client-spawning
     scan_id = write_startup_json(
-        args.startup_json_dir,
+        args.startup_json_file,
         event_metadata,
         min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
