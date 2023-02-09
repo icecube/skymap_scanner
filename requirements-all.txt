@@ -28,7 +28,7 @@ coloredlogs==15.0.1
     # via wipac-dev-tools
 contourpy==1.0.7
     # via matplotlib
-cryptography==39.0.0
+cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
@@ -46,7 +46,7 @@ google-auth==2.16.0
     # via
     #   google-api-core
     #   wipac-mqclient
-google-cloud-pubsub==2.14.0
+google-cloud-pubsub==2.14.1
     # via wipac-mqclient
 googleapis-common-protos[grpc]==1.58.0
     # via
@@ -56,14 +56,14 @@ googleapis-common-protos[grpc]==1.58.0
     #   wipac-mqclient
 grpc-google-iam-v1==0.12.6
     # via google-cloud-pubsub
-grpcio==1.52.0
+grpcio==1.51.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.52.0
+grpcio-status==1.51.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
