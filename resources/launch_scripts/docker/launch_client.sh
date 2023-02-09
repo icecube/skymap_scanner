@@ -47,7 +47,7 @@ if gcd:
     #
 if startup:
     dockermount_args += f"--mount type=bind,source={os.path.dirname(startup)},target=/local/startup "
-    py_args += f"--startup-json-file /local/startup/os.path.basename(startup) "
+    py_args += f"--startup-json-file /local/startup/{os.path.basename(startup)} "
 
 print(f"{dockermount_args}#{py_args}")
 ')
