@@ -61,7 +61,7 @@ export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for secur
 ```
 ###### Command-Line Arguments
 ```
-    --startup-json-dir DIR_TO_PUT_STARTUP_JSON \
+    --startup-json-file PATH_TO_STARTUP_JSON \
     --cache-dir `pwd`/server_cache \
     --output-dir `pwd` \
     --reco-algo millipede \
@@ -70,7 +70,7 @@ export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for secur
 _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths are also fine._
 _NOTE: There are more CL arguments not shown. They have defaults._
 ###### `startup.json`
-The server will create a `startup.json` file that has necessary info to launch a client. `--startup-json-dir` needs to be somewhere accessible by your client launch script, whether that's via condor or manually.
+The server will create a `PATH_TO_STARTUP_JSON` file that has necessary info to launch a client. the parent directory of `--startup-json-file` needs to be somewhere accessible by your client launch script, whether that's via condor or manually.
 ##### Run It
 ###### with Singularity
 ```
@@ -101,7 +101,7 @@ export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ```
 ###### Command-Line Arguments
-_See notes about '--startup-json'/--startup-json-dir' below. See client.py for additional optional args._
+_See notes about `--startup-json-file` below. See `client.py` for additional optional args._
 ##### Run It
 ###### with Condor (via Singularity)
 You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
@@ -111,16 +111,16 @@ echo my_client_args.json  # just an example
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
-    --startup-json PATH_TO_STARTUP_JSON \
+    --startup-json-file PATH_TO_STARTUP_JSON \
     --client-args-json my_client_args.json
 ```
-_NOTE: `client_starter.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-json` file._
+_NOTE: `client_starter.py` will wait until `--startup-json-file PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, the client's `--startup-json-file` is auto-set by the script and thus, is disallowed from being in the `--client-args` arguments._
 ###### or Manually (Docker)
 ```
 # side note: you may want to first set environment variables, see below
-./resources/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
+./resources/launch_scripts/wait_for_startup_json.sh PATH_TO_STARTUP_JSON
 ./resources/launch_scripts/docker/launch_client.sh \
-    --startup-json-dir DIR_WITH_STARTUP_JSON \
+    --startup-json-file PATH_TO_STARTUP_JSON \
     YOUR_ARGS
 ```
 _NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
@@ -151,7 +151,7 @@ For now, it's easy to scale up using the command line. Multiple server instances
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
+ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-file /path/to/json/{}/startup.json --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
 
 Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run:
@@ -160,7 +160,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 ```
 ```
 executable = /bin/sh 
-arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --startup-json-dir .
+arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --startup-json-file ./startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
 environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
