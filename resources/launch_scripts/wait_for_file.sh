@@ -5,16 +5,12 @@
 # Wait for $1 after launching a Skymap Scanner server
 # and before launching any clients
 #
-# Pass in one argument, the filepath to the file
+# Pass in two arguments, the filepath to the file & wait duration
 #
 ########################################################################
 
-waitsec="5"
-timeout=${CLIENT_STARTER_WAIT_FOR_STARTUP_JSON:-"600"}
-echo "Will wait for '$1' for $timeout seconds in $waitsec second intervals"
-
-if [ -z "$1" ]; then
-    echo "Usage: wait_for_startup_json.sh STARTUP_JSON_FILE"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: wait_for_file.sh FILE DURATION_SECONDS"
     exit 1
 fi
 if [ ! -d $(dirname $1) ]; then
@@ -22,8 +18,12 @@ if [ ! -d $(dirname $1) ]; then
     exit 2
 fi
 
-# wait until the startup-json file exists (with a timeout)
-endtime=$(date -ud "$timeout seconds" +%s)  # wait this long for server startup
+waitsec="5"
+timeout="$2"
+echo "Will wait for '$1' for $timeout seconds in $waitsec second intervals"
+
+# wait until the file exists (with a timeout)
+endtime=$(date -ud "$timeout seconds" +%s)  # wait this long
 while [[ $(date -u +%s) -le $endtime ]]; do
     if [[ -e "$1" ]]; then
         echo "Success! '$1' file found:"

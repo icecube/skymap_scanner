@@ -118,7 +118,7 @@ _NOTE: `client_starter.py` will wait until `--client-startup-json PATH_TO_CLIENT
 ###### or Manually (Docker)
 ```
 # side note: you may want to first set environment variables, see below
-./resources/launch_scripts/wait_for_startup_json.sh PATH_TO_CLIENT_STARTUP_JSON
+./resources/launch_scripts/wait_for_file.sh PATH_TO_CLIENT_STARTUP_JSON 600
 ./resources/launch_scripts/docker/launch_client.sh \
     --client-startup-json PATH_TO_CLIENT_STARTUP_JSON \
     YOUR_ARGS
