@@ -112,7 +112,7 @@ jobs:
             --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
-            --startup-json-file ./startup.json \
+            --client-startup-json ./startup.json \
             --nsides 1:12 \
             --simulated-event \
             &
@@ -127,7 +127,7 @@ jobs:
           for i in $( seq 1 $nclients ); do
             singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
-              --startup-json-file ./startup.json \
+              --client-startup-json ./startup.json \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\tclient #$i launched"
@@ -193,7 +193,7 @@ jobs:
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
-            --startup-json-file ./startup.json \
+            --client-startup-json ./startup.json \
             --nsides 1:12 \
             --real-event \
             &
@@ -207,7 +207,7 @@ jobs:
           export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./resources/launch_scripts/docker/launch_client.sh \
-              --startup-json-file ./startup.json \
+              --client-startup-json ./startup.json \
               --debug-directory $SKYSCAN_DEBUG_DIR \
               &
             echo -e "\tclient #$i launched"

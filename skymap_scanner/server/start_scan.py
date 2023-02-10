@@ -927,7 +927,7 @@ async def serve_scan_iteration(
 
 
 def write_startup_json(
-    startup_json_file: Path,
+    client_startup_json: Path,
     event_metadata: EventMetadata,
     min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
     max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
@@ -956,10 +956,10 @@ def write_startup_json(
         ),
     }
 
-    with open(startup_json_file, "w") as f:
+    with open(client_startup_json, "w") as f:
         json.dump(json_dict, f)
     LOGGER.info(
-        f"Startup JSON: {startup_json_file} ({startup_json_file.stat().st_size} bytes)"
+        f"Startup JSON: {client_startup_json} ({client_startup_json.stat().st_size} bytes)"
     )
 
     return json_dict["scan_id"]  # type: ignore[no-any-return]
@@ -986,7 +986,7 @@ def main() -> None:
 
     # directory args
     parser.add_argument(
-        "--startup-json-file",
+        "--client-startup-json",
         required=True,
         help="The filepath to save the JSON needed to spawn clients (the parent directory must already exist)",
         type=lambda x: argparse_tools.validate_arg(
@@ -1132,7 +1132,7 @@ def main() -> None:
 
     # write startup files for client-spawning
     scan_id = write_startup_json(
-        args.startup_json_file,
+        args.client_startup_json,
         event_metadata,
         min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)

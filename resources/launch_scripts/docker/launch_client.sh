@@ -32,7 +32,7 @@ def extract_opt_path(py_args, opt):
 
 py_args, debug_dir = extract_opt_path(py_args, "--debug-directory")
 py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
-py_args, startup = extract_opt_path(py_args, "--startup-json-file")
+py_args, startup = extract_opt_path(py_args, "--client-startup-json")
 
 dockermount_args = ""
 py_args += " "
@@ -47,7 +47,7 @@ if gcd:
     #
 if startup:
     dockermount_args += f"--mount type=bind,source={os.path.dirname(startup)},target=/local/startup "
-    py_args += f"--startup-json-file /local/startup/{os.path.basename(startup)} "
+    py_args += f"--client-startup-json /local/startup/{os.path.basename(startup)} "
 
 print(f"{dockermount_args}#{py_args}")
 ')
