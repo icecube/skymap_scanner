@@ -117,7 +117,7 @@ jobs:
             --simulated-event \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
@@ -198,7 +198,7 @@ jobs:
             --real-event \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))

@@ -17,6 +17,10 @@ if [ ! -d $(dirname $1) ]; then
     echo "Directory Not Found: $(dirname $1)"
     exit 2
 fi
+if [[ "$2" != +([[:digit:]]) ]]; then
+    echo "Wait duration must be a number (seconds): $2"
+    exit 2
+fi
 
 waitsec="5"
 timeout="$2"
