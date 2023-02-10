@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.1 (2023-02-10)
+
+
 ## v3.2.0 (2023-02-09)
 ### Feature
 * Client Starter ([#123](https://github.com/icecube/skymap_scanner/issues/123)) ([`8668771`](https://github.com/icecube/skymap_scanner/commit/86687710725774184915f71e8535457ae7d6a6e1))
