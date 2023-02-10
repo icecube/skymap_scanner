@@ -27,15 +27,15 @@ def main() -> None:
 
     # startup.json
     parser.add_argument(
-        "--startup-json-dir",
+        "--client-startup-json",
         help=(
-            "The directory with the 'startup.json' file to startup the client "
+            "The filepath to the JSON file to startup the client "
             "(has keys 'mq_basename', 'baseline_GCD_file', and 'GCDQp_packet')"
         ),
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            Path(x).is_dir(),
-            NotADirectoryError(x),
+            Path(x).parent.is_dir(),
+            NotADirectoryError(Path(x).parent),
         ),
     )
 
@@ -59,7 +59,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # read startup.json
-    with open(args.startup_json_dir / "startup.json", "rb") as f:
+    with open(args.client_startup_json, "rb") as f:
         startup_json_dict = json.load(f)
     with open("GCDQp_packet.json", "w") as f:
         json.dump(startup_json_dict["GCDQp_packet"], f)

@@ -34,7 +34,7 @@ py_args, event = extract_opt_path(py_args, "--event-file")
 py_args, cache = extract_opt_path(py_args, "--cache-dir")
 py_args, output = extract_opt_path(py_args, "--output-dir")
 py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
-py_args, startup = extract_opt_path(py_args, "--startup-json-dir")
+py_args, startup = extract_opt_path(py_args, "--client-startup-json")
 
 dockermount_args = ""
 py_args += " "
@@ -52,8 +52,8 @@ if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
 if startup:
-    dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-json-dir "
-    py_args += f"--startup-json-dir /local/startup-json-dir "
+    dockermount_args += f"--mount type=bind,source={os.path.dirname(startup)},target=/local/startup "
+    py_args += f"--client-startup-json /local/startup/{os.path.basename(startup)} "
 
 print(f"{dockermount_args}#{py_args}")
 ')
