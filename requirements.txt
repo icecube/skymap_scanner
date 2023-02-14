@@ -38,11 +38,11 @@ humanfriendly==10.0
     # via coloredlogs
 idna==3.4
     # via requests
-iminuit==2.18.0
+iminuit==2.20.0
     # via skymap-scanner (setup.py)
 kiwisolver==1.4.4
     # via matplotlib
-matplotlib==3.6.3
+matplotlib==3.7.0
     # via
     #   healpy
     #   skymap-scanner (setup.py)
@@ -59,6 +59,8 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
+oms-mqclient==1.0.0
+    # via skymap-scanner (setup.py)
 packaging==23.0
     # via
     #   astropy
@@ -110,12 +112,11 @@ urllib3==1.26.14
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.10
     # via
+    #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-mqclient
     #   wipac-rest-tools
-wipac-mqclient==0.6.8
-    # via
-    #   ewms-pilot
-    #   skymap-scanner (setup.py)
+wipac-mqclient==0.7.0
+    # via ewms-pilot
 wipac-rest-tools==1.4.8
     # via skymap-scanner (setup.py)
