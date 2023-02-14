@@ -233,7 +233,7 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-  test-run-one-reco-icetray:
+  test-run-single-pixel:
     runs-on: ubuntu-latest
     needs: test-build-docker
     strategy:
