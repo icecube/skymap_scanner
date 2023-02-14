@@ -15,9 +15,7 @@ asyncstdlib==3.10.5
 cachetools==5.3.0
     # via wipac-rest-tools
 certifi==2022.12.7
-    # via
-    #   pulsar-client
-    #   requests
+    # via requests
 cffi==1.15.1
     # via cryptography
 charset-normalizer==3.0.1
@@ -61,6 +59,8 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
+oms-mqclient==1.0.0
+    # via wipac-mqclient
 packaging==23.0
     # via
     #   astropy
@@ -69,8 +69,6 @@ pandas==1.5.3
     # via skymap-scanner (setup.py)
 pillow==9.4.0
     # via matplotlib
-pulsar-client==3.0.0
-    # via wipac-mqclient
 pycparser==2.21
     # via cffi
 pyerfa==2.0.0.1
@@ -114,10 +112,10 @@ urllib3==1.26.14
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.10
     # via
+    #   oms-mqclient
     #   skymap-scanner (setup.py)
-    #   wipac-mqclient
     #   wipac-rest-tools
-wipac-mqclient[pulsar]==0.7.0
+wipac-mqclient[pulsar]==1.0.1
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
