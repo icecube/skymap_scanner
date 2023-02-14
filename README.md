@@ -19,7 +19,7 @@ Env variables
 
 ```
 export SKYSCAN_BROKER_CLIENT=rabbitmq
-export SKYSCAN_BROKER_ADDRESS=amqp://:<token>@<hostname>/<vhost>?heartbeat=600
+export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
 ```
 
 Currently RabbitMQ uses URL parameters for settings.  This may change in future updates.
