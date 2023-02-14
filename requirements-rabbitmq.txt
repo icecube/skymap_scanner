@@ -28,7 +28,7 @@ cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.2.0
+ewms-pilot==0.3.0
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
@@ -60,7 +60,9 @@ numpy==1.24.2
     #   scipy
     #   skymap-scanner (setup.py)
 oms-mqclient[rabbitmq]==1.0.0
-    # via skymap-scanner (setup.py)
+    # via
+    #   ewms-pilot
+    #   skymap-scanner (setup.py)
 packaging==23.0
     # via
     #   astropy
@@ -116,9 +118,6 @@ wipac-dev-tools[coloredlogs]==1.6.10
     # via
     #   oms-mqclient
     #   skymap-scanner (setup.py)
-    #   wipac-mqclient
     #   wipac-rest-tools
-wipac-mqclient==0.7.0
-    # via ewms-pilot
 wipac-rest-tools==1.4.8
     # via skymap-scanner (setup.py)
