@@ -87,7 +87,7 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "request_memory": memory,
         "notification": "Error",
     }
-    if os.getenv("RABBITMQ_HEARTBEAT"):
+    if not os.getenv("RABBITMQ_HEARTBEAT"):
         if "environment" in submit_dict:
             raise RuntimeError("Attempted overwrite: 'environment' (need better logic)")
         submit_dict["environment"] = "RABBITMQ_HEARTBEAT=600"
