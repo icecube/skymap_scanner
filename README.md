@@ -58,6 +58,7 @@ The server can be launched from anywhere with a stable network connection. You c
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export RABBITMQ_HEARTBEAT=600
 ```
 ###### Command-Line Arguments
 ```
@@ -88,6 +89,7 @@ _NOTE: By default the launch script will pull, build, and run the latest image f
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
 export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
+export RABBITMQ_HEARTBEAT=600
 ```
 
 #### 2. Launch Each Client
@@ -99,6 +101,7 @@ The client jobs can submitted via HTCondor from sub-2. Running the script below 
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export RABBITMQ_HEARTBEAT=600
 ```
 ###### Command-Line Arguments
 _See notes about `--client-startup-json` below. See `client.py` for additional optional args._
@@ -162,7 +165,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --client-startup-json ./client-startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS"
+environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS RABBITMQ_HEARTBEAT=600"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
@@ -183,7 +186,7 @@ environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmf
 
 ### Additional Configuration
 #### Environment Variables
-When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-prefixed variables and `PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC` are also forwarded. See `skymap_scanner.config.ENV` for more detail.
+When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`- and `RABBITMQ_`-prefixed variables, plus  `PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC` are also forwarded. See `skymap_scanner.config.ENV` for more detail.
 ##### Timeouts
 The Skymap Scanner is designed to have realistic timeouts for HTCondor. That said, there are three main timeouts which can be altered:
 ```
@@ -204,6 +207,7 @@ The Skymap Scanner is designed to have realistic timeouts for HTCondor. That sai
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 ```
+Relatedly, the environment variable `RABBITMQ_HEARTBEAT` can also be configured (see [Environment Variables](#environment-variables)).
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.

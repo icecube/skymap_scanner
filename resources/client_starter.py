@@ -74,7 +74,7 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "executable": "/bin/sh",
         "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --client-startup-json ./{client_startup_json.name}",
         "+SingularityImage": singularity_image,
-        "getenv": "SKYSCAN_*, EWMS_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
+        "getenv": "SKYSCAN_*, EWMS_*, RABBITMQ_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
         "output": str(logs_subdir / "client-$(ProcId).out"),
         "error": str(logs_subdir / "client-$(ProcId).err"),
         "log": str(logs_subdir / "client.log"),
