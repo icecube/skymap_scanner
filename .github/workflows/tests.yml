@@ -158,8 +158,8 @@ jobs:
         rabbitmq:
           image: bitnami/rabbitmq:latest
           env:
-            RABBITMQ_USERNAME: admin
-            RABBITMQ_PASSWORD: admin
+            RABBITMQ_USERNAME: guest
+            RABBITMQ_PASSWORD: guest
             # RABBITMQ_VHOST: test
             BITNAMI_DEBUG: true
           options: --name rabbitmq --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
