@@ -160,7 +160,7 @@ jobs:
           env:
             RABBITMQ_USERNAME: admin
             RABBITMQ_PASSWORD: admin
-            RABBITMQ_VHOST: test
+            # RABBITMQ_VHOST: test
           options: --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
           ports:
           - 5672:5672
