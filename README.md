@@ -18,11 +18,13 @@ Build `Dockerfile_pulsar` for a pulsar container.
 Env variables
 
 ```
-export SKYSCAN_BROKER_CLIENT=rabbitmq
+# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
+export SKYSCAN_BROKER_AUTH=<token>
+export RABBITMQ_HEARTBEAT=600
 ```
 
-Currently RabbitMQ uses URL parameters for settings.  This may change in future updates.
+Currently, RabbitMQ uses URL parameters for the hostname, virtual host, and port (`[https://]HOST[:PORT][/VIRTUAL_HOST]`). The heartbeat is configured by `RABBITMQ_HEARTBEAT`. This may change in future updates.
 
 Python install:
 ```
@@ -36,7 +38,7 @@ Env variables
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_ADDRESS=<ip address>
 export SKYSCAN_BROKER_AUTH=<token>
-export RABBITMQ_HEARTBEAT=600
+export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900
 ```
 
 Python install:
@@ -44,10 +46,11 @@ Python install:
 pip install .[pulsar]
 ```
 
-## Pulsar Example
+## Example
+This example is for the rabbitmq (default) broker. Steps for using a pulsar broker are similar and differences are noted throughout this example. The predominant difference is noted in [Queue Types](queue-types) (`Dockerfile_pulsar`).
 
 ### Example Startup
-You will need to get a pulsar broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
+You will need to get a rabbitmq broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
 
 #### 1. Launch the Server
 The server can be launched from anywhere with a stable network connection. You can run it from the cobalts for example.
@@ -56,9 +59,9 @@ The server can be launched from anywhere with a stable network connection. You c
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
-export SKYSCAN_BROKER_CLIENT=pulsar
+# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export RABBITMQ_HEARTBEAT=600
+export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 ###### Command-Line Arguments
 ```
@@ -89,7 +92,7 @@ _NOTE: By default the launch script will pull, build, and run the latest image f
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
 export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
-export RABBITMQ_HEARTBEAT=600
+export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 
 #### 2. Launch Each Client
@@ -99,9 +102,9 @@ The client jobs can submitted via HTCondor from sub-2. Running the script below 
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
-export SKYSCAN_BROKER_CLIENT=pulsar
+# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export RABBITMQ_HEARTBEAT=600
+export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 ###### Command-Line Arguments
 _See notes about `--client-startup-json` below. See `client.py` for additional optional args._
@@ -152,7 +155,7 @@ For now, it's easy to scale up using the command line. Multiple server instances
 
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
-export SKYSCAN_BROKER_CLIENT=pulsar
+export SKYSCAN_BROKER_CLIENT=rabbitmq
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --client-startup-json /path/to/json/{}/client-startup.json --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
