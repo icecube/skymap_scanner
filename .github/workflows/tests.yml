@@ -162,8 +162,7 @@ jobs:
             RABBITMQ_PASSWORD: guest
             # RABBITMQ_VHOST: test
             BITNAMI_DEBUG: true
-          networks:
-            - host
+          # Note: `--network` option is not supported.
           options: --name rabbitmq --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
           ports:
           - 5672:5672
