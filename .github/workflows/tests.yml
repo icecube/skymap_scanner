@@ -158,7 +158,7 @@ jobs:
         rabbitmq:
           image: bitnami/rabbitmq:latest
           volumes:
-            - ./tests/resources/rabbitmq-custom-authless.conf:/bitnami/rabbitmq/conf/custom.conf
+            - tests/resources/rabbitmq-custom-authless.conf:/bitnami/rabbitmq/conf/custom.conf
           env:
             RABBITMQ_USERNAME: guest
             RABBITMQ_PASSWORD: guest
