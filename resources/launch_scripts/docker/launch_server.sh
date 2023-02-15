@@ -79,7 +79,9 @@ docker run --network="host" $pull_policy --rm -i \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     $(env | grep '^EWMS_' | awk '$0="--env "$0') \
     $(env | grep '^RABBITMQ_' | awk '$0="--env "$0') \
-    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:-300}" \
+    --env "RABBITMQ_HEARTBEAT=${RABBITMQ_HEARTBEAT:-600}" \
+    $(env | grep '^PULSAR_' | awk '$0="--env "$0') \
+    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:-900}" \
     icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
     python -m skymap_scanner.server \
     $PY_ARGS

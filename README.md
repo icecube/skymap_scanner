@@ -36,7 +36,7 @@ Env variables
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_ADDRESS=<ip address>
 export SKYSCAN_BROKER_AUTH=<token>
-export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=600
+export RABBITMQ_HEARTBEAT=600
 ```
 
 Python install:
@@ -186,7 +186,7 @@ environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmf
 
 ### Additional Configuration
 #### Environment Variables
-When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`- and `RABBITMQ_`-prefixed variables, plus  `PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC` are also forwarded. See `skymap_scanner.config.ENV` for more detail.
+When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-, `PULSAR_`- and, `RABBITMQ_`-prefixed variables are also forwarded. See `skymap_scanner.config.ENV` for more detail.
 ##### Timeouts
 The Skymap Scanner is designed to have realistic timeouts for HTCondor. That said, there are three main timeouts which can be altered:
 ```
