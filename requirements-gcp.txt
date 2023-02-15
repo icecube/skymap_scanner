@@ -13,9 +13,7 @@ asyncstdlib==3.10.5
     #   ewms-pilot
     #   skymap-scanner (setup.py)
 cachetools==5.3.0
-    # via
-    #   google-auth
-    #   wipac-rest-tools
+    # via wipac-rest-tools
 certifi==2022.12.7
     # via requests
 cffi==1.15.1
@@ -30,50 +28,21 @@ cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.2.0
+ewms-pilot==0.3.0
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
-google-api-core[grpc]==2.11.0
-    # via
-    #   google-cloud-pubsub
-    #   wipac-mqclient
-google-auth==2.16.0
-    # via
-    #   google-api-core
-    #   wipac-mqclient
-google-cloud-pubsub==2.14.1
-    # via wipac-mqclient
-googleapis-common-protos[grpc]==1.58.0
-    # via
-    #   google-api-core
-    #   grpc-google-iam-v1
-    #   grpcio-status
-    #   wipac-mqclient
-grpc-google-iam-v1==0.12.6
-    # via google-cloud-pubsub
-grpcio==1.51.1
-    # via
-    #   google-api-core
-    #   google-cloud-pubsub
-    #   googleapis-common-protos
-    #   grpc-google-iam-v1
-    #   grpcio-status
-grpcio-status==1.51.1
-    # via
-    #   google-api-core
-    #   google-cloud-pubsub
 healpy==1.16.2
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
 idna==3.4
     # via requests
-iminuit==2.18.0
+iminuit==2.20.0
     # via skymap-scanner (setup.py)
 kiwisolver==1.4.4
     # via matplotlib
-matplotlib==3.6.3
+matplotlib==3.7.0
     # via
     #   healpy
     #   skymap-scanner (setup.py)
@@ -90,6 +59,10 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
+oms-mqclient==1.0.2
+    # via
+    #   ewms-pilot
+    #   wipac-mqclient
 packaging==23.0
     # via
     #   astropy
@@ -98,22 +71,6 @@ pandas==1.5.3
     # via skymap-scanner (setup.py)
 pillow==9.4.0
     # via matplotlib
-proto-plus==1.22.2
-    # via google-cloud-pubsub
-protobuf==4.21.12
-    # via
-    #   google-api-core
-    #   google-cloud-pubsub
-    #   googleapis-common-protos
-    #   grpc-google-iam-v1
-    #   grpcio-status
-    #   proto-plus
-pyasn1==0.4.8
-    # via
-    #   pyasn1-modules
-    #   rsa
-pyasn1-modules==0.2.8
-    # via google-auth
 pycparser==2.21
     # via cffi
 pyerfa==2.0.0.1
@@ -136,25 +93,20 @@ qrcode==7.4.2
     # via wipac-rest-tools
 requests==2.28.2
     # via
-    #   google-api-core
     #   requests-futures
     #   wipac-dev-tools
     #   wipac-rest-tools
 requests-futures==1.0.0
     # via wipac-rest-tools
-rsa==4.9
-    # via google-auth
 scipy==1.10.0
     # via healpy
 six==1.16.0
-    # via
-    #   google-auth
-    #   python-dateutil
+    # via python-dateutil
 tornado==6.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
-typing-extensions==4.4.0
+typing-extensions==4.5.0
     # via
     #   qrcode
     #   wipac-dev-tools
@@ -162,12 +114,10 @@ urllib3==1.26.14
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.10
     # via
+    #   oms-mqclient
     #   skymap-scanner (setup.py)
-    #   wipac-mqclient
     #   wipac-rest-tools
-wipac-mqclient[gcp]==0.6.8
-    # via
-    #   ewms-pilot
-    #   skymap-scanner (setup.py)
-wipac-rest-tools==1.4.8
+wipac-mqclient[gcp]==1.0.1
+    # via skymap-scanner (setup.py)
+wipac-rest-tools==1.4.9
     # via skymap-scanner (setup.py)
