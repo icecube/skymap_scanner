@@ -7,7 +7,7 @@ fi
 
 CUSTOM_CONF="$1/custom.conf"
 
-sudo bash -c "\n## Custom\n' >> $CUSTOM_CONF"
+sudo bash -c "echo -e '\n## Custom\n' >> $CUSTOM_CONF"
 sudo bash -c "echo -e 'log.console.level = debug\n' >> $CUSTOM_CONF"
 sudo bash -c "echo -e 'loopback_users = none\n' >> $CUSTOM_CONF"  # allows guest/guest from non-localhost
 
