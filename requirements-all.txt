@@ -114,7 +114,7 @@ pillow==9.4.0
     # via matplotlib
 proto-plus==1.22.2
     # via google-cloud-pubsub
-protobuf==4.21.12
+protobuf==4.22.0
     # via
     #   google-api-core
     #   google-cloud-pubsub
