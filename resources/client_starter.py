@@ -50,11 +50,11 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
     accounting_group: str,
     # skymap scanner args
     singularity_image: str,
-    startup_json: Path,
+    client_startup_json: Path,
     client_args: str,
 ) -> htcondor.Submit:
     """Make the condor job description object."""
-    transfer_input_files: List[str] = [str(startup_json)]
+    transfer_input_files: List[str] = [str(client_startup_json)]
 
     # NOTE:
     # In the newest version of condor we could use:
@@ -72,7 +72,7 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
     # write
     submit_dict = {
         "executable": "/bin/sh",
-        "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --startup-json-dir .",
+        "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --client-startup-json {client_startup_json.name}",
         "+SingularityImage": singularity_image,
         "getenv": "SKYSCAN_*, EWMS_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
         "output": str(logs_subdir / "client-$(ProcId).out"),
@@ -217,7 +217,7 @@ def main() -> None:
         help="a path or url to the singularity image",
     )
     parser.add_argument(
-        "--startup-json",
+        "--client-startup-json",
         help="The 'startup.json' file to startup each client",
         type=lambda x: wait_for_file(
             Path(x), int(os.getenv("CLIENT_STARTER_WAIT_FOR_STARTUP_JSON", "60"))
@@ -225,7 +225,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--client-args",
-        required=True,
+        required=False,
         nargs="+",
         help="n 'key:value' pairs containing the python CL arguments to pass to skymap_scanner.client",
     )
@@ -246,15 +246,16 @@ def main() -> None:
 
     # get client args
     client_args = ""
-    for carg_value in args.client_args:
-        carg, value = carg_value.split(":", maxsplit=1)
-        client_args += f" --{carg} {value} "
-    LOGGER.info(f"Client Args: {client_args}")
-    if "--startup-json-dir" in client_args:
-        raise RuntimeError(
-            "The '--client-args' file cannot include \"--startup-json-dir\". "
-            "This needs to be defined explicitly with '--startup-json'."
-        )
+    if args.client_args is not None:
+        for carg_value in args.client_args:
+            carg, value = carg_value.split(":", maxsplit=1)
+            client_args += f" --{carg} {value} "
+            LOGGER.info(f"Client Args: {client_args}")
+            if "--client-startup-json" in client_args:
+                raise RuntimeError(
+                    "The '--client-args' file cannot include \"--client-startup-json\". "
+                    "This needs to be defined explicitly."
+                )
 
     # make condor job description
     job_description = make_condor_job_description(
@@ -264,7 +265,7 @@ def main() -> None:
         args.accounting_group,
         # skymap scanner args
         args.singularity_image,
-        args.startup_json,
+        args.client_startup_json,
         client_args,
     )
     LOGGER.info(job_description)
