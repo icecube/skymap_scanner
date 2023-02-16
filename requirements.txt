@@ -28,7 +28,7 @@ cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.2.0
+ewms-pilot==0.3.0
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
@@ -59,8 +59,10 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient==1.0.0
-    # via wipac-mqclient
+oms-mqclient==1.0.2
+    # via
+    #   ewms-pilot
+    #   wipac-mqclient
 packaging==23.0
     # via
     #   astropy
@@ -104,7 +106,7 @@ tornado==6.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
-typing-extensions==4.4.0
+typing-extensions==4.5.0
     # via
     #   qrcode
     #   wipac-dev-tools
@@ -116,8 +118,6 @@ wipac-dev-tools[coloredlogs]==1.6.10
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
 wipac-mqclient[pulsar]==1.0.1
-    # via
-    #   ewms-pilot
-    #   skymap-scanner (setup.py)
-wipac-rest-tools==1.4.8
+    # via skymap-scanner (setup.py)
+wipac-rest-tools==1.4.10
     # via skymap-scanner (setup.py)
