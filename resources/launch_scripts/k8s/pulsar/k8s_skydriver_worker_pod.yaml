@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    job-name: skydriver-test-worker
+    k8s-app: skydriver-test-worker
+  name: skydriver-test-worker-4
+  namespace: icecube-skymap-scanner
+spec:
+  initContainers:
+  - env:
+    - name: EVENT_STARTUP_JSON
+      value: "run00136896.evt000056213219.HESE-8-512-1669395539.json"
+    name: skydriver-get-startup-config
+    image: busybox
+    command:
+      # - echo
+      # - "https://icecube:skua@user-web.icecube.wisc.edu/~briedel/$(EVENT_STARTUP_JSON)"
+    - wget
+    - "-O" 
+    - "/download/startup.json"
+    - "https://icecube:skua@user-web.icecube.wisc.edu/~briedel/$(EVENT_STARTUP_JSON)"
+    volumeMounts:
+    - name: startup-config-mount
+      mountPath: "/download"
+  containers:
+  - env:
+    # - name: K8S_PROVISIONER_TYPE
+    #   value: PRPHTCondorProvisioner
+    - name: SKYDRIVER_TOKEN
+      valueFrom:
+        secretKeyRef: 
+          name: pulsar-300-token-admin
+          key: TOKEN
+    - name: SKYDRIVER_MQ_SERVER
+      value: "34.72.37.204"
+    image: icecube/skymap_scanner:3.0.39
+    imagePullPolicy: Always
+    name: skydriver-worker
+    command: 
+    - "/bin/bash"
+    - "/usr/local/icetray/env-shell.sh"
+    args:  
+    - "python"
+    - "-m"
+    - "skymap_scanner.client"
+    - "--startup-json-dir"
+    - "/skymap-scanner-startup-config/"
+    - "--broker"
+    - "$(SKYDRIVER_MQ_SERVER)"
+    - "--auth-token"
+    - "$(SKYDRIVER_TOKEN)"
+    resources:
+      limits:
+        cpu: 2250m
+        memory: 6Gi
+      requests:
+        cpu: 1500m
+        memory: 5Gi
+    volumeMounts:
+    # - mountPath: /cvmfs/config-osg.opensciencegrid.org
+    #   name: cvmfs-config-osg
+    # - mountPath: /cvmfs/oasis.opensciencegrid.org
+    #   name: cvmfs-oasis
+    # - mountPath: /cvmfs/icecube.opensciencegrid.org
+    #   name: cvmfs-icecube
+    # - mountPath: /cvmfs/singularity.opensciencegrid.org
+    #   name: cvmfs-singularity
+    # - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    #   name: kube-api-access-nqrrp
+    #   readOnly: true
+    - mountPath: /skymap-scanner-startup-config/
+      name: startup-config-mount
+      readOnly: true
+  volumes:
+  # - name: cvmfs-config-osg
+  #   persistentVolumeClaim:
+  #     claimName: cvmfs-config-osg
+  # - name: cvmfs-oasis
+  #   persistentVolumeClaim:
+  #     claimName: cvmfs-oasis
+  # - name: cvmfs-icecube
+  #   persistentVolumeClaim:
+  #     claimName: cvmfs-icecube
+  # - name: cvmfs-singularity
+  #   persistentVolumeClaim:
+  #     claimName: cvmfs-singularity
+  - name: startup-config-mount
+    emptyDir: {}
