@@ -21,4 +21,6 @@ echo "restarting rabbitmq container"
 docker restart rabbitmq
 
 # wait for rabbitmq container to restart
-until [ "$(docker inspect -f {{.State.Running}} rabbitmq)" == "true" ]; do sleep 0.1; done
+until [ "$(docker inspect -f {{.State.Running}} rabbitmq)" == "true" ]; do
+    sleep 0.1
+done
