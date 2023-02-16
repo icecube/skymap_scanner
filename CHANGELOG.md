@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.3 (2023-02-16)
+### Other
+* <bot> update requirements-gcp.txt ([`d382429`](https://github.com/icecube/skymap_scanner/commit/d382429ac5942c2d8c87c0a9fce88ba98506a435))
+* <bot> update requirements-all.txt ([`87fa85b`](https://github.com/icecube/skymap_scanner/commit/87fa85bdfd926913020ad92d407d452f75a7f099))
+* K8s setup in gcp ([#129](https://github.com/icecube/skymap_scanner/issues/129)) ([`bb77521`](https://github.com/icecube/skymap_scanner/commit/bb77521e5b210c4a0d980f37f70f674960c00e38))
+
 ## v3.2.2 (2023-02-15)
 ### Other
 * Use `oms-mqclient` ([#128](https://github.com/icecube/skymap_scanner/issues/128)) ([`18eb246`](https://github.com/icecube/skymap_scanner/commit/18eb24643fc099b8c1aff3dbba1991860ae437c9))
