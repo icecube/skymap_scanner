@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.2 (2023-02-15)
+### Other
+* Use `oms-mqclient` ([#128](https://github.com/icecube/skymap_scanner/issues/128)) ([`18eb246`](https://github.com/icecube/skymap_scanner/commit/18eb24643fc099b8c1aff3dbba1991860ae437c9))
+
 ## v3.2.1 (2023-02-10)
 
 
