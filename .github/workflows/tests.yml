@@ -154,14 +154,10 @@ jobs:
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
-      - name: broker output
-        if: always()
-        run: |
-          cat ./broker.out
       - name: broker docker logs
         if: always()
         run: |
-          docker logs $BROKER_CONTAINER_NAME || true
+          docker logs rabbitmq
 
   test-run-docker:
     runs-on: ubuntu-latest
