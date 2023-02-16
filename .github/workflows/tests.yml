@@ -186,12 +186,12 @@ jobs:
         timeout-minutes: 2  # may die if rabbitmq fails to start
         run: |
           CUSTOM_CONF="/home/runner/rabbitmq_conf/custom.conf"
-          echo -e "log.console.level = debug\n" >> $CUSTOM_CONF
-          echo -e "loopback_users = none\n" >> $CUSTOM_CONF  # allows guest/guest from non-localhost
+          sudo echo -e "log.console.level = debug\n" >> $CUSTOM_CONF
+          sudo echo -e "loopback_users = none\n" >> $CUSTOM_CONF  # allows guest/guest from non-localhost
           # refresh rabbitmq config - based on ENTRYPOINT logic
           docker exec rabbitmq bash -c 'cat /bitnami/conf/custom.conf >> /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf'
           # sleep to prevent interleaved output in GHA logs
-          docker exec rabbitmq cat /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf && sleep 0.1
+          docker exec rabbitmq cat /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf && sleep 1
           echo
           echo restarting rabbitmq container
           docker restart rabbitmq
