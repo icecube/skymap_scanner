@@ -63,6 +63,8 @@ jobs:
   test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
     needs: test-build-docker
+    env:
+      SKYSCAN_BROKER_ADDRESS: localhost/test
     services:
       rabbitmq:
         image: bitnami/rabbitmq:latest
@@ -71,7 +73,7 @@ jobs:
         env:
           RABBITMQ_USERNAME: guest
           RABBITMQ_PASSWORD: guest
-          # RABBITMQ_VHOST: test
+          RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
         # Note: `--network` option is not supported.
         options: >-
