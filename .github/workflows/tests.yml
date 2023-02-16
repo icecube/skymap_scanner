@@ -147,26 +147,6 @@ jobs:
   test-run-docker:
     runs-on: ubuntu-latest
     needs: test-build-docker
-    services:
-        rabbitmq:
-          image: bitnami/rabbitmq:latest
-          volumes:
-            - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
-          env:
-            RABBITMQ_USERNAME: guest
-            RABBITMQ_PASSWORD: guest
-            # RABBITMQ_VHOST: test
-            BITNAMI_DEBUG: true
-          # Note: `--network` option is not supported.
-          options: >-
-            --name rabbitmq
-            --health-cmd "rabbitmqctl node_health_check"
-            --health-interval 5s
-            --health-timeout 5s
-            --health-retries 10
-          ports:
-          - 5672:5672
-          - 15672:15672
     strategy:
       fail-fast: false
       matrix:
@@ -177,26 +157,34 @@ jobs:
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:latest
+        volumes:
+          - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
+        env:
+          RABBITMQ_USERNAME: guest
+          RABBITMQ_PASSWORD: guest
+          # RABBITMQ_VHOST: test
+          BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
+        options: >-
+          --name rabbitmq
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
     steps:
       - uses: actions/checkout@v3
-      - name: reconfigure rabbitmq
+      - name: reconfigure rabbitmq container w/ a custom.conf
         # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
-        # bitnami image allows (see bitnami/rabbitmq readme):
-        # Here we're copying a rabbitmq.config file which won't do anything.
-        # We need to switch to custom.conf or advanced.config.
+        # Restart the container w/ a custom.conf
         timeout-minutes: 2  # may die if rabbitmq fails to start
         run: |
-          CUSTOM_CONF="/home/runner/rabbitmq_conf/custom.conf"
-          sudo bash -c "echo -e 'log.console.level = debug\n' >> $CUSTOM_CONF"
-          sudo bash -c "echo -e 'loopback_users = none\n' >> $CUSTOM_CONF"  # allows guest/guest from non-localhost
-          # refresh rabbitmq config - based on ENTRYPOINT logic
-          docker exec rabbitmq bash -c 'cat /bitnami/conf/custom.conf >> /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf'
-          # sleep to prevent interleaved output in GHA logs
-          docker exec rabbitmq cat /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf && sleep 1
-          echo -e "\nrestarting rabbitmq container"
-          docker restart rabbitmq
-          # wait for rabbitmq container to restart
-          until [ "$(docker inspect -f {{.State.Running}} rabbitmq)" == "true" ]; do sleep 0.1; done
+          tests/resources/reconfigure_rabbitmq.sh
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
