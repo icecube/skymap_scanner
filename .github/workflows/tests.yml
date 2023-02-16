@@ -163,7 +163,7 @@ jobs:
             # RABBITMQ_VHOST: test
             BITNAMI_DEBUG: true
           # Note: `--network` option is not supported.
-          options: --name rabbitmq --set log.console.level=debug --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
+          options: --name rabbitmq --health-cmd "rabbitmqctl node_health_check" --health-interval 5s --health-timeout 5s --health-retries 10
           ports:
           - 5672:5672
           - 15672:15672
