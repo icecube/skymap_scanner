@@ -157,6 +157,8 @@ jobs:
     services:
         rabbitmq:
           image: bitnami/rabbitmq:latest
+          volumes:
+            - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
           env:
             RABBITMQ_USERNAME: guest
             RABBITMQ_PASSWORD: guest
@@ -184,6 +186,29 @@ jobs:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
     steps:
       - uses: actions/checkout@v3
+      - name: reconfigure rabbitmq
+        # bitnami image allows (see bitnami/rabbitmq readme):
+        # Here we're copying a rabbitmq.config file which won't do anything.
+        # We need to switch to custom.conf or advanced.config.
+        timeout-minutes: 2  # may die if rabbitmq fails to start
+        run: |
+          CUSTOM_CONF="/home/runner/rabbitmq_conf/custom.conf"
+          echo -e "log.console.level = debug\n" >> $CUSTOM_CONF
+          echo -e "loopback_users = none\n" >> $CUSTOM_CONF  # allows guest/guest from non-localhost
+          # refresh rabbitmq config - based on ENTRYPOINT logic
+          docker exec rabbitmq bash -c 'cat /bitnami/conf/custom.conf >> /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf'
+          # sleep to prevent interleaved output in GHA logs
+          docker exec rabbitmq cat /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf && sleep 0.1
+          echo
+          echo restarting rabbitmq container
+          docker restart rabbitmq
+          # wait for rabbitmq container to restart
+          # TODO: Add timeout for just in case (config error or similar)
+          # shellcheck disable=SC1083
+          until [ "$(docker inspect -f {{.State.Running}} rabbitmq)" == "true" ]; do sleep 0.1; done
+          echo enabled RabbitMQ plugins:
+          # print plugins list to: (1) ease debugging, (2) pause till rabbitmq is really running
+          docker exec rabbitmq rabbitmq-plugins list -e
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build and push
