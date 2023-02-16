@@ -180,6 +180,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: reconfigure rabbitmq
+        # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
         # bitnami image allows (see bitnami/rabbitmq readme):
         # Here we're copying a rabbitmq.config file which won't do anything.
         # We need to switch to custom.conf or advanced.config.
@@ -192,16 +193,10 @@ jobs:
           docker exec rabbitmq bash -c 'cat /bitnami/conf/custom.conf >> /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf'
           # sleep to prevent interleaved output in GHA logs
           docker exec rabbitmq cat /opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf && sleep 1
-          echo
-          echo restarting rabbitmq container
+          echo -e "\nrestarting rabbitmq container"
           docker restart rabbitmq
           # wait for rabbitmq container to restart
-          # TODO: Add timeout for just in case (config error or similar)
-          # shellcheck disable=SC1083
           until [ "$(docker inspect -f {{.State.Running}} rabbitmq)" == "true" ]; do sleep 0.1; done
-          echo enabled RabbitMQ plugins:
-          # print plugins list to: (1) ease debugging, (2) pause till rabbitmq is really running
-          docker exec rabbitmq rabbitmq-plugins list -e
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
