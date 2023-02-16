@@ -3,6 +3,7 @@
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "ERROR: Missing dirpath(s) (usage: reconfigure-rabbitmq.sh SRC_DIRPATH DEST_DIRPATH)"
     exit 1
+fi
 
 CUSTOM_CONF="$1/custom.conf"
 
