@@ -59,18 +59,28 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
+<<<<<<< HEAD
 oms-mqclient[rabbitmq]==1.0.2
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
+=======
+oms-mqclient==1.0.2
+    # via
+    #   ewms-pilot
+    #   wipac-mqclient
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 packaging==23.0
     # via
     #   astropy
     #   matplotlib
 pandas==1.5.3
     # via skymap-scanner (setup.py)
+<<<<<<< HEAD
 pika==1.3.1
     # via oms-mqclient
+=======
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 pillow==9.4.0
     # via matplotlib
 pycparser==2.21
@@ -119,5 +129,11 @@ wipac-dev-tools[coloredlogs]==1.6.10
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
+<<<<<<< HEAD
 wipac-rest-tools==1.4.8
+=======
+wipac-mqclient[rabbitmq]==1.0.1
+    # via skymap-scanner (setup.py)
+wipac-rest-tools==1.4.9
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
     # via skymap-scanner (setup.py)

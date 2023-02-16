@@ -28,8 +28,11 @@ cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
+<<<<<<< HEAD
 ed25519==1.5
     # via nkeys
+=======
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 ewms-pilot==0.3.0
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
@@ -50,10 +53,13 @@ matplotlib==3.7.0
     #   skymap-scanner (setup.py)
 meander==0.0.3
     # via skymap-scanner (setup.py)
+<<<<<<< HEAD
 nats-py[nkeys]==2.2.0
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
+=======
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 numpy==1.24.2
     # via
     #   astropy
@@ -65,10 +71,17 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
+<<<<<<< HEAD
 oms-mqclient[nats]==1.0.2
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
+=======
+oms-mqclient==1.0.2
+    # via
+    #   ewms-pilot
+    #   wipac-mqclient
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 packaging==23.0
     # via
     #   astropy
@@ -123,5 +136,11 @@ wipac-dev-tools[coloredlogs]==1.6.10
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
+<<<<<<< HEAD
 wipac-rest-tools==1.4.8
+=======
+wipac-mqclient[nats]==1.0.1
+    # via skymap-scanner (setup.py)
+wipac-rest-tools==1.4.9
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
     # via skymap-scanner (setup.py)

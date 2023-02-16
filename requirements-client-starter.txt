@@ -64,7 +64,11 @@ numpy==1.24.2
 oms-mqclient==1.0.2
     # via
     #   ewms-pilot
+<<<<<<< HEAD
     #   skymap-scanner (setup.py)
+=======
+    #   wipac-mqclient
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 packaging==23.0
     # via
     #   astropy
@@ -119,5 +123,11 @@ wipac-dev-tools[coloredlogs]==1.6.10
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
+<<<<<<< HEAD
 wipac-rest-tools==1.4.8
+=======
+wipac-mqclient==1.0.1
+    # via skymap-scanner (setup.py)
+wipac-rest-tools==1.4.9
+>>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
     # via skymap-scanner (setup.py)
