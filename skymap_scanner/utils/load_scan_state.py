@@ -5,36 +5,34 @@
 # pylint: skip-file
 
 import os
-import random
-from typing import List, Tuple
+from typing import List
 
-import numpy
-from I3Tray import I3Units
-from icecube import VHESelfVeto, dataclasses, dataio, icetray
+from icecube import dataio, icetray
 
 from .. import config as cfg
 from . import LOGGER
+from .event_tools import EventMetadata
 from .pixelreco import PixelReco
 from .utils import hash_frame_packet, load_GCD_frame_packet_from_file
 
 
 def load_cache_state(
-    event_id: str,
+    event_metadata: EventMetadata,
     reco_algo: str,
     filestager=None,
     cache_dir: str = "./cache/",
-) -> Tuple[str, dict]:
-    this_event_cache_dir = os.path.join(cache_dir, event_id)
+) -> dict:
+    this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if not os.path.isdir(this_event_cache_dir):
-        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
+        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), this_event_cache_dir))
 
     # load GCDQp state first
-    state_dict = load_GCDQp_state(event_id, filestager=filestager, cache_dir=cache_dir)[1]
+    state_dict = load_GCDQp_state(event_metadata, filestager=filestager, cache_dir=cache_dir)
 
     # update with scans
-    state_dict = load_scan_state(event_id, state_dict, reco_algo, filestager=filestager, cache_dir=cache_dir)[1]
+    state_dict = load_scan_state(event_metadata, state_dict, reco_algo, filestager=filestager, cache_dir=cache_dir)[1]
 
-    return (event_id, state_dict)
+    return state_dict
 
 
 """
@@ -77,7 +75,13 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List
     return baseline_GCD_frames
 
 
-def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache_dir="./cache/"):
+def load_scan_state(
+    event_metadata: EventMetadata,
+    state_dict: dict,
+    reco_algo: str,
+    filestager=None,
+    cache_dir: str = "./cache/"
+) -> dict:
     
     geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
@@ -85,9 +89,9 @@ def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache
         filestager,
     )[0]
 
-    this_event_cache_dir = os.path.join(cache_dir, event_id)
+    this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if not os.path.isdir(this_event_cache_dir):
-        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, this_event_cache_dir))
+        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), this_event_cache_dir))
 
     # get all directories
     nsides = [(int(d[5:]), os.path.join(this_event_cache_dir, d)) for d in os.listdir(this_event_cache_dir) if os.path.isdir(os.path.join(this_event_cache_dir, d)) and d.startswith("nside")]
@@ -117,11 +121,11 @@ def load_scan_state(event_id, state_dict, reco_algo: str, filestager=None, cache
         if len(state_dict[cfg.STATEDICT_NSIDES][nside]) == 0:
             del state_dict[cfg.STATEDICT_NSIDES][nside]
 
-    return (event_id, state_dict)
+    return state_dict
 
 
-def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
-    this_event_cache_dir = os.path.join(cache_dir, event_id)
+def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="./cache/") -> dict:
+    this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     GCDQp_filename = os.path.join(this_event_cache_dir, "GCDQp.i3")
     potential_GCD_diff_base_filename = os.path.join(this_event_cache_dir, "base_GCD_for_diff.i3")
 
@@ -134,7 +138,7 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         potential_original_GCD_diff_base_filename = None
 
     if not os.path.isfile(GCDQp_filename):
-        raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(event_id, GCDQp_filename))
+        raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), GCDQp_filename))
 
     frame_packet = load_GCD_frame_packet_from_file(GCDQp_filename)
     LOGGER.debug("loaded frame packet from {0}".format(GCDQp_filename))
@@ -197,13 +201,10 @@ def load_GCDQp_state(event_id, filestager=None, cache_dir="./cache/"):
         LOGGER.debug(" - does not seem to contain frame diff packet")
         GCD_diff_base_filename = None
 
-    return (
-        event_id,
-        {
-            cfg.STATEDICT_GCDQP_PACKET: frame_packet,
-            cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename,
-        },
-    )
+    return {
+        cfg.STATEDICT_GCDQP_PACKET: frame_packet,
+        cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename,
+    }
 
 
 if __name__ == "__main__":

@@ -9,8 +9,48 @@ Skymap Scanner is the computational core of the [SkyDriver orchestration service
 
 `skymap_scanner` is a python package containing two distinct applications meant to be deployed within containers (1 `skymap_scanner.server`, n `skymap_scanner.client`s), along with `skymap_scanner.utils` (utility functions) and `skymap_scanner.recos` (`icetray` reco-specific logic). Additional, package-independent, utility scripts are in `resources/utils/`.
 
+## Queue Types
+
+The default queue type in the container is RabbitMQ, since v3.1.0.
+Build `Dockerfile_pulsar` for a pulsar container.
+
+### RabbitMQ
+Env variables
+
+```
+# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
+export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
+export SKYSCAN_BROKER_AUTH=<token>
+export RABBITMQ_HEARTBEAT=600
+```
+
+Currently, RabbitMQ uses URL parameters for the hostname, virtual host, and port (`[https://]HOST[:PORT][/VIRTUAL_HOST]`). The heartbeat is configured by `RABBITMQ_HEARTBEAT`. This may change in future updates.
+
+Python install:
+```
+pip install .[rabbitmq]
+```
+
+### Pulsar
+Env variables
+
+```
+export SKYSCAN_BROKER_CLIENT=pulsar
+export SKYSCAN_BROKER_ADDRESS=<ip address>
+export SKYSCAN_BROKER_AUTH=<token>
+export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900
+```
+
+Python install:
+```
+pip install .[pulsar]
+```
+
+## Example
+This example is for the rabbitmq (default) broker. Steps for using a pulsar broker are similar and differences are noted throughout this example. The predominant difference is noted in [Queue Types](queue-types) (`Dockerfile_pulsar`).
+
 ### Example Startup
-You will need to get a pulsar broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
+You will need to get a rabbitmq broker address and authentication token to pass to both the server and client. Send a poke on slack #skymap-scanner to get those!
 
 #### 1. Launch the Server
 The server can be launched from anywhere with a stable network connection. You can run it from the cobalts for example.
@@ -19,11 +59,13 @@ The server can be launched from anywhere with a stable network connection. You c
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 ###### Command-Line Arguments
 ```
-    --startup-json-dir DIR_TO_PUT_STARTUP_JSON \
+    --client-startup-json PATH_TO_CLIENT_STARTUP_JSON \
     --cache-dir `pwd`/server_cache \
     --output-dir `pwd` \
     --reco-algo millipede \
@@ -31,8 +73,8 @@ export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for secur
 ```
 _NOTE: The `--*dir` arguments can all be the same if you'd like. Relative paths are also fine._
 _NOTE: There are more CL arguments not shown. They have defaults._
-###### `startup.json`
-The server will create a `startup.json` file that has necessary info to launch a client. `--startup-json-dir` needs to be somewhere accessible by your client launch script, whether that's via condor or manually.
+###### `client-startup.json`
+The server will create a `PATH_TO_CLIENT_STARTUP_JSON` file that has necessary info to launch a client. the parent directory of `--client-startup-json` needs to be somewhere accessible by your client launch script, whether that's via condor or manually.
 ##### Run It
 ###### with Singularity
 ```
@@ -50,38 +92,41 @@ _NOTE: By default the launch script will pull, build, and run the latest image f
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
 export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
+export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 
 #### 2. Launch Each Client
-The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `SKYSCAN_BROKER_ADDRESS` and `BROKER_AUTH` as the server, and the path to the startup json file created by the server.
+The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `SKYSCAN_BROKER_ADDRESS` and `BROKER_AUTH` as the server, and the path to the client-startup json file created by the server.
 
 ##### Figure Your Args
 ###### Environment Variables
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 ###### Command-Line Arguments
-_See notes about '--startup-json'/--startup-json-dir' below. See client.py for additional optional args._
+_See notes about `--client-startup-json` below. See `client.py` for additional optional args._
 ##### Run It
 ###### with Condor (via Singularity)
 You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
 ```
 echo my_client_args.json  # just an example
-./resources/launch_scripts/condor/spawn_condor_clients.py \
+./resources/client_starter.py \
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
-    --startup-json PATH_TO_STARTUP_JSON \
+    --client-startup-json PATH_TO_CLIENT_STARTUP_JSON \
     --client-args-json my_client_args.json
 ```
-_NOTE: `spawn_condor_clients.py` will wait until `--startup-json PATH_TO_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, `--startup-json-dir` is auto-set by the script and thus, is disallowed from being in the `--client-args-json` file._
+_NOTE: `client_starter.py` will wait until `--client-startup-json PATH_TO_CLIENT_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, the client's `--client-startup-json` is auto-set by the script and thus, is disallowed from being in the `--client-args` arguments._
 ###### or Manually (Docker)
 ```
 # side note: you may want to first set environment variables, see below
-./resources/launch_scripts/wait_for_startup_json.sh DIR_WITH_STARTUP_JSON
+./resources/launch_scripts/wait_for_file.sh PATH_TO_CLIENT_STARTUP_JSON 600
 ./resources/launch_scripts/docker/launch_client.sh \
-    --startup-json-dir DIR_WITH_STARTUP_JSON \
+    --client-startup-json PATH_TO_CLIENT_STARTUP_JSON \
     YOUR_ARGS
 ```
 _NOTE: By default the launch script will pull, build, and run the latest image from Docker Hub. You can optionally set environment variables to configure how to find a particular tag. For example:_
@@ -110,8 +155,9 @@ For now, it's easy to scale up using the command line. Multiple server instances
 
 ```
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_BROKER_CLIENT=rabbitmq
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --startup-json-dir /path/to/json/{} --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
+ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --client-startup-json /path/to/json/{}/client-startup.json --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
 
 Then, from sub-2 run `ls *.json |xargs -I{} bash -c 'sed "s/UID/{}/g" ../condor > /scratch/$USER/{}.condor'` using the template condor submit file below. Then you should be able to just run:
@@ -120,16 +166,16 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 ```
 ```
 executable = /bin/sh 
-arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --startup-json-dir .
+arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --client-startup-json ./client-startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS"
+environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS RABBITMQ_HEARTBEAT=600"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
 log = /scratch/$USER/UID.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
-transfer_input_files = /path/to/json/UID/startup.json 
+transfer_input_files = /path/to/json/UID/client-startup.json
 request_cpus = 1
 request_memory = 8GB
 notification = Error
@@ -143,7 +189,7 @@ environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmf
 
 ### Additional Configuration
 #### Environment Variables
-When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-prefixed variables and `PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC` are also forwarded. See `skymap_scanner.config.ENV` for more detail.
+When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-, `PULSAR_`- and, `RABBITMQ_`-prefixed variables are also forwarded. See `skymap_scanner.config.ENV` for more detail.
 ##### Timeouts
 The Skymap Scanner is designed to have realistic timeouts for HTCondor. That said, there are three main timeouts which can be altered:
 ```
@@ -164,6 +210,7 @@ The Skymap Scanner is designed to have realistic timeouts for HTCondor. That sai
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 ```
+Relatedly, the environment variable `RABBITMQ_HEARTBEAT` can also be configured (see [Environment Variables](#environment-variables)).
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.

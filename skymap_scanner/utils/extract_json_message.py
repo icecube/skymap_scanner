@@ -5,16 +5,18 @@
 
 import json
 import os
+from typing import Tuple
 
 import numpy as np
 from icecube import dataio, full_event_followup, icetray  # type: ignore[import]
 
 from .. import config as cfg
 from . import LOGGER
+from .event_tools import EventMetadata
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
-from .icetrayless import create_event_id_string
 from .utils import (
+    get_event_mjd,
     hash_frame_packet,
     load_GCD_frame_packet_from_file,
     rewrite_frame_stop,
@@ -37,28 +39,43 @@ def extract_GCD_diff_base_filename(frame_packet):
                 GCD_diff_base_filename = frame[key].base_filename
             elif frame[key].base_filename != GCD_diff_base_filename:
                 raise RuntimeError("inconsistent frame diff base GCD file names. expected {0}, got {1}".format(GCD_diff_base_filename, frame[key].base_filename))
-    
+
     if GCD_diff_base_filename == "current-gcd":
         LOGGER.warning(" **** WARNING: baseline GCD file is \"current-gcd\". replacing with \"2016_01_08_Run127381.i3\".")
         GCD_diff_base_filename = "2016_01_08_Run127381.i3"
-    
+
     return GCD_diff_base_filename
 
-def extract_json_message(json_data, reco_algo: str, filestager, cache_dir="./cache/", override_GCD_filename=None):
+
+def extract_json_message(
+    json_data,
+    reco_algo: str,
+    filestager,
+    is_real_event: bool,
+    cache_dir="./cache/",
+    override_GCD_filename=None,
+) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
-    
+
     # extract the packet
     frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
 
-    r = __extract_frame_packet(frame_packet, filestager=filestager, reco_algo=reco_algo, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
-    event_id = r[1]
-    state_dict = r[2]
+    _, event_metadata, state_dict = __extract_frame_packet(
+        frame_packet,
+        filestager=filestager,
+        reco_algo=reco_algo,
+        is_real_event=is_real_event,
+        cache_dir=cache_dir,
+        override_GCD_filename=override_GCD_filename,
+    )
 
     # try to load existing pixels if there are any
-    return load_scan_state(event_id, state_dict, reco_algo, cache_dir=cache_dir)
+    state_dict = load_scan_state(event_metadata, state_dict, reco_algo, cache_dir=cache_dir)
+    return event_metadata, state_dict
+
 
 def __extract_event_type(physics_frame):
     if "AlertShortFollowupMsg" in physics_frame:
@@ -79,7 +96,16 @@ def __extract_event_type(physics_frame):
         return "EHE"
     return None
 
-def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="./cache/", override_GCD_filename=None, pulsesName="SplitUncleanedInIcePulses"):
+
+def __extract_frame_packet(
+    frame_packet,
+    filestager,
+    reco_algo: str,
+    is_real_event: bool,
+    cache_dir="./cache/",
+    override_GCD_filename=None,
+    pulsesName="SplitUncleanedInIcePulses",
+) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
@@ -99,12 +125,17 @@ def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="
     if "I3EventHeader" not in physics_frame:
         raise RuntimeError("No I3EventHeader in Physics frame")
     header = physics_frame["I3EventHeader"]
-    event_id_string = create_event_id_string(header.run_id, header.event_id,
-                                      __extract_event_type(physics_frame))
-    LOGGER.debug("event ID is {0}".format(event_id_string))
+    event_metadata = EventMetadata(
+        header.run_id,
+        header.event_id,
+        __extract_event_type(physics_frame),
+        get_event_mjd(frame_packet),
+        is_real_event,
+    )
+    LOGGER.debug("event ID is {0}".format(event_metadata))
 
     # create the cache directory if necessary
-    this_event_cache_dir = os.path.join(cache_dir, event_id_string)
+    this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if os.path.exists(this_event_cache_dir) and not os.path.isdir(this_event_cache_dir):
         raise RuntimeError("this event would be cached in directory \"{0}\", but it exists and is not a directory".format(this_event_cache_dir))
     if not os.path.exists(this_event_cache_dir):
@@ -232,67 +263,9 @@ def __extract_frame_packet(frame_packet, filestager, reco_algo: str, cache_dir="
 
     return (
         this_event_cache_dir,
-        event_id_string,
+        event_metadata,
         {
             cfg.STATEDICT_GCDQP_PACKET: frame_packet,
             cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename
         },
     )
-
-
-def extract_json_messages(filenames, reco_algo: str, filestager, cache_dir="./cache", override_GCD_filename=None):
-    all_messages = []
-    return_packets = dict()
-
-    for filename in filenames:
-        with open(filename) as json_file:
-            json_data = json.load(json_file)
-
-        if isinstance(json_data, list):
-            # interpret as a list of messages
-            for m in json_data:
-                name, packet = extract_json_message(m, reco_algo, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
-                return_packets[name] = packet
-        elif isinstance(json_data, dict):
-            # interpret as a single message
-            name, packet = extract_json_message(json_data, reco_algo, filestager=filestager, cache_dir=cache_dir, override_GCD_filename=override_GCD_filename)
-            return_packets[name] = packet
-        else:
-            raise RuntimeError("Cannot interpret JSON data in {0}".format(filename))
-
-    return return_packets
-
-
-
-if __name__ == "__main__":
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-    parser.add_option("-g", "--override-GCD-filename", action="store", type="string",
-        default=None, dest="OVERRIDEGCDFILENAME", help="Use this GCD baseline file instead of the one referenced by the message")
-
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    filenames = args
-
-    if len(filenames) == 0:
-        raise RuntimeError("need to specify at least one input filename")
-
-    # get the file stager instance
-    stagers = dataio.get_stagers()
-
-    # do the work
-    packets = extract_json_messages(
-        filenames,
-        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
-        filestager=stagers,
-        cache_dir=options.CACHEDIR,
-        override_GCD_filename=options.OVERRIDEGCDFILENAME
-    )
-
-    print(("got:", packets))

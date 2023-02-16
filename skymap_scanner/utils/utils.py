@@ -33,7 +33,7 @@ def pyobj_to_string_repr(obj: Any) -> str:
     return pformat(obj, indent=4)
 
 
-def get_event_mjd(frame_packet: List[icetray.I3Frame]):
+def get_event_mjd(frame_packet: List[icetray.I3Frame]) -> float:
     p_frame = frame_packet[-1]
     if p_frame.Stop != icetray.I3Frame.Physics and p_frame.Stop != icetray.I3Frame.Stream('p'):
         raise RuntimeError("no p-frame found at the end of the GCDQp packet")
@@ -41,7 +41,7 @@ def get_event_mjd(frame_packet: List[icetray.I3Frame]):
         raise RuntimeError("No I3EventHeader in p-frame")
     time = p_frame["I3EventHeader"].start_time
 
-    return time.mod_julian_day_double
+    return time.mod_julian_day_double  # type: ignore[no-any-return]
 
 
 def load_GCD_frame_packet_from_file(filename, filestager=None):

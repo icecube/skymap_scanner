@@ -2,6 +2,36 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.2 (2023-02-15)
+### Other
+* Use `oms-mqclient` ([#128](https://github.com/icecube/skymap_scanner/issues/128)) ([`18eb246`](https://github.com/icecube/skymap_scanner/commit/18eb24643fc099b8c1aff3dbba1991860ae437c9))
+
+## v3.2.1 (2023-02-10)
+
+
+## v3.2.0 (2023-02-09)
+### Feature
+* Client Starter ([#123](https://github.com/icecube/skymap_scanner/issues/123)) ([`8668771`](https://github.com/icecube/skymap_scanner/commit/86687710725774184915f71e8535457ae7d6a6e1))
+
+## v3.1.5 (2023-02-01)
+
+
+## v3.1.4 (2023-01-26)
+
+
+## v3.1.3 (2023-01-26)
+
+
+## v3.1.2 (2023-01-25)
+
+
+## v3.1.1 (2023-01-25)
+
+
+## v3.1.0 (2023-01-20)
+### Feature
+* Switch to rabbitmq ([#116](https://github.com/icecube/skymap_scanner/issues/116)) ([`e632593`](https://github.com/icecube/skymap_scanner/commit/e63259397bec6af1892bad49a4b8d48b8f828b6a))
+
 ## v3.0.74 (2023-01-20)
 
 

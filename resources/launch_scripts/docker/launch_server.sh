@@ -34,7 +34,7 @@ py_args, event = extract_opt_path(py_args, "--event-file")
 py_args, cache = extract_opt_path(py_args, "--cache-dir")
 py_args, output = extract_opt_path(py_args, "--output-dir")
 py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
-py_args, startup = extract_opt_path(py_args, "--startup-json-dir")
+py_args, startup = extract_opt_path(py_args, "--client-startup-json")
 
 dockermount_args = ""
 py_args += " "
@@ -52,8 +52,8 @@ if gcd:
     dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
     py_args += f"--gcd-dir /local/gcd "
 if startup:
-    dockermount_args += f"--mount type=bind,source={startup},target=/local/startup-json-dir "
-    py_args += f"--startup-json-dir /local/startup-json-dir "
+    dockermount_args += f"--mount type=bind,source={os.path.dirname(startup)},target=/local/startup "
+    py_args += f"--client-startup-json /local/startup/{os.path.basename(startup)} "
 
 print(f"{dockermount_args}#{py_args}")
 ')
@@ -78,7 +78,10 @@ docker run --network="host" $pull_policy --rm -i \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:-300}" \
+    $(env | grep '^RABBITMQ_' | awk '$0="--env "$0') \
+    --env "RABBITMQ_HEARTBEAT=${RABBITMQ_HEARTBEAT:-600}" \
+    $(env | grep '^PULSAR_' | awk '$0="--env "$0') \
+    --env "PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=${PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC:-900}" \
     icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
     python -m skymap_scanner.server \
     $PY_ARGS
