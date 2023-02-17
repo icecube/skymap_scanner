@@ -1,0 +1,148 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: skydriver-test-worker-arm
+  namespace: icecube-skymap-scanner
+  # labels:
+  #   beta.kubernetes.io/arch: arm64
+spec:
+  completions: 2
+  parallelism: 2
+  ttlSecondsAfterFinished: 7200
+  template:
+    spec:
+      restartPolicy: "OnFailure"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - arm64
+      tolerations:
+      - effect: NoSchedule
+        key:  kubernetes.io/arch
+        operator: Exists
+      initContainers:
+      - name: skydriver-get-startup-config
+        env:
+        - name: EVENT_STARTUP_JSON
+          value: "run00137467.evt000064735045.EHE-8-512-1673542271.json"
+        image: busybox
+        command:
+        - wget
+        - "-O" 
+        - "/download/startup.json"
+        - "https://icecube:skua@user-web.icecube.wisc.edu/~briedel/$(EVENT_STARTUP_JSON)"
+        volumeMounts:
+        - name: startup-config-mount
+          mountPath: /download
+      - name: skydriver-get-spline-effdist
+        image: busybox
+        command:
+        - wget
+        - "-O" 
+        - "/download/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits"
+        - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits"
+        volumeMounts:
+        - name: spline-table-vol
+          mountPath: /download
+      - name: skydriver-get-spline-abs
+        image: busybox
+        command:
+        - wget
+        - "-O" 
+        - "/download/cascade_single_spice_bfr-v2_flat_z20_a5.abs.fits"
+        - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_single_spice_bfr-v2_flat_z20_a5.abs.fits"
+        volumeMounts:
+        - name: spline-table-vol
+          mountPath: /download
+      - name: skydriver-get-spline-prob
+        image: busybox
+        command:
+        - wget
+        - "-O" 
+        - "/download/cascade_single_spice_bfr-v2_flat_z20_a5.prob.fits"
+        - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_single_spice_bfr-v2_flat_z20_a5.prob.fits"
+        volumeMounts:
+        - name: spline-table-vol
+          mountPath: /download
+      containers:
+      - env:
+        - name: SKYDRIVER_TOKEN
+          valueFrom:
+            secretKeyRef: 
+              name: pulsar-300-token-admin
+              key: TOKEN
+        - name: SKYDRIVER_MQ_SERVER
+          value: "34.72.37.204"
+        - name: I3_TESTDATA
+          value: "/cvmfs/icecube.opensciencegrid.org/data/i3-test-data-svn/trunk"
+        - name: I3_DATA
+          value: "/cvmfs/icecube.opensciencegrid.org/data"
+        - name: PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC
+          value: "300"
+        image: icecube/skymap_scanner:3.2.1
+        imagePullPolicy: Always
+        name: skydriver-worker
+        command: 
+        - "/bin/bash"
+        - "/usr/local/icetray/env-shell.sh"
+        args:  
+        - "python"
+        - "-m"
+        - "skymap_scanner.client"
+        - "--startup-json-dir"
+        - "/skymap-scanner-startup-config/"
+        - "--broker"
+        - "$(SKYDRIVER_MQ_SERVER)"
+        - "--auth-token"
+        - "$(SKYDRIVER_TOKEN)"
+        resources:
+          limits:
+            cpu: 2250m
+            memory: 6Gi
+          requests:
+            cpu: 1500m
+            memory: 5Gi
+        volumeMounts:
+        # - mountPath: /cvmfs/config-osg.opensciencegrid.org
+        #   name: cvmfs-config-osg
+        # - mountPath: /cvmfs/oasis.opensciencegrid.org
+        #   name: cvmfs-oasis
+        # - mountPath: /cvmfs/icecube.opensciencegrid.org
+        #   name: cvmfs-icecube
+        # - mountPath: /cvmfs/singularity.opensciencegrid.org
+        #   name: cvmfs-singularity
+        # - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        #   name: kube-api-access-nqrrp
+        #   readOnly: true
+        - mountPath: /skymap-scanner-startup-config/
+          name: startup-config-mount
+          readOnly: true
+        - mountPath: /dev/shm
+          name: dshm
+        - mountPath: /cvmfs/icecube.opensciencegrid.org/data/photon-tables/splines/
+          name: spline-table-vol
+      volumes:
+      # - name: cvmfs-config-osg
+      #   persistentVolumeClaim:
+      #     claimName: cvmfs-config-osg
+      # - name: cvmfs-oasis
+      #   persistentVolumeClaim:
+      #     claimName: cvmfs-oasis
+      # - name: cvmfs-icecube
+      #   persistentVolumeClaim:
+      #     claimName: cvmfs-icecube-x86
+      # - name: cvmfs-singularity
+      #   persistentVolumeClaim:
+      #     claimName: cvmfs-singularity
+      - name: startup-config-mount
+        emptyDir: {}
+      - name: spline-table-vol
+        emptyDir: {}
+      - name: dshm
+        emptyDir:
+          medium: Memory
