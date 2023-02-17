@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.4 (2023-02-17)
+### Other
+* Self contained docker ([#132](https://github.com/icecube/skymap_scanner/issues/132)) ([`c163ec8`](https://github.com/icecube/skymap_scanner/commit/c163ec8847ce26304a4420420c7fbe2750850bc0))
+
 ## v3.2.3 (2023-02-16)
 ### Other
 * <bot> update requirements-gcp.txt ([`d382429`](https://github.com/icecube/skymap_scanner/commit/d382429ac5942c2d8c87c0a9fce88ba98506a435))
