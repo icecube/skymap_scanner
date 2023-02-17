@@ -13,7 +13,9 @@ asyncstdlib==3.10.5
     #   ewms-pilot
     #   skymap-scanner (setup.py)
 cachetools==5.3.0
-    # via wipac-rest-tools
+    # via
+    #   google-auth
+    #   wipac-rest-tools
 certifi==2022.12.7
     # via requests
 cffi==1.15.1
@@ -32,7 +34,6 @@ ewms-pilot==0.3.0
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
-<<<<<<< HEAD
 google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
@@ -62,8 +63,6 @@ grpcio-status==1.51.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
-=======
->>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 healpy==1.16.2
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
@@ -91,17 +90,10 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-<<<<<<< HEAD
 oms-mqclient[gcp]==1.0.2
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-=======
-oms-mqclient==1.0.2
-    # via
-    #   ewms-pilot
-    #   wipac-mqclient
->>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
 packaging==23.0
     # via
     #   astropy
@@ -110,6 +102,22 @@ pandas==1.5.3
     # via skymap-scanner (setup.py)
 pillow==9.4.0
     # via matplotlib
+proto-plus==1.22.2
+    # via google-cloud-pubsub
+protobuf==4.22.0
+    # via
+    #   google-api-core
+    #   google-cloud-pubsub
+    #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
+    #   proto-plus
+pyasn1==0.4.8
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.2.8
+    # via google-auth
 pycparser==2.21
     # via cffi
 pyerfa==2.0.0.1
@@ -132,15 +140,20 @@ qrcode==7.4.2
     # via wipac-rest-tools
 requests==2.28.2
     # via
+    #   google-api-core
     #   requests-futures
     #   wipac-dev-tools
     #   wipac-rest-tools
 requests-futures==1.0.0
     # via wipac-rest-tools
+rsa==4.9
+    # via google-auth
 scipy==1.10.0
     # via healpy
 six==1.16.0
-    # via python-dateutil
+    # via
+    #   google-auth
+    #   python-dateutil
 tornado==6.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
@@ -156,11 +169,5 @@ wipac-dev-tools[coloredlogs]==1.6.10
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-<<<<<<< HEAD
-wipac-rest-tools==1.4.8
-=======
-wipac-mqclient[gcp]==1.0.1
-    # via skymap-scanner (setup.py)
-wipac-rest-tools==1.4.9
->>>>>>> 0e984db9a20ad2c21f6373023ffcdb37e311cfde
+wipac-rest-tools==1.4.10
     # via skymap-scanner (setup.py)
