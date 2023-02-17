@@ -229,7 +229,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--client-args",
-        required=True,
+        required=False,
         nargs="+",
         help="n 'key:value' pairs containing the python CL arguments to pass to skymap_scanner.client",
     )
@@ -250,15 +250,16 @@ def main() -> None:
 
     # get client args
     client_args = ""
-    for carg_value in args.client_args:
-        carg, value = carg_value.split(":", maxsplit=1)
-        client_args += f" --{carg} {value} "
-    LOGGER.info(f"Client Args: {client_args}")
-    if "--client-startup-json" in client_args:
-        raise RuntimeError(
-            "The '--client-args' arg cannot include \"--client-startup-json\". "
-            "This needs to be given to this script explicitly ('--client-startup-json')."
-        )
+    if args.client_args is not None:
+        for carg_value in args.client_args:
+            carg, value = carg_value.split(":", maxsplit=1)
+            client_args += f" --{carg} {value} "
+            LOGGER.info(f"Client Args: {client_args}")
+            if "--client-startup-json" in client_args:
+                raise RuntimeError(
+                    "The '--client-args' arg cannot include \"--client-startup-json\". "
+                    "This needs to be given to this script explicitly ('--client-startup-json')."
+                )
 
     # make condor job description
     job_description = make_condor_job_description(
