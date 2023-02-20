@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.5 (2023-02-20)
+### Other
+* <bot> update requirements.txt ([`7b14358`](https://github.com/icecube/skymap_scanner/commit/7b14358e9b869747b751004ac0e7ddc0cd34017a))
+* <bot> update requirements-rabbitmq.txt ([`ad3c173`](https://github.com/icecube/skymap_scanner/commit/ad3c1731f28c7b7b9d006498e31ddad44c1f318e))
+* <bot> update requirements-pulsar.txt ([`15778be`](https://github.com/icecube/skymap_scanner/commit/15778beb7ff96bd016fb162ceb99ab59e28e2c11))
+* <bot> update requirements-nats.txt ([`6b1e75e`](https://github.com/icecube/skymap_scanner/commit/6b1e75e646e430b9bf26ce3e46e6ff5e44e1771a))
+* <bot> update requirements-gcp.txt ([`f9c924b`](https://github.com/icecube/skymap_scanner/commit/f9c924bf7714cabeb82a591cb4f8a568ea1d4cb6))
+* <bot> update requirements-client-starter.txt ([`fcca00b`](https://github.com/icecube/skymap_scanner/commit/fcca00b51719854f3adf675cb38518ef93c6f319))
+* <bot> update requirements-all.txt ([`28b6968`](https://github.com/icecube/skymap_scanner/commit/28b6968b02e22e91f820b0e30d94ae0e63b35f5b))
+* Incrementing the icetray version ([`34d4f14`](https://github.com/icecube/skymap_scanner/commit/34d4f147cec3178b9fa2c60a97d2a23acb27357f))
+
 ## v3.2.4 (2023-02-17)
 ### Other
 * Self contained docker ([#132](https://github.com/icecube/skymap_scanner/issues/132)) ([`c163ec8`](https://github.com/icecube/skymap_scanner/commit/c163ec8847ce26304a4420420c7fbe2750850bc0))
