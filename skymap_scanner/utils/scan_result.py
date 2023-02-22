@@ -1039,15 +1039,18 @@ class ScanResult:
             return a
 
         # Plot the contours
+        contour_areas=[]
         for contour_level, contour_label, contour_color, contours in zip(contour_levels,
             contour_labels, contour_colors, contours_by_level):
             contour_area = 0
             for contour in contours:
                 _ = contour.copy()
-                _[:,1]-=np.radians(ra)
+                _[:,1] += np.pi-np.radians(ra)
+                _[:,1] %= 2*np.pi
                 contour_area += area(_)
             contour_area = abs(contour_area)
             contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
+            contour_areas.append(contour_area)
             contour_label = contour_label + ' - area: {0:.2f} sqdeg'.format(
                 contour_area)
             first = True
@@ -1243,11 +1246,11 @@ class ScanResult:
 
         # For vertical events, calculate the area with the number of pixels
         # In the healpy map   
-        for lev in contour_levels[-1:]:
+        for lev in contour_levels[1:2]:
             area_per_pix = healpy.nside2pixarea(healpy.get_nside(master_map))
             num_pixs = np.count_nonzero(master_map[~np.isnan(master_map)] < lev)
             healpy_area = num_pixs * area_per_pix * (180./np.pi)**2.
-        print("Contour Area (90%):", contour_area, "degrees (cartesian)", 
+        print("Contour Area (90%):", contour_areas[1], "degrees (cartesian)",
             healpy_area, "degrees (scaled)")
 
         if dosave:
