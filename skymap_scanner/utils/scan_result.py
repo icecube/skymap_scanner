@@ -1043,7 +1043,9 @@ class ScanResult:
             contour_labels, contour_colors, contours_by_level):
             contour_area = 0
             for contour in contours:
-                contour_area += area((contour-ra+np.pi/2)%np.pi)
+                _ = contour.copy()
+                _[:,1]-=np.radians(ra)
+                contour_area += area(_)
             contour_area = abs(contour_area)
             contour_area *= (180.*180.)/(np.pi*np.pi) # convert to square-degrees
             contour_label = contour_label + ' - area: {0:.2f} sqdeg'.format(
