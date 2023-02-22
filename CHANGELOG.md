@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.6 (2023-02-22)
+### Other
+* <bot> update requirements.txt ([`84d21b2`](https://github.com/icecube/skymap_scanner/commit/84d21b2c0e47e9a7cf1e02f1f2a09caf49db90ee))
+* <bot> update requirements-rabbitmq.txt ([`6632cc8`](https://github.com/icecube/skymap_scanner/commit/6632cc8f510ebd8da3510f227cffeec2fe7b614b))
+* <bot> update requirements-pulsar.txt ([`51b83bf`](https://github.com/icecube/skymap_scanner/commit/51b83bf82bfeb9d58aa27fd08d9090f8f3244655))
+* <bot> update requirements-nats.txt ([`1ca2798`](https://github.com/icecube/skymap_scanner/commit/1ca2798247f44590392d6252a50da23080f0f7d1))
+* <bot> update requirements-gcp.txt ([`08eaaa9`](https://github.com/icecube/skymap_scanner/commit/08eaaa944f232588bb2c8fd7c31abc7b8aeaade5))
+* <bot> update requirements-client-starter.txt ([`1f46a38`](https://github.com/icecube/skymap_scanner/commit/1f46a3803c253f52e620abb9a262a00213a0eb55))
+* <bot> update requirements-all.txt ([`a05c9eb`](https://github.com/icecube/skymap_scanner/commit/a05c9eb1976a740901889460228d8eed2e0165b6))
+* Fix area calculation. ([`9c7eb91`](https://github.com/icecube/skymap_scanner/commit/9c7eb914d21da67d9d6d9857d974338f4e476b46))
+
 ## v3.2.5 (2023-02-20)
 ### Other
 * <bot> update requirements.txt ([`7b14358`](https://github.com/icecube/skymap_scanner/commit/7b14358e9b869747b751004ac0e7ddc0cd34017a))
