@@ -52,14 +52,14 @@ googleapis-common-protos[grpc]==1.58.0
     #   oms-mqclient
 grpc-google-iam-v1==0.12.6
     # via google-cloud-pubsub
-grpcio==1.51.1
+grpcio==1.51.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.51.1
+grpcio-status==1.51.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
@@ -90,7 +90,7 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[gcp]==1.0.4
+oms-mqclient[gcp]==1.0.5
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
