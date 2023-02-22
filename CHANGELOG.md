@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.7 (2023-02-22)
+### Other
+* Shift ra to be near pi and fix printouts. see #96. ([`d139054`](https://github.com/icecube/skymap_scanner/commit/d139054548b4ebfdbeb4ad2b2760f580c9ead436))
+
 ## v3.2.6 (2023-02-22)
 ### Other
 * <bot> update requirements.txt ([`84d21b2`](https://github.com/icecube/skymap_scanner/commit/84d21b2c0e47e9a7cf1e02f1f2a09caf49db90ee))
