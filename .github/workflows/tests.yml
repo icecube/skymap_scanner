@@ -17,9 +17,9 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  SKYSCAN_BROKER_ADDRESS: localhost
+  SKYSCAN_BROKER_ADDRESS: admin:admin@localhost
   RABBITMQ_HEARTBEAT: 600
-  # SKYSCAN_BROKER_AUTH: admin
+  # SKYSCAN_BROKER_AUTH: admin  # using this would override password in address
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -71,8 +71,8 @@ jobs:
         volumes:
           - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
         env:
-          RABBITMQ_USERNAME: guest
-          RABBITMQ_PASSWORD: guest
+          RABBITMQ_USERNAME: admin
+          RABBITMQ_PASSWORD: admin
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
         # Note: `--network` option is not supported.
@@ -91,12 +91,12 @@ jobs:
           tool-cache: 'true'
           large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actions/checkout@v3
-      - name: reconfigure rabbitmq container w/ a custom.conf
-        # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
-        # Restart the container w/ a custom.conf
-        timeout-minutes: 2  # may die if rabbitmq fails to start
-        run: |
-          tests/resources/reconfigure-rabbitmq.sh /home/runner/rabbitmq_conf /bitnami/conf
+      # - name: reconfigure rabbitmq container w/ a custom.conf
+      #   # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
+      #   # Restart the container w/ a custom.conf
+      #   timeout-minutes: 2  # may die if rabbitmq fails to start
+      #   run: |
+      #     tests/resources/reconfigure-rabbitmq.sh /home/runner/rabbitmq_conf /bitnami/conf
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
@@ -180,8 +180,8 @@ jobs:
         volumes:
           - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
         env:
-          RABBITMQ_USERNAME: guest
-          RABBITMQ_PASSWORD: guest
+          RABBITMQ_USERNAME: admin
+          RABBITMQ_PASSWORD: admin
           # RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
         # Note: `--network` option is not supported.
@@ -196,12 +196,12 @@ jobs:
         - 15672:15672
     steps:
       - uses: actions/checkout@v3
-      - name: reconfigure rabbitmq container w/ a custom.conf
-        # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
-        # Restart the container w/ a custom.conf
-        timeout-minutes: 2  # may die if rabbitmq fails to start
-        run: |
-          tests/resources/reconfigure-rabbitmq.sh /home/runner/rabbitmq_conf /bitnami/conf
+      # - name: reconfigure rabbitmq container w/ a custom.conf
+      #   # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
+      #   # Restart the container w/ a custom.conf
+      #   timeout-minutes: 2  # may die if rabbitmq fails to start
+      #   run: |
+      #     tests/resources/reconfigure-rabbitmq.sh /home/runner/rabbitmq_conf /bitnami/conf
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
