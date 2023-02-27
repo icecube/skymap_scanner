@@ -17,9 +17,9 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  SKYSCAN_BROKER_ADDRESS: admin:admin@localhost/test
+  SKYSCAN_BROKER_ADDRESS: user1:password@localhost/test
   RABBITMQ_HEARTBEAT: 600
-  # SKYSCAN_BROKER_AUTH: admin  # using this would override password in address
+  # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -67,8 +67,8 @@ jobs:
       rabbitmq:
         image: bitnami/rabbitmq:latest
         env:
-          RABBITMQ_USERNAME: admin
-          RABBITMQ_PASSWORD: admin
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
         # Note: `--network` option is not supported.
@@ -168,8 +168,8 @@ jobs:
       rabbitmq:
         image: bitnami/rabbitmq:latest
         env:
-          RABBITMQ_USERNAME: admin
-          RABBITMQ_PASSWORD: admin
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
         # Note: `--network` option is not supported.
