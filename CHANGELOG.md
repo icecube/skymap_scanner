@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.8 (2023-02-27)
+### Other
+* In Test: Use `services` for RabbitMQ Server ([#131](https://github.com/icecube/skymap_scanner/issues/131)) ([`3256a41`](https://github.com/icecube/skymap_scanner/commit/3256a416b0c499dac46e212d641df14958f4f5e8))
+
 ## v3.2.7 (2023-02-22)
 ### Other
 * Shift ra to be near pi and fix printouts. see #96. ([`d139054`](https://github.com/icecube/skymap_scanner/commit/d139054548b4ebfdbeb4ad2b2760f580c9ead436))
