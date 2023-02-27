@@ -28,13 +28,13 @@ cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.3.0
+ewms-pilot==0.3.1
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
 healpy==1.16.2
     # via skymap-scanner (setup.py)
-htcondor==10.2.1
+htcondor==10.2.3
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
@@ -61,7 +61,7 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient==1.0.2
+oms-mqclient==1.0.5
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
@@ -100,7 +100,7 @@ requests==2.28.2
     #   wipac-rest-tools
 requests-futures==1.0.0
     # via wipac-rest-tools
-scipy==1.10.0
+scipy==1.10.1
     # via healpy
 six==1.16.0
     # via python-dateutil
@@ -114,10 +114,10 @@ typing-extensions==4.5.0
     #   wipac-dev-tools
 urllib3==1.26.14
     # via requests
-wipac-dev-tools[coloredlogs]==1.6.10
+wipac-dev-tools[coloredlogs]==1.6.12
     # via
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.10
+wipac-rest-tools==1.4.12
     # via skymap-scanner (setup.py)
