@@ -66,8 +66,6 @@ jobs:
     services:
       rabbitmq:
         image: bitnami/rabbitmq:latest
-        volumes:
-          - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
         env:
           RABBITMQ_USERNAME: admin
           RABBITMQ_PASSWORD: admin
@@ -89,12 +87,6 @@ jobs:
           tool-cache: 'true'
           large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actions/checkout@v3
-      # - name: reconfigure rabbitmq container w/ a custom.conf
-      #   # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
-      #   # Restart the container w/ a custom.conf
-      #   timeout-minutes: 2  # may die if rabbitmq fails to start
-      #   run: |
-      #     tests/resources/reconfigure-rabbitmq.sh /home/runner/rabbitmq_conf /bitnami/conf
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
@@ -175,8 +167,6 @@ jobs:
     services:
       rabbitmq:
         image: bitnami/rabbitmq:latest
-        volumes:
-          - /home/runner/rabbitmq_conf:/bitnami/conf  # RABBITMQ_MOUNTED_CONF_DIR
         env:
           RABBITMQ_USERNAME: admin
           RABBITMQ_PASSWORD: admin
@@ -194,12 +184,6 @@ jobs:
         - 15672:15672
     steps:
       - uses: actions/checkout@v3
-      # - name: reconfigure rabbitmq container w/ a custom.conf
-      #   # thanks to https://github.com/zhouyuansheng0618/stackstorm/blob/master/.github/workflows/ci.yaml#L375
-      #   # Restart the container w/ a custom.conf
-      #   timeout-minutes: 2  # may die if rabbitmq fails to start
-      #   run: |
-      #     tests/resources/reconfigure-rabbitmq.sh /home/runner/rabbitmq_conf /bitnami/conf
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
