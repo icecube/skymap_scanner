@@ -17,7 +17,7 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  SKYSCAN_BROKER_ADDRESS: admin:admin@localhost
+  SKYSCAN_BROKER_ADDRESS: admin:admin@localhost/test
   RABBITMQ_HEARTBEAT: 600
   # SKYSCAN_BROKER_AUTH: admin  # using this would override password in address
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
@@ -63,8 +63,6 @@ jobs:
   test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
     needs: test-build-docker
-    env:
-      SKYSCAN_BROKER_ADDRESS: localhost/test
     services:
       rabbitmq:
         image: bitnami/rabbitmq:latest
@@ -182,7 +180,7 @@ jobs:
         env:
           RABBITMQ_USERNAME: admin
           RABBITMQ_PASSWORD: admin
-          # RABBITMQ_VHOST: test
+          RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
         # Note: `--network` option is not supported.
         options: >-
