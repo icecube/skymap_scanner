@@ -30,7 +30,7 @@ cryptography==39.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.3.0
+ewms-pilot==0.3.1
     # via skymap-scanner (setup.py)
 fonttools==4.38.0
     # via matplotlib
@@ -38,11 +38,11 @@ google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
     #   oms-mqclient
-google-auth==2.16.0
+google-auth==2.16.1
     # via
     #   google-api-core
     #   oms-mqclient
-google-cloud-pubsub==2.14.1
+google-cloud-pubsub==2.15.0
     # via oms-mqclient
 googleapis-common-protos[grpc]==1.58.0
     # via
@@ -52,14 +52,14 @@ googleapis-common-protos[grpc]==1.58.0
     #   oms-mqclient
 grpc-google-iam-v1==0.12.6
     # via google-cloud-pubsub
-grpcio==1.51.1
+grpcio==1.51.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.51.1
+grpcio-status==1.51.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
@@ -90,7 +90,7 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[gcp]==1.0.2
+oms-mqclient[gcp]==1.0.5
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
@@ -148,7 +148,7 @@ requests-futures==1.0.0
     # via wipac-rest-tools
 rsa==4.9
     # via google-auth
-scipy==1.10.0
+scipy==1.10.1
     # via healpy
 six==1.16.0
     # via
@@ -164,10 +164,10 @@ typing-extensions==4.5.0
     #   wipac-dev-tools
 urllib3==1.26.14
     # via requests
-wipac-dev-tools[coloredlogs]==1.6.10
+wipac-dev-tools[coloredlogs]==1.6.12
     # via
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.10
+wipac-rest-tools==1.4.12
     # via skymap-scanner (setup.py)
