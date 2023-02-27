@@ -17,9 +17,8 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  SKYSCAN_BROKER_ADDRESS: localhost
+  # auth env vars in job
   RABBITMQ_HEARTBEAT: 600
-  # SKYSCAN_BROKER_AUTH: admin
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -38,10 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build and push
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           context: .
           cache-from: type=gha
@@ -54,10 +51,8 @@ jobs:
     needs: test-build-docker
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build and push
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           context: .
           cache-from: type=gha
@@ -67,22 +62,35 @@ jobs:
   test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
     needs: test-build-docker
+    env:
+      SKYSCAN_BROKER_ADDRESS: user1:password@localhost/test
+      # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:latest
+        env:
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
+          RABBITMQ_VHOST: test
+          BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
+        options: >-
+          --name rabbitmq
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: 'true'
           large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actions/checkout@v3
-      - name: Checkout MQClient repo
-        uses: actions/checkout@v3
-        with:
-          repository: Observation-Management-Service/MQClient
-          path: MQClient
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build and push
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           context: .
           cache-from: type=gha
@@ -93,14 +101,12 @@ jobs:
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.1.2
-      - name: Build Singularity Image
+      - name: build singularity image
         run: |
           sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner:local
           ls -lh skymap_scanner.sif
-      - name: Run Singularity Container
+      - name: run singularity container
         run: |
-          ./MQClient/resources/docker-rabbitmq.sh $BROKER_CONTAINER_NAME
-
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
 
@@ -136,20 +142,16 @@ jobs:
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
           done
-      - name: Look at Results File (.npz)
+      - name: look at results file (.npz)
         run: |
           ls .
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
-      - name: broker output
-        if: always()
-        run: |
-          cat ./broker.out
       - name: broker docker logs
         if: always()
         run: |
-          docker logs $BROKER_CONTAINER_NAME || true
+          docker logs rabbitmq
 
   test-run-docker:
     runs-on: ubuntu-latest
@@ -164,17 +166,30 @@ jobs:
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      SKYSCAN_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_BROKER_AUTH: password  # using this would override password in address
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:latest
+        env:
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
+          RABBITMQ_VHOST: test
+          BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
+        options: >-
+          --name rabbitmq
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
     steps:
       - uses: actions/checkout@v3
-      - name: Checkout MQClient repo
-        uses: actions/checkout@v3
-        with:
-          repository: Observation-Management-Service/MQClient
-          path: MQClient
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build and push
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           context: .
           cache-from: type=gha
@@ -182,10 +197,9 @@ jobs:
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
-      - name: Run
+      - name: run
         run: |
           set -x
-          ./MQClient/resources/docker-rabbitmq.sh $BROKER_CONTAINER_NAME
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
@@ -221,7 +235,7 @@ jobs:
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
           done
-      - name: Test Output Against Known Result (.npz/.json)
+      - name: test output against known result (.npz/.json)
         run: |
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
@@ -234,14 +248,10 @@ jobs:
             --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls *.diff.json) && false)
-      - name: broker output
-        if: always()
-        run: |
-          cat ./broker.out
       - name: broker docker logs
         if: always()
         run: |
-          docker logs $BROKER_CONTAINER_NAME || true
+          docker logs rabbitmq
 
   test-run-single-pixel:
     runs-on: ubuntu-latest
@@ -256,10 +266,8 @@ jobs:
         ]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build and push
-        uses: docker/build-push-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
         with:
           context: .
           cache-from: type=gha
@@ -267,7 +275,7 @@ jobs:
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
-      - name: Run
+      - name: run
         run: |
           # grab the GCDQp_packet key and throw into a file
           jq '.GCDQp_packet' \
@@ -304,7 +312,7 @@ jobs:
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl
 
-      - name: Test Output Against Known Result (.pkl)
+      - name: test output against known result (.pkl)
         run: |
           ls tests/data/reco_pixel_pkls/${{ matrix.dir }}
 
