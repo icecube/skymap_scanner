@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.2.9 (2023-02-27)
+### Other
+* Re-enable Full CI On `main` ([#136](https://github.com/icecube/skymap_scanner/issues/136)) ([`1588eae`](https://github.com/icecube/skymap_scanner/commit/1588eae8d35ed32c8ee5ec3e94170838c31f9002))
+
 ## v3.2.8 (2023-02-27)
 ### Other
 * In Test: Use `services` for RabbitMQ Server ([#131](https://github.com/icecube/skymap_scanner/issues/131)) ([`3256a41`](https://github.com/icecube/skymap_scanner/commit/3256a416b0c499dac46e212d641df14958f4f5e8))
