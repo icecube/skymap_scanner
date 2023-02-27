@@ -9,7 +9,8 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # don't cancel on main/master/default
+  cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 env:
   PY_COLORS: "1"
@@ -330,4 +331,3 @@ jobs:
             --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
-
