@@ -69,6 +69,12 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
     #   entrypoint, and loading the icetray env file
     #   directly from cvmfs messes up the paths" -DS
 
+    environment = ""
+    if not os.getenv("RABBITMQ_HEARTBEAT"):
+        environment = f"RABBITMQ_HEARTBEAT=600 {environment}"
+    if not os.getenv("EWMS_PILOT_QUARANTINE_TIME"):
+        environment = f"EWMS_PILOT_QUARANTINE_TIME=1800 {environment}"
+
     # write
     submit_dict = {
         "executable": "/bin/sh",
@@ -76,6 +82,7 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "+SingularityImage": singularity_image,
         "getenv": "SKYSCAN_*, EWMS_*, RABBITMQ_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
         "output": str(logs_subdir / "client-$(ProcId).out"),
+        "environment": environment,
         "error": str(logs_subdir / "client-$(ProcId).err"),
         "log": str(logs_subdir / "client.log"),
         "+FileSystemDomain": "blah",
@@ -87,10 +94,6 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "request_memory": memory,
         "notification": "Error",
     }
-    if not os.getenv("RABBITMQ_HEARTBEAT"):
-        if "environment" in submit_dict:
-            raise RuntimeError("Attempted overwrite: 'environment' (need better logic)")
-        submit_dict["environment"] = "RABBITMQ_HEARTBEAT=600"
 
     # accounting group
     if accounting_group:
