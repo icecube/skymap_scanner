@@ -212,7 +212,7 @@ The Skymap Scanner is designed to have realistic timeouts for HTCondor. That sai
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 ```
-Relatedly, the environment variable `RABBITMQ_HEARTBEAT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [Figure Your Args](#figure-your-args)).
+Relatedly, the environment variable `RABBITMQ_HEARTBEAT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [1. Launch the Server](#1-launch-the-server) and [2. Launch Each Client](#2-launch-each-client)).
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
