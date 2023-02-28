@@ -21,6 +21,7 @@ Env variables
 # export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
 export SKYSCAN_BROKER_AUTH=<token>
+export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
 export RABBITMQ_HEARTBEAT=600
 ```
 
@@ -104,6 +105,7 @@ The client jobs can submitted via HTCondor from sub-2. Running the script below 
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 # export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
 export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
 ```
 ###### Command-Line Arguments
@@ -168,7 +170,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --client-startup-json ./client-startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS RABBITMQ_HEARTBEAT=600"
+environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS RABBITMQ_HEARTBEAT=600 EWMS_PILOT_QUARANTINE_TIME=1200"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
@@ -210,7 +212,7 @@ The Skymap Scanner is designed to have realistic timeouts for HTCondor. That sai
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 ```
-Relatedly, the environment variable `RABBITMQ_HEARTBEAT` can also be configured (see [Environment Variables](#environment-variables)).
+Relatedly, the environment variable `RABBITMQ_HEARTBEAT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [Figure Your Args](#figure-your-args)).
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
