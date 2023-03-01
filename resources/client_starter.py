@@ -69,11 +69,17 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
     #   entrypoint, and loading the icetray env file
     #   directly from cvmfs messes up the paths" -DS
 
-    environment = ""
+    vars = []
+
     if not os.getenv("RABBITMQ_HEARTBEAT"):
-        environment = f"RABBITMQ_HEARTBEAT=600 {environment}"
+        vars.append("RABBITMQ_HEARTBEAT=600")
     if not os.getenv("EWMS_PILOT_QUARANTINE_TIME"):
-        environment = f"EWMS_PILOT_QUARANTINE_TIME=1800 {environment}"
+        vars.append("EWMS_PILOT_QUARANTINE_TIME=1800")
+
+    for prefix in ["APPTAINERENV_", "SINGULARITYENV_"]:
+        vars.append(f"{prefix}I3_DATA=/cvmfs/icecube.opensciencegrid.org/data")
+
+    environment = " ".join(vars)
 
     # write
     submit_dict = {
@@ -81,10 +87,9 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --client-startup-json ./{client_startup_json.name}",
         "+SingularityImage": singularity_image,
         "Requirements": "HAS_CVMFS_icecube_opensciencegrid_org && has_avx",
-        "Environment": "\"I3_DATA=/cvmfs/icecube.opensciencegrid.org/data\"",
         "getenv": "SKYSCAN_*, EWMS_*, RABBITMQ_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
         "output": str(logs_subdir / "client-$(ProcId).out"),
-        "environment": environment,
+        "environment": f'"{environment}"',
         "error": str(logs_subdir / "client-$(ProcId).err"),
         "log": str(logs_subdir / "client.log"),
         "+FileSystemDomain": "blah",
