@@ -71,15 +71,14 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
 
     # Build the environment specification for condor
     vars = []
-    #
+    # RABBITMQ_* and EWMS_* are inherited via condor `getenv`, but we have default in case these are not set.
     if not os.getenv("RABBITMQ_HEARTBEAT"):
         vars.append("RABBITMQ_HEARTBEAT=600")
     if not os.getenv("EWMS_PILOT_QUARANTINE_TIME"):
         vars.append("EWMS_PILOT_QUARANTINE_TIME=1800")
-
+    # The container sets I3_DATA to /opt/i3-data, however `millipede_wilks` requires files (spline tables) that are not available in the image. For the time being we require CVFMS and we load I3_DATA from there. In order to override the environment variables we need to prepend APPTAINERENV_ or SINGULARITYENV_ to the variable name. There are site-dependent behaviour but these two should cover all cases. See https://github.com/icecube/skymap_scanner/issues/135#issuecomment-1449063054.
     for prefix in ["APPTAINERENV_", "SINGULARITYENV_"]:
         vars.append(f"{prefix}I3_DATA=/cvmfs/icecube.opensciencegrid.org/data")
-
     environment = " ".join(vars)
 
     # write
