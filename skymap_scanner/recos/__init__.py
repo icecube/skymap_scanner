@@ -51,7 +51,9 @@ def get_reco_interface_object(name: str) -> RecoInterface:
     """Dynamically import the reco sub-module's class."""
     try:
         module = importlib.import_module(f"{__name__}.{name.lower()}")
-        return getattr(module, ''.join(x.capitalize() for x in name.split('_')))
+        reco_class = getattr(module, ''.join(x.capitalize() for x in name.split('_')))
+        reco_class.name = name
+        return reco_class
     except ModuleNotFoundError as e:
         if name not in get_all_reco_algos():
             # checking this in 'except' allows us to use 'from e'

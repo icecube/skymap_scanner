@@ -7,6 +7,7 @@ import datetime
 import logging
 import os
 import pickle
+from multiprocessing import Process
 from pathlib import Path
 from typing import Any, List
 
@@ -115,7 +116,7 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
 
 
 def reco_pixel(
-    reco_algo: str,
+    reco_obj: recos.RecoInterface,
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
@@ -165,8 +166,8 @@ def reco_pixel(
 
     # perform fit
     tray.AddSegment(
-        recos.get_reco_interface_object(reco_algo).traysegment,
-        f"{reco_algo}_traysegment",
+        reco_obj.traysegment,
+        f"{reco_obj.name}_traysegment",
         logger=LOGGER,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
@@ -193,7 +194,7 @@ def reco_pixel(
                 GCDQp_packet,
                 filestager=dataio.get_stagers(),
             )[0]
-            pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
+            pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_obj)
             LOGGER.info(f"PixelReco: {pixreco}")
             pickle.dump(pixreco, f)
 
@@ -290,7 +291,7 @@ def main() -> None:
     with open(args.in_pkl, "rb") as f:
         msg = pickle.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
-        pframe = msg[cfg.MSG_KEY_PFRAME]
+        pframes = msg[cfg.MSG_KEY_PFRAME]
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_json, "r") as f:
@@ -298,14 +299,44 @@ def main() -> None:
             f.read(), pnf_framing=False
         )
 
-    # go!
-    reco_pixel(
-        reco_algo,
-        pframe,
-        GCDQp_packet,
-        str(args.baseline_GCD_file),
-        args.out_pkl,
-    )
+    reco_obj = recos.get_reco_interface_object(reco_algo)
+    processes = []
+    outpaths = []
+
+    # loop over the pframes to run in parallel
+    for i, pframe in enumerate(pframes):
+        outpath = Path(f"out{i:04}.pkl")
+        proc_args = (
+            reco_obj,
+            pframe,
+            GCDQp_packet,
+            str(args.baseline_GCD_file),
+            outpath,
+        )
+
+        # spawn subprocess
+        p = Process(target=reco_pixel, args=proc_args)
+        p.start()
+        LOGGER.info(f"Started Process {i}")
+        processes.append(p)
+        outpaths.append(outpath)
+
+    # wait for subprocess to finish
+    for p in processes:
+        p.join()
+        logging.info(f"finished proc for fun_id={p}")
+
+    # combine output data into a single pickle file
+    outdata = []
+    for path in outpaths:
+        with open(path, "rb") as f:
+            outdata.append(pickle.load(f))
+        path.unlink()
+
+    # write output in a single single file
+    with open(args.out_pkl, "wb") as f:
+        pickle.dump(outdata, f)
+
     LOGGER.info("Done reco'ing pixel.")
 
 

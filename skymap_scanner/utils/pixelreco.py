@@ -46,10 +46,10 @@ class PixelReco:
     def from_i3frame(
         frame: I3Frame,
         geometry: I3Frame,
-        reco_algo: str,
+        reco_obj: recos.RecoInterface,
     ) -> "PixelReco":
         """Get a PixelReco instance by parsing the I3Frame."""
-        return recos.get_reco_interface_object(reco_algo).to_pixelreco(frame, geometry)
+        return reco_obj.to_pixelreco(frame, geometry)
 
 
 NSidesDict = Dict[int, Dict[int, PixelReco]]

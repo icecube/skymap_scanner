@@ -789,6 +789,7 @@ async def serve(
     min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
     max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
     skydriver_rc: Optional[RestClient],
+    parallel_trays: int,
 ) -> pixelreco.NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
@@ -834,6 +835,7 @@ async def serve(
             nsides_dict,
             pixeler,
             progress_reporter,
+            parallel_trays,
         )
         if not n_pixreco:  # we're done
             break
@@ -863,6 +865,7 @@ async def serve_scan_iteration(
     nsides_dict: pixelreco.NSidesDict,
     pixeler: PixelsToReco,
     progress_reporter: ProgressReporter,
+    parallel_trays: int,
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
 
@@ -877,16 +880,21 @@ async def serve_scan_iteration(
     LOGGER.info("Getting pixels to send to clients...")
     pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
-            _tup = pixelreco.pixel_to_tuple(pframe)
+        generator = pixeler.generate_pframes()
+        for i in it.count():
+            pframes = list(it.islice(generator,parallel_trays))
+            if not pframes:
+                break
+            _tup = [pixelreco.pixel_to_tuple(pframe) for  pframe in pframes]
             LOGGER.info(f"Sending message M#{i} ({_tup})...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
-                    cfg.MSG_KEY_PFRAME: pframe,
+                    cfg.MSG_KEY_PFRAME: pframes,
                 }
             )
-            pixreco_ids_sent.add(_tup)
+            for t in _tup:
+                pixreco_ids_sent.add(t)
 
     # check if anything was actually processed
     if not pixreco_ids_sent:
@@ -909,15 +917,16 @@ async def serve_scan_iteration(
     LOGGER.info("Receiving pixel-recos from clients...")
     async with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
-            async for pixreco in sub:
-                if not isinstance(pixreco, pixelreco.PixelReco):
-                    raise ValueError(
-                        f"Message not {pixelreco.PixelReco}: {type(pixreco)}"
-                    )
-                try:
-                    await col.collect(pixreco)
-                except DuplicatePixelRecoException as e:
-                    logging.error(e)
+            async for pixrecos in sub:
+                for pixreco in pixrecos:
+                    if not isinstance(pixreco, pixelreco.PixelReco):
+                        raise ValueError(
+                            f"Message not {pixelreco.PixelReco}: {type(pixreco)}"
+                        )
+                    try:
+                        await col.collect(pixreco)
+                    except DuplicatePixelRecoException as e:
+                        logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout
                 if col.pixreco_ids_sent == col.pixreco_ids_received:
                     break
@@ -1073,6 +1082,13 @@ def main() -> None:
         help='include this flag if the event was simulated',
     )
 
+    parser.add_argument(
+        "--parallel-trays",
+        type=int,
+        default=8,
+        help='Number of Parallel instances of icetray to run on each client',
+    )
+
     args = parser.parse_args()
     logging_tools.set_level(
         cfg.ENV.SKYSCAN_LOG,
@@ -1172,6 +1188,7 @@ def main() -> None:
             min_nside=min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
             max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
             skydriver_rc=skydriver_rc,
+            parallel_trays=args.parallel_trays,
         )
     )
     LOGGER.info("Done.")
