@@ -69,8 +69,9 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
     #   entrypoint, and loading the icetray env file
     #   directly from cvmfs messes up the paths" -DS
 
+    # Build the environment specification for condor
     vars = []
-
+    #
     if not os.getenv("RABBITMQ_HEARTBEAT"):
         vars.append("RABBITMQ_HEARTBEAT=600")
     if not os.getenv("EWMS_PILOT_QUARANTINE_TIME"):
@@ -264,12 +265,12 @@ def main() -> None:
         for carg_value in args.client_args:
             carg, value = carg_value.split(":", maxsplit=1)
             client_args += f" --{carg} {value} "
-            LOGGER.info(f"Client Args: {client_args}")
-            if "--client-startup-json" in client_args:
-                raise RuntimeError(
-                    "The '--client-args' arg cannot include \"--client-startup-json\". "
-                    "This needs to be given to this script explicitly ('--client-startup-json')."
-                )
+    LOGGER.info(f"Client Args: {client_args}")
+    if "--client-startup-json" in client_args:
+        raise RuntimeError(
+            "The '--client-args' arg cannot include \"--client-startup-json\". "
+            "This needs to be given to this script explicitly ('--client-startup-json')."
+        )
 
     # make condor job description
     job_description = make_condor_job_description(
