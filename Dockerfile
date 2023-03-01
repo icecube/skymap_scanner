@@ -42,7 +42,8 @@ FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
 #
 WORKDIR /local
 COPY . .
-RUN pip install .[rabbitmq,client-starter]
+# client-starter fails to install on architectures not supporting htcondor, so silently fail without the extra
+RUN pip install .[client-starter,rabbitmq] || pip install .[rabbitmq]
 
 
 # set the entry point so that module is called with any parameters given to the `docker run` command
