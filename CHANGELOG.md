@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.3.1 (2023-03-01)
+### Other
+* Fix `htcondor` Pip Install for Docker Builds ([#139](https://github.com/icecube/skymap_scanner/issues/139)) ([`aab3123`](https://github.com/icecube/skymap_scanner/commit/aab3123bce2f52a4e7b2b82c0d68c40edd4c063d))
+
 ## v3.3.0 (2023-02-28)
 
 
