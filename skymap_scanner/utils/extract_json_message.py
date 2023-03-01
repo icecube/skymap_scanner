@@ -142,7 +142,12 @@ def __extract_frame_packet(
         os.mkdir(this_event_cache_dir)
 
     # see if we have the required baseline GCD to which to apply the GCD diff
+    
     GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
+
+    LOGGER.debug(f"Extracted GCD_diff_base_filename = {GCD_diff_base_filename}.")
+    LOGGER.debug(f"Override_GCD_filename is set to = {override_GCD_filename}.")
+
     if np.logical_and(GCD_diff_base_filename is not None, override_GCD_filename is not None):
         new_GCD_diff_base_filename = os.path.join(override_GCD_filename, GCD_diff_base_filename)
         LOGGER.debug("Trying GCD file: {0}".format(new_GCD_diff_base_filename))
