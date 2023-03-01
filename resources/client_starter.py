@@ -264,12 +264,12 @@ def main() -> None:
         for carg_value in args.client_args:
             carg, value = carg_value.split(":", maxsplit=1)
             client_args += f" --{carg} {value} "
-    LOGGER.info(f"Client Args: {client_args}")
-    if "--client-startup-json" in client_args:
-        raise RuntimeError(
-            "The '--client-args' arg cannot include \"--client-startup-json\". "
-            "This needs to be given to this script explicitly ('--client-startup-json')."
-        )
+        LOGGER.info(f"Client Args: {client_args}")
+        if "--client-startup-json" in client_args:
+            raise RuntimeError(
+                "The '--client-args' arg cannot include \"--client-startup-json\". "
+                "This needs to be given to this script explicitly ('--client-startup-json')."
+            )
 
     # make condor job description
     job_description = make_condor_job_description(
