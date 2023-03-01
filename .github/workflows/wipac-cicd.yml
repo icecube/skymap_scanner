@@ -55,7 +55,7 @@ jobs:
           python-version: ${{ matrix.py3 }}
       - run: |
           pip install --upgrade pip wheel setuptools
-          pip install .
+          pip install .[all,client-starter]
 
   release:
     # only run on main/master/default
