@@ -196,8 +196,8 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeWilks.muon_service,
-            CascadePhotonicsService=MillipedeWilks.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
