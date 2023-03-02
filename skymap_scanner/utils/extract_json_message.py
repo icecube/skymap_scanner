@@ -163,7 +163,7 @@ def __extract_frame_packet(
             # else: - GCD_dir comes from the args
             #       - baseline_GCD is still the one derived from the frame packet
             #       - baseline_GCD_file is a path (not necessarily valid)
-            # Confusing enough!
+            # confusing enough!
 
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
         # "Polymorphic variables" are a bad idea!
@@ -173,7 +173,7 @@ def __extract_frame_packet(
         # NOTE: we used to loop over a set of possible GCD_BASE_DIRS but it is no longer the case.
         # The following conditional structure could be a bit smarter.
         try:
-            LOGGER.debug("reading GCD from {baseline_GCD_file}"
+            LOGGER.debug("reading GCD from {baseline_GCD_file}")
             GCD_diff_base_handle = filestager.GetReadablePath(baseline_GCD_file)
             if not os.path.isfile(str(GCD_diff_base_handle)):
                 raise RuntimeError("File does not exist (or is not a file)")
