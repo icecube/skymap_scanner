@@ -174,22 +174,22 @@ def __extract_frame_packet(
         # The following conditional structure could be a bit smarter.
         try:
             LOGGER.debug("reading GCD from {baseline_GCD_file}")
-            GCD_diff_base_handle = filestager.GetReadablePath(baseline_GCD_file)
-            if not os.path.isfile(str(GCD_diff_base_handle)):
+            baseline_GCD_handle = filestager.GetReadablePath(baseline_GCD_file)
+            if not os.path.isfile(str(baseline_GCD_handle)):
                 raise RuntimeError("File does not exist (or is not a file)")
         except:
             # why this is not an if-then? could GetReadablePath throw an exception?
             LOGGER.debug(" -> failed")
-            GCD_diff_base_handle = None
+            baseline_GCD_handle = None
             
-        if GCD_diff_base_handle is not None:
+        if baseline_GCD_handle is not None:
             LOGGER.debug(" -> success")
         else:
             raise RuntimeError("Could not read the input GCD file \"{baseline_GCD}\"")
             
         new_GCD_base_filename = os.path.join(this_event_cache_dir, "base_GCD_for_diff.i3")
 
-        diff_referenced = load_GCD_frame_packet_from_file( str(GCD_diff_base_handle) )
+        diff_referenced = load_GCD_frame_packet_from_file( str(baseline_GCD_handle) )
         if os.path.exists(new_GCD_base_filename):
             diff_in_cache = load_GCD_frame_packet_from_file(new_GCD_base_filename)
             diff_in_cache_hash = hash_frame_packet(diff_in_cache)
@@ -248,7 +248,7 @@ def __extract_frame_packet(
         del ehe_override_gcd
 
     if baseline_GCD is not None:
-        frame_packet = prepare_frames(frame_packet, str(GCD_diff_base_handle), reco_algo, pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, str(baseline_GCD_handle), reco_algo, pulsesName=pulsesName)
     else:
         frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
 
