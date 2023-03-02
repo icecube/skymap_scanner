@@ -26,7 +26,7 @@ coloredlogs==15.0.1
     # via wipac-dev-tools
 contourpy==1.0.7
     # via matplotlib
-cryptography==39.0.1
+cryptography==39.0.2
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
@@ -179,5 +179,5 @@ wipac-dev-tools[coloredlogs]==1.6.12
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.13
+wipac-rest-tools==1.4.14
     # via skymap-scanner (setup.py)
