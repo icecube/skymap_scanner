@@ -36,7 +36,7 @@ google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
     #   oms-mqclient
-google-auth==2.16.1
+google-auth==2.16.2
     # via
     #   google-api-core
     #   oms-mqclient
