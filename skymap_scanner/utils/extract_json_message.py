@@ -168,28 +168,24 @@ def __extract_frame_packet(
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
         # "Polymorphic variables" are a bad idea!
 
-        # seems to be a GCD diff
         LOGGER.debug(f"Packet needs to load GCD diff based on file \"{baseline_GCD}\"")
 
-        # try to load the base file from the various possible input directories
-        # but we already know that the base file exists !?
-        GCD_diff_base_handle = None
-        for GCD_base_dir in cfg.GCD_BASE_DIRS:
-            try:
-                read_url = os.path.join(GCD_base_dir, baseline_GCD)
-                LOGGER.debug("reading GCD from {0}".format( read_url ))
-                GCD_diff_base_handle = filestager.GetReadablePath( read_url )
-                if not os.path.isfile( str(GCD_diff_base_handle) ):
-                    raise RuntimeError("file does not exist (or is not a file)")
-            except:
-                LOGGER.debug(" -> failed")
-                GCD_diff_base_handle=None
-            if GCD_diff_base_handle is not None:
-                LOGGER.debug(" -> success")
-                break
-        
-        if GCD_diff_base_handle is None:
-            raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(baseline_GCD))
+        # NOTE: we used to loop over a set of possible GCD_BASE_DIRS but it is no longer the case.
+        # The following conditional structure could be a bit smarter.
+        try:
+            LOGGER.debug("reading GCD from {baseline_GCD_file}"
+            GCD_diff_base_handle = filestager.GetReadablePath(baseline_GCD_file)
+            if not os.path.isfile(str(GCD_diff_base_handle)):
+                raise RuntimeError("File does not exist (or is not a file)")
+        except:
+            # why this is not an if-then? could GetReadablePath throw an exception?
+            LOGGER.debug(" -> failed")
+            GCD_diff_base_handle = None
+            
+        if GCD_diff_base_handle is not None:
+            LOGGER.debug(" -> success")
+        else:
+            raise RuntimeError("Could not read the input GCD file \"{baseline_GCD}\"")
             
         new_GCD_base_filename = os.path.join(this_event_cache_dir, "base_GCD_for_diff.i3")
 
