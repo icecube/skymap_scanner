@@ -2,10 +2,9 @@ name: tests
 
 on:
   push:
-    branches-ignore:
-      - master
-      - main
-    tags:
+    branches:
+      - '**'
+    tags-ignore:
       - '**'
 
 concurrency:
