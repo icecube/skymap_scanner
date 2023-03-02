@@ -150,24 +150,29 @@ def __extract_frame_packet(
     LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
-    if (baseline_GCD is not None) and (GCD_dir is not None):
-        baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
-        LOGGER.debug("Trying GCD file: {baseline_GCD_file}")
-        if os.path.isfile(baseline_GCD_file):
-            baseline_GCD = baseline_GCD_file
-            GCD_dir = baseline_GCD_file
-        else:
-            LOGGER.debug("GCD file not available!")
-
     if baseline_GCD is not None:
-        if GCD_dir is not None and baseline_GCD != GCD_dir:
-            LOGGER.warning("** WARNING: user chose to override the GCD base filename. Message references \"{0}\", user chose \"{1}\".".format(baseline_GCD, GCD_dir))
-            baseline_GCD = GCD_dir
+        if GCD_dir is not None: # always true when the arg is passed!
+            baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
+            LOGGER.debug("Trying GCD file: {baseline_GCD_file}")
+            if os.path.isfile(baseline_GCD_file):
+                baseline_GCD = baseline_GCD_file
+                GCD_dir = baseline_GCD_file
+            else:
+                LOGGER.debug("Baseline GCD file not available!")
+            # if the baseline GCD is found: GCD_dir == baseline_GCD == baseline_GCD_file
+            # else: - GCD_dir comes from the args
+            #       - baseline_GCD is still the one derived from the frame packet
+            #       - baseline_GCD_file is a path (not necessarily valid)
+            # Confusing enough!
+
+        # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
+        # "Polymorphic variables" are a bad idea!
 
         # seems to be a GCD diff
-        LOGGER.debug("packet needs GCD diff based on file \"{0}\"".format(baseline_GCD))
+        LOGGER.debug(f"Packet needs to load GCD diff based on file \"{baseline_GCD}\"")
 
         # try to load the base file from the various possible input directories
+        # but we already know that the base file exists !?
         GCD_diff_base_handle = None
         for GCD_base_dir in cfg.GCD_BASE_DIRS:
             try:
