@@ -34,7 +34,14 @@ env:
 
 jobs:
 
+  do-run-long-tests:  # we want to skip long tests unless they're on a release tag
+    if: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }} || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "we're running the long tests..."
+
   test-build-docker:
+    needs: do-run-long-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -48,8 +55,8 @@ jobs:
           tags: icecube/skymap_scanner:local
 
   test-build-docker-pulsar:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -61,8 +68,8 @@ jobs:
           tags: icecube/skymap_scanner:local-pulsar
 
   test-run-singularity-dummy-reco:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     env:
       SKYSCAN_BROKER_ADDRESS: user1:password@localhost/test
       # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
@@ -155,8 +162,8 @@ jobs:
           docker logs rabbitmq
 
   test-run-docker:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -255,8 +262,8 @@ jobs:
           docker logs rabbitmq
 
   test-run-single-pixel:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
