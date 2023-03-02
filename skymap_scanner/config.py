@@ -48,6 +48,7 @@ MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME: Final = "pframe"
 
 BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
+SOURCE_BASELINE_GCD_METADATA = "original_base_GCD_for_diff_filename.txt"
 
 class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""

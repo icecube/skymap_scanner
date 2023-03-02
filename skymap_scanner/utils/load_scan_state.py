@@ -129,7 +129,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
     GCDQp_filename = os.path.join(this_event_cache_dir, "GCDQp.i3")
     potential_GCD_diff_base_filename = os.path.join(this_event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
-    potential_original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, "original_base_GCD_for_diff_filename.txt")
+    potential_original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)
     if os.path.isfile(potential_original_GCD_diff_base_filename):
         f = open(potential_original_GCD_diff_base_filename, 'r')
         potential_original_GCD_diff_base_filename = f.read()
