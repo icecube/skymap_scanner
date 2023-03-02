@@ -2,9 +2,9 @@ name: tests
 
 on:
   push:
-    branches:
-      - '**'
-    tags-ignore:
+    branches-ignore:
+      - ${{ github.event.repository.default_branch }}
+    tags:
       - '**'
 
 concurrency:
