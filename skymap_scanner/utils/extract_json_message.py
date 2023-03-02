@@ -125,7 +125,7 @@ def __extract_frame_packet(
 
     # extract event ID
     if "I3EventHeader" not in physics_frame:
-        raise RuntimeError("No I3EventHeader in Physics frame")
+        raise RuntimeError("No I3EventHeader in Physics frame.")
     header = physics_frame["I3EventHeader"]
     event_metadata = EventMetadata(
         header.run_id,
@@ -137,11 +137,11 @@ def __extract_frame_packet(
     LOGGER.debug("event ID is {0}".format(event_metadata))
 
     # create the cache directory if necessary
-    this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
-    if os.path.exists(this_event_cache_dir) and not os.path.isdir(this_event_cache_dir):
-        raise RuntimeError("this event would be cached in directory \"{0}\", but it exists and is not a directory".format(this_event_cache_dir))
-    if not os.path.exists(this_event_cache_dir):
-        os.mkdir(this_event_cache_dir)
+    event_cache_dir = os.path.join(cache_dir, str(event_metadata))
+    if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
+        raise RuntimeError("This event would be cached in directory \"{0}\", but it exists and is not a directory.".format(event_cache_dir))
+    if not os.path.exists(event_cache_dir):
+        os.mkdir(event_cache_dir)
 
     # see if we have the required baseline GCD to which to apply the GCD diff
     
@@ -186,8 +186,8 @@ def __extract_frame_packet(
             LOGGER.debug(" -> success")
         else:
             raise RuntimeError("Could not read the input GCD file \"{baseline_GCD}\"")
-            
-        new_GCD_base_filename = os.path.join(this_event_cache_dir, "base_GCD_for_diff.i3")
+        
+        new_GCD_base_filename = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
         diff_referenced = load_GCD_frame_packet_from_file( str(baseline_GCD_handle) )
         if os.path.exists(new_GCD_base_filename):
@@ -204,7 +204,7 @@ def __extract_frame_packet(
             LOGGER.debug("wrote baseline GCD frames to {0}".format(new_GCD_base_filename))
 
         # save the GCD filename
-        original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, "original_base_GCD_for_diff_filename.txt")
+        original_GCD_diff_base_filename = os.path.join(event_cache_dir, "original_base_GCD_for_diff_filename.txt")
         if os.path.isfile(original_GCD_diff_base_filename):
             f = open(original_GCD_diff_base_filename, 'r')
             filename = f.read()
@@ -255,7 +255,7 @@ def __extract_frame_packet(
     # move the last packet frame from Physics to the 'p' stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
 
-    GCDQp_filename = os.path.join(this_event_cache_dir, "GCDQp.i3")
+    GCDQp_filename = os.path.join(event_cache_dir, "GCDQp.i3")
     if os.path.exists(GCDQp_filename):
         # GCD already exists - check to make sure it is consistent
         this_packet_hash = hash_frame_packet(frame_packet)
@@ -272,7 +272,7 @@ def __extract_frame_packet(
         LOGGER.debug("wrote GCDQp dependency frames to {0}".format(GCDQp_filename))
 
     return (
-        this_event_cache_dir,
+        event_cache_dir,
         event_metadata,
         {
             cfg.STATEDICT_GCDQP_PACKET: frame_packet,

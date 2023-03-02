@@ -47,6 +47,7 @@ STATEDICT_NSIDES: Final = "nsides"
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME: Final = "pframe"
 
+BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
 
 class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""
