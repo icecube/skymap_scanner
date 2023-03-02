@@ -37,11 +37,13 @@ def extract_GCD_diff_base_filename(frame_packet):
 
             if GCD_diff_base_filename is None:
                 GCD_diff_base_filename = frame[key].base_filename
+                LOGGER.debug(f"GCD diff base_filename loaded from {key} in {frame.Stop} frame.")
             elif frame[key].base_filename != GCD_diff_base_filename:
                 raise RuntimeError("inconsistent frame diff base GCD file names. expected {0}, got {1}".format(GCD_diff_base_filename, frame[key].base_filename))
 
     if GCD_diff_base_filename == "current-gcd":
-        LOGGER.warning(" **** WARNING: baseline GCD file is \"current-gcd\". replacing with \"2016_01_08_Run127381.i3\".")
+        # It is unclear which legacy case is covered by this condition.
+        LOGGER.warning("Baseline GCD file is \"current-gcd\". Replacing with \"2016_01_08_Run127381.i3\".")
         GCD_diff_base_filename = "2016_01_08_Run127381.i3"
 
     return GCD_diff_base_filename
@@ -53,7 +55,7 @@ def extract_json_message(
     filestager,
     is_real_event: bool,
     cache_dir="./cache/",
-    override_GCD_filename=None,
+    GCD_dir=None,
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
@@ -69,7 +71,7 @@ def extract_json_message(
         reco_algo=reco_algo,
         is_real_event=is_real_event,
         cache_dir=cache_dir,
-        override_GCD_filename=override_GCD_filename,
+        GCD_dir=GCD_dir,
     )
 
     # try to load existing pixels if there are any
@@ -103,7 +105,7 @@ def __extract_frame_packet(
     reco_algo: str,
     is_real_event: bool,
     cache_dir="./cache/",
-    override_GCD_filename=None,
+    GCD_dir=None,
     pulsesName="SplitUncleanedInIcePulses",
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
@@ -143,31 +145,33 @@ def __extract_frame_packet(
 
     # see if we have the required baseline GCD to which to apply the GCD diff
     
-    GCD_diff_base_filename = extract_GCD_diff_base_filename(frame_packet)
+    baseline_GCD = extract_GCD_diff_base_filename(frame_packet)
 
-    LOGGER.debug(f"Extracted GCD_diff_base_filename = {GCD_diff_base_filename}.")
-    LOGGER.debug(f"Override_GCD_filename is set to = {override_GCD_filename}.")
+    LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
+    LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
-    if np.logical_and(GCD_diff_base_filename is not None, override_GCD_filename is not None):
-        new_GCD_diff_base_filename = os.path.join(override_GCD_filename, GCD_diff_base_filename)
-        LOGGER.debug("Trying GCD file: {0}".format(new_GCD_diff_base_filename))
-        if os.path.isfile(new_GCD_diff_base_filename):
-            GCD_diff_base_filename = new_GCD_diff_base_filename
-            override_GCD_filename = new_GCD_diff_base_filename
+    if (baseline_GCD is not None) and (GCD_dir is not None):
+        baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
+        LOGGER.debug("Trying GCD file: {baseline_GCD_file}")
+        if os.path.isfile(baseline_GCD_file):
+            baseline_GCD = baseline_GCD_file
+            GCD_dir = baseline_GCD_file
+        else:
+            LOGGER.debug("GCD file not available!")
 
-    if GCD_diff_base_filename is not None:
-        if override_GCD_filename is not None and GCD_diff_base_filename != override_GCD_filename:
-            LOGGER.warning("** WARNING: user chose to override the GCD base filename. Message references \"{0}\", user chose \"{1}\".".format(GCD_diff_base_filename, override_GCD_filename))
-            GCD_diff_base_filename = override_GCD_filename
+    if baseline_GCD is not None:
+        if GCD_dir is not None and baseline_GCD != GCD_dir:
+            LOGGER.warning("** WARNING: user chose to override the GCD base filename. Message references \"{0}\", user chose \"{1}\".".format(baseline_GCD, GCD_dir))
+            baseline_GCD = GCD_dir
 
         # seems to be a GCD diff
-        LOGGER.debug("packet needs GCD diff based on file \"{0}\"".format(GCD_diff_base_filename))
+        LOGGER.debug("packet needs GCD diff based on file \"{0}\"".format(baseline_GCD))
 
         # try to load the base file from the various possible input directories
         GCD_diff_base_handle = None
         for GCD_base_dir in cfg.GCD_BASE_DIRS:
             try:
-                read_url = os.path.join(GCD_base_dir, GCD_diff_base_filename)
+                read_url = os.path.join(GCD_base_dir, baseline_GCD)
                 LOGGER.debug("reading GCD from {0}".format( read_url ))
                 GCD_diff_base_handle = filestager.GetReadablePath( read_url )
                 if not os.path.isfile( str(GCD_diff_base_handle) ):
@@ -180,7 +184,7 @@ def __extract_frame_packet(
                 break
         
         if GCD_diff_base_handle is None:
-            raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(GCD_diff_base_filename))
+            raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(baseline_GCD))
             
         new_GCD_base_filename = os.path.join(this_event_cache_dir, "base_GCD_for_diff.i3")
 
@@ -205,11 +209,11 @@ def __extract_frame_packet(
             filename = f.read()
             del f
             if np.logical_and(
-                    filename != GCD_diff_base_filename,
-                    os.path.basename(filename) != os.path.basename(GCD_diff_base_filename)):
-                raise RuntimeError("expected the stored GCD base filename to be {0}. It is {1}.".format(GCD_diff_base_filename, filename))
+                    filename != baseline_GCD,
+                    os.path.basename(filename) != os.path.basename(baseline_GCD)):
+                raise RuntimeError("expected the stored GCD base filename to be {0}. It is {1}.".format(baseline_GCD, filename))
         with open(original_GCD_diff_base_filename, "w") as text_file:
-            text_file.write(GCD_diff_base_filename)
+            text_file.write(baseline_GCD)
     else:
         LOGGER.debug("packet does not need a GCD diff")
 
@@ -218,7 +222,7 @@ def __extract_frame_packet(
 
         # If no GCD is specified, work out correct one from run number
 
-        available_GCDs = sorted([x for x in os.listdir(override_GCD_filename) if ".i3" in x])
+        available_GCDs = sorted([x for x in os.listdir(GCD_dir) if ".i3" in x])
         run = float(header.run_id)
         latest = available_GCDs[0]
         for x in available_GCDs:
@@ -229,20 +233,20 @@ def __extract_frame_packet(
                 if run > float(x.split("_")[2][:-3]):
                     latest = x
 
-        override_GCD_filename = os.path.join(override_GCD_filename, latest)
+        GCD_dir = os.path.join(GCD_dir, latest)
 
         LOGGER.debug((available_GCDs, run))
         LOGGER.debug("********** old EHE packet with empty GCD frames. need to replace all geometry. ********")
-        LOGGER.debug("By process of elimination using run numbers, using {0}".format(override_GCD_filename))
-        if override_GCD_filename is None:
+        LOGGER.debug("By process of elimination using run numbers, using {0}".format(GCD_dir))
+        if GCD_dir is None:
             raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD EHE event. Please set override_GCD_filename.")
-        ehe_override_gcd = load_GCD_frame_packet_from_file(override_GCD_filename)
+        ehe_override_gcd = load_GCD_frame_packet_from_file(GCD_dir)
         frame_packet[0] = ehe_override_gcd[0]
         frame_packet[1] = ehe_override_gcd[1]
         frame_packet[2] = ehe_override_gcd[2]
         del ehe_override_gcd
 
-    if GCD_diff_base_filename is not None:
+    if baseline_GCD is not None:
         frame_packet = prepare_frames(frame_packet, str(GCD_diff_base_handle), reco_algo, pulsesName=pulsesName)
     else:
         frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
@@ -271,6 +275,6 @@ def __extract_frame_packet(
         event_metadata,
         {
             cfg.STATEDICT_GCDQP_PACKET: frame_packet,
-            cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename
+            cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD
         },
     )
