@@ -38,26 +38,6 @@ class MillipedeWilks(RecoInterface):
     pulsesName = "SplitUncleanedInIcePulsesIC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
-    # Load Data ########################################################
-
-    # At HESE energies, deposited light is dominated by the stochastic losses
-    # (muon part emits so little light in comparison)
-    # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
-    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_bfr-v2_z20.eff.fits")
-    for fname in [_base % "abs", _base % "prob", _effd]:
-        if not os.path.exists(fname):
-            raise FileNotFoundError(fname)
-
-    cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0,
-        effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_bfr-v2/'),
-        quantileEpsilon=1
-        )
-    muon_service = None
-
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -181,6 +161,26 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
+        # Load Data ########################################################
+
+        # At HESE energies, deposited light is dominated by the stochastic losses
+        # (muon part emits so little light in comparison)
+        # This is why we can use cascade tables
+        _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
+        _base = os.path.join(_splinedir, "cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
+        _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_bfr-v2_z20.eff.fits")
+        for fname in [_base % "abs", _base % "prob", _effd]:
+            if not os.path.exists(fname):
+                raise FileNotFoundError(fname)
+
+        cascade_service = photonics_service.I3PhotoSplineService(
+            _base % "abs", _base % "prob", timingSigma=0.0,
+            effectivedistancetable = _effd,
+            tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_bfr-v2/'),
+            quantileEpsilon=1
+            )
+        muon_service = None
+
         def mask_dc(frame, origpulses, maskedpulses):
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
                 frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)

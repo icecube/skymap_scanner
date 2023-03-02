@@ -38,22 +38,6 @@ class MillipedeOriginal(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
     SPEScale = 0.99
 
-    # Load Data ########################################################
-
-    # At HESE energies, deposited light is dominated by the stochastic losses
-    # (muon part emits so little light in comparison)
-    # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "ems_mie_z20_a10.%s.fits")
-    for fname in [_base % "abs", _base % "prob"]:
-        if not os.path.exists(fname):
-            raise FileNotFoundError(fname)
-    cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0
-    )
-    cascade_service.SetEfficiencies(SPEScale)
-    muon_service = None
-
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -153,6 +137,22 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
+        # Load Data ########################################################
+
+        # At HESE energies, deposited light is dominated by the stochastic losses
+        # (muon part emits so little light in comparison)
+        # This is why we can use cascade tables
+        _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
+        _base = os.path.join(_splinedir, "ems_mie_z20_a10.%s.fits")
+        for fname in [_base % "abs", _base % "prob"]:
+            if not os.path.exists(fname):
+                raise FileNotFoundError(fname)
+        cascade_service = photonics_service.I3PhotoSplineService(
+            _base % "abs", _base % "prob", timingSigma=0.0
+        )
+        cascade_service.SetEfficiencies(SPEScale)
+        muon_service = None
+
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
