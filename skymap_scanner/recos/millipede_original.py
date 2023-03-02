@@ -36,7 +36,6 @@ class MillipedeOriginal(RecoInterface):
 
     pulsesName = "SplitUncleanedInIcePulses"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-    SPEScale = 0.99
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -150,7 +149,7 @@ class MillipedeOriginal(RecoInterface):
         cascade_service = photonics_service.I3PhotoSplineService(
             _base % "abs", _base % "prob", timingSigma=0.0
         )
-        cascade_service.SetEfficiencies(SPEScale)
+        cascade_service.SetEfficiencies(0.99)
         muon_service = None
 
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
@@ -167,7 +166,6 @@ class MillipedeOriginal(RecoInterface):
             CascadePhotonicsService=MillipedeOriginal.cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
-            # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
             ReadoutWindow=MillipedeOriginal.pulsesName_cleaned+'TimeRange',
