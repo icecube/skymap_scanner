@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.3.2 (2023-03-02)
+### Other
+* Fixes to client starter ([#134](https://github.com/icecube/skymap_scanner/issues/134)) ([`581f489`](https://github.com/icecube/skymap_scanner/commit/581f48919e46c4659234ed0cc55e259e8f012fc2))
+
 ## v3.3.1 (2023-03-01)
 ### Other
 * Fix `htcondor` Pip Install for Docker Builds ([#139](https://github.com/icecube/skymap_scanner/issues/139)) ([`aab3123`](https://github.com/icecube/skymap_scanner/commit/aab3123bce2f52a4e7b2b82c0d68c40edd4c063d))
