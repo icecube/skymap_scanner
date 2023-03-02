@@ -151,7 +151,8 @@ def __extract_frame_packet(
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
     if baseline_GCD is not None:
-        if GCD_dir is not None: # always true when the arg is passed!
+        # input event had GCD diff frames!
+        if GCD_dir is not None: # always true since we pass this as an argument!
             baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
             LOGGER.debug("Trying GCD file: {baseline_GCD_file}")
             if os.path.isfile(baseline_GCD_file):
@@ -187,36 +188,35 @@ def __extract_frame_packet(
         else:
             raise RuntimeError("Could not read the input GCD file \"{baseline_GCD}\"")
         
-        new_GCD_base_filename = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
+        cached_baseline_GCD = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
-        diff_referenced = load_GCD_frame_packet_from_file( str(baseline_GCD_handle) )
-        if os.path.exists(new_GCD_base_filename):
-            diff_in_cache = load_GCD_frame_packet_from_file(new_GCD_base_filename)
-            diff_in_cache_hash = hash_frame_packet(diff_in_cache)
-            diff_referenced_hash = hash_frame_packet(diff_referenced)
-            if diff_in_cache_hash != diff_referenced_hash:
+        baseline_GCD_framepacket = load_GCD_frame_packet_from_file( str(baseline_GCD_handle) )
+        if os.path.exists(cached_baseline_GCD):
+            # this will never occur if the cache is isolated on a server-instance basis!
+            cached_baseline_GCD_framepacket = load_GCD_frame_packet_from_file(cached_baseline_GCD)
+            cached_baseline_GCD_hash = hash_frame_packet(cached_baseline_GCD_framepacket)
+            baseline_GCD_hash = hash_frame_packet(baseline_GCD_framepacket)
+            if cached_baseline_GCD_hash != baseline_GCD_hash:
                 # print "existing:", existing_packet_hash
                 # print "this_frame:", this_packet_hash
-                raise RuntimeError("existing baseline GCD in cache (SHA1 {0}) and packet from input (SHA1 {1}) differ.".format(diff_in_cache_hash, diff_referenced_hash))
-            LOGGER.debug("checked baseline GCD against existing data in cache - consistent")
+                raise RuntimeError(f"Existing baseline GCD in cache (SHA1 {cached_baseline_GCD_hash}) and packet from input (SHA1 {baseline_GCD_hash}) differ.")
+            LOGGER.debug("Checked baseline GCD against existing data in cache: consistent.")
         else:
-            save_GCD_frame_packet_to_file(diff_referenced, new_GCD_base_filename)
-            LOGGER.debug("wrote baseline GCD frames to {0}".format(new_GCD_base_filename))
+            save_GCD_frame_packet_to_file(baseline_GCD_framepacket, cached_baseline_GCD)
+            LOGGER.debug(f"Wrote baseline GCD frames to {cached_baseline_GCD}.")
 
-        # save the GCD filename
-        original_GCD_diff_base_filename = os.path.join(event_cache_dir, "original_base_GCD_for_diff_filename.txt")
-        if os.path.isfile(original_GCD_diff_base_filename):
-            f = open(original_GCD_diff_base_filename, 'r')
+        # save the GCD filename # why?
+        source_baseline_GCD_metadata = os.path.join(event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)
+        if os.path.isfile(source_baseline_GCD_metadata):
+            f = open(source_baseline_GCD_metadata, 'r')
             filename = f.read()
             del f
-            if np.logical_and(
-                    filename != baseline_GCD,
-                    os.path.basename(filename) != os.path.basename(baseline_GCD)):
-                raise RuntimeError("expected the stored GCD base filename to be {0}. It is {1}.".format(baseline_GCD, filename))
-        with open(original_GCD_diff_base_filename, "w") as text_file:
+            if (filename != baseline_GCD) and (os.path.basename(filename) != os.path.basename(baseline_GCD)):
+                raise RuntimeError(f"Expected the stored GCD base filename to be {baseline_GCD}. It is {filename}.")
+        with open(source_baseline_GCD_metadata, "w") as text_file:
             text_file.write(baseline_GCD)
     else:
-        LOGGER.debug("packet does not need a GCD diff")
+        LOGGER.debug("Packet does not need a GCD diff.")
 
     # special case for old EHE alerts with empty GCD frames
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
