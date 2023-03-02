@@ -71,6 +71,8 @@ jobs:
     - name: Python Semantic Release
       uses: relekang/python-semantic-release@master
       with:
+        git_committer_name: wipacdevbot
+        git_committer_email: developers@icecube.wisc.edu
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         # repository_username: __token__
         # repository_password: ${{ secrets.PYPI_TOKEN }}
