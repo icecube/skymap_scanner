@@ -334,7 +334,7 @@ jobs:
 
   all-tests-done:
     needs: [test-run-single-pixel, test-run-docker, test-run-singularity-dummy-reco, test-build-docker-pulsar, test-build-docker]
-    name: "All Tests Done"  # used by the 'release' a la 'ewagon/wait-on-check-action'
+    name: "All Tests Done"  # used by the 'release' a la 'lewagon/wait-on-check-action'
     runs-on: ubuntu-latest
     steps:
       - run: echo "all tests are done"
