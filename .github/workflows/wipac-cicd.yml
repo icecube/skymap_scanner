@@ -41,6 +41,7 @@ jobs:
         #   So, add many jobs to WAIT_FOR_JOBS
         run: |
           echo ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+          exit 0
           # if ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
           python3 -u -c '
