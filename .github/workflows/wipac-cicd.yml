@@ -27,7 +27,7 @@ jobs:
   test-temporary-for-pr:
     runs-on: ubuntu-latest
     env:
-      WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON); test-temporary-for-pr"
       WAIT_TIME: 30  # seconds
     steps:
       - run: |
@@ -68,7 +68,7 @@ jobs:
                       check_run_statuses.extend([ (cr["name"],cr["id"],cr["status"]) for cr in resp["check_runs"] ])
               pprint(check_run_statuses)
 
-          statuses = get_statuses([j.strip() for j in ${{ env.WAIT_FOR_JOBS }}.split(";")])
+          statuses = get_statuses([j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")])
           pprint(statuses)
 
           '
