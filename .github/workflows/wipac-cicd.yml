@@ -43,7 +43,7 @@ jobs:
           JOBS = [j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
           print(f"Checking jobs: {JOBS}")
           OK_CONCLUSION = [s.strip() for s in "${{ env.OK_CONCLUSION }}".split(";")]
-          print(f"Jobs must have these statuses: {OK_CONCLUSION}")
+          print(f"Jobs must have these conclusions: {OK_CONCLUSION}")
 
           headers = {
               "Authorization": "Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}",
@@ -71,7 +71,7 @@ jobs:
           start = time.time()
           while True:
               print("\n###############################################################")
-              print("Waiting for job statuses (${{ env.WAIT_TIME }} seconds)...")
+              print("Waiting for job conclusions (${{ env.WAIT_TIME }} seconds)...")
               if time.time() - start > ${{ env.TOTAL_TIMEOUT }}:
                   print("Timeout.")
                   sys.exit(1)
