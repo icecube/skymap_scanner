@@ -73,7 +73,8 @@ jobs:
           # MAIN RETRY LOOP
           while True:
               print("Waiting for job statuses (${{ env.WAIT_TIME }} seconds)...")
-              time.sleep(${{ env.WAIT_TIME }})
+              # time.sleep(${{ env.WAIT_TIME }})
+              time.sleep(1)
 
               # get statuses
               okay_jobs = set()
