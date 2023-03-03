@@ -102,7 +102,7 @@ jobs:
                       params={
                           "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
                           "check_name": cname,
-                          "status": "completed",
+                          # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
                       },
                   ).json()
                   for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
