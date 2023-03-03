@@ -31,12 +31,15 @@ jobs:
       WAIT_TIME: 30  # seconds
     steps:
       - run: |
+          echo "Starting to check CI statuses"
+
           python3 -c '
           import time
           import requests
           from pprint import pprint
 
           JOBS = [j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
+          print(f"Checking jobs: {JOBS}")
           OK_STATUSES = ["completed"]
 
           headers = {
