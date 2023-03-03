@@ -44,7 +44,10 @@ def get_event_mjd(frame_packet: List[icetray.I3Frame]) -> float:
     return time.mod_julian_day_double  # type: ignore[no-any-return]
 
 
-def load_framepacket_file(filename : str, filestager=None) -> List[icetray.I3Frame]:
+def load_framepacket_from_file(filename : str, filestager=None) -> List[icetray.I3Frame]:
+    """
+    Loads an I3 file provided a filename and returns a list of I3Frame objects (frame packet)
+    """
     # Legacy code used to loop over GCD_BASE_DIRS.
     # Now it is assumed that filename points to a valid GCD file.
     if filestager is not None:
