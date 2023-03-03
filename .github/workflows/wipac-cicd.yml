@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Wait on Other Jobs
         run: |
-          python3 -c '
+          python3 -c -u '
           import time
           import sys
           import requests
