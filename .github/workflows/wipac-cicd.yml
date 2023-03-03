@@ -54,7 +54,6 @@ jobs:
             ).json()
             print([ cr["name"] for cr in resp["check_runs"] ])
             pprint(resp)
-            break  # TODO remove
 
           '
 
