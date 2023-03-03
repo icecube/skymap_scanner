@@ -90,6 +90,7 @@ jobs:
                   print(f"Pending jobs: {set(JOBS) - okay_jobs}")
                   continue
               print("The wait is over!")
+              break
           '
 
   py-setup:
