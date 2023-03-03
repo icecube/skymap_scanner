@@ -24,7 +24,89 @@ jobs:
   #         python-version: '3.9'
   #     - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
+  wait-for-branch-protections-on-main:  # pass always when not on main (don't use 'if' b/c downstream)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      # don't cancel on main/master/default
+      cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+    env:
+      WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-run-docker(hese_event_01.json); test-run-docker(run00136766-evt000007637140-GOLD.pkl); test-run-docker(run00136662-evt000035405932-BRONZE.pkl); test-run-single-pixel (BRONZE); test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      OK_CONCLUSION: "success; skipped"  # see https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
+      RETRY_TIME: 60  # seconds
+      TOTAL_WAIT_TIME: 4500  # seconds
+    steps:
+      - name: Wait on Other Jobs
+        # HEADS UP: if you re-run a workflow, the job may get old conclusions & pass.
+        #   So, add many jobs to WAIT_FOR_JOBS
+        run: |
+          if [ ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }} == 'true' ] ; then
+            echo "not on default branch"
+            exit 0
+          fi
+
+          python3 -u -c '
+          import time
+          import sys
+          import requests
+          from pprint import pprint
+
+          JOBS = [j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
+          print(f"Checking jobs: {JOBS}")
+          OK_CONCLUSION = [s.strip() for s in "${{ env.OK_CONCLUSION }}".split(";")]
+          print(f"Jobs must have these conclusions: {OK_CONCLUSION}")
+
+          headers = {
+              "Authorization": "Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
+
+          def get_conclusions():
+              for cname in JOBS:
+                  resp = requests.get(
+                      "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs",
+                      headers=headers,
+                      params={
+                          "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
+                          "check_name": cname,
+                          # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
+                      },
+                  ).json()
+                  for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
+                      print( (crun["name"], crun["id"], crun["conclusion"]) )
+                      yield crun["name"], crun["conclusion"]
+
+          # MAIN RETRY LOOP
+          start = time.time()
+          while True:
+              print("\n###############################################################")
+              print("Waiting for job conclusions (${{ env.RETRY_TIME }} seconds)...")
+              if time.time() - start > ${{ env.TOTAL_WAIT_TIME }}:
+                  print("Timeout.")
+                  sys.exit(1)
+              time.sleep(${{ env.RETRY_TIME }})
+
+              # get conclusions
+              okay_jobs = set()
+              for job, conclusion in get_conclusions():
+                  print(f"Job conclusion: {job} ({conclusion})")
+                  if conclusion not in OK_CONCLUSION:
+                      # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion then break
+                      okay_jobs.discard(job)  # in case a name-twin was marked as okay
+                      break  # break early to limit requests
+                  okay_jobs.add(job)
+
+              # final check
+              if okay_jobs == set(JOBS):
+                  print("The wait is over!")
+                  break
+              # NOTE: it is tempting to see if we have all failed or all ok jobs and quite early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
+              print(f"Pending jobs: {set(JOBS) - okay_jobs}")
+          '
+
   py-setup:
+    needs: [wait-for-branch-protections-on-main]  # have to wait for tests so wipac-dev-py-setup-action can push (branch protection on main)
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -68,17 +150,10 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [py-setup, pip-install]
+    needs: [py-setup, pip-install, wait-for-branch-protections-on-main]  # have to wait for tests so python-semantic-release can push (branch protection on main)
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-    - uses: lewagon/wait-on-check-action@v1.3.1
-      # wait for the long CI tests to pass
-      with:
-        ref: ${{ github.sha }}
-        check-name: 'All Tests Done'
-        repo-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        wait-interval: 30
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
