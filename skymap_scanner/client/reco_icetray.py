@@ -87,35 +87,29 @@ def get_baseline_GCD_handle(baseline_GCD_file: str) -> Any:
     """Find an available GCD base path."""
     stagers = dataio.get_stagers()
 
-    LOGGER.debug(f"Look up baseline GCD at {baseline_GCD_file}")
+    LOGGER.debug(f"Baseline GCD at {baseline_GCD_file}")
 
-    # try to load the base file from the various possible input directories
-    GCD_diff_base_handle = None
+    # assuming baseline_GCD_file is a valid GCD path!
+    # NOTE: old code use to search for a basename in a list of GCD_BASE_DIRS
+    baseline_GCD_handle = None
     if baseline_GCD_file not in [None, "None"]:
-        for GCD_base_dir in cfg.GCD_BASE_DIRS:
-            try:
-                read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
-                LOGGER.debug("reading baseline GCD from {0}".format(read_url))
-                GCD_diff_base_handle = stagers.GetReadablePath(read_url)
-                if not os.path.isfile(str(GCD_diff_base_handle)):
-                    raise RuntimeError("file does not exist (or is not a file)")
-            except:
-                LOGGER.debug(" -> failed")
-                GCD_diff_base_handle = None
-            if GCD_diff_base_handle is not None:
-                LOGGER.debug(" -> success")
-                break
+        try:
+            LOGGER.debug("reading baseline GCD from {0}".format(baseline_GCD_file))
+            baseline_GCD_handle = stagers.GetReadablePath(baseline_GCD_file)
+            if not os.path.isfile(str(baseline_GCD_handle)):
+                raise RuntimeError("file does not exist (or is not a file)")
+        except:
+            LOGGER.debug(" -> failed")
+            baseline_GCD_handle = None
+        if baseline_GCD_handle is not None:
+            LOGGER.debug(" -> success")
 
-        if GCD_diff_base_handle is None:
-            raise RuntimeError(
-                "Could not read the input GCD file '{0}' from any pre-configured location".format(
-                    baseline_GCD_file
-                )
-            )
+    if baseline_GCD_handle is None:
+        raise RuntimeError(f"Could not read the input GCD file '{baseline_GCD_file}'")
     else:
-        LOGGER.info("baseline_GCD_file is None! Is this expected?")
+        LOGGER.info("baseline_GCD_file is None. Likely frame packet is not a GCD diff.")
 
-    return GCD_diff_base_handle
+    return baseline_GCD_handle
 
 
 def reco_pixel(
