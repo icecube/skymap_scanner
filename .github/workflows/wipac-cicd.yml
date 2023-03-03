@@ -27,7 +27,7 @@ jobs:
   test-temporary-for-pr:
     runs-on: ubuntu-latest
     env:
-      WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      WAIT_FOR_JOBS: "test-build-docker; test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
       OK_STATUSES: "completed; skipped"
       WAIT_TIME: 30  # seconds
       TOTAL_TIMEOUT: 3600  # seconds
