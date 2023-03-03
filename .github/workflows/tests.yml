@@ -48,8 +48,8 @@ jobs:
           tags: icecube/skymap_scanner:local
 
   test-build-docker-pulsar:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -61,8 +61,8 @@ jobs:
           tags: icecube/skymap_scanner:local-pulsar
 
   test-run-singularity-dummy-reco:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     env:
       SKYSCAN_BROKER_ADDRESS: user1:password@localhost/test
       # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
@@ -155,8 +155,8 @@ jobs:
           docker logs rabbitmq
 
   test-run-docker:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -255,8 +255,8 @@ jobs:
           docker logs rabbitmq
 
   test-run-single-pixel:
-    runs-on: ubuntu-latest
     needs: test-build-docker
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -331,3 +331,10 @@ jobs:
             --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
+
+  all-tests-done:
+    needs: [test-run-single-pixel, test-run-docker, test-run-singularity-dummy-reco, test-build-docker-pulsar, test-build-docker]
+    name: "All Tests Done"  # used by the 'release' a la 'lewagon/wait-on-check-action'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "all tests are done"
