@@ -83,9 +83,11 @@ def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     return pixel_fname
 
 
-def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
+def get_baseline_GCD_handle(baseline_GCD_file: str) -> Any:
     """Find an available GCD base path."""
     stagers = dataio.get_stagers()
+
+    LOGGER.debug(f"Look up baseline GCD at {baseline_GCD_file}")
 
     # try to load the base file from the various possible input directories
     GCD_diff_base_handle = None
@@ -110,6 +112,8 @@ def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
                     baseline_GCD_file
                 )
             )
+    else:
+        LOGGER.info("baseline_GCD_file is None! Is this expected?")
 
     return GCD_diff_base_handle
 
@@ -155,12 +159,12 @@ def reco_pixel(
             base_filename=base_GCD_filename,
         )
 
-    if GCD_diff_base_handle := get_GCD_diff_base_handle(baseline_GCD_file):
+    if baseline_GCD_handle := get_baseline_GCD_handle(baseline_GCD_file):
         tray.Add(
             UncompressGCD,
             "GCD_uncompress",
             base_GCD_path="",
-            base_GCD_filename=str(GCD_diff_base_handle),
+            base_GCD_filename=str(baseline_GCD_handle),
         )
 
     # perform fit
