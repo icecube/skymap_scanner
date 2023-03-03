@@ -86,11 +86,10 @@ jobs:
                       break  # break early to limit requests
 
               # final check
-              if okay_jobs != set(JOBS):
-                  print(f"Pending jobs: {set(JOBS) - okay_jobs}")
-                  continue
-              print("The wait is over!")
-              break
+              if okay_jobs == set(JOBS):
+                  print("The wait is over!")
+                  break
+              print(f"Pending jobs: {set(JOBS) - okay_jobs}")
           '
 
   py-setup:
