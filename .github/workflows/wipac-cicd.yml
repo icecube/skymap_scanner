@@ -71,7 +71,7 @@ jobs:
       WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-run-docker(hese_event_01.json); test-run-docker(run00136766-evt000007637140-GOLD.pkl); test-run-docker(run00136662-evt000035405932-BRONZE.pkl); test-run-single-pixel (BRONZE); test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
       OK_CONCLUSION: "success; skipped"  # see https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
       WAIT_TIME: 60  # seconds
-      TOTAL_TIMEOUT: 3600  # seconds
+      TOTAL_TIMEOUT: 4500  # seconds
     steps:
       - name: Wait on Other Jobs
         # HEADS UP: if you re-run a workflow, the job may get old conclusions & pass.
