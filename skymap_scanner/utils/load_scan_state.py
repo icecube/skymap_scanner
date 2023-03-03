@@ -27,9 +27,11 @@ def load_cache_state(
         raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), this_event_cache_dir))
 
     # load GCDQp state first
+    LOGGER.debug("Initialize state_dict with GCDQp state.")
     state_dict = load_GCDQp_state(event_metadata, filestager=filestager, cache_dir=cache_dir)
 
     # update with scans
+    LOGGER.debug("Update state_dict with scan state.")
     state_dict = load_scan_state(event_metadata, state_dict, reco_algo, filestager=filestager, cache_dir=cache_dir)[1]
 
     return state_dict
