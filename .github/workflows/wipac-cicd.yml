@@ -47,12 +47,21 @@ jobs:
           check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
           print(check_suite_ids)
 
+          check_run_statuses = []
           for csid in check_suite_ids:
             resp = requests.get(
                 f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
                 headers=headers,
             ).json()
-            print([ cr["name"] for cr in resp["check_runs"] ])
+            check_run_statuses.extend([ (cr["name"],cr["id"],cr["status"]) for cr in resp["check_runs"] ])
+
+          print(check_run_statuses)
+
+          for crname, crid, crstatus in check_run_statuses:
+            resp = requests.get(
+                f"https://api.github.com/repos/icecube/skymap_scanner/check-runs/{crid}",
+                headers=headers,
+            ).json()
             pprint(resp)
 
           '
@@ -69,7 +78,7 @@ jobs:
           #   -H "Accept: application/vnd.github+json" \
           #   -H "Authorization: Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}"\
           #   -H "X-GitHub-Api-Version: 2022-11-28" \
-          #   https://api.github.com/repos/icecube/skymap_scanner/check-runs/CHECK_RUN_ID
+          #
 
   py-setup:
     runs-on: ubuntu-latest
