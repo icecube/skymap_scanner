@@ -25,7 +25,6 @@ jobs:
   #     - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
   py-setup:
-    if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -34,6 +33,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-setup-action@v1.12
+        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: $BOT_NAME
           git_committer_email: $BOT_EMAIL
