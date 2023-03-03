@@ -24,15 +24,58 @@ jobs:
   #         python-version: '3.9'
   #     - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
-  test-temporary-for-pr:
+  py-setup:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.12
+        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+        with:
+          git_committer_name: $BOT_NAME
+          git_committer_email: $BOT_EMAIL
+
+  py-versions:
+    needs: [py-setup]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: versions
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2
+
+  pip-install:
+    # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.py3 }}
+      - run: |
+          pip install --upgrade pip wheel setuptools
+          pip install .[all,client-starter]
+
+  wait-for-tests:
     runs-on: ubuntu-latest
     env:
-      WAIT_FOR_JOBS: "test-build-docker; test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-run-docker(hese_event_01.json); test-run-docker(run00136766-evt000007637140-GOLD.pkl); test-run-docker(run00136662-evt000035405932-BRONZE.pkl); test-run-single-pixel (BRONZE); test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
       OK_CONCLUSION: "success; skipped"  # see https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
-      WAIT_TIME: 30  # seconds
+      WAIT_TIME: 60  # seconds
       TOTAL_TIMEOUT: 3600  # seconds
     steps:
       - name: Wait on Other Jobs
+        # HEADS UP: if you re-run a workflow, the job may get old conclusions & pass.
+        #   So, add many jobs to WAIT_FOR_JOBS
         run: |
           python3 -u -c '
           import time
@@ -93,61 +136,13 @@ jobs:
               print(f"Pending jobs: {set(JOBS) - okay_jobs}")
           '
 
-  py-setup:
-    runs-on: ubuntu-latest
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.12
-        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
-        with:
-          git_committer_name: $BOT_NAME
-          git_committer_email: $BOT_EMAIL
-
-  py-versions:
-    needs: [py-setup]
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.versions.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2
-
-  pip-install:
-    # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
-    needs: [py-versions]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.py3 }}
-      - run: |
-          pip install --upgrade pip wheel setuptools
-          pip install .[all,client-starter]
-
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [py-setup, pip-install]
+    needs: [py-setup, pip-install, wait-for-tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-    - uses: lewagon/wait-on-check-action@v1.3.1
-      # wait for the long CI tests to pass
-      with:
-        ref: ${{ github.sha }}
-        check-name: 'All Tests Done'
-        repo-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        wait-interval: 30
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
