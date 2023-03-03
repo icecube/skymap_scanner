@@ -156,10 +156,10 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
                 for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
                         read_url = os.path.join(GCD_base_dir, source_baseline_GCD_metadata)
-                        LOGGER.debug("reading GCD from {0}".format( read_url ))
+                        LOGGER.debug("load_GCDQp_state => reading GCD from {0}".format( read_url ))
                         GCD_diff_base_handle = filestager.GetReadablePath( read_url )
                         if not os.path.isfile( str(GCD_diff_base_handle) ):
-                            raise RuntimeError("file does not exist (or is not a file)")
+                            raise RuntimeError("load_GCDQp_state => file does not exist (or is not a file)")
                     except:
                         LOGGER.debug(" -> failed")
                         GCD_diff_base_handle=None
@@ -168,7 +168,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
                         break
                 
                 if GCD_diff_base_handle is None:
-                    raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(source_baseline_GCD_metadata))
+                    raise RuntimeError("load_GCDQp_state => Could not read the input GCD file \"{0}\" from any pre-configured location".format(source_baseline_GCD_metadata))
 
                 source_baseline_GCD = load_framepacket_from_file( str(GCD_diff_base_handle) )
             this_packet = load_framepacket_from_file(cached_baseline_GCD)
@@ -176,7 +176,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
             orig_packet_hash = hash_frame_packet(source_baseline_GCD)
             this_packet_hash = hash_frame_packet(this_packet)
             if orig_packet_hash != this_packet_hash:
-                raise RuntimeError("cached GCD baseline file is different from the original file")
+                raise RuntimeError("load_GCDQp_state => cached GCD baseline file is different from the original file")
 
             del source_baseline_GCD
             del this_packet
