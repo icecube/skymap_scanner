@@ -67,8 +67,8 @@ jobs:
                           },
                       ).json()
                       for crun in resp["check_runs"]:
-                          print( (cr["name"], cr["id"], cr["status"]) )
-                          yield crun["name"], cr["status"]
+                          print( (crun["name"], crun["id"], crun["status"]) )
+                          yield crun["name"], crun["status"]
 
           # MAIN RETRY LOOP
           while True:
