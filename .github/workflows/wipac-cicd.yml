@@ -137,6 +137,7 @@ jobs:
               if okay_jobs == set(JOBS):
                   print("The wait is over!")
                   break
+              # NOTE: it is tempting to see if we have all failed or all ok jobs and quite early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print(f"Pending jobs: {set(JOBS) - okay_jobs}")
           '
 
