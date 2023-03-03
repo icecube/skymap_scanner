@@ -154,6 +154,7 @@ def __extract_frame_packet(
     # - cache baseline GCD file and medatadata (check consistency if already cached)
     # if packet does not have GCD (GFU event or legacy EHE)
     # - look up baseline GCD in GCD_dir based on run number
+    # - assemble GCDQp from baseline GCD
 
     LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
