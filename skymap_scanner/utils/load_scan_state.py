@@ -111,51 +111,51 @@ def load_scan_state(
 
 
 def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="./cache/") -> dict:
-    this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
-    GCDQp_filename = os.path.join(this_event_cache_dir, cfg.GCDQp_FILENAME)
-    potential_GCD_diff_base_filename = os.path.join(this_event_cache_dir, cfg.BASELINE_GCD_FILENAME)
+    event_cache_dir = os.path.join(cache_dir, str(event_metadata))
 
-    potential_original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)
-    if os.path.isfile(potential_original_GCD_diff_base_filename):
-        f = open(potential_original_GCD_diff_base_filename, 'r')
-        potential_original_GCD_diff_base_filename = f.read()
+    # GCDQp previously cached by extract_json_message()
+    GCDQp_filename = os.path.join(event_cache_dir, cfg.GCDQp_FILENAME)
+    if not os.path.isfile(GCDQp_filename):
+        raise RuntimeError(f"GCQDp file for event \"{str(event_metadata)}\" not found in cache at \"{GCDQp_filename}\".")
+    frame_packet = load_framepacket_from_file(GCDQp_filename)
+    LOGGER.debug(f"Loaded frame packet from {GCDQp_filename}")
+    
+    # cached baseline GCD
+    cached_baseline_GCD = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
+    # source of cached baseline GCD
+    source_baseline_GCD_metadata = os.path.join(event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)
+    if os.path.isfile(source_baseline_GCD_metadata):
+        f = open(source_baseline_GCD_metadata, 'r')
+        source_baseline_GCD_metadata = f.read()
         del f
     else:
-        potential_original_GCD_diff_base_filename = None
+        source_baseline_GCD_metadata = None
 
-    if not os.path.isfile(GCDQp_filename):
-        raise RuntimeError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), GCDQp_filename))
-
-    frame_packet = load_framepacket_from_file(GCDQp_filename)
-    LOGGER.debug("loaded frame packet from {0}".format(GCDQp_filename))
-
-    if os.path.isfile(potential_GCD_diff_base_filename):
-        if potential_original_GCD_diff_base_filename is None:
+    if os.path.isfile(cached_baseline_GCD):
+        if source_baseline_GCD_metadata is None:
             # load and throw away to make sure it is readable
-            load_framepacket_from_file(potential_GCD_diff_base_filename)
-            LOGGER.debug(" - has a frame diff packet at {0}".format(potential_GCD_diff_base_filename))
-            GCD_diff_base_filename = potential_GCD_diff_base_filename
-            
-            raise RuntimeError("Cache state seems to require a GCD diff baseline file (it contains a cached version), but the cache does not have \"original_base_GCD_for_diff_filename.txt\". This is a bug or corrupted data.")
+            load_framepacket_from_file(cached_baseline_GCD)
+            LOGGER.debug(f" - has a frame diff packet ref. to baseline {cached_baseline_GCD}")            
+            raise RuntimeError(f"Cache state seems to require a baseline GCD file (it contains a cached version), but the cache does not have \"{cfg.SOURCE_BASELINE_GCD_METADATA}\". This is a bug or corrupted data.")
         else:
             if filestager is None:
                 orig_packet = None
                 for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
-                        read_path = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
-                        LOGGER.debug("reading GCD from {0}".format(read_path))
+                        read_path = os.path.join(GCD_base_dir, source_baseline_GCD_metadata)
+                        LOGGER.debug("load_GCDQp_state => reading GCD from {0}".format(read_path))
                         orig_packet = load_framepacket_from_file(read_path)
                     except:
                         LOGGER.debug(" -> failed")
                         orig_packet = None
                     if orig_packet is None:
-                        raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(potential_original_GCD_diff_base_filename))
+                        raise RuntimeError("load_GCDQp_state => Could not read the input GCD file \"{0}\" from any pre-configured location".format(source_baseline_GCD_metadata))
             else:
                 # try to load the base file from the various possible input directories
                 GCD_diff_base_handle = None
                 for GCD_base_dir in cfg.GCD_BASE_DIRS:
                     try:
-                        read_url = os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)
+                        read_url = os.path.join(GCD_base_dir, source_baseline_GCD_metadata)
                         LOGGER.debug("reading GCD from {0}".format( read_url ))
                         GCD_diff_base_handle = filestager.GetReadablePath( read_url )
                         if not os.path.isfile( str(GCD_diff_base_handle) ):
@@ -168,10 +168,10 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
                         break
                 
                 if GCD_diff_base_handle is None:
-                    raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(potential_original_GCD_diff_base_filename))
+                    raise RuntimeError("Could not read the input GCD file \"{0}\" from any pre-configured location".format(source_baseline_GCD_metadata))
 
                 orig_packet = load_framepacket_from_file( str(GCD_diff_base_handle) )
-            this_packet = load_framepacket_from_file(potential_GCD_diff_base_filename)
+            this_packet = load_framepacket_from_file(cached_baseline_GCD)
             
             orig_packet_hash = hash_frame_packet(orig_packet)
             this_packet_hash = hash_frame_packet(this_packet)
@@ -181,15 +181,15 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
             del orig_packet
             del this_packet
             
-            LOGGER.debug(" - has a frame diff packet at {0} (using original copy)".format(os.path.join(GCD_base_dir, potential_original_GCD_diff_base_filename)))
-            GCD_diff_base_filename = potential_original_GCD_diff_base_filename
+            LOGGER.debug(" - has a frame diff packet at {0} (using original copy)".format(os.path.join(GCD_base_dir, source_baseline_GCD_metadata)))
+            baseline_GCD = source_baseline_GCD_metadata
     else:
         LOGGER.debug(" - does not seem to contain frame diff packet")
-        GCD_diff_base_filename = None
+        baseline_GCD = None
 
     return {
         cfg.STATEDICT_GCDQP_PACKET: frame_packet,
-        cfg.STATEDICT_BASELINE_GCD_FILE: GCD_diff_base_filename,
+        cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD,
     }
 
 
