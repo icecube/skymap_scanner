@@ -68,7 +68,7 @@ jobs:
                       check_run_statuses.extend([ (cr["name"],cr["id"],cr["status"]) for cr in resp["check_runs"] ])
               pprint(check_run_statuses)
 
-          statuses = get_statuses([j.strip() for j in $WAIT_FOR_JOBS.split(";")])
+          statuses = get_statuses([j.strip() for j in ${{ env.WAIT_FOR_JOBS }}.split(";")])
           pprint(statuses)
 
           '
