@@ -52,8 +52,6 @@ jobs:
           }
 
           def get_statuses():
-
-              print("\n########################################")
               for cname in JOBS:
                   resp = requests.get(
                       "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-runs",
@@ -63,36 +61,15 @@ jobs:
                           "check_name": cname,
                       },
                   ).json()
-                  pprint(resp)
-              print("########################################\n")
-
-              # find check suites (for GitHub Actions)
-              resp = requests.get(
-                  "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
-                  headers=headers,
-              ).json()
-              check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
-              print(check_suite_ids)
-
-              # find check runs
-              for csid in check_suite_ids:
-                  for cname in JOBS:
-                      resp = requests.get(
-                          f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
-                          headers=headers,
-                          params={
-                              "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
-                              "check_name": cname,
-                          },
-                      ).json()
-                      for crun in resp["check_runs"]:
-                          print( (crun["name"], crun["id"], crun["status"]) )
-                          yield crun["name"], crun["status"]
+                  for crun in resp["check_runs"]:
+                      print( (crun["name"], crun["id"], crun["status"]) )
+                      yield crun["name"], crun["status"]
 
           # MAIN RETRY LOOP
           start = time.time()
           while True:
-              print("\nWaiting for job statuses (${{ env.WAIT_TIME }} seconds)...")
+              print("\n###############################################################")
+              print("Waiting for job statuses (${{ env.WAIT_TIME }} seconds)...")
               if time.time() - start > ${{ env.TOTAL_TIMEOUT }}:
                   print("Timeout.")
                   sys.exit(1)
