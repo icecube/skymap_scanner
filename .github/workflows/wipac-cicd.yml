@@ -62,7 +62,6 @@ jobs:
                           "status": "completed",
                       },
                   ).json()
-                  pprint(resp)
                   for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
                       print( (crun["name"], crun["id"], crun["conclusion"]) )
                       yield crun["name"], crun["conclusion"]
