@@ -75,7 +75,7 @@ jobs:
     - uses: lewagon/wait-on-check-action@v1.3.1
       # wait for the long CI tests to pass
       with:
-        ref: ${{ github.ref }}
+        ref: ${{ github.sha }}
         check-name: 'All Tests Done'
         repo-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         wait-interval: 30
