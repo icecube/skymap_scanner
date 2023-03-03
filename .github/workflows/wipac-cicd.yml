@@ -52,6 +52,20 @@ jobs:
           }
 
           def get_statuses():
+
+              print("\n########################################")
+              for cname in JOBS:
+                  resp = requests.get(
+                      "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-runs",
+                      headers=headers,
+                      params={
+                          "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
+                          "check_name": cname,
+                      },
+                  ).json()
+                  pprint(resp)
+              print("########################################\n")
+
               # find check suites (for GitHub Actions)
               resp = requests.get(
                   "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
