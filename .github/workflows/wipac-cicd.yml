@@ -43,7 +43,7 @@ jobs:
               "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
               headers=headers,
           )
-          pprint(r.content)
+          pprint(r.content[0])
 
           '
 
