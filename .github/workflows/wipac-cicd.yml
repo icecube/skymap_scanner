@@ -38,30 +38,31 @@ jobs:
               "X-GitHub-Api-Version": "2022-11-28",
           }
 
-          # find check suite ids
+          # get check_suite_id for GitHub Actions
           resp = requests.get(
               "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
               headers=headers,
           ).json()
           print(resp['total_count'])
-          ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
-          print(ids)
+          check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
+          print(check_suite_ids)
+
+          for csid in GitHub Actions:
+            resp = requests.get(
+                f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
+                headers=headers,
+            ).json()
+            pprint(resp)
+            break  # TODO remove
 
           '
-
-          # # find check id
-          # curl -L \
-          #   -H "Accept: application/vnd.github+json" \
-          #   -H "Authorization: Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}"\
-          #   -H "X-GitHub-Api-Version: 2022-11-28" \
-          #   https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites?check_name=test-temporary-for-pr
 
           # # find check run id
           # curl -L \
           #   -H "Accept: application/vnd.github+json" \
           #   -H "Authorization: Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}"\
           #   -H "X-GitHub-Api-Version: 2022-11-28" \
-          #   https://api.github.com/repos/icecube/skymap_scanner/check-suites/CHECK_SUITE_ID/check-runs
+          #
 
           # # get status of check
           # curl -L \
