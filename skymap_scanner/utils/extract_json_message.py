@@ -18,7 +18,7 @@ from .prepare_frames import prepare_frames
 from .utils import (
     get_event_mjd,
     hash_frame_packet,
-    load_GCD_frame_packet_from_file,
+    load_framepacket_file,
     rewrite_frame_stop,
     save_GCD_frame_packet_to_file,
 )
@@ -200,10 +200,10 @@ def __extract_frame_packet(
         
         cached_baseline_GCD = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
-        baseline_GCD_framepacket = load_GCD_frame_packet_from_file( str(baseline_GCD_handle) )
+        baseline_GCD_framepacket = load_framepacket_file( str(baseline_GCD_handle) )
         if os.path.exists(cached_baseline_GCD):
             # this will never occur if the cache is isolated on a server-instance basis!
-            cached_baseline_GCD_framepacket = load_GCD_frame_packet_from_file(cached_baseline_GCD)
+            cached_baseline_GCD_framepacket = load_framepacket_file(cached_baseline_GCD)
             cached_baseline_GCD_hash = hash_frame_packet(cached_baseline_GCD_framepacket)
             baseline_GCD_hash = hash_frame_packet(baseline_GCD_framepacket)
             if cached_baseline_GCD_hash != baseline_GCD_hash:
@@ -251,7 +251,7 @@ def __extract_frame_packet(
         # if baseline_GCD_file is None:
         #    raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD event. Please
         # manually override GCD.")
-        baseline_GCD_framepacket = load_GCD_frame_packet_from_file(baseline_GCD_file)
+        baseline_GCD_framepacket = load_framepacket_file(baseline_GCD_file)
         frame_packet[0] = baseline_GCD_framepacket[0]
         frame_packet[1] = baseline_GCD_framepacket[1]
         frame_packet[2] = baseline_GCD_framepacket[2]
@@ -271,7 +271,7 @@ def __extract_frame_packet(
     if os.path.exists(cached_GCDQp):
         # GCD already exists - check to make sure it is consistent
         GCDQp_framepacket_hash = hash_frame_packet(frame_packet)
-        cached_QCDQp_framepacket = load_GCD_frame_packet_from_file(cached_GCDQp)
+        cached_QCDQp_framepacket = load_framepacket_file(cached_GCDQp)
         cached_GCDQp_framepacket_hash = hash_frame_packet(cached_QCDQp_framepacket)
         if GCDQp_framepacket_hash != cached_GCDQp_framepacket_hash:
             raise RuntimeError(f"Existing GCDQp packet in cache (SHA1 {cached_GCDQp_framepacket_hash}) and packet from input (SHA1 {GCDQp_framepacket_hash}) differ.")

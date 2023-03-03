@@ -44,9 +44,9 @@ def get_event_mjd(frame_packet: List[icetray.I3Frame]) -> float:
     return time.mod_julian_day_double  # type: ignore[no-any-return]
 
 
-def load_GCD_frame_packet_from_file(filename, filestager=None):
+def load_framepacket_file(filename : str, filestager=None) -> List[icetray.I3Frame]:
     # Legacy code used to loop over GCD_BASE_DIRS.
-    # Now it is assumed that filename points to a valid GCD file!
+    # Now it is assumed that filename points to a valid GCD file.
     if filestager is not None:
         read_url_handle = filestager.GetReadablePath( filename )
     else:
