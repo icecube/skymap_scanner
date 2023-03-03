@@ -45,17 +45,12 @@ def get_event_mjd(frame_packet: List[icetray.I3Frame]) -> float:
 
 
 def load_GCD_frame_packet_from_file(filename, filestager=None):
-    read_url = filename
-    for GCD_base_dir in cfg.GCD_BASE_DIRS:
-        potential_read_url = os.path.join(GCD_base_dir, filename)
-        if os.path.isfile( potential_read_url ):
-            read_url = potential_read_url
-            break
-
+    # Legacy code used to loop over GCD_BASE_DIRS.
+    # Now it is assumed that filename points to a valid GCD file!
     if filestager is not None:
-        read_url_handle = filestager.GetReadablePath( read_url )
+        read_url_handle = filestager.GetReadablePath( filename )
     else:
-        read_url_handle = read_url
+        read_url_handle = filename
 
     frame_packet = []
     i3f = dataio.I3File(str(read_url_handle),'r')
@@ -64,9 +59,6 @@ def load_GCD_frame_packet_from_file(filename, filestager=None):
             return frame_packet
         frame = i3f.pop_frame()
         frame_packet.append(frame)
-
-    del read_url_handle
-
 
 def save_GCD_frame_packet_to_file(
     frame_packet: List[icetray.I3Frame],
