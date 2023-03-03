@@ -32,7 +32,7 @@ jobs:
       WAIT_TIME: 30  # seconds
       TOTAL_TIMEOUT: 3600  # seconds
     steps:
-      - name: Check for Other Jobs
+      - name: Wait on Other Jobs
         run: |
           python3 -c '
           import time
