@@ -27,9 +27,9 @@ jobs:
   test-temporary-for-pr:
     runs-on: ubuntu-latest
     env:
-      WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON); test-temporary-for-pr"
-      WAIT_TIME: 5  # seconds
-      TOTAL_TIMEOUT: 60  # seconds
+      WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      WAIT_TIME: 30  # seconds
+      TOTAL_TIMEOUT: 3600  # seconds
     steps:
       - run: |
           echo "Starting to check CI statuses"
@@ -78,7 +78,7 @@ jobs:
           # MAIN RETRY LOOP
           start = time.time()
           while True:
-              print("Waiting for job statuses (${{ env.WAIT_TIME }} seconds)...")
+              print("\nWaiting for job statuses (${{ env.WAIT_TIME }} seconds)...")
               if time.time() - start > ${{ env.TOTAL_TIMEOUT }}:
                   print("Timeout.")
                   sys.exit(1)
