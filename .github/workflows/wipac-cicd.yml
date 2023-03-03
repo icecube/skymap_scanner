@@ -47,7 +47,7 @@ jobs:
           check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
           print(check_suite_ids)
 
-          for csid in GitHub Actions:
+          for csid in check_suite_ids:
             resp = requests.get(
                 f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
                 headers=headers,
