@@ -167,7 +167,7 @@ def __extract_frame_packet(
         # input event had GCD diff frames!
         if GCD_dir is not None: # always true since we pass this as an argument!
             baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
-            LOGGER.debug("Trying GCD file: {baseline_GCD_file}")
+            LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
             if not os.path.isfile(baseline_GCD_file):
                 raise RuntimeError("Baseline GCD file not available!")
             # if the baseline GCD is found: GCD_dir == baseline_GCD == baseline_GCD_file
@@ -184,7 +184,7 @@ def __extract_frame_packet(
         # NOTE: we used to loop over a set of possible GCD_BASE_DIRS but it is no longer the case.
         # The following conditional structure could be a bit smarter.
         try:
-            LOGGER.debug("reading GCD from {baseline_GCD_file}")
+            LOGGER.debug(f"Reading GCD from {baseline_GCD_file}.")
             baseline_GCD_handle = filestager.GetReadablePath(baseline_GCD_file)
             if not os.path.isfile(str(baseline_GCD_handle)):
                 raise RuntimeError("File does not exist (or is not a file)")
@@ -286,6 +286,6 @@ def __extract_frame_packet(
         event_metadata,
         {
             cfg.STATEDICT_GCDQP_PACKET: frame_packet,
-            cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD
+            cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD_file
         },
     )
