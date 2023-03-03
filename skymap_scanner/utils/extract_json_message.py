@@ -150,7 +150,9 @@ def __extract_frame_packet(
     LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
-    if baseline_GCD is not None:
+    if baseline_GCD is None:
+        LOGGER.debug("Packet does not need a GCD diff.")
+    else:
         # input event had GCD diff frames!
         if GCD_dir is not None: # always true since we pass this as an argument!
             baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
@@ -205,24 +207,23 @@ def __extract_frame_packet(
             save_GCD_frame_packet_to_file(baseline_GCD_framepacket, cached_baseline_GCD)
             LOGGER.debug(f"Wrote baseline GCD frames to {cached_baseline_GCD}.")
 
-        # save the GCD filename # why?
+        # baseline_GCD path is saved in a text file
         source_baseline_GCD_metadata = os.path.join(event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)
         if os.path.isfile(source_baseline_GCD_metadata):
             f = open(source_baseline_GCD_metadata, 'r')
             filename = f.read()
             del f
             if (filename != baseline_GCD) and (os.path.basename(filename) != os.path.basename(baseline_GCD)):
-                raise RuntimeError(f"Expected the stored GCD base filename to be {baseline_GCD}. It is {filename}.")
+                raise RuntimeError(f"Expected the stored source baseline GCD to be {baseline_GCD}. It is {filename}.")
         with open(source_baseline_GCD_metadata, "w") as text_file:
-            text_file.write(baseline_GCD)
-    else:
-        LOGGER.debug("Packet does not need a GCD diff.")
+            text_file.write(baseline_GCD)    
 
-    # special case for old EHE alerts with empty GCD frames
+    # Packet may lack GCD frames:
+    # - old EHE alerts
+    # - non-alert GFU events 
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
-
+        LOGGER.debug("Packet with empty GCD frames. Need to load baseline GCD")
         # If no GCD is specified, work out correct one from run number
-
         available_GCDs = sorted([x for x in os.listdir(GCD_dir) if ".i3" in x])
         run = float(header.run_id)
         latest = available_GCDs[0]
@@ -237,7 +238,6 @@ def __extract_frame_packet(
         GCD_dir = os.path.join(GCD_dir, latest)
 
         LOGGER.debug((available_GCDs, run))
-        LOGGER.debug("********** old EHE packet with empty GCD frames. need to replace all geometry. ********")
         LOGGER.debug("By process of elimination using run numbers, using {0}".format(GCD_dir))
         if GCD_dir is None:
             raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD EHE event. Please set override_GCD_filename.")
