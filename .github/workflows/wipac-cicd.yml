@@ -39,11 +39,18 @@ jobs:
           }
 
           # find check id
-          r = requests.get(
+          resp = requests.get(
               "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
               headers=headers,
-          )
-          pprint(r.json())
+          ).json()
+          # pprint(resp)
+          print(resp.keys())
+
+          ids = []
+          for cs in resp["check_suites"]:
+              if cs["app"]["name"] == "GitHub Actions":
+                ids.append(cs["id"])
+          print(ids)
 
           '
 
