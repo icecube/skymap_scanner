@@ -42,33 +42,19 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List
 
     if baseline_GCD_file is not None:
           
-        LOGGER.debug("trying to read GCD from {0}".format(baseline_GCD_file))
+        LOGGER.debug(f"Trying to read GCD from {baseline_GCD_file}.")
         try:
             baseline_GCD_frames = load_GCD_frame_packet_from_file(baseline_GCD_file, filestager=filestager)
         except:
-            baseline_GCD_frames = None
             LOGGER.debug(" -> failed")
+            raise RuntimeError("Unable to read baseline GCD. In the current design, this is unexpected. Possibly a bug or data corruption!")
         if baseline_GCD_frames is not None:
             LOGGER.debug(" -> success")
+        # NOTE: Legacy code used to scan a list of GCD_BASE_DIRS.
+        #       It is now assumed that assume that the passed `baseline_GCD_file` is a valid path to a baseline GCD file.
 
-        if baseline_GCD_frames is None:
-            for GCD_base_dir in cfg.GCD_BASE_DIRS:
-                read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
-                LOGGER.debug("trying to read GCD from {0}".format(read_url))
-                try:
-                    baseline_GCD_frames = load_GCD_frame_packet_from_file(read_url, filestager=filestager)                
-                except:
-                    LOGGER.debug(" -> failed")
-                    baseline_GCD_frames=None
-
-                if baseline_GCD_frames is not None:
-                    LOGGER.debug(" -> success")
-                    break
-
-            if baseline_GCD_frames is None:
-                raise RuntimeError("Could not load basline GCD file from any location")
     else:
-        # assume we have full non-diff GCD frames in the packet
+        # Assume we have full non-diff GCD frames in the packet.
         baseline_GCD_frames = [GCDQp_packet[0]]
         if "I3Geometry" not in baseline_GCD_frames[0]:
             raise RuntimeError("No baseline GCD file available but main packet G frame does not contain I3Geometry")
