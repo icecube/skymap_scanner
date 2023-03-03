@@ -24,7 +24,7 @@ jobs:
   #         python-version: '3.9'
   #     - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
-  wait-for-tests-on-main:  # for branch protections, pass always when not on main (don't skip b/c downstream)
+  wait-for-branch-protections-on-main:  # pass always when not on main (don't use 'if' b/c downstream)
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,9 +40,10 @@ jobs:
         # HEADS UP: if you re-run a workflow, the job may get old conclusions & pass.
         #   So, add many jobs to WAIT_FOR_JOBS
         run: |
-          echo ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-          exit 0
-          # if ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+          if [ ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }} == 'true' ] ; then
+            echo "not on default branch"
+            exit 0
+          fi
 
           python3 -u -c '
           import time
@@ -105,7 +106,7 @@ jobs:
           '
 
   py-setup:
-    needs: [wait-for-tests-on-main]  # have to wait for tests so wipac-dev-py-setup-action can push (branch protection on main)
+    needs: [wait-for-branch-protections-on-main]  # have to wait for tests so wipac-dev-py-setup-action can push (branch protection on main)
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -149,7 +150,7 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [py-setup, pip-install, wait-for-tests-on-main]  # have to wait for tests so python-semantic-release can push (branch protection on main)
+    needs: [py-setup, pip-install, wait-for-branch-protections-on-main]  # have to wait for tests so python-semantic-release can push (branch protection on main)
     runs-on: ubuntu-latest
     concurrency: release
     steps:
