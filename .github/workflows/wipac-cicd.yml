@@ -82,7 +82,7 @@ jobs:
                   print(f"Job status: {job} ({status})")
                   if status not in OK_STATUSES:
                       # NOTE: there may be multiple jobs called X, so we need remove on each bad status then break
-                      okay_jobs.remove(job)  # in case a name-twin was marked as okay
+                      okay_jobs.discard(job)  # in case a name-twin was marked as okay
                       break  # break early to limit requests
                   okay_jobs.add(job)
 
