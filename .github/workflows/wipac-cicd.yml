@@ -26,6 +26,9 @@ jobs:
 
   test-temporary-for-pr:
     runs-on: ubuntu-latest
+    env:
+      WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      WAIT_TIME: 30  # seconds
     steps:
       - run: |
           python3 -c '
@@ -38,26 +41,35 @@ jobs:
               "X-GitHub-Api-Version": "2022-11-28",
           }
 
-          # find check suites (for GitHub Actions)
-          resp = requests.get(
-              "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
-              headers=headers,
-          ).json()
-          print(resp["total_count"])
-          check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
-          print(check_suite_ids)
+          def get_statuses(check_names: list):
+              print(check_names)
 
-          # find check runs
-          check_run_statuses = []
-          for csid in check_suite_ids:
-            resp = requests.get(
-                f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
-                headers=headers,
-                params={"filter": "latest"},
-            ).json()
-            check_run_statuses.extend([ (cr["name"],cr["id"],cr["status"]) for cr in resp["check_runs"] ])
+              # find check suites (for GitHub Actions)
+              resp = requests.get(
+                  "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
+                  headers=headers,
+              ).json()
+              print(resp["total_count"])
+              check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
+              print(check_suite_ids)
 
-          print(check_run_statuses)
+              # find check runs
+              check_run_statuses = []
+              for csid in check_suite_ids:
+                  for cname in check_names:
+                      resp = requests.get(
+                          f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
+                          headers=headers,
+                          params={
+                              "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
+                              "check_name": cname,
+                          },
+                      ).json()
+                      check_run_statuses.extend([ (cr["name"],cr["id"],cr["status"]) for cr in resp["check_runs"] ])
+              pprint(check_run_statuses)
+
+          statuses = get_statuses([j.strip() for j in $WAIT_FOR_JOBS.split(";")])
+          pprint(statuses)
 
           '
 
