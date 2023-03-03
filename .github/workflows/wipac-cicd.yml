@@ -52,6 +52,7 @@ jobs:
                 f"https://api.github.com/repos/icecube/skymap_scanner/check-suites/{csid}/check-runs",
                 headers=headers,
             ).json()
+            print([ cr["name"] for cr in resp["check_runs"] ])
             pprint(resp)
             break  # TODO remove
 
