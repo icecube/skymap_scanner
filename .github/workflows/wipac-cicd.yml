@@ -43,7 +43,7 @@ jobs:
               "https://api.github.com/repos/icecube/skymap_scanner/commits/${{ github.sha }}/check-suites",
               headers=headers,
           ).json()
-          print(resp['total_count'])
+          print(resp["total_count"])
           check_suite_ids = [cs["id"] for cs in resp["check_suites"] if cs["app"]["name"] == "GitHub Actions"]
           print(check_suite_ids)
 
