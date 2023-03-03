@@ -28,13 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WAIT_FOR_JOBS: "test-run-single-pixel (GOLD); test-run-single-pixel (JSON)"
+      OK_STATUSES: "completed; skipped"
       WAIT_TIME: 30  # seconds
       TOTAL_TIMEOUT: 3600  # seconds
     steps:
-      - run: |
-          echo "Starting to check CI statuses"
-          sleep ${{ env.WAIT_TIME }}
-
+      - name: Check for Other Jobs
+        run: |
           python3 -c '
           import time
           import sys
@@ -43,7 +42,8 @@ jobs:
 
           JOBS = [j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
           print(f"Checking jobs: {JOBS}")
-          OK_STATUSES = ["completed"]
+          OK_STATUSES = [s.strip() for s in "${{ env.OK_STATUSES }}".split(";")]
+          print(f"Jobs must have these statuses: {OK_STATUSES}")
 
           headers = {
               "Authorization": "Bearer ${{ secrets.PERSONAL_ACCESS_TOKEN }}",
