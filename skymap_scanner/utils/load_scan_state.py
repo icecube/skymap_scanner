@@ -126,7 +126,7 @@ def load_scan_state(
 
 def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="./cache/") -> dict:
     this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
-    GCDQp_filename = os.path.join(this_event_cache_dir, "GCDQp.i3")
+    GCDQp_filename = os.path.join(this_event_cache_dir, cfg.GCDQp_FILENAME)
     potential_GCD_diff_base_filename = os.path.join(this_event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
     potential_original_GCD_diff_base_filename = os.path.join(this_event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)

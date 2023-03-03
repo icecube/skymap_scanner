@@ -147,9 +147,20 @@ def __extract_frame_packet(
     
     baseline_GCD = extract_GCD_diff_base_filename(frame_packet)
 
+    # Deal with different scenarios:
+    # if packet has GCD diff (realtime alert):
+    # - retrieve baseline GCD name from frame
+    # - lookup corresponding file in GCD_dir
+    # - cache baseline GCD file and medatadata (check consistency if already cached)
+    # if packet does not have GCD (GFU event or legacy EHE)
+    # - look up baseline GCD in GCD_dir based on run number
+
     LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
+    #=====================
+    # GCD-diff framepacket
+    #=====================
     if baseline_GCD is None:
         LOGGER.debug("Packet does not need a GCD diff.")
     else:
@@ -157,11 +168,8 @@ def __extract_frame_packet(
         if GCD_dir is not None: # always true since we pass this as an argument!
             baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
             LOGGER.debug("Trying GCD file: {baseline_GCD_file}")
-            if os.path.isfile(baseline_GCD_file):
-                baseline_GCD = baseline_GCD_file
-                GCD_dir = baseline_GCD_file
-            else:
-                LOGGER.debug("Baseline GCD file not available!")
+            if not os.path.isfile(baseline_GCD_file):
+                raise RuntimeError("Baseline GCD file not available!")
             # if the baseline GCD is found: GCD_dir == baseline_GCD == baseline_GCD_file
             # else: - GCD_dir comes from the args
             #       - baseline_GCD is still the one derived from the frame packet
@@ -218,9 +226,9 @@ def __extract_frame_packet(
         with open(source_baseline_GCD_metadata, "w") as text_file:
             text_file.write(baseline_GCD)    
 
-    # Packet may lack GCD frames:
-    # - old EHE alerts
-    # - non-alert GFU events 
+    #=====================
+    # GCD-less framepacket
+    #=====================
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
         LOGGER.debug("Packet with empty GCD frames. Need to load baseline GCD")
         # If no GCD is specified, work out correct one from run number
@@ -235,41 +243,43 @@ def __extract_frame_packet(
                 if run > float(x.split("_")[2][:-3]):
                     latest = x
 
-        GCD_dir = os.path.join(GCD_dir, latest)
+        baseline_GCD_file = os.path.join(GCD_dir, latest)
 
         LOGGER.debug((available_GCDs, run))
-        LOGGER.debug("By process of elimination using run numbers, using {0}".format(GCD_dir))
-        if GCD_dir is None:
-            raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD EHE event. Please set override_GCD_filename.")
-        ehe_override_gcd = load_GCD_frame_packet_from_file(GCD_dir)
-        frame_packet[0] = ehe_override_gcd[0]
-        frame_packet[1] = ehe_override_gcd[1]
-        frame_packet[2] = ehe_override_gcd[2]
-        del ehe_override_gcd
+        LOGGER.debug(f"By process of elimination using run numbers, using {baseline_GCD_file}")
+        # NOTE: commented because it should never occur
+        # if baseline_GCD_file is None:
+        #    raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD event. Please
+        # manually override GCD.")
+        baseline_GCD_framepacket = load_GCD_frame_packet_from_file(baseline_GCD_file)
+        frame_packet[0] = baseline_GCD_framepacket[0]
+        frame_packet[1] = baseline_GCD_framepacket[1]
+        frame_packet[2] = baseline_GCD_framepacket[2]
+        del baseline_GCD_framepacket
 
     if baseline_GCD is not None:
+        # frame_packet has GCD diff, provide baseline
         frame_packet = prepare_frames(frame_packet, str(baseline_GCD_handle), reco_algo, pulsesName=pulsesName)
     else:
+        # frame_packet has either normal GCD or has been reassembled
         frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
 
     # move the last packet frame from Physics to the 'p' stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
 
-    GCDQp_filename = os.path.join(event_cache_dir, "GCDQp.i3")
-    if os.path.exists(GCDQp_filename):
+    cached_GCDQp = os.path.join(event_cache_dir, cfg.GCDQp_FILENAME)
+    if os.path.exists(cached_GCDQp):
         # GCD already exists - check to make sure it is consistent
-        this_packet_hash = hash_frame_packet(frame_packet)
-        existing_packet = load_GCD_frame_packet_from_file(GCDQp_filename)
-        existing_packet_hash = hash_frame_packet(existing_packet)
-        if this_packet_hash != existing_packet_hash:
-            # print "existing:", existing_packet_hash
-            # print "this_frame:", this_packet_hash
-            raise RuntimeError("existing GCDQp packet in cache (SHA1 {0}) and packet from input (SHA1 {1}) differ.".format(existing_packet_hash, this_packet_hash))
-        LOGGER.debug("checked dependency against existing data in cache - consistent")
+        GCDQp_framepacket_hash = hash_frame_packet(frame_packet)
+        cached_QCDQp_framepacket = load_GCD_frame_packet_from_file(cached_GCDQp)
+        cached_GCDQp_framepacket_hash = hash_frame_packet(cached_QCDQp_framepacket)
+        if GCDQp_framepacket_hash != cached_GCDQp_framepacket_hash:
+            raise RuntimeError(f"Existing GCDQp packet in cache (SHA1 {cached_GCDQp_framepacket_hash}) and packet from input (SHA1 {GCDQp_framepacket_hash}) differ.")
+        LOGGER.debug("Checked dependency against cached GCDQp: consistent.")
     else:
         # no GCD exists yet
-        save_GCD_frame_packet_to_file(frame_packet, GCDQp_filename)
-        LOGGER.debug("wrote GCDQp dependency frames to {0}".format(GCDQp_filename))
+        save_GCD_frame_packet_to_file(frame_packet, cached_GCDQp)
+        LOGGER.debug(f"Wrote GCDQp dependency frames to {cached_GCDQp}.")
 
     return (
         event_cache_dir,
