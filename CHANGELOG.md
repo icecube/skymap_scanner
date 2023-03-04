@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.3.4 (2023-03-04)
+### Other
+* Fix CI for Bots on `main` Pt-7 ([`0eaff3d`](https://github.com/icecube/skymap_scanner/commit/0eaff3d429ecf66cf0bdb64782854f2e28644d80))
+
 ## v3.3.3 (2023-03-04)
 ### Other
 * Fix CI for Bots on `main` Pt-6 ([`8bd4708`](https://github.com/icecube/skymap_scanner/commit/8bd47081e585921287dc6ea2a8b5c224cf1c47e4))
