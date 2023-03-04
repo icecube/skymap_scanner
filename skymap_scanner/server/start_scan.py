@@ -1124,7 +1124,6 @@ def main() -> None:
     event_metadata, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
-        filestager=dataio.get_stagers(),
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
