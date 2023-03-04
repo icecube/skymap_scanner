@@ -105,7 +105,7 @@ def __extract_frame_packet(
     reco_algo: str,
     is_real_event: bool,
     cache_dir="./cache/",
-    GCD_dir=cfg.DEFAULT_GCD_DIR : str,
+    GCD_dir : str = cfg.DEFAULT_GCD_DIR,
     pulsesName="SplitUncleanedInIcePulses",
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
@@ -233,7 +233,7 @@ def __extract_frame_packet(
 
     if baseline_GCD is not None:
         # frame_packet has GCD diff, provide baseline
-        frame_packet = prepare_frames(frame_packet, str(baseline_GCD_handle), reco_algo, pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulsesName=pulsesName)
     else:
         # frame_packet has either normal GCD or has been reassembled
         frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
@@ -242,6 +242,7 @@ def __extract_frame_packet(
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
 
     cached_GCDQp = os.path.join(event_cache_dir, cfg.GCDQp_FILENAME)
+
     if os.path.exists(cached_GCDQp):
         # GCD already exists - check to make sure it is consistent
         GCDQp_framepacket_hash = hash_frame_packet(frame_packet)
