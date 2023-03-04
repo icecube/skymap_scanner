@@ -65,7 +65,7 @@ class FrameArraySink(icetray.I3Module):
         
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUncleanedInIcePulses"):
     from icecube import (
         DomTools,
         VHESelfVeto,
@@ -84,8 +84,8 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=frame_array)
 
-    if GCD_diff_base_filename is not None:
-        base_GCD_path, base_GCD_filename = os.path.split(GCD_diff_base_filename)
+    if baseline_GCD is not None:
+        base_GCD_path, base_GCD_filename = os.path.split(baseline_GCD)
         tray.Add(uncompress, "GCD_uncompress",
                  keep_compressed=True,
                  base_path=base_GCD_path,
@@ -135,7 +135,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
-    if GCD_diff_base_filename is not None:
+    if baseline_GCD is not None:
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
             for key in list(frame.keys()):
