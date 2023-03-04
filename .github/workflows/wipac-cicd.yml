@@ -117,8 +117,8 @@ jobs:
       - uses: WIPACrepo/wipac-dev-py-setup-action@v1.12
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
-          git_committer_name: $BOT_NAME
-          git_committer_email: $BOT_EMAIL
+          git_committer_name: ${{ env.BOT_NAME }}
+          git_committer_email: ${{ env.BOT_EMAIL }}
 
   py-versions:
     needs: [py-setup]
@@ -161,8 +161,8 @@ jobs:
     - name: Python Semantic Release
       uses: python-semantic-release/python-semantic-release@master
       with:
-        git_committer_name: $BOT_NAME
-        git_committer_email: $BOT_EMAIL
+        git_committer_name: ${{ env.BOT_NAME }}
+        git_committer_email: ${{ env.BOT_EMAIL }}
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         # repository_username: __token__
         # repository_password: ${{ secrets.PYPI_TOKEN }}
