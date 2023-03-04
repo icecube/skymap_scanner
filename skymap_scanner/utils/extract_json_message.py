@@ -105,7 +105,7 @@ def __extract_frame_packet(
     reco_algo: str,
     is_real_event: bool,
     cache_dir="./cache/",
-    GCD_dir=None,
+    GCD_dir=cfg.DEFAULT_GCD_DIR : str,
     pulsesName="SplitUncleanedInIcePulses",
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
@@ -165,67 +165,41 @@ def __extract_frame_packet(
     if baseline_GCD is None:
         LOGGER.debug("Packet does not need a GCD diff.")
     else:
-        # input event had GCD diff frames!
-        if GCD_dir is not None: # always true since we pass this as an argument!
-            baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
-            LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
-            if not os.path.isfile(baseline_GCD_file):
-                raise RuntimeError("Baseline GCD file not available!")
-            # if the baseline GCD is found: GCD_dir == baseline_GCD == baseline_GCD_file
-            # else: - GCD_dir comes from the args
-            #       - baseline_GCD is still the one derived from the frame packet
-            #       - baseline_GCD_file is a path (not necessarily valid)
-            # confusing enough!
-
+        # assume GCD dir is always valid
+        baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
+        LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
+        if not os.path.isfile(baseline_GCD_file):
+            raise RuntimeError("Baseline GCD file not available!")
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
-        # "Polymorphic variables" are a bad idea!
-
-        LOGGER.debug(f"Packet needs to load GCD diff based on file \"{baseline_GCD}\"")
-
-        # NOTE: we used to loop over a set of possible GCD_BASE_DIRS but it is no longer the case.
-        # The following conditional structure could be a bit smarter.
-        try:
-            LOGGER.debug(f"Reading GCD from {baseline_GCD_file}.")
-            baseline_GCD_handle = filestager.GetReadablePath(baseline_GCD_file)
-            if not os.path.isfile(str(baseline_GCD_handle)):
-                raise RuntimeError("File does not exist (or is not a file)")
-        except:
-            # why this is not an if-then? could GetReadablePath throw an exception?
-            LOGGER.debug(" -> failed")
-            baseline_GCD_handle = None
-            
-        if baseline_GCD_handle is not None:
-            LOGGER.debug(" -> success")
-        else:
-            raise RuntimeError("Could not read the input GCD file \"{baseline_GCD}\"")
         
-        cached_baseline_GCD = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
+        cached_baseline_GCD_file = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
-        baseline_GCD_framepacket = load_framepacket_from_file( str(baseline_GCD_handle) )
-        if os.path.exists(cached_baseline_GCD):
-            # this will never occur if the cache is isolated on a server-instance basis!
-            cached_baseline_GCD_framepacket = load_framepacket_from_file(cached_baseline_GCD)
-            cached_baseline_GCD_hash = hash_frame_packet(cached_baseline_GCD_framepacket)
+        baseline_GCD_framepacket = load_framepacket_from_file(baseline_GCD_file)
+
+        if os.path.exists(cached_baseline_GCD_file):
+            # this should occur if the cache is isolated on a server-instance basis
+            # but we keep it for the time being in case we want to read back an old scan
             baseline_GCD_hash = hash_frame_packet(baseline_GCD_framepacket)
+
+            cached_baseline_GCD_framepacket = load_framepacket_from_file(cached_baseline_GCD_file)
+            cached_baseline_GCD_hash = hash_frame_packet(cached_baseline_GCD_framepacket)
+
             if cached_baseline_GCD_hash != baseline_GCD_hash:
-                # print "existing:", existing_packet_hash
-                # print "this_frame:", this_packet_hash
                 raise RuntimeError(f"Existing baseline GCD in cache (SHA1 {cached_baseline_GCD_hash}) and packet from input (SHA1 {baseline_GCD_hash}) differ.")
             LOGGER.debug("Checked baseline GCD against existing data in cache: consistent.")
         else:
-            save_GCD_frame_packet_to_file(baseline_GCD_framepacket, cached_baseline_GCD)
-            LOGGER.debug(f"Wrote baseline GCD frames to {cached_baseline_GCD}.")
+            save_GCD_frame_packet_to_file(baseline_GCD_framepacket, cached_baseline_GCD_file)
+            LOGGER.debug(f"Wrote baseline GCD frames to {cached_baseline_GCD_file}.")
 
         # baseline_GCD path is saved in a text file
         source_baseline_GCD_metadata = os.path.join(event_cache_dir, cfg.SOURCE_BASELINE_GCD_METADATA)
         if os.path.isfile(source_baseline_GCD_metadata):
-            f = open(source_baseline_GCD_metadata, 'r')
-            filename = f.read()
-            del f
+            with open(source_baseline_GCD_metadata, 'r') as f:
+                filename = f.read()
             if (filename != baseline_GCD) and (os.path.basename(filename) != os.path.basename(baseline_GCD)):
                 raise RuntimeError(f"Expected the stored source baseline GCD to be {baseline_GCD}. It is {filename}.")
         with open(source_baseline_GCD_metadata, "w") as text_file:
-            text_file.write(baseline_GCD)    
+            text_file.write(baseline_GCD)   
 
     #=====================
     # GCD-less framepacket
@@ -253,9 +227,8 @@ def __extract_frame_packet(
         #    raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD event. Please
         # manually override GCD.")
         baseline_GCD_framepacket = load_framepacket_from_file(baseline_GCD_file)
-        frame_packet[0] = baseline_GCD_framepacket[0]
-        frame_packet[1] = baseline_GCD_framepacket[1]
-        frame_packet[2] = baseline_GCD_framepacket[2]
+        for i in (0,1,2):
+            frame_packet[i] = baseline_GCD_framepacket[i]
         del baseline_GCD_framepacket
 
     if baseline_GCD is not None:
