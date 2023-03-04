@@ -52,7 +52,6 @@ def extract_GCD_diff_base_filename(frame_packet):
 def extract_json_message(
     json_data,
     reco_algo: str,
-    filestager,
     is_real_event: bool,
     cache_dir="./cache/",
     GCD_dir=None,
@@ -67,7 +66,6 @@ def extract_json_message(
 
     _, event_metadata, state_dict = __extract_frame_packet(
         frame_packet,
-        filestager=filestager,
         reco_algo=reco_algo,
         is_real_event=is_real_event,
         cache_dir=cache_dir,
@@ -101,7 +99,6 @@ def __extract_event_type(physics_frame):
 
 def __extract_frame_packet(
     frame_packet,
-    filestager,
     reco_algo: str,
     is_real_event: bool,
     cache_dir="./cache/",
