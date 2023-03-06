@@ -2,6 +2,22 @@
 
 <!--next-version-placeholder-->
 
+## v3.3.4 (2023-03-04)
+### Other
+* Fix CI for Bots on `main` Pt-7 ([`0eaff3d`](https://github.com/icecube/skymap_scanner/commit/0eaff3d429ecf66cf0bdb64782854f2e28644d80))
+
+## v3.3.3 (2023-03-04)
+### Other
+* Fix CI for Bots on `main` Pt-6 ([`8bd4708`](https://github.com/icecube/skymap_scanner/commit/8bd47081e585921287dc6ea2a8b5c224cf1c47e4))
+* Fix CI for Bots on `main` Pt-5 ([#146](https://github.com/icecube/skymap_scanner/issues/146)) ([`7b48210`](https://github.com/icecube/skymap_scanner/commit/7b48210db1179e3184120ed328539d4a4b49a3b9))
+* Fix CI for Bots on `main` Pt-4 ([`989343b`](https://github.com/icecube/skymap_scanner/commit/989343bc5d3eefcfb3127f3cf6a13ccbfc582d65))
+* Fix CI for Bots on main Pt-3 ([#145](https://github.com/icecube/skymap_scanner/issues/145)) ([`b69e83a`](https://github.com/icecube/skymap_scanner/commit/b69e83a7cf502499e0df43b1ffa4057d0a68c5bd))
+* Fix CI for Bots on `main` Pt-2 ([#144](https://github.com/icecube/skymap_scanner/issues/144)) ([`d410d33`](https://github.com/icecube/skymap_scanner/commit/d410d33e371323a90ce1c6de8ce838192d1e6620))
+* Fix CI for Bots on `main` ([#143](https://github.com/icecube/skymap_scanner/issues/143)) ([`858fe83`](https://github.com/icecube/skymap_scanner/commit/858fe8386fa596efc8c8f85aa1c0553075723221))
+* Use `wipacdevbot` for CI Commits ([#142](https://github.com/icecube/skymap_scanner/issues/142)) ([`4918cf2`](https://github.com/icecube/skymap_scanner/commit/4918cf20f13b04989f8a2aad2aaf6ed6df4cef52))
+* <bot> update requirements-gcp.txt ([`c4e1b07`](https://github.com/icecube/skymap_scanner/commit/c4e1b074999fe6dc4d9a1644f11126d62d50e174))
+* <bot> update requirements-all.txt ([`52f9124`](https://github.com/icecube/skymap_scanner/commit/52f9124da329ca048155959d70e5c3ca0f76091f))
+
 ## v3.3.2 (2023-03-02)
 ### Other
 * Fixes to client starter ([#134](https://github.com/icecube/skymap_scanner/issues/134)) ([`581f489`](https://github.com/icecube/skymap_scanner/commit/581f48919e46c4659234ed0cc55e259e8f012fc2))
