@@ -40,13 +40,13 @@ def load_cache_state(
 """
 Code extracted from load_scan_state()
 """    
-def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet, filestager) -> List[icetray.I3Frame]:
+def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet) -> List[icetray.I3Frame]:
 
     if baseline_GCD_file is not None:
           
         LOGGER.debug(f"Trying to read GCD from {baseline_GCD_file}.")
         try:
-            baseline_GCD_frames = load_framepacket_from_file(baseline_GCD_file, filestager=filestager)
+            baseline_GCD_frames = load_framepacket_from_file(baseline_GCD_file)
         except:
             LOGGER.debug(" -> failed")
             raise RuntimeError("Unable to read baseline GCD. In the current design, this is unexpected. Possibly a bug or data corruption!")
@@ -74,7 +74,6 @@ def load_scan_state(
     geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
         state_dict.get(cfg.STATEDICT_GCDQP_PACKET),
-        filestager,
     )[0]
 
     this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
@@ -112,7 +111,7 @@ def load_scan_state(
     return state_dict
 
 
-def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="./cache/") -> dict:
+def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dict:
     """
     Load GCDQp from a cache directory. This function may be used for reading a cache from the legacy skymap scanners.
     """
@@ -148,35 +147,17 @@ def load_GCDQp_state(event_metadata: EventMetadata, filestager=None, cache_dir="
             # If the cache has been produced by the v3 scanner then we end up re-building the same path.
             # Maybe this will be further simplified in the future.
             source_baseline_GCD_basename = os.path.basename(source_baseline_GCD)
-            if filestager is None:
+            source_baseline_GCD_framepacket = None
+            try:
+                read_path = os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_basename)
+                LOGGER.debug("load_GCDQp_state => reading source baseline GCD from {0}".format(read_path))
+                source_baseline_GCD_framepacket = load_framepacket_from_file(read_path)
+            except:
+                LOGGER.debug(" -> failed")
                 source_baseline_GCD_framepacket = None
-                try:
-                    read_path = os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_basename)
-                    LOGGER.debug("load_GCDQp_state => reading source baseline GCD from {0}".format(read_path))
-                    source_baseline_GCD_framepacket = load_framepacket_from_file(read_path)
-                except:
-                    LOGGER.debug(" -> failed")
-                    source_baseline_GCD_framepacket = None
-                if source_baseline_GCD_framepacket is None:
-                    raise RuntimeError(f"load_GCDQp_state => Could not read the source GCD file \"{source_baseline_GCD_metadata}\"")
-            else:
-                baseline_GCD_handle = None
-                try:
-                    read_url = os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_basename)
-                    LOGGER.debug("load_GCDQp_state => reading GCD from {0}".format( read_url ))
-                    baseline_GCD_handle = filestager.GetReadablePath( read_url )
-                    if not os.path.isfile( str(baseline_GCD_handle) ):
-                        raise RuntimeError("load_GCDQp_state => file does not exist (or is not a file)")
-                except:
-                    LOGGER.debug(" -> failed")
-                    baseline_GCD_handle=None
-                if baseline_GCD_handle is not None:
-                    LOGGER.debug(" -> success")
-                
-                if baseline_GCD_handle is None:
-                    raise RuntimeError("load_GCDQp_state => Could not read the source GCD file \"{source_baseline_GCD_metadata}\"")
-
-                source_baseline_GCD_framepacket = load_framepacket_from_file( str(baseline_GCD_handle) )
+            if source_baseline_GCD_framepacket is None:
+                raise RuntimeError(f"load_GCDQp_state => Could not read the source GCD file \"{source_baseline_GCD_metadata}\"")
+            
             cached_baseline_GCD_framepacket = load_framepacket_from_file(cached_baseline_GCD)
             
             source_baseline_GCD_framepacket_hash = hash_frame_packet(source_baseline_GCD_framepacket)
