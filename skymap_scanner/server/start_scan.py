@@ -477,7 +477,7 @@ class PixelsToReco:
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
-        g_frame = get_baseline_gcd_frames(baseline_GCD, GCDQp_packet, None)[0]
+        g_frame = get_baseline_gcd_frames(baseline_GCD, GCDQp_packet)[0]
 
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
