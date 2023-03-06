@@ -114,7 +114,7 @@ class ProgressReporter:
         self.reporter_start_time = 0.0
 
         self._call_order = {
-            "current_previous": {  # current_fucntion: previous_fucntion(s)
+            'current_previous': {  # current_fucntion: previous_fucntion(s)
                 self.precomputing_report: [None],
                 self.start_computing: [
                     self.precomputing_report,
@@ -124,17 +124,17 @@ class ProgressReporter:
                 self.final_computing_report: [self.record_pixreco],
                 self.after_computing_report: [self.final_computing_report],
             },
-            "last_called": None,
+            'last_called': None,
         }
 
     def _check_call_order(self, current: Callable) -> None:  # type: ignore[type-arg]
         """Make sure we're calling everything in order."""
         if (
-            self._call_order["last_called"]  # type: ignore[operator]
-            not in self._call_order["current_previous"][current]  # type: ignore[index]
+            self._call_order['last_called']  # type: ignore[operator]
+            not in self._call_order['current_previous'][current]  # type: ignore[index]
         ):
             RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
-        self._call_order["last_called"] = current  # type: ignore[assignment]
+        self._call_order['last_called'] = current  # type: ignore[assignment]
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
@@ -229,24 +229,24 @@ class ProgressReporter:
         time_before_reporter = self.reporter_start_time - self.global_start_time
         proc_stats = {
             "start": {
-                "entire scan": str(
+                'entire scan': str(
                     dt.datetime.fromtimestamp(int(self.global_start_time))
                 ),
                 # TODO: add a start time for each nside (async)
-                "this iteration": str(
+                'this iteration': str(
                     dt.datetime.fromtimestamp(int(self.reporter_start_time))
                 ),
             },
             "runtime": {
-                "prior processing": str(
+                'prior processing': str(
                     dt.timedelta(seconds=int(time_before_reporter))
                 ),
                 # TODO: remove 'iterations' -- no replacement b/c async, that's OK
-                "this iteration": str(dt.timedelta(seconds=int(elapsed))),
-                "this iteration + prior processing": str(
+                'this iteration': str(dt.timedelta(seconds=int(elapsed))),
+                'this iteration + prior processing': str(
                     dt.timedelta(seconds=int(elapsed + time_before_reporter))
                 ),
-                "total": str(
+                'total': str(
                     dt.timedelta(seconds=int(time.time() - self.global_start_time))
                 ),
             },
@@ -255,22 +255,22 @@ class ProgressReporter:
             return proc_stats
 
         secs_per_pixreco = elapsed / self.pixreco_ct
-        proc_stats["rate"] = {
-            "per-pixel": str(
+        proc_stats['rate'] = {
+            'per-pixel': str(
                 dt.timedelta(seconds=int(secs_per_pixreco * self.n_posvar))
             ),
-            "per-reco": str(dt.timedelta(seconds=int(secs_per_pixreco))),
+            'per-reco': str(dt.timedelta(seconds=int(secs_per_pixreco))),
         }
 
         if self.is_event_scan_done:
             # SCAN IS DONE
-            proc_stats["end"] = str(dt.datetime.fromtimestamp(int(time.time())))
-            proc_stats["finished"] = True
+            proc_stats['end'] = str(dt.datetime.fromtimestamp(int(time.time())))
+            proc_stats['finished'] = True
         else:
             # MAKE PREDICTIONS
             # NOTE: this is a simple average, may want to visit more sophisticated methods
             secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
-            proc_stats["predictions"] = {
+            proc_stats['predictions'] = {
                 # TODO:
                 # 'remaining': {
                 #     # counts are downplayed using 'amount remaining' so we never report percent done
@@ -278,17 +278,17 @@ class ProgressReporter:
                 #     'pixels': ###/###,
                 #     'recos': ####/####,
                 # },
-                "time left": {
+                'time left': {
                     # TODO: replace w/ 'entire scan'
-                    "this iteration": str(
+                    'this iteration': str(
                         dt.timedelta(seconds=int(secs_predicted - elapsed))
                     )
                 },
-                "total runtime at finish": {
+                'total runtime at finish': {
                     # TODO: replace w/ 'total reconstruction'
-                    "this iteration": str(dt.timedelta(seconds=int(secs_predicted))),
+                    'this iteration': str(dt.timedelta(seconds=int(secs_predicted))),
                     # TODO: replace w/ 'entire scan'
-                    "this iteration + prior processing": str(
+                    'this iteration + prior processing': str(
                         dt.timedelta(seconds=int(secs_predicted + time_before_reporter))
                     ),
                 },
@@ -307,17 +307,17 @@ class ProgressReporter:
         this_iteration = {}  # type: ignore[var-annotated]
         if self._n_pixreco is not None:
             this_iteration = {
-                "percent": (self.pixreco_ct / self.n_pixreco) * 100,
-                "pixels": f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
-                "recos": f"{self.pixreco_ct}/{self.n_pixreco}",
+                'percent': (self.pixreco_ct / self.n_pixreco) * 100,
+                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
+                'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
             }
 
         return {
-            "by_nside": saved,
-            "total": sum(s for s in saved.values()),  # total completed pixels
+            'by_nside': saved,
+            'total': sum(s for s in saved.values()),  # total completed pixels
             # TODO: for #84: uncomment b/c this will now be scan-wide total & remove 'this iteration' dict
             # 'total_recos': self.pixreco_ct,
-            "this_iteration": this_iteration,  # TODO: remove for #84
+            'this_iteration': this_iteration,  # TODO: remove for #84
         }
 
     async def final_computing_report(self) -> None:
@@ -354,36 +354,36 @@ class ProgressReporter:
     async def _send_progress(
         self,
         summary_msg: str,
-        epilogue_msg: str = "",
+        epilogue_msg: str = '',
         total_n_pixreco: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
         progress = {
-            "summary": summary_msg,
-            "epilogue": epilogue_msg,
-            "tallies": self._get_tallies(),
-            "processing_stats": self._get_processing_progress(),
+            'summary': summary_msg,
+            'epilogue': epilogue_msg,
+            'tallies': self._get_tallies(),
+            'processing_stats': self._get_processing_progress(),
         }
         scan_metadata = {
-            "scan_id": self.scan_id,
-            "min_nside": self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
-            "max_nside": self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-            "position_variations": self.n_posvar,
+            'scan_id': self.scan_id,
+            'min_nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
+            'max_nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            'position_variations': self.n_posvar,
         }
 
         if total_n_pixreco:
             # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
             # see _get_tallies()
-            progress["tallies"]["total_recos"] = total_n_pixreco
+            progress['tallies']['total_recos'] = total_n_pixreco
 
         LOGGER.info(pyobj_to_string_repr(progress))
         if not self.skydriver_rc:
             return
 
         body = {
-            "progress": progress,
-            "event_metadata": dc.asdict(self.event_metadata),
-            "scan_metadata": scan_metadata,
+            'progress': progress,
+            'event_metadata': dc.asdict(self.event_metadata),
+            'scan_metadata': scan_metadata,
         }
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
@@ -396,7 +396,7 @@ class ProgressReporter:
         if not self.skydriver_rc:
             return result
 
-        body = {"json_dict": serialized, "is_final": self.is_event_scan_done}
+        body = {'json_dict': serialized, 'is_final': self.is_event_scan_done}
         await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
 
         return result
@@ -1057,7 +1057,7 @@ def main() -> None:
             # "each ':'-paired with their pixel extension value. "
             # "Example: --nsides 8:12 64:12 512:24"
         ),
-        nargs="*",
+        nargs='*',
         type=_nside_and_pixelextension,
     )
     # --real-event XOR --simulated-event
@@ -1065,12 +1065,12 @@ def main() -> None:
     group.add_argument(
         "--real-event",
         action="store_true",
-        help="include this flag if the event is real",
+        help='include this flag if the event is real',
     )
     group.add_argument(
         "--simulated-event",
         action="store_true",
-        help="include this flag if the event was simulated",
+        help='include this flag if the event was simulated',
     )
 
     args = parser.parse_args()
@@ -1126,7 +1126,7 @@ def main() -> None:
         reco_algo=args.reco_algo,
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
-        GCD_dir=str(args.gcd_dir),
+        GCD_dir=str(args.gcd_dir)
     )
 
     # write startup files for client-spawning
