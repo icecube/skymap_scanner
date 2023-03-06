@@ -110,6 +110,7 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
     if reco_algo.lower() == 'millipede_original':
+        # TODO: documentation for this conditional statement
         tray.AddModule('VHESelfVeto', 'selfveto',
                        VertexThreshold=2,
                        Pulses=nominalPulsesName+'HLC',
@@ -143,7 +144,7 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
                 non_diff_key = key[:-4]
                 if non_diff_key in all_keys:
                     del frame[non_diff_key]
-                    # print "deleted", non_diff_key, "from frame because a Diff exists"
+                    LOGGER.debug(f"Deleted {non_diff_key} from frame because a corresponding Diff exists.")
         tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
     
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
