@@ -185,11 +185,9 @@ def reco_pixel(
                 f"Pickle-dumping reco {pixelreco.pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            # apparently baseline GCD is sufficient here, maybe filestager can be None
             geometry = get_baseline_gcd_frames(
                 baseline_GCD_file,
-                GCDQp_packet,
-                filestager=dataio.get_stagers(),
+                GCDQp_packet
             )[0]
             pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")

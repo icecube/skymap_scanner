@@ -33,12 +33,9 @@ def main():
     )
     args = parser.parse_args()
 
-    stagers = dataio.get_stagers()
-
     state_dict = load_cache_state(
         args.event,
         cfg.RecoAlgo[args.reco_algo.upper()],
-        filestager=stagers,
         cache_dir=args.cache,
     )
 

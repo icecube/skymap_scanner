@@ -19,7 +19,6 @@ from .utils import hash_frame_packet, load_framepacket_from_file
 def load_cache_state(
     event_metadata: EventMetadata,
     reco_algo: str,
-    filestager=None,
     cache_dir: str = "./cache/",
 ) -> dict:
     this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
@@ -28,11 +27,11 @@ def load_cache_state(
 
     # load GCDQp state first
     LOGGER.debug("Initialize state_dict with GCDQp")
-    state_dict = load_GCDQp_state(event_metadata, filestager=filestager, cache_dir=cache_dir)
+    state_dict = load_GCDQp_state(event_metadata, cache_dir=cache_dir)
 
     # update with scans
     LOGGER.debug("Update state_dict with scan state.")
-    state_dict = load_scan_state(event_metadata, state_dict, reco_algo, filestager=filestager, cache_dir=cache_dir)[1]
+    state_dict = load_scan_state(event_metadata, state_dict, reco_algo, cache_dir=cache_dir)[1]
 
     return state_dict
 
@@ -67,7 +66,6 @@ def load_scan_state(
     event_metadata: EventMetadata,
     state_dict: dict,
     reco_algo: str,
-    filestager=None,
     cache_dir: str = "./cache/"
 ) -> dict:
     
@@ -202,7 +200,6 @@ if __name__ == "__main__":
     packets = load_cache_state(
         eventID,
         args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
-        filestager=stagers,
         cache_dir=options.CACHEDIR
     )
 
