@@ -30,7 +30,7 @@ cycler==0.11.0
     # via matplotlib
 ewms-pilot==0.4.1
     # via skymap-scanner (setup.py)
-fonttools==4.38.0
+fonttools==4.39.0
     # via matplotlib
 healpy==1.16.2
     # via skymap-scanner (setup.py)
