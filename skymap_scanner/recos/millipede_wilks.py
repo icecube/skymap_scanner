@@ -237,7 +237,7 @@ class MillipedeWilks(RecoInterface):
                            StepT=250.*I3Units.ns,
                            ShowerSpacing=5.*I3Units.m,
                            MuonSpacing=0,
-                           Boundary=700*I3Units.m)
+                           Boundary=650*I3Units.m)
         finer_steps = dict(StepX=2.*I3Units.m,
                            StepY=2.*I3Units.m,
                            StepZ=2.*I3Units.m,
@@ -246,7 +246,7 @@ class MillipedeWilks(RecoInterface):
                            StepT=5.*I3Units.ns,
                            ShowerSpacing=2.5*I3Units.m,
                            MuonSpacing=0,
-                           Boundary=700*I3Units.m)
+                           Boundary=650*I3Units.m)
         if seed is not None:
             logger.debug('Updating StepXYZ')
             MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 150*I3Units.m)
