@@ -8,7 +8,7 @@ import logging
 import os
 import pickle
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Union
 
 from I3Tray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -83,36 +83,16 @@ def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     return pixel_fname
 
 
-def get_GCD_diff_base_handle(baseline_GCD_file: str) -> Any:
-    """Find an available GCD base path."""
-    stagers = dataio.get_stagers()
+def check_baseline_GCD(baseline_GCD_file : Union[str, None]) -> bool:
+    LOGGER.debug(f"Testing baseline GCD at {baseline_GCD_file}")
 
-    # try to load the base file from the various possible input directories
-    GCD_diff_base_handle = None
-    if baseline_GCD_file not in [None, "None"]:
-        for GCD_base_dir in cfg.GCD_BASE_DIRS:
-            try:
-                read_url = os.path.join(GCD_base_dir, baseline_GCD_file)
-                LOGGER.debug("reading baseline GCD from {0}".format(read_url))
-                GCD_diff_base_handle = stagers.GetReadablePath(read_url)
-                if not os.path.isfile(str(GCD_diff_base_handle)):
-                    raise RuntimeError("file does not exist (or is not a file)")
-            except:
-                LOGGER.debug(" -> failed")
-                GCD_diff_base_handle = None
-            if GCD_diff_base_handle is not None:
-                LOGGER.debug(" -> success")
-                break
-
-        if GCD_diff_base_handle is None:
-            raise RuntimeError(
-                "Could not read the input GCD file '{0}' from any pre-configured location".format(
-                    baseline_GCD_file
-                )
-            )
-
-    return GCD_diff_base_handle
-
+    if baseline_GCD_file is None:
+        return False
+    
+    if os.path.isfile(baseline_GCD_file):
+        return True
+    else:
+        raise RuntimeError(f"The provided baseline GCD file could not be read '{baseline_GCD_file}'. Cannot build GCD from GCD diff.")
 
 def reco_pixel(
     reco_algo: str,
@@ -145,22 +125,13 @@ def reco_pixel(
     tray.AddModule(notifyStart, "notifyStart")
 
     # get GCD
-    @icetray.traysegment
-    def UncompressGCD(tray, name, base_GCD_path, base_GCD_filename):
+    if check_baseline_GCD(baseline_GCD_file):
         tray.Add(
             uncompress,
-            name + "_GCD_patch",
+            "GCD_uncompress_GCD_patch",
             keep_compressed=False,
-            base_path=base_GCD_path,
-            base_filename=base_GCD_filename,
-        )
-
-    if GCD_diff_base_handle := get_GCD_diff_base_handle(baseline_GCD_file):
-        tray.Add(
-            UncompressGCD,
-            "GCD_uncompress",
-            base_GCD_path="",
-            base_GCD_filename=str(GCD_diff_base_handle),
+            base_path="",
+            base_filename=baseline_GCD_file
         )
 
     # perform fit
@@ -187,11 +158,9 @@ def reco_pixel(
                 f"Pickle-dumping reco {pixelreco.pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            # apparently baseline GCD is sufficient here, maybe filestager can be None
             geometry = get_baseline_gcd_frames(
                 baseline_GCD_file,
-                GCDQp_packet,
-                filestager=dataio.get_stagers(),
+                GCDQp_packet
             )[0]
             pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")

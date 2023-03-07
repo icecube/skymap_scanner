@@ -21,7 +21,6 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,
-    dataio,
     full_event_followup,
     icetray,
 )
@@ -477,7 +476,7 @@ class PixelsToReco:
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
-        g_frame = get_baseline_gcd_frames(baseline_GCD, GCDQp_packet, None)[0]
+        g_frame = get_baseline_gcd_frames(baseline_GCD, GCDQp_packet)[0]
 
         if p_frame.Stop != icetray.I3Frame.Stream('p'):
             raise RuntimeError("Last frame of the GCDQp packet is not type 'p'.")
@@ -1124,10 +1123,9 @@ def main() -> None:
     event_metadata, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
-        filestager=dataio.get_stagers(),
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
-        override_GCD_filename=str(args.gcd_dir),
+        GCD_dir=str(args.gcd_dir)
     )
 
     # write startup files for client-spawning

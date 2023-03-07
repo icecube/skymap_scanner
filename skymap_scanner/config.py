@@ -14,17 +14,6 @@ from wipac_dev_tools import from_environment_as_dataclass
 # True constants
 #
 
-GCD_BASE_DIRS: Final = [
-    os.path.join(
-        os.environ["HOME"], "PoleBaseGCDs"
-    ),  # why can't we reach anything from the followup nodes???
-    "file:///data/user/followup/baseline_gcds",
-    "http://icecube:skua@convey.icecube.wisc.edu/data/user/followup/baseline_gcds",
-    "file:///data/exp/IceCube/2016/internal-system/PoleBaseGCDs",
-    "http://icecube:skua@convey.icecube.wisc.edu/data/exp/IceCube/2016/internal-system/PoleBaseGCDs",
-    "file:///cvmfs/icecube.opensciencegrid.org/users/steinrob/GCD/PoleBaseGCDs/",
-]
-
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
 MIN_NSIDE_DEFAULT: Final = 8
@@ -46,6 +35,10 @@ STATEDICT_NSIDES: Final = "nsides"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME: Final = "pframe"
+
+BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
+SOURCE_BASELINE_GCD_METADATA = "original_base_GCD_for_diff_filename.txt"
+GCDQp_FILENAME = "GCDQp.i3"
 
 
 class RecoAlgo(enum.Enum):

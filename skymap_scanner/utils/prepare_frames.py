@@ -65,7 +65,7 @@ class FrameArraySink(icetray.I3Module):
         
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUncleanedInIcePulses"):
     from icecube import (
         DomTools,
         VHESelfVeto,
@@ -84,8 +84,8 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=frame_array)
 
-    if GCD_diff_base_filename is not None:
-        base_GCD_path, base_GCD_filename = os.path.split(GCD_diff_base_filename)
+    if baseline_GCD is not None:
+        base_GCD_path, base_GCD_filename = os.path.split(baseline_GCD)
         tray.Add(uncompress, "GCD_uncompress",
                  keep_compressed=True,
                  base_path=base_GCD_path,
@@ -110,6 +110,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
 
     if reco_algo.lower() == 'millipede_original':
+        # TODO: documentation for this conditional statement
         tray.AddModule('VHESelfVeto', 'selfveto',
                        VertexThreshold=2,
                        Pulses=nominalPulsesName+'HLC',
@@ -135,7 +136,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
-    if GCD_diff_base_filename is not None:
+    if baseline_GCD is not None:
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
             for key in list(frame.keys()):
@@ -143,7 +144,7 @@ def prepare_frames(frame_array, GCD_diff_base_filename, reco_algo, pulsesName="S
                 non_diff_key = key[:-4]
                 if non_diff_key in all_keys:
                     del frame[non_diff_key]
-                    # print "deleted", non_diff_key, "from frame because a Diff exists"
+                    LOGGER.debug(f"Deleted {non_diff_key} from frame because a corresponding Diff exists.")
         tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
     
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
