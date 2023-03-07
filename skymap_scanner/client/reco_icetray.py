@@ -125,22 +125,13 @@ def reco_pixel(
     tray.AddModule(notifyStart, "notifyStart")
 
     # get GCD
-    @icetray.traysegment
-    def UncompressGCD(tray, name, base_GCD_path, base_GCD_filename):
-        tray.Add(
-            uncompress,
-            name + "_GCD_patch",
-            keep_compressed=False,
-            base_path=base_GCD_path,
-            base_filename=base_GCD_filename,
-        )
-
     if check_baseline_GCD(baseline_GCD_file):
         tray.Add(
-            UncompressGCD,
-            "GCD_uncompress",
-            base_GCD_path="", 
-            base_GCD_filename=baseline_GCD_file,
+            uncompress,
+            "GCD_uncompress_GCD_patch",
+            keep_compressed=False,
+            base_path="",
+            base_filename=baseline_GCD_file
         )
 
     # perform fit
