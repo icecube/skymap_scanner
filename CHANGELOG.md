@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.3.5 (2023-03-07)
+### Other
+* Simplification and improvement of GCD handling ([#147](https://github.com/icecube/skymap_scanner/issues/147)) ([`dd6d910`](https://github.com/icecube/skymap_scanner/commit/dd6d910d14e9512bf9bc02dfded1f41c0ba050ec))
+
 ## v3.3.4 (2023-03-04)
 ### Other
 * Fix CI for Bots on `main` Pt-7 ([`0eaff3d`](https://github.com/icecube/skymap_scanner/commit/0eaff3d429ecf66cf0bdb64782854f2e28644d80))
