@@ -8,7 +8,7 @@ import os
 from typing import Tuple
 
 import numpy as np
-from icecube import dataio, full_event_followup, icetray  # type: ignore[import]
+from icecube import full_event_followup, icetray  # type: ignore[import]
 
 from .. import config as cfg
 from . import LOGGER

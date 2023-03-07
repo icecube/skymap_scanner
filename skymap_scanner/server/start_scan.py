@@ -21,7 +21,6 @@ from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,
-    dataio,
     full_event_followup,
     icetray,
 )

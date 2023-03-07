@@ -7,7 +7,7 @@
 import os
 from typing import List
 
-from icecube import dataio, icetray
+from icecube import icetray
 
 from .. import config as cfg
 from . import LOGGER
@@ -192,9 +192,6 @@ if __name__ == "__main__":
     if len(args) != 1:
         raise RuntimeError("You need to specify exatcly one event ID")
     eventID = args[0]
-
-    # get the file stager instance
-    stagers = dataio.get_stagers()
 
     # do the work
     packets = load_cache_state(

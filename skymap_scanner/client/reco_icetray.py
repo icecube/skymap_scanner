@@ -8,7 +8,7 @@ import logging
 import os
 import pickle
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Union
 
 from I3Tray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -83,34 +83,16 @@ def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     return pixel_fname
 
 
-def get_baseline_GCD_handle(baseline_GCD_file: str) -> Any:
-    """Find an available GCD base path."""
-    stagers = dataio.get_stagers()
+def check_baseline_GCD(baseline_GCD_file : Union[str, None]) -> bool:
+    LOGGER.debug(f"Testing baseline GCD at {baseline_GCD_file}")
 
-    LOGGER.debug(f"Baseline GCD at {baseline_GCD_file}")
-
-    # assuming baseline_GCD_file is a valid GCD path!
-    # NOTE: old code use to search for a basename in a list of GCD_BASE_DIRS
-    baseline_GCD_handle = None
-    if baseline_GCD_file not in [None, "None"]:
-        try:
-            LOGGER.debug("reading baseline GCD from {0}".format(baseline_GCD_file))
-            baseline_GCD_handle = stagers.GetReadablePath(baseline_GCD_file)
-            if not os.path.isfile(str(baseline_GCD_handle)):
-                raise RuntimeError("file does not exist (or is not a file)")
-        except:
-            LOGGER.debug(" -> failed")
-            baseline_GCD_handle = None
-        if baseline_GCD_handle is not None:
-            LOGGER.debug(" -> success")
-
-    if baseline_GCD_handle is None:
-        raise RuntimeError(f"Could not read the input GCD file '{baseline_GCD_file}'")
+    if baseline_GCD_file is None:
+        return False
+    
+    if os.path.isfile(baseline_GCD_file):
+        return True
     else:
-        LOGGER.info("baseline_GCD_file is None. Likely frame packet is not a GCD diff.")
-
-    return baseline_GCD_handle
-
+        raise RuntimeError(f"The provided baseline GCD file could not be read '{baseline_GCD_file}'. Cannot build GCD from GCD diff.")
 
 def reco_pixel(
     reco_algo: str,
@@ -153,12 +135,12 @@ def reco_pixel(
             base_filename=base_GCD_filename,
         )
 
-    if baseline_GCD_handle := get_baseline_GCD_handle(baseline_GCD_file):
+    if check_baseline_GCD(baseline_GCD_file):
         tray.Add(
             UncompressGCD,
             "GCD_uncompress",
-            base_GCD_path="",
-            base_GCD_filename=str(baseline_GCD_handle),
+            base_GCD_path="", 
+            base_GCD_filename=baseline_GCD_file,
         )
 
     # perform fit

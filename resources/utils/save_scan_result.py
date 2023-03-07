@@ -8,7 +8,6 @@ import argparse
 import logging
 
 import skymap_scanner.config as cfg
-from icecube import dataio
 from skymap_scanner.utils.load_scan_state import load_cache_state
 from skymap_scanner.utils.scan_result import ScanResult
 
