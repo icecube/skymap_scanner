@@ -219,10 +219,6 @@ def __extract_frame_packet(
 
         LOGGER.debug((available_GCDs, run))
         LOGGER.debug(f"By process of elimination using run numbers, using {baseline_GCD_file}")
-        # NOTE: commented because it should never occur
-        # if baseline_GCD_file is None:
-        #    raise RuntimeError("Cannot continue - don't know which GCD to use for empty GCD event. Please
-        # manually override GCD.")
         baseline_GCD_framepacket = load_framepacket_from_file(baseline_GCD_file)
         for i in (0,1,2):
             frame_packet[i] = baseline_GCD_framepacket[i]
