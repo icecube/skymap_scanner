@@ -16,7 +16,7 @@ certifi==2022.12.7
     # via requests
 cffi==1.15.1
     # via cryptography
-charset-normalizer==3.0.1
+charset-normalizer==3.1.0
     # via requests
 coloredlogs==15.0.1
     # via wipac-dev-tools
@@ -28,7 +28,7 @@ cycler==0.11.0
     # via matplotlib
 ewms-pilot==0.4.1
     # via skymap-scanner (setup.py)
-fonttools==4.38.0
+fonttools==4.39.0
     # via matplotlib
 healpy==1.16.2
     # via skymap-scanner (setup.py)
@@ -115,5 +115,5 @@ wipac-dev-tools[coloredlogs]==1.6.12
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.14
+wipac-rest-tools==1.4.15
     # via skymap-scanner (setup.py)
