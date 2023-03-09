@@ -309,7 +309,7 @@ if __name__ == "__main__":
     (options,args) = parser.parse_args()
 
     if len(args) != 1:
-        raise RuntimeError("You need to specify exatcly one event ID")
+        raise RuntimeError("You need to specify exactly one event ID")
     eventID = args[0]
 
     state_dict = load_cache_state(

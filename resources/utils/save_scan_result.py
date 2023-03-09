@@ -8,7 +8,6 @@ import argparse
 import logging
 
 import skymap_scanner.config as cfg
-from icecube import dataio
 from skymap_scanner.utils.load_scan_state import load_cache_state
 from skymap_scanner.utils.scan_result import ScanResult
 
@@ -33,12 +32,9 @@ def main():
     )
     args = parser.parse_args()
 
-    stagers = dataio.get_stagers()
-
     state_dict = load_cache_state(
         args.event,
         cfg.RecoAlgo[args.reco_algo.upper()],
-        filestager=stagers,
         cache_dir=args.cache,
     )
 

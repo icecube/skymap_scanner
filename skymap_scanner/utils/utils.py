@@ -44,29 +44,20 @@ def get_event_mjd(frame_packet: List[icetray.I3Frame]) -> float:
     return time.mod_julian_day_double  # type: ignore[no-any-return]
 
 
-def load_GCD_frame_packet_from_file(filename, filestager=None):
-    read_url = filename
-    for GCD_base_dir in cfg.GCD_BASE_DIRS:
-        potential_read_url = os.path.join(GCD_base_dir, filename)
-        if os.path.isfile( potential_read_url ):
-            read_url = potential_read_url
-            break
-
-    if filestager is not None:
-        read_url_handle = filestager.GetReadablePath( read_url )
-    else:
-        read_url_handle = read_url
-
+def load_framepacket_from_file(filename : str) -> List[icetray.I3Frame]:
+    """
+    Loads an I3 file provided a filename and returns a list of I3Frame objects (frame packet)
+    """
+    # Legacy code used to loop over GCD_BASE_DIRS.
+    # Now it is assumed that filename points to a valid GCD file.
     frame_packet = []
-    i3f = dataio.I3File(str(read_url_handle),'r')
+
+    i3f = dataio.I3File(filename,'r')
     while True:
         if not i3f.more():
             return frame_packet
         frame = i3f.pop_frame()
         frame_packet.append(frame)
-
-    del read_url_handle
-
 
 def save_GCD_frame_packet_to_file(
     frame_packet: List[icetray.I3Frame],

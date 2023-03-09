@@ -7,7 +7,6 @@ import random
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
-    dataio,
     frame_object_diff,
     gulliver,
     gulliver_modules,

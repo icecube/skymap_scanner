@@ -69,20 +69,27 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
     #   entrypoint, and loading the icetray env file
     #   directly from cvmfs messes up the paths" -DS
 
-    environment = ""
+    # Build the environment specification for condor
+    vars = []
+    # RABBITMQ_* and EWMS_* are inherited via condor `getenv`, but we have default in case these are not set.
     if not os.getenv("RABBITMQ_HEARTBEAT"):
-        environment = f"RABBITMQ_HEARTBEAT=600 {environment}"
+        vars.append("RABBITMQ_HEARTBEAT=600")
     if not os.getenv("EWMS_PILOT_QUARANTINE_TIME"):
-        environment = f"EWMS_PILOT_QUARANTINE_TIME=1800 {environment}"
+        vars.append("EWMS_PILOT_QUARANTINE_TIME=1800")
+    # The container sets I3_DATA to /opt/i3-data, however `millipede_wilks` requires files (spline tables) that are not available in the image. For the time being we require CVFMS and we load I3_DATA from there. In order to override the environment variables we need to prepend APPTAINERENV_ or SINGULARITYENV_ to the variable name. There are site-dependent behaviour but these two should cover all cases. See https://github.com/icecube/skymap_scanner/issues/135#issuecomment-1449063054.
+    for prefix in ["APPTAINERENV_", "SINGULARITYENV_"]:
+        vars.append(f"{prefix}I3_DATA=/cvmfs/icecube.opensciencegrid.org/data")
+    environment = " ".join(vars)
 
     # write
     submit_dict = {
         "executable": "/bin/sh",
         "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --client-startup-json ./{client_startup_json.name}",
         "+SingularityImage": singularity_image,
+        "Requirements": "HAS_CVMFS_icecube_opensciencegrid_org && has_avx",
         "getenv": "SKYSCAN_*, EWMS_*, RABBITMQ_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
         "output": str(logs_subdir / "client-$(ProcId).out"),
-        "environment": environment,
+        "environment": f'"{environment}"',
         "error": str(logs_subdir / "client-$(ProcId).err"),
         "log": str(logs_subdir / "client.log"),
         "+FileSystemDomain": "blah",
@@ -232,7 +239,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--client-args",
-        required=True,
+        required=False,
         nargs="+",
         help="n 'key:value' pairs containing the python CL arguments to pass to skymap_scanner.client",
     )
@@ -253,15 +260,16 @@ def main() -> None:
 
     # get client args
     client_args = ""
-    for carg_value in args.client_args:
-        carg, value = carg_value.split(":", maxsplit=1)
-        client_args += f" --{carg} {value} "
-    LOGGER.info(f"Client Args: {client_args}")
-    if "--client-startup-json" in client_args:
-        raise RuntimeError(
-            "The '--client-args' arg cannot include \"--client-startup-json\". "
-            "This needs to be given to this script explicitly ('--client-startup-json')."
-        )
+    if args.client_args is not None:
+        for carg_value in args.client_args:
+            carg, value = carg_value.split(":", maxsplit=1)
+            client_args += f" --{carg} {value} "
+        LOGGER.info(f"Client Args: {client_args}")
+        if "--client-startup-json" in client_args:
+            raise RuntimeError(
+                "The '--client-args' arg cannot include \"--client-startup-json\". "
+                "This needs to be given to this script explicitly ('--client-startup-json')."
+            )
 
     # make condor job description
     job_description = make_condor_job_description(
