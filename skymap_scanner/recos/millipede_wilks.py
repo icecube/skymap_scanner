@@ -43,8 +43,7 @@ class MillipedeWilks(RecoInterface):
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _splinedir = "/cvmfs/icecube.opensciencegrid.org/users/tyuan/"
+    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
     _base = os.path.join(_splinedir, "cascade_single_spice_ftp-v1_flat_z20_a5.%s.fits")
     _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits")
     for fname in [_base % "abs", _base % "prob", _effd]:
