@@ -20,7 +20,7 @@ certifi==2022.12.7
     #   requests
 cffi==1.15.1
     # via cryptography
-charset-normalizer==3.0.1
+charset-normalizer==3.1.0
     # via requests
 coloredlogs==15.0.1
     # via wipac-dev-tools
@@ -34,7 +34,7 @@ ed25519==1.5
     # via nkeys
 ewms-pilot==0.4.1
     # via skymap-scanner (setup.py)
-fonttools==4.38.0
+fonttools==4.39.0
     # via matplotlib
 google-api-core[grpc]==2.11.0
     # via
@@ -112,7 +112,7 @@ pillow==9.4.0
     # via matplotlib
 proto-plus==1.22.2
     # via google-cloud-pubsub
-protobuf==4.22.0
+protobuf==4.22.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
@@ -179,5 +179,5 @@ wipac-dev-tools[coloredlogs]==1.6.12
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.14
+wipac-rest-tools==1.4.15
     # via skymap-scanner (setup.py)
