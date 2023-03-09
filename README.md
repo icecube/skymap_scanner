@@ -186,8 +186,9 @@ queue 300
 
 You may also need to add this line to the condor submit file if running `millipede_wilks` as some resources have been removed from the image.
 ```
-environment = "I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmfs/icecube.opensciencegrid.org/data/i3-test-data-svn/trunk"
+environment = "APPTAINERENV_I3_DATA=/cvmfs/icecube.opensciencegrid.org/data SINGULARITYENV_I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_DATA=/cvmfs/icecube.opensciencegrid.org/data I3_TESTDATA=/cvmfs/icecube.opensciencegrid.org/data/i3-test-data-svn/trunk"
 ```
+The extra envs for `I3_DATA` are to ensure it gets passed through for use inside the container. Additionally, ftp-v1 ice was introduced in v3.4.0.
 
 ### Additional Configuration
 #### Environment Variables
