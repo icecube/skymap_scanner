@@ -112,15 +112,13 @@ export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SE
 _See notes about `--client-startup-json` below. See `client.py` for additional optional args._
 ##### Run It
 ###### with Condor (via Singularity)
-You'll want to put your `skymap_scanner.client` args in a JSON file, then pass that to the helper script.
 ```
-echo my_client_args.json  # just an example
-./resources/client_starter.py \
+wget https://github.com/WIPACrepo/SkyDriver/blob/main/clientmanager/client_starter.py
+python client_starter.py \
     --jobs #### \
     --memory #GB \
     --singularity-image URL_OR_PATH_TO_SINGULARITY_IMAGE \
     --client-startup-json PATH_TO_CLIENT_STARTUP_JSON \
-    --client-args-json my_client_args.json
 ```
 _NOTE: `client_starter.py` will wait until `--client-startup-json PATH_TO_CLIENT_STARTUP_JSON` exists, since it needs to file-transfer it to the worker node. Similarly, the client's `--client-startup-json` is auto-set by the script and thus, is disallowed from being in the `--client-args` arguments._
 ###### or Manually (Docker)
