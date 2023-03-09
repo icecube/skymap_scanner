@@ -102,7 +102,7 @@ pillow==9.4.0
     # via matplotlib
 proto-plus==1.22.2
     # via google-cloud-pubsub
-protobuf==4.22.0
+protobuf==4.22.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
@@ -167,5 +167,5 @@ wipac-dev-tools[coloredlogs]==1.6.12
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.14
+wipac-rest-tools==1.4.15
     # via skymap-scanner (setup.py)

@@ -43,8 +43,8 @@ class MillipedeWilks(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
     _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "cascade_single_spice_bfr-v2_flat_z20_a5.%s.fits")
-    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_bfr-v2_z20.eff.fits")
+    _base = os.path.join(_splinedir, "cascade_single_spice_ftp-v1_flat_z20_a5.%s.fits")
+    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits")
     for fname in [_base % "abs", _base % "prob", _effd]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
@@ -52,7 +52,7 @@ class MillipedeWilks(RecoInterface):
     cascade_service = photonics_service.I3PhotoSplineService(
         _base % "abs", _base % "prob", timingSigma=0.0,
         effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_bfr-v2/'),
+        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
         quantileEpsilon=1
         )
     muon_service = None
@@ -235,7 +235,7 @@ class MillipedeWilks(RecoInterface):
                            StepT=250.*I3Units.ns,
                            ShowerSpacing=5.*I3Units.m,
                            MuonSpacing=0,
-                           Boundary=700*I3Units.m)
+                           Boundary=650*I3Units.m)
         finer_steps = dict(StepX=2.*I3Units.m,
                            StepY=2.*I3Units.m,
                            StepZ=2.*I3Units.m,
@@ -244,7 +244,7 @@ class MillipedeWilks(RecoInterface):
                            StepT=5.*I3Units.ns,
                            ShowerSpacing=2.5*I3Units.m,
                            MuonSpacing=0,
-                           Boundary=700*I3Units.m)
+                           Boundary=650*I3Units.m)
         if seed is not None:
             logger.debug('Updating StepXYZ')
             MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 150*I3Units.m)
