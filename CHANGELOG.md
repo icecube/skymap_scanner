@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v3.4.0 (2023-03-09)
+### Other
+* <bot> update requirements.txt ([`5cf5875`](https://github.com/icecube/skymap_scanner/commit/5cf5875520b99c8004f664f0aceafcb241186940))
+* <bot> update requirements-rabbitmq.txt ([`61b0169`](https://github.com/icecube/skymap_scanner/commit/61b01697f9aa1a99bcbb056f5be7f702eb4ebc74))
+* <bot> update requirements-pulsar.txt ([`bfe1e28`](https://github.com/icecube/skymap_scanner/commit/bfe1e28498ae182b34abb8a6df7851156be5f1eb))
+* <bot> update requirements-nats.txt ([`35e5657`](https://github.com/icecube/skymap_scanner/commit/35e56573eb924fe425bba9f4e7d16956928f216a))
+* <bot> update requirements-gcp.txt ([`005c45b`](https://github.com/icecube/skymap_scanner/commit/005c45b1c677a1ce77f4e83d41d892985922d98e))
+* <bot> update requirements-client-starter.txt ([`a55402a`](https://github.com/icecube/skymap_scanner/commit/a55402a52b0a4f1e2455e4e7874463ee9e4e43b2))
+* <bot> update requirements-all.txt ([`61f2070`](https://github.com/icecube/skymap_scanner/commit/61f2070c3148142785d880e676a134e22577a6bf))
+* Update millipede_wilks to ftp-v1 ([#138](https://github.com/icecube/skymap_scanner/issues/138)) ([`11421f6`](https://github.com/icecube/skymap_scanner/commit/11421f6c3798b5deec588f4692e0a8e7ac001cc0))
+
 ## v3.3.5 (2023-03-07)
 ### Other
 * Simplification and improvement of GCD handling ([#147](https://github.com/icecube/skymap_scanner/issues/147)) ([`dd6d910`](https://github.com/icecube/skymap_scanner/commit/dd6d910d14e9512bf9bc02dfded1f41c0ba050ec))
