@@ -29,7 +29,7 @@ env:
   SKYSCAN_MINI_TEST: 'yes'
   SKYSCAN_LOG: DEBUG
   SKYSCAN_LOG_THIRD_PARTY: INFO
-  CLIENT_STARTER_WAIT_FOR_STARTUP_JSON: 120
+  WAIT_FOR_STARTUP_JSON: 120
   BROKER_CONTAINER_NAME: the-message-broker
 
 jobs:
@@ -123,7 +123,7 @@ jobs:
             --simulated-event \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
@@ -216,7 +216,7 @@ jobs:
             --real-event \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
