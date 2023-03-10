@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.4.1 (2023-03-10)
+### Other
+* SkyDriver Alpha Updates Pt-1 ([#153](https://github.com/icecube/skymap_scanner/issues/153)) ([`6389967`](https://github.com/icecube/skymap_scanner/commit/6389967713954823d79c529fb730d3eba08a2a63))
+
 ## v3.4.0 (2023-03-09)
 ### Other
 * <bot> update requirements.txt ([`5cf5875`](https://github.com/icecube/skymap_scanner/commit/5cf5875520b99c8004f664f0aceafcb241186940))
