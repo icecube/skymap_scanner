@@ -395,7 +395,7 @@ class ProgressReporter:
         if not self.skydriver_rc:
             return result
 
-        body = {'json_dict': serialized, 'is_final': self.is_event_scan_done}
+        body = {'skyscan_result': serialized, 'is_final': self.is_event_scan_done}
         await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
 
         return result
@@ -1125,7 +1125,7 @@ def main() -> None:
         reco_algo=args.reco_algo,
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
-        GCD_dir=str(args.gcd_dir)
+        GCD_dir=str(args.gcd_dir),
     )
 
     # write startup files for client-spawning
