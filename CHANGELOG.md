@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.4.2 (2023-03-15)
+### Other
+* CI Expediate Steps on `main` ([#154](https://github.com/icecube/skymap_scanner/issues/154)) ([`8e64ab5`](https://github.com/icecube/skymap_scanner/commit/8e64ab56d530065ea60aaffd022d645c762d6343))
+
 ## v3.4.1 (2023-03-10)
 ### Other
 * SkyDriver Alpha Updates Pt-1 ([#153](https://github.com/icecube/skymap_scanner/issues/153)) ([`6389967`](https://github.com/icecube/skymap_scanner/commit/6389967713954823d79c529fb730d3eba08a2a63))
