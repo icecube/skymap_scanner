@@ -108,7 +108,7 @@ typing-extensions==4.5.0
     # via
     #   qrcode
     #   wipac-dev-tools
-urllib3==1.26.14
+urllib3==1.26.15
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.13
     # via

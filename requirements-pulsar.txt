@@ -71,7 +71,7 @@ pandas==1.5.3
     # via skymap-scanner (setup.py)
 pillow==9.4.0
     # via matplotlib
-pulsar-client==3.0.0
+pulsar-client==3.1.0
     # via oms-mqclient
 pycparser==2.21
     # via cffi
@@ -112,7 +112,7 @@ typing-extensions==4.5.0
     # via
     #   qrcode
     #   wipac-dev-tools
-urllib3==1.26.14
+urllib3==1.26.15
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.13
     # via
