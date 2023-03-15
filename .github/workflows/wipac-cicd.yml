@@ -121,7 +121,6 @@ jobs:
           git_committer_email: ${{ env.BOT_EMAIL }}
 
   py-versions:
-    needs: [py-setup]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
