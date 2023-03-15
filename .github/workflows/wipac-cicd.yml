@@ -130,7 +130,7 @@ jobs:
         uses: WIPACrepo/wipac-dev-py-versions-action@v2
 
   pip-install:
-    # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
+    # If this fails, the longer tests are sure to fail
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
