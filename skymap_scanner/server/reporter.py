@@ -79,7 +79,7 @@ class Reporter:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
 
-        self._n_pixreco: Optional[int] = None
+        self._n_pixreco_expected: Optional[int] = None
         self.pixreco_ct = 0
 
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
@@ -121,17 +121,17 @@ class Reporter:
         self._check_call_order(self.precomputing_report)
         await self._send_progress(summary_msg="The Skymap Scanner has started up.")
 
-    async def start_computing(self, n_pixreco: int) -> None:
+    async def start_computing(self, n_pixreco_expected: int) -> None:
         """Send an initial report/log/plot.
 
         Arguments:
-            `n_pixreco`
+            `n_pixreco_expected`
                 - number of expected pixel-recos
             `n_posvar`
                 - number of position variations per pixel
         """
         self._check_call_order(self.start_computing)
-        self.n_pixreco = n_pixreco
+        self.n_pixreco_expected = n_pixreco_expected
         self.pixreco_ct = 0
         await self._make_reports_if_needed(
             bypass_timers=True,
@@ -139,18 +139,18 @@ class Reporter:
         )
 
     @property
-    def n_pixreco(self) -> int:
-        if self._n_pixreco is None:
+    def n_pixreco_expected(self) -> int:
+        if self._n_pixreco_expected is None:
             raise RuntimeError(
-                f"'self._n_pixreco' is None (did you forget to call {self.start_computing}?)"
+                f"'self._n_pixreco_expected' is None (did you forget to call {self.start_computing}?)"
             )
-        return self._n_pixreco
+        return self._n_pixreco_expected
 
-    @n_pixreco.setter
-    def n_pixreco(self, val: int) -> None:
+    @n_pixreco_expected.setter
+    def n_pixreco_expected(self, val: int) -> None:
         if val <= 0:
-            raise ValueError(f"n_pixreco is not positive: {val}")
-        self._n_pixreco = val
+            raise ValueError(f"n_pixreco_expected is not positive: {val}")
+        self._n_pixreco_expected = val
 
     async def record_pixreco(self, pixreco_start: float, pixreco_end: float) -> None:
         """Send reports/logs/plots if needed."""
@@ -182,7 +182,7 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
-            f"Collected: {self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
+            f"Collected: {self.pixreco_ct}/{self.n_pixreco_expected} ({self.pixreco_ct/self.n_pixreco_expected})"
         )
 
         # check if we need to send a report to the logger
@@ -196,7 +196,7 @@ class Reporter:
                 epilogue_msg = (
                     "I will report back when I start getting pixel-reconstructions."
                 )
-            elif self.pixreco_ct != self.n_pixreco:
+            elif self.pixreco_ct != self.n_pixreco_expected:
                 epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
             else:
                 epilogue_msg = ""
@@ -267,7 +267,7 @@ class Reporter:
         else:
             # MAKE PREDICTIONS
             # NOTE: this is a simple average, may want to visit more sophisticated methods
-            secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco)
+            secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco_expected)
             proc_stats['predictions'] = {
                 # TODO:
                 # 'remaining': {
@@ -305,11 +305,11 @@ class Reporter:
 
         # TODO: remove for #84
         this_iteration = {}  # type: ignore[var-annotated]
-        if self._n_pixreco is not None:
+        if self._n_pixreco_expected is not None:
             this_iteration = {
-                'percent': (self.pixreco_ct / self.n_pixreco) * 100,
-                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco/self.n_posvar}",
-                'recos': f"{self.pixreco_ct}/{self.n_pixreco}",
+                'percent': (self.pixreco_ct / self.n_pixreco_expected) * 100,
+                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco_expected/self.n_posvar}",
+                'recos': f"{self.pixreco_ct}/{self.n_pixreco_expected}",
             }
 
         return {
@@ -326,10 +326,10 @@ class Reporter:
         if not self.pixreco_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
-        if self.pixreco_ct != self.n_pixreco:
+        if self.pixreco_ct != self.n_pixreco_expected:
             raise RuntimeError(
                 f"Not all pixel-reconstructions were received: "
-                f"{self.pixreco_ct}/{self.n_pixreco} ({self.pixreco_ct/self.n_pixreco})"
+                f"{self.pixreco_ct}/{self.n_pixreco_expected} ({self.pixreco_ct/self.n_pixreco_expected})"
             )
 
         await self._make_reports_if_needed(
@@ -339,7 +339,7 @@ class Reporter:
 
     async def after_computing_report(
         self,
-        total_n_pixreco: int,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+        total_n_pixreco_expected: int,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> ScanResult:
         """Get, log, and send final results to SkyDriver."""
         self._check_call_order(self.after_computing_report)
@@ -347,7 +347,7 @@ class Reporter:
         result = await self._send_result()
         await self._send_progress(
             "The Skymap Scanner has finished.",
-            total_n_pixreco=total_n_pixreco,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+            total_n_pixreco_expected=total_n_pixreco_expected,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
         )
         return result
 
@@ -355,7 +355,7 @@ class Reporter:
         self,
         summary_msg: str,
         epilogue_msg: str = '',
-        total_n_pixreco: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
+        total_n_pixreco_expected: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
         progress = {
@@ -371,10 +371,10 @@ class Reporter:
             'position_variations': self.n_posvar,
         }
 
-        if total_n_pixreco:
+        if total_n_pixreco_expected:
             # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
             # see _get_tallies()
-            progress['tallies']['total_recos'] = total_n_pixreco
+            progress['tallies']['total_recos'] = total_n_pixreco_expected
 
         LOGGER.info(pyobj_to_string_repr(progress))
         if not self.skydriver_rc:
