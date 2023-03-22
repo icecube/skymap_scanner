@@ -27,7 +27,7 @@ class WorkerRates:
 
     fastest: float
     slowest: float
-    average: float
+    mean: float
 
 
 class Reporter:
@@ -91,7 +91,7 @@ class Reporter:
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.scan_start = 0.0
-        self.worker_rates = WorkerRates(fastest=0, slowest=0, average=0)
+        self.worker_rates = WorkerRates(fastest=0, slowest=0, mean=0)
 
         self._call_order = {
             'current_previous': {  # current_fucntion: previous_fucntion(s)
@@ -160,7 +160,7 @@ class Reporter:
 
         if self.pixreco_ct == 1:
             self.scan_start = pixreco_start
-            self.worker_rates = WorkerRates(fastest=rate, slowest=rate, average=rate)
+            self.worker_rates = WorkerRates(fastest=rate, slowest=rate, mean=rate)
             # always report the first received pixreco so we know things are rolling
             await self._make_reports_if_needed(bypass_timers=True)
         else:
@@ -168,8 +168,8 @@ class Reporter:
             self.worker_rates = WorkerRates(
                 fastest=min(self.worker_rates.fastest, rate),
                 slowest=max(self.worker_rates.slowest, rate),
-                average=(
-                    ((self.worker_rates.average * (self.pixreco_ct - 1)) + rate)
+                mean=(
+                    ((self.worker_rates.mean * (self.pixreco_ct - 1)) + rate)
                     / self.pixreco_ct
                 ),
             )
@@ -246,11 +246,11 @@ class Reporter:
 
         secs_per_pixreco = elapsed / self.pixreco_ct
         proc_stats['rate'] = {
-            'average reco (scanner wall time)': str(
+            'mean reco (scanner wall time)': str(
                 dt.timedelta(seconds=int(secs_per_pixreco))
             ),
-            'average reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.average))
+            'mean reco (worker time)': str(
+                dt.timedelta(seconds=int(self.worker_rates.mean))
             ),
             'slowest reco (worker time)': str(
                 dt.timedelta(seconds=int(self.worker_rates.slowest))
@@ -266,7 +266,7 @@ class Reporter:
             proc_stats['finished'] = True
         else:
             # MAKE PREDICTIONS
-            # NOTE: this is a simple average, may want to visit more sophisticated methods
+            # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco_expected)
             proc_stats['predictions'] = {
                 # TODO:
