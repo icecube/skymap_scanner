@@ -12,9 +12,8 @@ from compare_scan_results import compare_then_exit
 
 
 def main():
-    """
-    Loads two scan results in numpy format and exit with the outcome of the comparison.
-    """
+    """Loads two scan results in numpy format and exit with the outcome of the
+    comparison."""
 
     logging.basicConfig(level=logging.DEBUG)
 
@@ -62,9 +61,11 @@ def main():
     def load_from_out_pkl(out_pkl_fpath: Path) -> ScanResult:
         """Load a ScanResult from the "out" pkl file."""
         with open(out_pkl_fpath, "rb") as f:
-            pixreco = pickle.load(f)
+            msg = pickle.load(f)
 
-        return ScanResult.from_nsides_dict({pixreco.nside: {pixreco.pixel: pixreco}})
+        return ScanResult.from_nsides_dict(
+            {msg["pixreco"].nside: {msg["pixreco"].pixel: msg["pixreco"]}}
+        )
 
     actual = load_from_out_pkl(args.actual)
     expected = load_from_out_pkl(args.expected)
@@ -76,7 +77,7 @@ def main():
         args.expected,
         args.do_assert,
         args.diff_out_dir,
-        logger,
+        c,
         args.disqualify_zero_energy_pixels,  # TODO: remove?
     )
 
