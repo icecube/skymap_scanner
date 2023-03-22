@@ -196,7 +196,7 @@ class Reporter:
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
         elapsed = time.time() - self.reporter_start_time
-        time_before_reporter = self.reporter_start_time - self.global_start_time
+        prior_processing_secs = self.reporter_start_time - self.global_start_time
         proc_stats = {
             "start": {
                 'entire scan': str(
@@ -209,12 +209,12 @@ class Reporter:
             },
             "runtime": {
                 'prior processing': str(
-                    dt.timedelta(seconds=int(time_before_reporter))
+                    dt.timedelta(seconds=int(prior_processing_secs))
                 ),
                 # TODO: remove 'iterations' -- no replacement b/c async, that's OK
                 'this iteration': str(dt.timedelta(seconds=int(elapsed))),
                 'this iteration + prior processing': str(
-                    dt.timedelta(seconds=int(elapsed + time_before_reporter))
+                    dt.timedelta(seconds=int(elapsed + prior_processing_secs))
                 ),
                 'total': str(
                     dt.timedelta(seconds=int(time.time() - self.global_start_time))
@@ -259,7 +259,9 @@ class Reporter:
                     'this iteration': str(dt.timedelta(seconds=int(secs_predicted))),
                     # TODO: replace w/ 'entire scan'
                     'this iteration + prior processing': str(
-                        dt.timedelta(seconds=int(secs_predicted + time_before_reporter))
+                        dt.timedelta(
+                            seconds=int(secs_predicted + prior_processing_secs)
+                        )
                     ),
                 },
             }
