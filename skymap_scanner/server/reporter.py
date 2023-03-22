@@ -116,7 +116,7 @@ class Reporter:
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.scan_start = 0.0
-        self.worker_rates = WorkerRates()
+        self.worker_rates = WorkerRates([])
 
         self._call_order = {
             'current_previous': {  # current_fucntion: previous_fucntion(self.rates)
