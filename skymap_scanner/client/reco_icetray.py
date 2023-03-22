@@ -7,6 +7,7 @@ import datetime
 import logging
 import os
 import pickle
+import time
 from pathlib import Path
 from typing import Any, List, Union
 
@@ -102,6 +103,7 @@ def reco_pixel(
     out_pkl: Path,
 ) -> Path:
     """Actually do the reco."""
+    start_time = time.time()
     LOGGER.info(f"Reco'ing pixel: {pixelreco.pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
@@ -131,7 +133,7 @@ def reco_pixel(
             "GCD_uncompress_GCD_patch",
             keep_compressed=False,
             base_path="",
-            base_filename=baseline_GCD_file
+            base_filename=baseline_GCD_file,
         )
 
     # perform fit
@@ -158,13 +160,17 @@ def reco_pixel(
                 f"Pickle-dumping reco {pixelreco.pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            geometry = get_baseline_gcd_frames(
-                baseline_GCD_file,
-                GCDQp_packet
-            )[0]
+            geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
             pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")
-            pickle.dump(pixreco, f)
+            pickle.dump(
+                {
+                    "pixreco": pixreco,
+                    "start": start_time,
+                    "end": time.time(),
+                },
+                f,
+            )
 
     tray.AddModule(writeout_reco, "writeout_reco")
 

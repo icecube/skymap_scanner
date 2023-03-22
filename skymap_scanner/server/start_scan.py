@@ -379,7 +379,12 @@ class PixelRecoCollector:
         await self.reporter.final_computing_report()
         self._finder.finish()
 
-    async def collect(self, pixreco: pixelreco.PixelReco) -> None:
+    async def collect(
+        self,
+        pixreco: pixelreco.PixelReco,
+        pixreco_start: float,
+        pixreco_end: float,
+    ) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
         LOGGER.debug(f"{self.nsides_dict=}")
 
@@ -419,7 +424,7 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        await self.reporter.record_pixreco()
+        await self.reporter.record_pixreco(pixreco_start, pixreco_end)
 
 
 async def serve(
@@ -555,13 +560,13 @@ async def serve_scan_iteration(
     LOGGER.info("Receiving pixel-recos from clients...")
     async with collector as col:  # enter collector 1st for detecting when no pixel-recos received
         async with from_clients_queue.open_sub() as sub:
-            async for pixreco in sub:
-                if not isinstance(pixreco, pixelreco.PixelReco):
+            async for msg in sub:
+                if not isinstance(msg['pixreco'], pixelreco.PixelReco):
                     raise ValueError(
-                        f"Message not {pixelreco.PixelReco}: {type(pixreco)}"
+                        f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
                     )
                 try:
-                    await col.collect(pixreco)
+                    await col.collect(msg['pixreco'], msg['start'], msg['end'])
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got all the pixrecos, no need to wait for queue's timeout

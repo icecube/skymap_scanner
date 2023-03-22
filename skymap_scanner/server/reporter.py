@@ -21,6 +21,15 @@ from . import LOGGER
 StrDict = Dict[str, Any]
 
 
+@dc.dataclass
+class WorkerRates:
+    """Simple class that holds info rates at the per-reco/worker level."""
+
+    fastest: float
+    slowest: float
+    average: float
+
+
 class Reporter:
     """Manage means for reporting progress & results during/after the scan."""
 
@@ -81,7 +90,8 @@ class Reporter:
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
-        self.reporter_start_time = 0.0
+        self.scan_start = 0.0
+        self.worker_rates = WorkerRates(fastest=0, slowest=0, average=0)
 
         self._call_order = {
             'current_previous': {  # current_fucntion: previous_fucntion(s)
@@ -123,7 +133,6 @@ class Reporter:
         self._check_call_order(self.start_computing)
         self.n_pixreco = n_pixreco
         self.pixreco_ct = 0
-        self.reporter_start_time = time.time()
         await self._make_reports_if_needed(
             bypass_timers=True,
             summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
@@ -143,14 +152,27 @@ class Reporter:
             raise ValueError(f"n_pixreco is not positive: {val}")
         self._n_pixreco = val
 
-    async def record_pixreco(self) -> None:
+    async def record_pixreco(self, pixreco_start: float, pixreco_end: float) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_pixreco)
         self.pixreco_ct += 1
+        rate = pixreco_end - pixreco_start
+
         if self.pixreco_ct == 1:
+            self.scan_start = pixreco_start
+            self.worker_rates = WorkerRates(fastest=rate, slowest=rate, average=rate)
             # always report the first received pixreco so we know things are rolling
             await self._make_reports_if_needed(bypass_timers=True)
         else:
+            self.scan_start = min(self.scan_start, pixreco_start)
+            self.worker_rates = WorkerRates(
+                fastest=min(self.worker_rates.fastest, rate),
+                slowest=max(self.worker_rates.slowest, rate),
+                average=(
+                    ((self.worker_rates.average * (self.pixreco_ct - 1)) + rate)
+                    / self.pixreco_ct
+                ),
+            )
             await self._make_reports_if_needed()
 
     async def _make_reports_if_needed(
@@ -195,17 +217,15 @@ class Reporter:
 
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
-        elapsed = time.time() - self.reporter_start_time
-        prior_processing_secs = self.reporter_start_time - self.global_start_time
+        elapsed = time.time() - self.scan_start
+        prior_processing_secs = self.scan_start - self.global_start_time
         proc_stats = {
             "start": {
                 'entire scan': str(
                     dt.datetime.fromtimestamp(int(self.global_start_time))
                 ),
-                # TODO: add a start time for each nside (async)
-                'this iteration': str(
-                    dt.datetime.fromtimestamp(int(self.reporter_start_time))
-                ),
+                # TODO: add a start time for each nside (async), or just "scan_start"
+                'this iteration': str(dt.datetime.fromtimestamp(int(self.scan_start))),
             },
             "runtime": {
                 'prior processing': str(
@@ -226,10 +246,18 @@ class Reporter:
 
         secs_per_pixreco = elapsed / self.pixreco_ct
         proc_stats['rate'] = {
-            'per-pixel': str(
-                dt.timedelta(seconds=int(secs_per_pixreco * self.n_posvar))
+            'average reco (scanner wall time)': str(
+                dt.timedelta(seconds=int(secs_per_pixreco))
             ),
-            'per-reco': str(dt.timedelta(seconds=int(secs_per_pixreco))),
+            'average reco (worker time)': str(
+                dt.timedelta(seconds=int(self.worker_rates.average))
+            ),
+            'slowest reco (worker time)': str(
+                dt.timedelta(seconds=int(self.worker_rates.slowest))
+            ),
+            'fastest reco (worker time)': str(
+                dt.timedelta(seconds=int(self.worker_rates.fastest))
+            ),
         }
 
         if self.is_event_scan_done:
