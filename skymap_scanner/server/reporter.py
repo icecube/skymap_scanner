@@ -21,8 +21,8 @@ from . import LOGGER
 StrDict = Dict[str, Any]
 
 
-class ProgressReporter:
-    """Manage various means for reporting progress during & after scanning."""
+class Reporter:
+    """Manage means for reporting progress & results during/after the scan."""
 
     def __init__(
         self,

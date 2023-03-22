@@ -33,6 +33,7 @@ from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.utils import pow_of_two
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .reporter import Reporter
 from .utils import fetch_event_contents
 
 StrDict = Dict[str, Any]
@@ -361,21 +362,21 @@ class PixelRecoCollector:
         self,
         n_posvar: int,  # Number of position variations to collect
         nsides_dict: pixelreco.NSidesDict,
-        progress_reporter: ProgressReporter,
+        reporter: Reporter,
         pixreco_ids_sent: Set[Tuple[int, int, int]],
     ) -> None:
         self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
-        self.progress_reporter = progress_reporter
+        self.reporter = reporter
         self.nsides_dict = nsides_dict
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
         self.pixreco_ids_sent = pixreco_ids_sent
 
     async def __aenter__(self) -> "PixelRecoCollector":
-        await self.progress_reporter.start_computing(len(self.pixreco_ids_sent))
+        await self.reporter.start_computing(len(self.pixreco_ids_sent))
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
-        await self.progress_reporter.final_computing_report()
+        await self.reporter.final_computing_report()
         self._finder.finish()
 
     async def collect(self, pixreco: pixelreco.PixelReco) -> None:
@@ -418,7 +419,7 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        await self.progress_reporter.record_pixreco()
+        await self.reporter.record_pixreco()
 
 
 async def serve(
@@ -456,7 +457,7 @@ async def serve(
         event_metadata=event_metadata,
     )
 
-    progress_reporter = ProgressReporter(
+    reporter = Reporter(
         scan_id,
         global_start_time,
         nsides_dict,
@@ -466,7 +467,7 @@ async def serve(
         skydriver_rc,
         event_metadata,
     )
-    await progress_reporter.precomputing_report()
+    await reporter.precomputing_report()
 
     # Start the scan iteration loop
     total_n_pixreco = 0
@@ -478,7 +479,7 @@ async def serve(
             reco_algo,
             nsides_dict,
             pixeler,
-            progress_reporter,
+            reporter,
         )
         if not n_pixreco:  # we're done
             break
@@ -490,7 +491,7 @@ async def serve(
 
     # get, log, & post final results
     # TODO: remove 'total_n_pixreco' for https://github.com/icecube/skymap_scanner/issues/84
-    result = await progress_reporter.after_computing_report(total_n_pixreco)
+    result = await reporter.after_computing_report(total_n_pixreco)
 
     # write out .npz & .json files
     if output_dir:
@@ -507,7 +508,7 @@ async def serve_scan_iteration(
     reco_algo: str,
     nsides_dict: pixelreco.NSidesDict,
     pixeler: PixelsToReco,
-    progress_reporter: ProgressReporter,
+    reporter: Reporter,
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
 
@@ -546,7 +547,7 @@ async def serve_scan_iteration(
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
         nsides_dict=nsides_dict,
-        progress_reporter=progress_reporter,
+        reporter=reporter,
         pixreco_ids_sent=pixreco_ids_sent,
     )
 
