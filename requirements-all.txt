@@ -8,7 +8,7 @@ astropy==5.2.1
     # via
     #   healpy
     #   skymap-scanner (setup.py)
-asyncstdlib==3.10.5
+asyncstdlib==3.10.6
     # via skymap-scanner (setup.py)
 cachetools==5.3.0
     # via
@@ -34,7 +34,7 @@ ed25519==1.5
     # via nkeys
 ewms-pilot==0.4.1
     # via skymap-scanner (setup.py)
-fonttools==4.39.0
+fonttools==4.39.2
     # via matplotlib
 google-api-core[grpc]==2.11.0
     # via
@@ -46,7 +46,7 @@ google-auth==2.16.2
     #   oms-mqclient
 google-cloud-pubsub==2.15.1
     # via oms-mqclient
-googleapis-common-protos[grpc]==1.58.0
+googleapis-common-protos[grpc]==1.59.0
     # via
     #   google-api-core
     #   grpc-google-iam-v1
@@ -71,7 +71,7 @@ humanfriendly==10.0
     # via coloredlogs
 idna==3.4
     # via requests
-iminuit==2.21.0
+iminuit==2.21.2
     # via skymap-scanner (setup.py)
 kiwisolver==1.4.4
     # via matplotlib
@@ -130,7 +130,7 @@ pyasn1-modules==0.2.8
     # via google-auth
 pycparser==2.21
     # via cffi
-pyerfa==2.0.0.1
+pyerfa==2.0.0.2
     # via astropy
 pyjwt[crypto]==2.5.0
     # via wipac-rest-tools
@@ -179,5 +179,5 @@ wipac-dev-tools[coloredlogs]==1.6.13
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.15
+wipac-rest-tools==1.4.16
     # via skymap-scanner (setup.py)
