@@ -4,10 +4,11 @@
 
 # fmt:quotes-ok
 
-import dataclasses as dc
+import bisect
 import datetime as dt
+import statistics
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from rest_tools.client import RestClient
 
@@ -21,13 +22,37 @@ from . import LOGGER
 StrDict = Dict[str, Any]
 
 
-@dc.dataclass
 class WorkerRates:
-    """Simple class that holds info rates at the per-reco/worker level."""
+    """Holds rates and stats for the per-reco/worker level."""
 
-    fastest: float
-    slowest: float
-    mean: float
+    def __init__(self, rates: List[float]) -> None:
+        self.rates = rates
+        self.rates.sort()  # will make stats calls much faster
+
+        self.fastest = lambda: min(self.rates)
+        self.slowest = lambda: max(self.rates)
+
+        # Fast, floating point arithmetic mean.
+        self.fmean = lambda: statistics.fmean(self.rates)
+        self.mean = self.fmean  # use fmean since these are floats
+        # Median (middle value) of data.
+        self.median = lambda: statistics.median(self.rates)
+
+        # other statistics functions...
+        # geometric_mean Geometric mean of data.
+        # harmonic_mean Harmonic mean of data.
+        # median_low  # Low median of data.
+        # median_high  # High median of data.
+        # median_grouped  # Median, or 50th percentile, of grouped data.
+        # mode  # Mode (most common value) of data.
+        # pvariance  # Population variance of data.
+        # variance  # Sample variance of data.
+        # pstdev  # Population standard deviation of data.
+        # stdev  # Sample standard deviation of data.
+
+    def update(self, new_rate: float) -> 'WorkerRates':
+        bisect.insort(self.rates, new_rate)
+        return self
 
 
 class Reporter:
@@ -91,10 +116,10 @@ class Reporter:
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.scan_start = 0.0
-        self.worker_rates = WorkerRates(fastest=0, slowest=0, mean=0)
+        self.worker_rates = WorkerRates()
 
         self._call_order = {
-            'current_previous': {  # current_fucntion: previous_fucntion(s)
+            'current_previous': {  # current_fucntion: previous_fucntion(self.rates)
                 self.precomputing_report: [None],
                 self.start_computing: [
                     self.precomputing_report,
@@ -160,19 +185,12 @@ class Reporter:
 
         if self.pixreco_ct == 1:
             self.scan_start = pixreco_start
-            self.worker_rates = WorkerRates(fastest=rate, slowest=rate, mean=rate)
+            self.worker_rates = WorkerRates([rate])  # override
             # always report the first received pixreco so we know things are rolling
             await self._make_reports_if_needed(bypass_timers=True)
         else:
             self.scan_start = min(self.scan_start, pixreco_start)
-            self.worker_rates = WorkerRates(
-                fastest=min(self.worker_rates.fastest, rate),
-                slowest=max(self.worker_rates.slowest, rate),
-                mean=(
-                    ((self.worker_rates.mean * (self.pixreco_ct - 1)) + rate)
-                    / self.pixreco_ct
-                ),
-            )
+            self.worker_rates.update(rate)
             await self._make_reports_if_needed()
 
     async def _make_reports_if_needed(
@@ -244,19 +262,21 @@ class Reporter:
         if not self.pixreco_ct:  # we can't predict
             return proc_stats
 
-        secs_per_pixreco = elapsed / self.pixreco_ct
         proc_stats['rate'] = {
             'mean reco (scanner wall time)': str(
-                dt.timedelta(seconds=int(secs_per_pixreco))
+                dt.timedelta(seconds=int(elapsed / self.pixreco_ct))
             ),
             'mean reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.mean))
+                dt.timedelta(seconds=int(self.worker_rates.mean()))  # type: ignore[no-untyped-call]
+            ),
+            'median reco (worker time)': str(
+                dt.timedelta(seconds=int(self.worker_rates.median()))  # type: ignore[no-untyped-call]
             ),
             'slowest reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.slowest))
+                dt.timedelta(seconds=int(self.worker_rates.slowest()))  # type: ignore[no-untyped-call]
             ),
             'fastest reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.fastest))
+                dt.timedelta(seconds=int(self.worker_rates.fastest()))  # type: ignore[no-untyped-call]
             ),
         }
 
