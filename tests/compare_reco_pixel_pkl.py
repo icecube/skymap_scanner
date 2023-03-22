@@ -77,7 +77,7 @@ def main():
         args.expected,
         args.do_assert,
         args.diff_out_dir,
-        c,
+        logger,
         args.disqualify_zero_energy_pixels,  # TODO: remove?
     )
 
