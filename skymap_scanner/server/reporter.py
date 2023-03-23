@@ -2,7 +2,6 @@
 
 # pylint: disable=import-error
 
-# fmt:quotes-ok
 
 import bisect
 import dataclasses as dc
@@ -10,7 +9,7 @@ import datetime as dt
 import itertools
 import statistics
 import time
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from rest_tools.client import RestClient
 
@@ -24,12 +23,15 @@ from . import LOGGER
 StrDict = Dict[str, Any]
 
 
-class WorkerRates:
+class WorkerStats:
     """Holds rates and stats for the per-reco/worker level."""
 
-    def __init__(self, rates: List[float]) -> None:
-        self.rates = rates
-        self.rates.sort()  # will make stats calls much faster
+    def __init__(self) -> None:
+        self.start = float("inf")
+        self.end = float("-inf")
+
+        self.rates: List[float] = []
+        # self.rates.sort()  # will make stats calls much faster
 
         self.fastest = lambda: min(self.rates)
         self.slowest = lambda: max(self.rates)
@@ -52,31 +54,94 @@ class WorkerRates:
         # pstdev  # Population standard deviation of data.
         # stdev  # Sample standard deviation of data.
 
-    def update(self, new_rate: float) -> 'WorkerRates':
+    def update(self, new_rate: float, start: float, end: float) -> "WorkerStats":
         bisect.insort(self.rates, new_rate)
+        self.start = min(self.start, start)
+        self.end = max(self.end, end)
         return self
 
-    def get_summary(self) -> Dict[str, str]:
+    @staticmethod
+    def _make_summary(
+        mean: float,
+        median: float,
+        slowest: float,
+        fastest: float,
+        start: float,
+        end: float,
+        nrates: int,
+    ) -> Dict[str, str]:
         return {
-            'mean reco (worker time)': str(
-                dt.timedelta(seconds=int(self.mean()))  # type: ignore[no-untyped-call]
-            ),
-            'median reco (worker time)': str(
-                dt.timedelta(seconds=int(self.median()))  # type: ignore[no-untyped-call]
-            ),
-            'slowest reco (worker time)': str(
-                dt.timedelta(seconds=int(self.slowest()))  # type: ignore[no-untyped-call]
-            ),
-            'fastest reco (worker time)': str(
-                dt.timedelta(seconds=int(self.fastest()))  # type: ignore[no-untyped-call]
+            "mean reco (worker time)": str(dt.timedelta(seconds=int(mean))),
+            "median reco (worker time)": str(dt.timedelta(seconds=int(median))),
+            "slowest reco (worker time)": str(dt.timedelta(seconds=int(slowest))),
+            "fastest reco (worker time)": str(dt.timedelta(seconds=int(fastest))),
+            "start time (first reco)": str(dt.datetime.fromtimestamp(int(start))),
+            "end time (last reco)": str(dt.datetime.fromtimestamp(int(end))),
+            "runtime (wall time)": str(dt.timedelta(seconds=int(end - start))),
+            "mean reco (scanner wall time)": str(
+                dt.timedelta(seconds=int((end - start) / nrates))
             ),
         }
 
-    @staticmethod
-    def aggregate(instances: Iterable['WorkerRates']) -> 'WorkerRates':
-        return WorkerRates(
-            list(itertools.chain(i.rate for i in instances))
-        )  # TODO: make faster
+    def get_summary(self) -> Dict[str, str]:
+        return self._make_summary(
+            self.mean(),  # type: ignore[no-untyped-call]
+            self.median(),  # type: ignore[no-untyped-call]
+            self.slowest(),  # type: ignore[no-untyped-call]
+            self.fastest(),  # type: ignore[no-untyped-call]
+            self.start,
+            self.end,
+            len(self.rates),
+        )
+
+
+class WorkerStatsCollection:
+    """A performant collection of WorkerStats instances."""
+
+    def __init__(self) -> None:
+        self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
+
+    @property
+    def total_ct(self) -> int:
+        return sum(len(w.rates) for w in self._worker_stats_by_nside.values())
+
+    @property
+    def first_reco_start(self) -> float:
+        return min(w.start for w in self._worker_stats_by_nside.values())
+
+    def update(
+        self,
+        nside: int,
+        rate: float,
+        pixreco_start: float,
+        pixreco_end: float,
+    ) -> int:
+        """Return reco-count of nside's list."""
+        try:
+            worker_stats = self._worker_stats_by_nside[nside]
+        except KeyError:
+            worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
+        worker_stats.update(rate, pixreco_start, pixreco_end)
+        return len(worker_stats.rates)
+
+    def _get_aggregate_summary(self) -> Dict[str, str]:
+        total_nrates = self.total_ct
+        instances = self._worker_stats_by_nside.values()
+        return WorkerStats._make_summary(
+            sum(i.mean() * len(i.rates) for i in instances) / total_nrates,  # type: ignore[no-untyped-call]
+            statistics.median(itertools.chain(i.rates for i in instances)),
+            max(i.slowest() for i in instances),  # type: ignore[no-untyped-call]
+            min(i.fastest() for i in instances),  # type: ignore[no-untyped-call]
+            min(i.start for i in instances),
+            max(i.end for i in instances),
+            total_nrates,
+        )
+
+    def get_summary(self) -> StrDict:
+        dicto: StrDict = self._get_aggregate_summary()
+        for nside, worker_stats in self._worker_stats_by_nside.items():
+            dicto[f"nside-{nside}"] = worker_stats.get_summary()
+        return dicto
 
 
 class Reporter:
@@ -121,7 +186,7 @@ class Reporter:
         self.is_event_scan_done = False
 
         self.scan_id = scan_id
-        self.global_start_time = global_start_time
+        self.global_start = global_start_time
         self.nsides_dict = nsides_dict
 
         if n_posvar <= 0:
@@ -129,7 +194,6 @@ class Reporter:
         self.n_posvar = n_posvar
 
         self._n_pixreco_expected: Optional[int] = None
-        self.pixreco_ct = 0
 
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
@@ -139,31 +203,27 @@ class Reporter:
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
-        self.scan_start = 0.0
-        self.worker_rates_by_nside: Dict[int, WorkerRates] = {}
+        self.worker_stats_collection: WorkerStatsCollection = WorkerStatsCollection()
 
         self._call_order = {
-            'current_previous': {  # current_fucntion: previous_fucntion(self.rates)
+            "current_previous": {  # current_fucntion: previous_fucntion(self.rates)
                 self.precomputing_report: [None],
-                self.start_computing: [
-                    self.precomputing_report,
-                    self.final_computing_report,  # TODO: remove for #84
-                ],
+                self.start_computing: [self.precomputing_report],
                 self.record_pixreco: [self.start_computing, self.record_pixreco],
                 self.final_computing_report: [self.record_pixreco],
                 self.after_computing_report: [self.final_computing_report],
             },
-            'last_called': None,
+            "last_called": None,
         }
 
     def _check_call_order(self, current: Callable) -> None:  # type: ignore[type-arg]
         """Make sure we're calling everything in order."""
         if (
-            self._call_order['last_called']  # type: ignore[operator]
-            not in self._call_order['current_previous'][current]  # type: ignore[index]
+            self._call_order["last_called"]  # type: ignore[operator]
+            not in self._call_order["current_previous"][current]  # type: ignore[index]
         ):
             RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
-        self._call_order['last_called'] = current  # type: ignore[assignment]
+        self._call_order["last_called"] = current  # type: ignore[assignment]
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
@@ -181,7 +241,6 @@ class Reporter:
         """
         self._check_call_order(self.start_computing)
         self.n_pixreco_expected = n_pixreco_expected
-        self.pixreco_ct = 0
         await self._make_reports_if_needed(
             bypass_timers=True,
             summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
@@ -209,24 +268,21 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_pixreco)
-        self.pixreco_ct += 1
         rate = pixreco_end - pixreco_start
 
-        # update rates
-        try:
-            self.worker_rates_by_nside[pixreco_nside] = self.worker_rates_by_nside[
-                pixreco_nside
-            ].update(rate)
-        except KeyError:
-            self.worker_rates_by_nside[pixreco_nside] = WorkerRates([rate])
+        # update stats
+        nside_ct = self.worker_stats_collection.update(
+            pixreco_nside,
+            rate,
+            pixreco_start,
+            pixreco_end,
+        )
 
         # make report(s)
-        if self.pixreco_ct == 1:
-            self.scan_start = pixreco_start
+        if nside_ct == 1:
             # always report the first received pixreco so we know things are rolling
             await self._make_reports_if_needed(bypass_timers=True)
         else:
-            self.scan_start = min(self.scan_start, pixreco_start)
             await self._make_reports_if_needed()
 
     async def _make_reports_if_needed(
@@ -236,7 +292,7 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
-            f"Collected: {self.pixreco_ct}/{self.n_pixreco_expected} ({self.pixreco_ct/self.n_pixreco_expected})"
+            f"Collected: {self.worker_stats_collection.total_ct}/{self.n_pixreco_expected} ({self.worker_stats_collection.total_ct/self.n_pixreco_expected})"
         )
 
         # check if we need to send a report to the logger
@@ -246,11 +302,11 @@ class Reporter:
             > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
-            if self.pixreco_ct == 0:
+            if self.worker_stats_collection.total_ct == 0:
                 epilogue_msg = (
                     "I will report back when I start getting pixel-reconstructions."
                 )
-            elif self.pixreco_ct != self.n_pixreco_expected:
+            elif self.worker_stats_collection.total_ct != self.n_pixreco_expected:
                 epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
             else:
                 epilogue_msg = ""
@@ -271,78 +327,71 @@ class Reporter:
 
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
-        elapsed = time.time() - self.scan_start
-        prior_processing_secs = self.scan_start - self.global_start_time
-        proc_stats = {
+        proc_stats: StrDict = {
             "start": {
-                'entire scan': str(
-                    dt.datetime.fromtimestamp(int(self.global_start_time))
-                ),
-                # TODO: add a start time for each nside (async), or just "scan_start"
-                'this iteration': str(dt.datetime.fromtimestamp(int(self.scan_start))),
+                "scanner start": str(dt.datetime.fromtimestamp(int(self.global_start)))
             },
             "runtime": {
-                'prior processing': str(
-                    dt.timedelta(seconds=int(prior_processing_secs))
-                ),
-                # TODO: remove 'iterations' -- no replacement b/c async, that's OK
-                'this iteration': str(dt.timedelta(seconds=int(elapsed))),
-                'this iteration + prior processing': str(
-                    dt.timedelta(seconds=int(elapsed + prior_processing_secs))
-                ),
-                'total': str(
-                    dt.timedelta(seconds=int(time.time() - self.global_start_time))
+                "elapsed": str(
+                    dt.timedelta(seconds=int(time.time() - self.global_start))
                 ),
             },
         }
-        if not self.pixreco_ct:  # we can't predict
+
+        if not self.worker_stats_collection:  # still waiting
             return proc_stats
 
-        # add rates
-        proc_stats['rate'] = {
-            'overall mean reco (scanner wall time)': str(
-                dt.timedelta(seconds=int(elapsed / self.pixreco_ct))
-            )
-        }
-        proc_stats['rate'].update(
-            WorkerRates.aggregate(self.worker_rates_by_nside.values()).get_summary()
+        # stats now that we have reco(s)
+        elapsed_reco_walltime = (
+            time.time() - self.worker_stats_collection.first_reco_start
         )
-        for nside, wr in self.worker_rates_by_nside.items():
-            proc_stats['rate'][f'nside-{nside}'] = wr.get_summary()  # type: ignore[assignment]
+        prior_processing_secs = (
+            self.worker_stats_collection.first_reco_start - self.global_start
+        )
+        proc_stats["start"].update(
+            {
+                "reco start": str(
+                    dt.datetime.fromtimestamp(
+                        int(self.worker_stats_collection.first_reco_start)
+                    )
+                ),
+            }
+        )
+        proc_stats["runtime"].update(
+            {
+                "prior processing": str(
+                    dt.timedelta(seconds=int(prior_processing_secs))
+                ),
+                "reco runtime": str(dt.timedelta(seconds=int(elapsed_reco_walltime))),
+                "reco runtime + prior processing": str(
+                    dt.timedelta(
+                        seconds=int(elapsed_reco_walltime + prior_processing_secs)
+                    )
+                ),
+            }
+        )
+
+        # add rates
+        proc_stats["rate"] = self.worker_stats_collection.get_summary()
 
         # end stats OR predictions
         if self.is_event_scan_done:
             # SCAN IS DONE
-            proc_stats['end'] = str(dt.datetime.fromtimestamp(int(time.time())))
-            proc_stats['finished'] = True
+            proc_stats["end"] = str(dt.datetime.fromtimestamp(int(time.time())))
+            proc_stats["finished"] = True
         else:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
-            secs_predicted = elapsed / (self.pixreco_ct / self.n_pixreco_expected)
-            proc_stats['predictions'] = {
-                # TODO:
-                # 'remaining': {
-                #     # counts are downplayed using 'amount remaining' so we never report percent done
-                #     'percent': ##,
-                #     'pixels': ###/###,
-                #     'recos': ####/####,
-                # },
-                'time left': {
-                    # TODO: replace w/ 'entire scan'
-                    'this iteration': str(
-                        dt.timedelta(seconds=int(secs_predicted - elapsed))
-                    )
-                },
-                'total runtime at finish': {
-                    # TODO: replace w/ 'total reconstruction'
-                    'this iteration': str(dt.timedelta(seconds=int(secs_predicted))),
-                    # TODO: replace w/ 'entire scan'
-                    'this iteration + prior processing': str(
-                        dt.timedelta(
-                            seconds=int(secs_predicted + prior_processing_secs)
-                        )
-                    ),
-                },
+            secs_predicted = elapsed_reco_walltime / (
+                self.worker_stats_collection.total_ct / self.n_pixreco_expected
+            )
+            proc_stats["predictions"] = {
+                "time left": str(
+                    dt.timedelta(seconds=int(secs_predicted - elapsed_reco_walltime))
+                ),
+                "total runtime at finish": str(
+                    dt.timedelta(seconds=int(secs_predicted + prior_processing_secs))
+                ),
             }
 
         return proc_stats
@@ -354,33 +403,44 @@ class Reporter:
             for nside in sorted(self.nsides_dict):  # sorted by nside
                 saved[nside] = len(self.nsides_dict[nside])
 
+        # TODO: add denominator ^^^^
+        # 'remaining': {
+        #     # counts are downplayed using 'amount remaining' so we never report percent done
+        #     'percent': ##,
+        #     'pixels': ###/###,
+        #     'recos': ####/####,
+        # },
+
         # TODO: remove for #84
-        this_iteration = {}  # type: ignore[var-annotated]
+        this_iteration = {}
         if self._n_pixreco_expected is not None:
             this_iteration = {
-                'percent': (self.pixreco_ct / self.n_pixreco_expected) * 100,
-                'pixels': f"{self.pixreco_ct/self.n_posvar}/{self.n_pixreco_expected/self.n_posvar}",
-                'recos': f"{self.pixreco_ct}/{self.n_pixreco_expected}",
+                "percent": (
+                    self.worker_stats_collection.total_ct / self.n_pixreco_expected
+                )
+                * 100,
+                "pixels": f"{self.worker_stats_collection.total_ct/self.n_posvar}/{self.n_pixreco_expected/self.n_posvar}",
+                "recos": f"{self.worker_stats_collection.total_ct}/{self.n_pixreco_expected}",
             }
 
         return {
-            'by_nside': saved,
-            'total': sum(s for s in saved.values()),  # total completed pixels
+            "by_nside": saved,
+            "total": sum(s for s in saved.values()),  # total completed pixels
             # TODO: for #84: uncomment b/c this will now be scan-wide total & remove 'this iteration' dict
-            # 'total_recos': self.pixreco_ct,
-            'this_iteration': this_iteration,  # TODO: remove for #84
+            # 'total_recos': self.worker_stats_by_nside.total_ct,
+            "this_iteration": this_iteration,  # TODO: remove for #84
         }
 
     async def final_computing_report(self) -> None:
         """Check if all the pixel-recos were received & make a final report."""
         self._check_call_order(self.final_computing_report)
-        if not self.pixreco_ct:
+        if not self.worker_stats_collection.total_ct:
             raise RuntimeError("No pixel-reconstructions were ever received.")
 
-        if self.pixreco_ct != self.n_pixreco_expected:
+        if self.worker_stats_collection.total_ct != self.n_pixreco_expected:
             raise RuntimeError(
                 f"Not all pixel-reconstructions were received: "
-                f"{self.pixreco_ct}/{self.n_pixreco_expected} ({self.pixreco_ct/self.n_pixreco_expected})"
+                f"{self.worker_stats_collection.total_ct}/{self.n_pixreco_expected} ({self.worker_stats_collection.total_ct/self.n_pixreco_expected})"
             )
 
         await self._make_reports_if_needed(
@@ -405,36 +465,36 @@ class Reporter:
     async def _send_progress(
         self,
         summary_msg: str,
-        epilogue_msg: str = '',
+        epilogue_msg: str = "",
         total_n_pixreco_expected: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
         progress = {
-            'summary': summary_msg,
-            'epilogue': epilogue_msg,
-            'tallies': self._get_tallies(),
-            'processing_stats': self._get_processing_progress(),
+            "summary": summary_msg,
+            "epilogue": epilogue_msg,
+            "tallies": self._get_tallies(),
+            "processing_stats": self._get_processing_progress(),
         }
         scan_metadata = {
-            'scan_id': self.scan_id,
-            'min_nside': self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
-            'max_nside': self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-            'position_variations': self.n_posvar,
+            "scan_id": self.scan_id,
+            "min_nside": self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
+            "max_nside": self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            "position_variations": self.n_posvar,
         }
 
         if total_n_pixreco_expected:
             # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
             # see _get_tallies()
-            progress['tallies']['total_recos'] = total_n_pixreco_expected
+            progress["tallies"]["total_recos"] = total_n_pixreco_expected
 
         LOGGER.info(pyobj_to_string_repr(progress))
         if not self.skydriver_rc:
             return
 
         body = {
-            'progress': progress,
-            'event_metadata': dc.asdict(self.event_metadata),
-            'scan_metadata': scan_metadata,
+            "progress": progress,
+            "event_metadata": dc.asdict(self.event_metadata),
+            "scan_metadata": scan_metadata,
         }
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
@@ -447,7 +507,7 @@ class Reporter:
         if not self.skydriver_rc:
             return result
 
-        body = {'skyscan_result': serialized, 'is_final': self.is_event_scan_done}
+        body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
         await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
 
         return result
