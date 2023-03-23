@@ -177,7 +177,12 @@ class Reporter:
             raise ValueError(f"n_pixreco_expected is not positive: {val}")
         self._n_pixreco_expected = val
 
-    async def record_pixreco(self, pixreco_start: float, pixreco_end: float) -> None:
+    async def record_pixreco(
+        self,
+        pixreco_nside: int,
+        pixreco_start: float,
+        pixreco_end: float,
+    ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_pixreco)
         self.pixreco_ct += 1

@@ -424,7 +424,7 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        await self.reporter.record_pixreco(pixreco_start, pixreco_end)
+        await self.reporter.record_pixreco(pixreco.nside, pixreco_start, pixreco_end)
 
 
 async def serve(
