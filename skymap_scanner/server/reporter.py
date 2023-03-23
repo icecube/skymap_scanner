@@ -308,7 +308,7 @@ class Reporter:
             },
         }
 
-        if not self.worker_stats_collection:  # still waiting
+        if not self.worker_stats_collection.total_ct:  # still waiting
             return proc_stats
 
         # stats now that we have reco(s)
