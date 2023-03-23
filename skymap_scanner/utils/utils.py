@@ -6,7 +6,7 @@
 import hashlib
 import json
 from pprint import pformat
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
@@ -127,8 +127,13 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
 
 
 # fmt: on
-def estimated_total_recos(nsides: List[Tuple[int, int]], n_posvar: int) -> int:
-    """This is an ESTIMATE (w/ predictive scanning it's a LOWER bound)."""
+def estimated_nside_n_recos(
+    nsides: List[Tuple[int, int]], n_posvar: int
+) -> Dict[int, int]:
+    """Get estimated # of recos per nside.
+
+    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+    """
 
     def prev(n: Tuple[int, int]) -> int:
         idx = nsides.index(n)
@@ -136,5 +141,4 @@ def estimated_total_recos(nsides: List[Tuple[int, int]], n_posvar: int) -> int:
             return 1
         return nsides[idx - 1][0]
 
-    total = n_posvar * sum(N[1] * (N[0] / prev(N)) ** 2 for N in nsides)
-    return int(total)
+    return {N[0]: int(n_posvar * N[1] * (N[0] / prev(N)) ** 2) for N in nsides}

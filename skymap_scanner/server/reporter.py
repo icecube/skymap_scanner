@@ -17,7 +17,7 @@ from .. import config as cfg
 from ..utils import pixelreco
 from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
-from ..utils.utils import estimated_total_recos, pyobj_to_string_repr
+from ..utils.utils import estimated_nside_n_recos, pyobj_to_string_repr
 from . import LOGGER
 
 StrDict = Dict[str, Any]
@@ -199,7 +199,7 @@ class Reporter:
         nsides: List[Tuple[int, int]] = [(8, 12), (64, 12), (512, 24)]
         if min_nside == 1 and max_nside == 1:
             nsides = [(1, 12)]
-        self._estimated_total_recos = estimated_total_recos(nsides, self.n_posvar)
+        self._estimated_nside_n_recos = estimated_nside_n_recos(nsides, self.n_posvar)
 
         self.skydriver_rc = skydriver_rc
         self.event_metadata = event_metadata
@@ -261,9 +261,7 @@ class Reporter:
         summary_msg: str = "The Skymap Scanner is busy scanning pixels.",
     ) -> None:
         """Send reports/logs/plots if needed."""
-        LOGGER.info(
-            f"Collected: {self.worker_stats_collection.total_ct}/{self._estimated_total_recos} ({self.worker_stats_collection.total_ct/self._estimated_total_recos})"
-        )
+        LOGGER.info(f"Collected: {self.worker_stats_collection.total_ct}")
 
         # check if we need to send a report to the logger
         current_time = time.time()
@@ -347,7 +345,8 @@ class Reporter:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed_reco_walltime / (
-                self.worker_stats_collection.total_ct / self._estimated_total_recos
+                self.worker_stats_collection.total_ct
+                / sum(self._estimated_nside_n_recos.values())
             )
             proc_stats["predictions"] = {
                 "time left": str(
@@ -356,7 +355,9 @@ class Reporter:
                 "total runtime at finish": str(
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
                 ),
-                "total # of reconstructions": self._estimated_total_recos,
+                "total # of reconstructions": sum(
+                    self._estimated_nside_n_recos.values()
+                ),
                 "end": str(
                     dt.datetime.fromtimestamp(
                         int(time.time() + (secs_predicted - elapsed_reco_walltime))
@@ -371,15 +372,14 @@ class Reporter:
         saved = {}
         if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
-                saved[nside] = len(self.nsides_dict[nside])
-
-        # TODO: add denominator ^^^^
-        # 'remaining': {
-        #     # counts are downplayed using 'amount remaining' so we never report percent done
-        #     'percent': ##,
-        #     'pixels': ###/###,
-        #     'recos': ####/####,
-        # },
+                n_done = len(self.nsides_dict[nside])
+                saved[nside] = {
+                    "done": n_done,
+                    "est. percent": (
+                        f"{n_done}/{self._estimated_nside_n_recos[nside]} "
+                        f"({n_done / self._estimated_nside_n_recos[nside]})"
+                    ),
+                }
 
         return {
             "by_nside": saved,
