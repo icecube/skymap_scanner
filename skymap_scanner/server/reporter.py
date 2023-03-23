@@ -251,11 +251,11 @@ class Reporter:
         # make report(s)
         if nside_ct == 1:
             # always report the first received pixreco so we know things are rolling
-            await self._make_reports_if_needed(bypass_timers=True)
+            await self.make_reports_if_needed(bypass_timers=True)
         else:
-            await self._make_reports_if_needed()
+            await self.make_reports_if_needed()
 
-    async def _make_reports_if_needed(
+    async def make_reports_if_needed(
         self,
         bypass_timers: bool = False,
         summary_msg: str = "The Skymap Scanner is busy scanning pixels.",
