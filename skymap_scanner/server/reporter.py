@@ -5,6 +5,7 @@
 # fmt:quotes-ok
 
 import bisect
+import dataclasses as dc
 import datetime as dt
 import statistics
 import time
