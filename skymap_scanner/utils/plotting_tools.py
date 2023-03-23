@@ -1,15 +1,20 @@
+"""Plotting tools."""
+
+# fmt: off
+
+import astropy.io.fits as pyfits  # type: ignore[import]
+import healpy  # type: ignore[import]
+import matplotlib  # type: ignore[import]
+import matplotlib.patheffects as path_effects  # type: ignore[import]
 import numpy as np
-import matplotlib.patheffects as path_effects
-from matplotlib.axes import Axes
-from matplotlib.ticker import Formatter, FixedFormatter, FixedLocator
-from matplotlib.transforms import Transform, Affine2D
-from matplotlib.projections import projection_registry
-from matplotlib.projections.geo import MollweideAxes
-import matplotlib
-matplotlib.use('agg')
 from matplotlib import pyplot as plt
-import healpy
-import astropy.io.fits as pyfits
+from matplotlib.axes import Axes  # type: ignore[import]
+from matplotlib.projections import projection_registry  # type: ignore[import]
+from matplotlib.projections.geo import MollweideAxes  # type: ignore[import]
+from matplotlib.ticker import FixedLocator, Formatter  # type: ignore[import]
+from matplotlib.transforms import Affine2D  # type: ignore[import]
+
+matplotlib.use('agg')
 
 def format_fits_header(event_id_tuple, mjd, ra, dec, uncertainty):
     '''Prepare some of the relevant event information for 

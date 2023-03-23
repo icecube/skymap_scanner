@@ -2,9 +2,9 @@
 
 # fmt: off
 
+import copy
 import datetime
 import os
-import copy
 from typing import Tuple
 
 import numpy
@@ -16,13 +16,13 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     gulliver,
     gulliver_modules,
     icetray,
+    lilliput,
     millipede,
     photonics_service,
     recclasses,
     simclasses,
-    lilliput,
 )
-from icecube.icetray import I3Frame
+from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixelreco import PixelReco

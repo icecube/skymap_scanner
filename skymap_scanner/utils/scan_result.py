@@ -2,6 +2,7 @@
 
 # fmt: off
 # pylint: skip-file
+# mypy: ignore-errors
 
 import dataclasses as dc
 import io

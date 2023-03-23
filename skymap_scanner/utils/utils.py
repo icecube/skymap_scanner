@@ -48,7 +48,7 @@ def load_framepacket_from_file(filename : str) -> List[icetray.I3Frame]:
     """
     # Legacy code used to loop over GCD_BASE_DIRS.
     # Now it is assumed that filename points to a valid GCD file.
-    frame_packet = []
+    frame_packet: icetray.I3Frame = []
 
     i3f = dataio.I3File(filename,'r')
     while True:

@@ -16,7 +16,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     recclasses,
     simclasses,
 )
-from icecube.icetray import I3Frame
+from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixelreco import PixelReco
