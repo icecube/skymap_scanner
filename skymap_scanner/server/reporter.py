@@ -7,9 +7,10 @@
 import bisect
 import dataclasses as dc
 import datetime as dt
+import itertools
 import statistics
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from rest_tools.client import RestClient
 
@@ -54,6 +55,28 @@ class WorkerRates:
     def update(self, new_rate: float) -> 'WorkerRates':
         bisect.insort(self.rates, new_rate)
         return self
+
+    def get_summary(self) -> Dict[str, str]:
+        return {
+            'mean reco (worker time)': str(
+                dt.timedelta(seconds=int(self.mean()))  # type: ignore[no-untyped-call]
+            ),
+            'median reco (worker time)': str(
+                dt.timedelta(seconds=int(self.median()))  # type: ignore[no-untyped-call]
+            ),
+            'slowest reco (worker time)': str(
+                dt.timedelta(seconds=int(self.slowest()))  # type: ignore[no-untyped-call]
+            ),
+            'fastest reco (worker time)': str(
+                dt.timedelta(seconds=int(self.fastest()))  # type: ignore[no-untyped-call]
+            ),
+        }
+
+    @staticmethod
+    def aggregate(instances: Iterable['WorkerRates']) -> 'WorkerRates':
+        return WorkerRates(
+            list(itertools.chain(i.rate for i in instances))
+        )  # TODO: make faster
 
 
 class Reporter:
@@ -275,27 +298,19 @@ class Reporter:
         if not self.pixreco_ct:  # we can't predict
             return proc_stats
 
+        # add rates
         proc_stats['rate'] = {
             'overall mean reco (scanner wall time)': str(
                 dt.timedelta(seconds=int(elapsed / self.pixreco_ct))
             )
         }
-        for nside in self.worker_rates_by_nside:
-            proc_stats['rate'][nside] = {
-                'mean reco (worker time)': str(
-                    dt.timedelta(seconds=int(self.worker_rates_by_nside.mean()))  # type: ignore[no-untyped-call]
-                ),
-                'median reco (worker time)': str(
-                    dt.timedelta(seconds=int(self.worker_rates_by_nside.median()))  # type: ignore[no-untyped-call]
-                ),
-                'slowest reco (worker time)': str(
-                    dt.timedelta(seconds=int(self.worker_rates_by_nside.slowest()))  # type: ignore[no-untyped-call]
-                ),
-                'fastest reco (worker time)': str(
-                    dt.timedelta(seconds=int(self.worker_rates_by_nside.fastest()))  # type: ignore[no-untyped-call]
-                ),
-            }
+        proc_stats['rate'].update(
+            WorkerRates.aggregate(self.worker_rates_by_nside.values()).get_summary()
+        )
+        for nside, wr in self.worker_rates_by_nside.items():
+            proc_stats['rate'][f'nside-{nside}'] = wr.get_summary()  # type: ignore[assignment]
 
+        # end stats OR predictions
         if self.is_event_scan_done:
             # SCAN IS DONE
             proc_stats['end'] = str(dt.datetime.fromtimestamp(int(time.time())))
