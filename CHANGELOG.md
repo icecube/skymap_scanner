@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v3.5.0 (2023-03-23)
+
+
 ## v3.4.3 (2023-03-22)
 ### Other
 * Reporter: Split Out & Refigure "Prior Processing" Time ([#156](https://github.com/icecube/skymap_scanner/issues/156)) ([`7d0437e`](https://github.com/icecube/skymap_scanner/commit/7d0437e6c37358a4e8e5187d8cea8fea77cf231d))
