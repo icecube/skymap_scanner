@@ -103,10 +103,12 @@ class WorkerStatsCollection:
 
     @property
     def total_ct(self) -> int:
+        # O(n) b/c len is O(1), n < 10
         return sum(len(w.runtimes) for w in self._worker_stats_by_nside.values())
 
     @property
     def first_reco_start(self) -> float:
+        # O(n), n < 10
         return min(w.start for w in self._worker_stats_by_nside.values())
 
     def update(
