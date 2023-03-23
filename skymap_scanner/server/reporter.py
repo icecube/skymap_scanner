@@ -40,7 +40,7 @@ class WorkerStats:
         self.fmean = lambda: statistics.fmean(self.rates)
         self.mean = self.fmean  # use fmean since these are floats
         # Median (middle value) of data.
-        self.median = lambda: statistics.median(self.rates)
+        self.median = lambda: float(statistics.median(self.rates))
 
         # other statistics functions...
         # geometric_mean Geometric mean of data.
@@ -129,7 +129,7 @@ class WorkerStatsCollection:
         instances = self._worker_stats_by_nside.values()
         return WorkerStats._make_summary(
             sum(i.mean() * len(i.rates) for i in instances) / total_nrates,  # type: ignore[no-untyped-call]
-            statistics.median(itertools.chain(i.rates for i in instances)),
+            statistics.median(itertools.chain(*[i.rates for i in instances])),
             max(i.slowest() for i in instances),  # type: ignore[no-untyped-call]
             min(i.fastest() for i in instances),  # type: ignore[no-untyped-call]
             min(i.start for i in instances),
