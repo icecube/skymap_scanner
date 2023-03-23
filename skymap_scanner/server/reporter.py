@@ -313,7 +313,7 @@ class Reporter:
         elapsed_reco_walltime = (
             time.time() - self.worker_stats_collection.first_reco_start
         )
-        prior_processing_secs = (
+        startup_runtime = (
             self.worker_stats_collection.first_reco_start - self.global_start
         )
         proc_stats["start"].update(
@@ -327,14 +327,10 @@ class Reporter:
         )
         proc_stats["runtime"].update(
             {
-                "prior processing": str(
-                    dt.timedelta(seconds=int(prior_processing_secs))
-                ),
+                "startup runtime": str(dt.timedelta(seconds=int(startup_runtime))),
                 "reco runtime": str(dt.timedelta(seconds=int(elapsed_reco_walltime))),
-                "reco runtime + prior processing": str(
-                    dt.timedelta(
-                        seconds=int(elapsed_reco_walltime + prior_processing_secs)
-                    )
+                "reco runtime + startup runtime": str(
+                    dt.timedelta(seconds=int(elapsed_reco_walltime + startup_runtime))
                 ),
             }
         )
@@ -358,7 +354,7 @@ class Reporter:
                     dt.timedelta(seconds=int(secs_predicted - elapsed_reco_walltime))
                 ),
                 "total runtime at finish": str(
-                    dt.timedelta(seconds=int(secs_predicted + prior_processing_secs))
+                    dt.timedelta(seconds=int(secs_predicted + startup_runtime))
                 ),
                 "total # of reconstructions": self._estimated_total_recos,
             }
