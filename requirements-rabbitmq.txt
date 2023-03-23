@@ -73,7 +73,7 @@ pillow==9.4.0
     # via matplotlib
 pycparser==2.21
     # via cffi
-pyerfa==2.0.0.2
+pyerfa==2.0.0.3
     # via astropy
 pyjwt[crypto]==2.5.0
     # via wipac-rest-tools
