@@ -24,23 +24,23 @@ StrDict = Dict[str, Any]
 
 
 class WorkerStats:
-    """Holds rates and stats for the per-reco/worker level."""
+    """Holds stats for the per-reco/worker level."""
 
     def __init__(self) -> None:
         self.start = float("inf")
         self.end = float("-inf")
 
-        self.rates: List[float] = []
-        # self.rates.sort()  # will make stats calls much faster
+        self.runtimes: List[float] = []
+        # self.runtimes.sort()  # will make stats calls much faster
 
-        self.fastest = lambda: min(self.rates)
-        self.slowest = lambda: max(self.rates)
+        self.fastest = lambda: min(self.runtimes)
+        self.slowest = lambda: max(self.runtimes)
 
         # Fast, floating point arithmetic mean.
-        self.fmean = lambda: statistics.fmean(self.rates)
+        self.fmean = lambda: statistics.fmean(self.runtimes)
         self.mean = self.fmean  # use fmean since these are floats
         # Median (middle value) of data.
-        self.median = lambda: float(statistics.median(self.rates))
+        self.median = lambda: float(statistics.median(self.runtimes))
 
         # other statistics functions...
         # geometric_mean Geometric mean of data.
@@ -54,8 +54,8 @@ class WorkerStats:
         # pstdev  # Population standard deviation of data.
         # stdev  # Sample standard deviation of data.
 
-    def update(self, new_rate: float, start: float, end: float) -> "WorkerStats":
-        bisect.insort(self.rates, new_rate)
+    def update(self, start: float, end: float) -> "WorkerStats":
+        bisect.insort(self.runtimes, end - start)
         self.start = min(self.start, start)
         self.end = max(self.end, end)
         return self
@@ -68,7 +68,7 @@ class WorkerStats:
         fastest: float,
         start: float,
         end: float,
-        nrates: int,
+        count: int,
     ) -> Dict[str, str]:
         return {
             "mean reco (worker time)": str(dt.timedelta(seconds=int(mean))),
@@ -79,7 +79,7 @@ class WorkerStats:
             "end time (last reco)": str(dt.datetime.fromtimestamp(int(end))),
             "runtime (wall time)": str(dt.timedelta(seconds=int(end - start))),
             "mean reco (scanner wall time)": str(
-                dt.timedelta(seconds=int((end - start) / nrates))
+                dt.timedelta(seconds=int((end - start) / count))
             ),
         }
 
@@ -91,7 +91,7 @@ class WorkerStats:
             self.fastest(),  # type: ignore[no-untyped-call]
             self.start,
             self.end,
-            len(self.rates),
+            len(self.runtimes),
         )
 
 
@@ -103,7 +103,7 @@ class WorkerStatsCollection:
 
     @property
     def total_ct(self) -> int:
-        return sum(len(w.rates) for w in self._worker_stats_by_nside.values())
+        return sum(len(w.runtimes) for w in self._worker_stats_by_nside.values())
 
     @property
     def first_reco_start(self) -> float:
@@ -112,7 +112,6 @@ class WorkerStatsCollection:
     def update(
         self,
         nside: int,
-        rate: float,
         pixreco_start: float,
         pixreco_end: float,
     ) -> int:
@@ -121,20 +120,19 @@ class WorkerStatsCollection:
             worker_stats = self._worker_stats_by_nside[nside]
         except KeyError:
             worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
-        worker_stats.update(rate, pixreco_start, pixreco_end)
-        return len(worker_stats.rates)
+        worker_stats.update(pixreco_start, pixreco_end)
+        return len(worker_stats.runtimes)
 
     def _get_aggregate_summary(self) -> Dict[str, str]:
-        total_nrates = self.total_ct
         instances = self._worker_stats_by_nside.values()
         return WorkerStats._make_summary(
-            sum(i.mean() * len(i.rates) for i in instances) / total_nrates,  # type: ignore[no-untyped-call]
-            statistics.median(itertools.chain(*[i.rates for i in instances])),
+            sum(i.mean() * len(i.runtimes) for i in instances) / self.total_ct,  # type: ignore[no-untyped-call]
+            statistics.median(itertools.chain(*[i.runtimes for i in instances])),
             max(i.slowest() for i in instances),  # type: ignore[no-untyped-call]
             min(i.fastest() for i in instances),  # type: ignore[no-untyped-call]
             min(i.start for i in instances),
             max(i.end for i in instances),
-            total_nrates,
+            self.total_ct,
         )
 
     def get_summary(self) -> StrDict:
@@ -240,12 +238,10 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_pixreco)
-        rate = pixreco_end - pixreco_start
 
         # update stats
         nside_ct = self.worker_stats_collection.update(
             pixreco_nside,
-            rate,
             pixreco_start,
             pixreco_end,
         )
