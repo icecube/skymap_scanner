@@ -372,11 +372,9 @@ class PixelRecoCollector:
         self.pixreco_ids_sent = pixreco_ids_sent
 
     async def __aenter__(self) -> "PixelRecoCollector":
-        await self.reporter.start_computing(len(self.pixreco_ids_sent))
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
-        await self.reporter.final_computing_report()
         self._finder.finish()
 
     async def collect(

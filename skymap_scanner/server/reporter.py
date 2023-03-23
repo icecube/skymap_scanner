@@ -9,7 +9,7 @@ import datetime as dt
 import itertools
 import statistics
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from rest_tools.client import RestClient
 
@@ -17,7 +17,7 @@ from .. import config as cfg
 from ..utils import pixelreco
 from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
-from ..utils.utils import pyobj_to_string_repr
+from ..utils.utils import estimated_total_recos, pyobj_to_string_repr
 from . import LOGGER
 
 StrDict = Dict[str, Any]
@@ -116,7 +116,7 @@ class WorkerStatsCollection:
         pixreco_start: float,
         pixreco_end: float,
     ) -> int:
-        """Return reco-count of nside's list."""
+        """Return reco-count of nside's list after updating."""
         try:
             worker_stats = self._worker_stats_by_nside[nside]
         except KeyError:
@@ -193,10 +193,14 @@ class Reporter:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
 
-        self._n_pixreco_expected: Optional[int] = None
-
         self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
         self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        # TODO: remove HARDCODED estimate along with ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        nsides: List[Tuple[int, int]] = [(8, 12), (64, 12), (512, 24)]
+        if min_nside == 1 and max_nside == 1:
+            nsides = [(1, 12)]
+        self._estimated_total_recos = estimated_total_recos(nsides, self.n_posvar)
+
         self.skydriver_rc = skydriver_rc
         self.event_metadata = event_metadata
 
@@ -206,12 +210,10 @@ class Reporter:
         self.worker_stats_collection: WorkerStatsCollection = WorkerStatsCollection()
 
         self._call_order = {
-            "current_previous": {  # current_fucntion: previous_fucntion(self.rates)
+            "current_previous": {  # current_fucntion: previous_fucntion
                 self.precomputing_report: [None],
-                self.start_computing: [self.precomputing_report],
-                self.record_pixreco: [self.start_computing, self.record_pixreco],
-                self.final_computing_report: [self.record_pixreco],
-                self.after_computing_report: [self.final_computing_report],
+                self.record_pixreco: [self.precomputing_report, self.record_pixreco],
+                self.after_computing_report: [self.record_pixreco],
             },
             "last_called": None,
         }
@@ -229,36 +231,6 @@ class Reporter:
         """Make a report before ANYTHING is computed."""
         self._check_call_order(self.precomputing_report)
         await self._send_progress(summary_msg="The Skymap Scanner has started up.")
-
-    async def start_computing(self, n_pixreco_expected: int) -> None:
-        """Send an initial report/log/plot.
-
-        Arguments:
-            `n_pixreco_expected`
-                - number of expected pixel-recos
-            `n_posvar`
-                - number of position variations per pixel
-        """
-        self._check_call_order(self.start_computing)
-        self.n_pixreco_expected = n_pixreco_expected
-        await self._make_reports_if_needed(
-            bypass_timers=True,
-            summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
-        )
-
-    @property
-    def n_pixreco_expected(self) -> int:
-        if self._n_pixreco_expected is None:
-            raise RuntimeError(
-                f"'self._n_pixreco_expected' is None (did you forget to call {self.start_computing}?)"
-            )
-        return self._n_pixreco_expected
-
-    @n_pixreco_expected.setter
-    def n_pixreco_expected(self, val: int) -> None:
-        if val <= 0:
-            raise ValueError(f"n_pixreco_expected is not positive: {val}")
-        self._n_pixreco_expected = val
 
     async def record_pixreco(
         self,
@@ -292,7 +264,7 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
-            f"Collected: {self.worker_stats_collection.total_ct}/{self.n_pixreco_expected} ({self.worker_stats_collection.total_ct/self.n_pixreco_expected})"
+            f"Collected: {self.worker_stats_collection.total_ct}/{self._estimated_total_recos()} ({self.worker_stats_collection.total_ct/self._estimated_total_recos()})"
         )
 
         # check if we need to send a report to the logger
@@ -306,10 +278,8 @@ class Reporter:
                 epilogue_msg = (
                     "I will report back when I start getting pixel-reconstructions."
                 )
-            elif self.worker_stats_collection.total_ct != self.n_pixreco_expected:
-                epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
             else:
-                epilogue_msg = ""
+                epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
             await self._send_progress(summary_msg, epilogue_msg)
 
         # check if we need to send a report to the skymap logger
@@ -383,7 +353,7 @@ class Reporter:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed_reco_walltime / (
-                self.worker_stats_collection.total_ct / self.n_pixreco_expected
+                self.worker_stats_collection.total_ct / self._estimated_total_recos()
             )
             proc_stats["predictions"] = {
                 "time left": str(
@@ -411,54 +381,20 @@ class Reporter:
         #     'recos': ####/####,
         # },
 
-        # TODO: remove for #84
-        this_iteration = {}
-        if self._n_pixreco_expected is not None:
-            this_iteration = {
-                "percent": (
-                    self.worker_stats_collection.total_ct / self.n_pixreco_expected
-                )
-                * 100,
-                "pixels": f"{self.worker_stats_collection.total_ct/self.n_posvar}/{self.n_pixreco_expected/self.n_posvar}",
-                "recos": f"{self.worker_stats_collection.total_ct}/{self.n_pixreco_expected}",
-            }
-
         return {
             "by_nside": saved,
             "total": sum(s for s in saved.values()),  # total completed pixels
-            # TODO: for #84: uncomment b/c this will now be scan-wide total & remove 'this iteration' dict
-            # 'total_recos': self.worker_stats_by_nside.total_ct,
-            "this_iteration": this_iteration,  # TODO: remove for #84
+            "total_recos": self.worker_stats_collection.total_ct,
         }
 
-    async def final_computing_report(self) -> None:
-        """Check if all the pixel-recos were received & make a final report."""
-        self._check_call_order(self.final_computing_report)
-        if not self.worker_stats_collection.total_ct:
-            raise RuntimeError("No pixel-reconstructions were ever received.")
-
-        if self.worker_stats_collection.total_ct != self.n_pixreco_expected:
-            raise RuntimeError(
-                f"Not all pixel-reconstructions were received: "
-                f"{self.worker_stats_collection.total_ct}/{self.n_pixreco_expected} ({self.worker_stats_collection.total_ct/self.n_pixreco_expected})"
-            )
-
-        await self._make_reports_if_needed(
-            bypass_timers=True,
-            summary_msg="The Skymap Scanner has finished this iteration of pixels.",
-        )
-
-    async def after_computing_report(
-        self,
-        total_n_pixreco_expected: int,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
-    ) -> ScanResult:
+    async def after_computing_report(self) -> ScanResult:
         """Get, log, and send final results to SkyDriver."""
         self._check_call_order(self.after_computing_report)
+
         self.is_event_scan_done = True
         result = await self._send_result()
         await self._send_progress(
             "The Skymap Scanner has finished.",
-            total_n_pixreco_expected=total_n_pixreco_expected,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
         )
         return result
 
@@ -466,7 +402,6 @@ class Reporter:
         self,
         summary_msg: str,
         epilogue_msg: str = "",
-        total_n_pixreco_expected: int = None,  # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
     ) -> None:
         """Send progress to SkyDriver (if the connection is established)."""
         progress = {
@@ -481,11 +416,6 @@ class Reporter:
             "max_nside": self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
             "position_variations": self.n_posvar,
         }
-
-        if total_n_pixreco_expected:
-            # TODO: remove for https://github.com/icecube/skymap_scanner/issues/84
-            # see _get_tallies()
-            progress["tallies"]["total_recos"] = total_n_pixreco_expected
 
         LOGGER.info(pyobj_to_string_repr(progress))
         if not self.skydriver_rc:
