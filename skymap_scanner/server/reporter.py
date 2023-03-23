@@ -264,7 +264,7 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         LOGGER.info(
-            f"Collected: {self.worker_stats_collection.total_ct}/{self._estimated_total_recos()} ({self.worker_stats_collection.total_ct/self._estimated_total_recos()})"
+            f"Collected: {self.worker_stats_collection.total_ct}/{self._estimated_total_recos} ({self.worker_stats_collection.total_ct/self._estimated_total_recos})"
         )
 
         # check if we need to send a report to the logger
@@ -353,7 +353,7 @@ class Reporter:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed_reco_walltime / (
-                self.worker_stats_collection.total_ct / self._estimated_total_recos()
+                self.worker_stats_collection.total_ct / self._estimated_total_recos
             )
             proc_stats["predictions"] = {
                 "time left": str(
