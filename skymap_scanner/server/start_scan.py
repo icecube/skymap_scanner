@@ -493,7 +493,6 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # get, log, & post final results
-    # TODO: remove 'total_n_pixreco' for https://github.com/icecube/skymap_scanner/issues/84
     result = await reporter.after_computing_report()
 
     # write out .npz & .json files
