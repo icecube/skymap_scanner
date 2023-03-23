@@ -358,6 +358,7 @@ class Reporter:
                 "total runtime at finish": str(
                     dt.timedelta(seconds=int(secs_predicted + prior_processing_secs))
                 ),
+                "total # of reconstructions": self._estimated_total_recos,
             }
 
         return proc_stats
