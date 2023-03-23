@@ -5,13 +5,11 @@
 
 import hashlib
 import json
-import os
 from pprint import pformat
 from typing import Any, List, Optional, Tuple
 
 from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 
-from .. import config as cfg
 from . import LOGGER
 
 
@@ -50,7 +48,7 @@ def load_framepacket_from_file(filename : str) -> List[icetray.I3Frame]:
     """
     # Legacy code used to loop over GCD_BASE_DIRS.
     # Now it is assumed that filename points to a valid GCD file.
-    frame_packet = []
+    frame_packet: icetray.I3Frame = []
 
     i3f = dataio.I3File(filename,'r')
     while True:
@@ -126,3 +124,17 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
     dec = float(dec)
 
     return (ra, dec)
+
+
+# fmt: on
+def estimated_total_recos(nsides: List[Tuple[int, int]], n_posvar: int) -> int:
+    """This is an ESTIMATE (w/ predictive scanning it's a LOWER bound)."""
+
+    def prev(n: Tuple[int, int]) -> int:
+        idx = nsides.index(n)
+        if idx == 0:
+            return 1
+        return nsides[idx - 1][0]
+
+    total = n_posvar * sum(N[1] * (N[0] / prev(N)) ** 2 for N in nsides)
+    return int(total)

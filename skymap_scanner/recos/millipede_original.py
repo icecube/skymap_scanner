@@ -1,26 +1,28 @@
 """IceTray segment for a millipede reco."""
 
 # fmt: off
+# pylint: skip-file
+# mypy: ignore-errors
 
+import copy
 import datetime
 import os
-import copy
 from typing import Tuple
 
 import numpy
-from I3Tray import I3Units  # type: ignore[import]
-from icecube import (  # type: ignore[import]  # noqa: F401
+from I3Tray import I3Units
+from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
     frame_object_diff,
     gulliver,
     gulliver_modules,
     icetray,
+    lilliput,
     millipede,
     photonics_service,
     recclasses,
     simclasses,
-    lilliput,
 )
 from icecube.icetray import I3Frame
 

@@ -372,11 +372,13 @@ class PixelRecoCollector:
         self.pixreco_ids_sent = pixreco_ids_sent
 
     async def __aenter__(self) -> "PixelRecoCollector":
-        await self.reporter.start_computing(len(self.pixreco_ids_sent))
+        await self.reporter.make_reports_if_needed(
+            bypass_timers=True,
+            summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
+        )
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
-        await self.reporter.final_computing_report()
         self._finder.finish()
 
     async def collect(
@@ -424,7 +426,7 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        await self.reporter.record_pixreco(pixreco_start, pixreco_end)
+        await self.reporter.record_pixreco(pixreco.nside, pixreco_start, pixreco_end)
 
 
 async def serve(
@@ -495,8 +497,7 @@ async def serve(
         raise RuntimeError("No pixels were ever sent.")
 
     # get, log, & post final results
-    # TODO: remove 'total_n_pixreco' for https://github.com/icecube/skymap_scanner/issues/84
-    result = await reporter.after_computing_report(total_n_pixreco)
+    result = await reporter.after_computing_report()
 
     # write out .npz & .json files
     if output_dir:
@@ -726,9 +727,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,
+        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
         future_third_parties=["google", "pika"],  # at most only one will be used
     )

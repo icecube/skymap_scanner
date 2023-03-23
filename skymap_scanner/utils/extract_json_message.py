@@ -7,7 +7,6 @@ import json
 import os
 from typing import Tuple
 
-import numpy as np
 from icecube import full_event_followup, icetray  # type: ignore[import]
 
 from .. import config as cfg
@@ -102,7 +101,7 @@ def __extract_frame_packet(
     reco_algo: str,
     is_real_event: bool,
     cache_dir="./cache/",
-    GCD_dir : str = cfg.DEFAULT_GCD_DIR,
+    GCD_dir : str = str(cfg.DEFAULT_GCD_DIR),
     pulsesName="SplitUncleanedInIcePulses",
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
