@@ -494,7 +494,7 @@ async def serve(
 
     # get, log, & post final results
     # TODO: remove 'total_n_pixreco' for https://github.com/icecube/skymap_scanner/issues/84
-    result = await reporter.after_computing_report(total_n_pixreco)
+    result = await reporter.after_computing_report()
 
     # write out .npz & .json files
     if output_dir:

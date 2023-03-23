@@ -11,7 +11,6 @@ import numpy
 from icecube import icetray  # type: ignore[import]
 
 from .. import config as cfg
-from ..utils.load_scan_state import load_cache_state
 from ..utils.pixelreco import NSidesDict
 from . import LOGGER
 
@@ -71,7 +70,7 @@ def pixel_dist(from_nside, from_pix, to_nside, to_pix):
 
 
 def find_global_min_pixel(nsides_dict: NSidesDict) -> Tuple[Optional[int], Optional[int]]:
-    global_min_pix_index = (None, None)
+    global_min_pix_index: Tuple[Optional[int], Optional[int]] = (None, None)
     min_llh = None
 
     for nside in list(nsides_dict.keys()):
