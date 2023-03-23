@@ -117,7 +117,7 @@ class Reporter:
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
         self.scan_start = 0.0
-        self.worker_rates = WorkerRates([])
+        self.worker_rates_by_nside: Dict[int, WorkerRates] = {}
 
         self._call_order = {
             'current_previous': {  # current_fucntion: previous_fucntion(self.rates)
@@ -189,14 +189,21 @@ class Reporter:
         self.pixreco_ct += 1
         rate = pixreco_end - pixreco_start
 
+        # update rates
+        try:
+            self.worker_rates_by_nside[pixreco_nside] = self.worker_rates_by_nside[
+                pixreco_nside
+            ].update(rate)
+        except KeyError:
+            self.worker_rates_by_nside[pixreco_nside] = WorkerRates([rate])
+
+        # make report(s)
         if self.pixreco_ct == 1:
             self.scan_start = pixreco_start
-            self.worker_rates = WorkerRates([rate])  # override
             # always report the first received pixreco so we know things are rolling
             await self._make_reports_if_needed(bypass_timers=True)
         else:
             self.scan_start = min(self.scan_start, pixreco_start)
-            self.worker_rates.update(rate)
             await self._make_reports_if_needed()
 
     async def _make_reports_if_needed(
@@ -269,22 +276,25 @@ class Reporter:
             return proc_stats
 
         proc_stats['rate'] = {
-            'mean reco (scanner wall time)': str(
+            'overall mean reco (scanner wall time)': str(
                 dt.timedelta(seconds=int(elapsed / self.pixreco_ct))
-            ),
-            'mean reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.mean()))  # type: ignore[no-untyped-call]
-            ),
-            'median reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.median()))  # type: ignore[no-untyped-call]
-            ),
-            'slowest reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.slowest()))  # type: ignore[no-untyped-call]
-            ),
-            'fastest reco (worker time)': str(
-                dt.timedelta(seconds=int(self.worker_rates.fastest()))  # type: ignore[no-untyped-call]
-            ),
+            )
         }
+        for nside in self.worker_rates_by_nside:
+            proc_stats['rate'][nside] = {
+                'mean reco (worker time)': str(
+                    dt.timedelta(seconds=int(self.worker_rates_by_nside.mean()))  # type: ignore[no-untyped-call]
+                ),
+                'median reco (worker time)': str(
+                    dt.timedelta(seconds=int(self.worker_rates_by_nside.median()))  # type: ignore[no-untyped-call]
+                ),
+                'slowest reco (worker time)': str(
+                    dt.timedelta(seconds=int(self.worker_rates_by_nside.slowest()))  # type: ignore[no-untyped-call]
+                ),
+                'fastest reco (worker time)': str(
+                    dt.timedelta(seconds=int(self.worker_rates_by_nside.fastest()))  # type: ignore[no-untyped-call]
+                ),
+            }
 
         if self.is_event_scan_done:
             # SCAN IS DONE
