@@ -357,6 +357,11 @@ class Reporter:
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
                 ),
                 "total # of reconstructions": self._estimated_total_recos,
+                "end": str(
+                    dt.datetime.fromtimestamp(
+                        int(time.time() + (secs_predicted - elapsed_reco_walltime))
+                    )
+                ),
             }
 
         return proc_stats
