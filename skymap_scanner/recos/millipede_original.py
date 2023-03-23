@@ -1,6 +1,8 @@
 """IceTray segment for a millipede reco."""
 
 # fmt: off
+# pylint: skip-file
+# mypy: ignore-errors
 
 import copy
 import datetime
@@ -8,8 +10,8 @@ import os
 from typing import Tuple
 
 import numpy
-from I3Tray import I3Units  # type: ignore[import]
-from icecube import (  # type: ignore[import]  # noqa: F401
+from I3Tray import I3Units
+from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
     frame_object_diff,
@@ -22,7 +24,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     recclasses,
     simclasses,
 )
-from icecube.icetray import I3Frame  # type: ignore[import]
+from icecube.icetray import I3Frame
 
 from .. import config as cfg
 from ..utils.pixelreco import PixelReco

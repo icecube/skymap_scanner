@@ -724,9 +724,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,
+        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
         future_third_parties=["google", "pika"],  # at most only one will be used
     )

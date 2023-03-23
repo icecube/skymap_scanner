@@ -84,16 +84,19 @@ def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     return pixel_fname
 
 
-def check_baseline_GCD(baseline_GCD_file : Union[str, None]) -> bool:
+def check_baseline_GCD(baseline_GCD_file: Union[str, None]) -> bool:
     LOGGER.debug(f"Testing baseline GCD at {baseline_GCD_file}")
 
     if baseline_GCD_file is None:
         return False
-    
+
     if os.path.isfile(baseline_GCD_file):
         return True
     else:
-        raise RuntimeError(f"The provided baseline GCD file could not be read '{baseline_GCD_file}'. Cannot build GCD from GCD diff.")
+        raise RuntimeError(
+            f"The provided baseline GCD file could not be read '{baseline_GCD_file}'. Cannot build GCD from GCD diff."
+        )
+
 
 def reco_pixel(
     reco_algo: str,
@@ -254,9 +257,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,
+        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
