@@ -374,6 +374,7 @@ class PixelRecoCollector:
         if not (0.0 < predictive_scanning_threshold <= 1.0):
             raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
         self.predictive_scanning_threshold = predictive_scanning_threshold
+        self._end_game = False
 
     async def __aenter__(self) -> "PixelRecoCollector":
         return self
@@ -387,7 +388,7 @@ class PixelRecoCollector:
         """Register the pixel ids recently sent.
 
         When `addl_pixreco_ids_sent` is empty (happens at the end of the
-        scan), `self.predictive_scanning_threshold` is increased to 1.0.
+        scan), `self.predictive_scanning_threshold` will now be ignored.
         """
         if addl_pixreco_ids_sent:
             self.pixreco_ids_sent.update(addl_pixreco_ids_sent)
@@ -396,7 +397,7 @@ class PixelRecoCollector:
                 summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
             )
         else:
-            self.predictive_scanning_threshold = 1.0
+            self._end_game = True
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
                 summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive the remaining recos.",
@@ -450,12 +451,18 @@ class PixelRecoCollector:
         await self.reporter.record_pixreco(pixreco.nside, pixreco_start, pixreco_end)
 
     def ok_to_serve_more(self) -> bool:
-        """Return whether enough pixel-recos collected to serve more."""
+        """Return whether enough pixel-recos collected to serve more.
+
+        If we are approaching the end of the scan, always return False.
+        """
+        if self._end_game:
+            return False
+
         weighted = len(self.pixreco_ids_received) * self.predictive_scanning_threshold
         return weighted >= len(self.pixreco_ids_sent)
 
 
-async def serve(
+async def scan(
     scan_id: str,
     reco_algo: str,
     event_metadata: EventMetadata,
@@ -504,7 +511,7 @@ async def serve(
     await reporter.precomputing_report()
 
     # Start the scan iteration loop
-    total_n_pixreco = await _serve(
+    total_n_pixreco = await _serve_and_collect(
         to_clients_queue,
         from_clients_queue,
         reco_algo,
@@ -558,7 +565,7 @@ async def _send_pixels(
     return pixreco_ids_sent
 
 
-async def _serve(
+async def _serve_and_collect(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     reco_algo: str,
@@ -580,31 +587,35 @@ async def _serve(
 
     # get pixel-recos from client(s), collect and save
     async with collector as col, from_clients_queue.open_sub() as sub:
-        #
-        # SEND PIXELS
-        #
-        pixreco_ids_sent = await _send_pixels(to_clients_queue, reco_algo, pixeler)
-        await col.register_sent_pixreco_ids(pixreco_ids_sent)
+        serve_more = True
+        # NOTE: `serve_more` will be false if the scan is complete
+        #       or the MQ-sub times-out (too many MIA clients)
+        while serve_more:
+            #
+            # SEND PIXELS
+            #
+            pixreco_ids_sent = await _send_pixels(to_clients_queue, reco_algo, pixeler)
+            await col.register_sent_pixreco_ids(pixreco_ids_sent)
 
-        #
-        # COLLECT PIXEL-RECOS
-        #
-        LOGGER.info("Receiving pixel-recos from clients...")
-        async for msg in sub:
-            if not isinstance(msg['pixreco'], pixelreco.PixelReco):
-                raise ValueError(
-                    f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
-                )
-            try:
-                await col.collect(msg['pixreco'], msg['start'], msg['end'])
-            except DuplicatePixelRecoException as e:
-                logging.error(e)
-            # if we've got enough pixrecos, no need to wait for queue's timeout
-            if col.ok_to_serve_more():
-                break
+            #
+            # COLLECT PIXEL-RECOS
+            #
+            LOGGER.info("Receiving pixel-recos from clients...")
+            async for msg in sub:
+                if not isinstance(msg['pixreco'], pixelreco.PixelReco):
+                    raise ValueError(
+                        f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
+                    )
+                try:
+                    await col.collect(msg['pixreco'], msg['start'], msg['end'])
+                except DuplicatePixelRecoException as e:
+                    logging.error(e)
+                # if we've got enough pixrecos, let's get a jump on the next nside
+                if serve_more := col.ok_to_serve_more():
+                    break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return len(pixreco_ids_sent)
+    return len(col.pixreco_ids_sent)
 
 
 def write_startup_json(
@@ -758,7 +769,10 @@ def main() -> None:
     parser.add_argument(
         "--predictive-scanning-threshold",
         default=1.0,
-        help="The percentage of recos collected before the next nside's round of pixels can be served",
+        help=(
+            "The percentage of reconstructed pixels collected before "
+            "the next nside's round of pixels can be served"
+        ),
         type=lambda x: argparse_tools.validate_arg(
             float(x),
             0.0 < float(x) < 1.0,
@@ -851,7 +865,7 @@ def main() -> None:
 
     # go!
     asyncio.run(
-        serve(
+        scan(
             scan_id=scan_id,
             reco_algo=args.reco_algo,
             event_metadata=event_metadata,
