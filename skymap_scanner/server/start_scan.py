@@ -161,8 +161,8 @@ class PixelsToReco:
             return time
         return min_t + adj_d/ccc
 
-    def generate_pframes(self) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames to be reco'd."""
+    def gen_new_pixel_pframes_to_scan(self) -> Iterator[icetray.I3Frame]:
+        """Yield pixels (PFrames) to be reco'd."""
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
@@ -558,11 +558,12 @@ async def _send_pixels(
     reco_algo: str,
     pixeler: PixelsToReco,
 ) -> Set[Tuple[int, int, int]]:
-    # get pixels & send to client(s)
+    """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
+
     pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
+        for i, pframe in enumerate(pixeler.gen_new_pixel_pframes_to_scan()):
             _tup = pixelreco.pixel_to_tuple(pframe)
             LOGGER.info(f"Sending message M#{i} ({_tup})...")
             await pub.send(
@@ -606,7 +607,7 @@ async def _serve_and_collect(
             serve_more = False
 
             #
-            # SEND PIXELS
+            # SEND PIXELS -- the next logical round of pixels (not necessarily the next nside)
             #
             pixreco_ids_sent = await _send_pixels(to_clients_queue, reco_algo, pixeler)
             await collector.register_sent_pixreco_ids(pixreco_ids_sent)

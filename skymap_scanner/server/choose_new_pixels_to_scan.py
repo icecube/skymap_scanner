@@ -182,8 +182,7 @@ def choose_new_pixels_to_scan(
     min_nside: int = cfg.MIN_NSIDE_DEFAULT,
     mc_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
-    """Get the next set of pixels to scan/refine by searching the
-    nsides_dict."""
+    """Get the next set of pixels to scan/refine by searching `nsides_dict`."""
 
     # special case if we have MC truth
     if mc_ra_dec:
