@@ -602,10 +602,9 @@ async def _serve_and_collect(
     )
 
     async with collector.finder_context(), from_clients_queue.open_sub() as sub:
-        serve_more = True
-        # NOTE: `serve_more` will be false if the scan is complete
-        #       or the MQ-sub times-out (too many MIA clients)
-        while serve_more:
+        while True:
+            serve_more = False
+
             #
             # SEND PIXELS
             #
@@ -628,6 +627,9 @@ async def _serve_and_collect(
                 # if we've got enough pixrecos, let's get a jump on the next nside
                 if serve_more := collector.ok_to_serve_more():
                     break
+
+            if not serve_more:  # do-while loop
+                break  # scan is complete or MQ-sub timed-out (too many MIA clients)
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
     return len(collector.pixreco_ids_sent)
