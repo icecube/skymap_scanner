@@ -383,7 +383,7 @@ class Reporter:
 
         return {
             "by_nside": saved,
-            "total": sum(s for s in saved.values()),  # total completed pixels
+            "total": sum(s["done"] for s in saved),  # total completed pixels
             "total_recos": self.worker_stats_collection.total_ct,
         }
 
