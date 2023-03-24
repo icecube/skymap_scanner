@@ -363,23 +363,44 @@ class PixelRecoCollector:
         n_posvar: int,  # Number of position variations to collect
         nsides_dict: pixelreco.NSidesDict,
         reporter: Reporter,
-        pixreco_ids_sent: Set[Tuple[int, int, int]],
+        predictive_scanning_threshold: float,
     ) -> None:
         self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
         self.reporter = reporter
         self.nsides_dict = nsides_dict
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
-        self.pixreco_ids_sent = pixreco_ids_sent
+        self.pixreco_ids_sent: Set[Tuple[int, int, int]] = set([])
+
+        if not (0.0 < predictive_scanning_threshold <= 1.0):
+            raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
+        self.predictive_scanning_threshold = predictive_scanning_threshold
 
     async def __aenter__(self) -> "PixelRecoCollector":
-        await self.reporter.make_reports_if_needed(
-            bypass_timers=True,
-            summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
-        )
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
         self._finder.finish()
+
+    async def register_sent_pixreco_ids(
+        self, addl_pixreco_ids_sent: Set[Tuple[int, int, int]]
+    ) -> None:
+        """Register the pixel ids recently sent.
+
+        When `addl_pixreco_ids_sent` is empty (happens at the end of the
+        scan), `self.predictive_scanning_threshold` is increased to 1.0.
+        """
+        if addl_pixreco_ids_sent:
+            self.pixreco_ids_sent.update(addl_pixreco_ids_sent)
+            await self.reporter.make_reports_if_needed(
+                bypass_timers=True,
+                summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
+            )
+        else:
+            self.predictive_scanning_threshold = 1.0
+            await self.reporter.make_reports_if_needed(
+                bypass_timers=True,
+                summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive the remaining recos.",
+            )
 
     async def collect(
         self,
@@ -428,6 +449,13 @@ class PixelRecoCollector:
         # report after potential save
         await self.reporter.record_pixreco(pixreco.nside, pixreco_start, pixreco_end)
 
+    def ok_to_serve_more(self) -> bool:
+        """Return whether enough pixel-recos collected to serve more."""
+        return (
+            len(self.pixreco_ids_sent)
+            >= len(self.pixreco_ids_received) * self.predictive_scanning_threshold
+        )
+
 
 async def serve(
     scan_id: str,
@@ -441,6 +469,7 @@ async def serve(
     from_clients_queue: mq.Queue,
     min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
     max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+    predictive_scanning_threshold: float,
     skydriver_rc: Optional[RestClient],
 ) -> pixelreco.NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
@@ -477,20 +506,15 @@ async def serve(
     await reporter.precomputing_report()
 
     # Start the scan iteration loop
-    total_n_pixreco = 0
-    for i in it.count():
-        logging.info(f"Starting new scan iteration (#{i})")
-        n_pixreco = await serve_scan_iteration(
-            to_clients_queue,
-            from_clients_queue,
-            reco_algo,
-            nsides_dict,
-            pixeler,
-            reporter,
-        )
-        if not n_pixreco:  # we're done
-            break
-        total_n_pixreco += n_pixreco
+    total_n_pixreco = await _serve(
+        to_clients_queue,
+        from_clients_queue,
+        reco_algo,
+        nsides_dict,
+        pixeler,
+        reporter,
+        predictive_scanning_threshold,
+    )
 
     # sanity check
     if not total_n_pixreco:
@@ -508,23 +532,11 @@ async def serve(
     return nsides_dict
 
 
-async def serve_scan_iteration(
+async def _send_pixels(
     to_clients_queue: mq.Queue,
-    from_clients_queue: mq.Queue,
     reco_algo: str,
-    nsides_dict: pixelreco.NSidesDict,
     pixeler: PixelsToReco,
-    reporter: Reporter,
-) -> int:
-    """Run the next (or first) scan iteration (set of pixel-recos).
-
-    Return the number of pixels sent. Stop when this is 0.
-    """
-
-    #
-    # SEND PIXELS
-    #
-
+) -> Set[Tuple[int, int, int]]:
     # get pixels & send to client(s)
     LOGGER.info("Getting pixels to send to clients...")
     pixreco_ids_sent = set([])
@@ -542,37 +554,56 @@ async def serve_scan_iteration(
 
     # check if anything was actually processed
     if not pixreco_ids_sent:
-        LOGGER.info("No pixels were sent for this iteration.")
-        return 0
-    LOGGER.info(f"Done serving pixel-variations to clients: {len(pixreco_ids_sent)}.")
+        LOGGER.info("No additional pixels were sent.")
+    else:
+        LOGGER.info(f"Done serving pixels to clients: {len(pixreco_ids_sent)}.")
+    return pixreco_ids_sent
 
-    #
-    # COLLECT PIXEL-RECOS
-    #
 
+async def _serve(
+    to_clients_queue: mq.Queue,
+    from_clients_queue: mq.Queue,
+    reco_algo: str,
+    nsides_dict: pixelreco.NSidesDict,
+    pixeler: PixelsToReco,
+    reporter: Reporter,
+    predictive_scanning_threshold: float,
+) -> int:
+    """Run the next (or first) scan iteration (set of pixel-recos).
+
+    Return the number of pixels sent. Stop when this is 0.
+    """
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
         nsides_dict=nsides_dict,
         reporter=reporter,
-        pixreco_ids_sent=pixreco_ids_sent,
+        predictive_scanning_threshold=predictive_scanning_threshold,
     )
 
     # get pixel-recos from client(s), collect and save
-    LOGGER.info("Receiving pixel-recos from clients...")
-    async with collector as col:  # enter collector 1st for detecting when no pixel-recos received
-        async with from_clients_queue.open_sub() as sub:
-            async for msg in sub:
-                if not isinstance(msg['pixreco'], pixelreco.PixelReco):
-                    raise ValueError(
-                        f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
-                    )
-                try:
-                    await col.collect(msg['pixreco'], msg['start'], msg['end'])
-                except DuplicatePixelRecoException as e:
-                    logging.error(e)
-                # if we've got all the pixrecos, no need to wait for queue's timeout
-                if col.pixreco_ids_sent == col.pixreco_ids_received:
-                    break
+    async with collector as col, from_clients_queue.open_sub() as sub:
+        #
+        # SEND PIXELS
+        #
+        pixreco_ids_sent = await _send_pixels(to_clients_queue, reco_algo, pixeler)
+        await col.register_sent_pixreco_ids(pixreco_ids_sent)
+
+        #
+        # COLLECT PIXEL-RECOS
+        #
+        LOGGER.info("Receiving pixel-recos from clients...")
+        async for msg in sub:
+            if not isinstance(msg['pixreco'], pixelreco.PixelReco):
+                raise ValueError(
+                    f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
+                )
+            try:
+                await col.collect(msg['pixreco'], msg['start'], msg['end'])
+            except DuplicatePixelRecoException as e:
+                logging.error(e)
+            # if we've got enough pixrecos, no need to wait for queue's timeout
+            if col.ok_to_serve_more():
+                break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
     return len(pixreco_ids_sent)
@@ -725,6 +756,18 @@ def main() -> None:
         help='include this flag if the event was simulated',
     )
 
+    # predictive_scanning_threshold
+    parser.add_argument(
+        "--predictive-scanning-threshold",
+        default=1.0,
+        help="The GCD directory to use",
+        type=lambda x: argparse_tools.validate_arg(
+            float(x),
+            0.0 < float(x) < 1.0,
+            argparse.ArgumentTypeError(f"value must be (0.0, 1.0]: '{x}'"),
+        ),
+    )
+
     args = parser.parse_args()
     logging_tools.set_level(
         cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
@@ -822,6 +865,7 @@ def main() -> None:
             from_clients_queue=from_clients_queue,
             min_nside=min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
             max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            predictive_scanning_threshold=args.predictive_scanning_threshold,
             skydriver_rc=skydriver_rc,
         )
     )
