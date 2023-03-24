@@ -174,7 +174,7 @@ jobs:
           - reco_algo: dummy
             eventfile: run00136766-evt000007637140-GOLD.pkl
           - reco_algo: dummy
-            eventfile: run00136766-evt000007637140-GOLD.pkl
+            eventfile: run00136662-evt000035405932-BRONZE.pkl
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
