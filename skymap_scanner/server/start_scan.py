@@ -484,8 +484,11 @@ class PixelRecoCollector:
         if self._end_game:
             return False
 
-        weighted = len(self._pixreco_ids_received) * self._predictive_scanning_threshold
-        return weighted >= len(self._pixreco_ids_sent__with_times)
+        target = (
+            len(self._pixreco_ids_sent__with_times)
+            * self._predictive_scanning_threshold
+        )
+        return len(self._pixreco_ids_received) >= target
 
 
 async def scan(
@@ -633,7 +636,7 @@ async def _serve_and_collect(
                     await collector.collect(msg['pixreco'], msg['runtime'])
                 except ExtraPixelRecoException as e:
                     logging.error(e)
-                # if we've got enough pixrecos, let's get a jump on the next nside
+                # if we've got enough pixrecos, let's get a jump on the next round
                 if serve_more := collector.ok_to_serve_more():
                     break
 
