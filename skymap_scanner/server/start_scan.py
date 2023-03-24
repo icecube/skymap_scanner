@@ -760,7 +760,7 @@ def main() -> None:
     parser.add_argument(
         "--predictive-scanning-threshold",
         default=1.0,
-        help="The GCD directory to use",
+        help="The percentage of recos collected before the next nside's round of pixels can be served",
         type=lambda x: argparse_tools.validate_arg(
             float(x),
             0.0 < float(x) < 1.0,
