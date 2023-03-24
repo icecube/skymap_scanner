@@ -16,10 +16,6 @@ with open(OUT_PKL_FPATH, "rb") as f:
     print(pixreco)
 with open(OUT_PKL_FPATH, "wb") as f:
     pickle.dump(
-        {
-            "pixreco": pixreco,
-            "start": 0,
-            "end": 100,
-        },
+        {"pixreco": pixreco["pixreco"], "runtime": 65},
         f,
     )
