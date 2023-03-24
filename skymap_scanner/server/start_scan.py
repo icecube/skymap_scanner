@@ -586,7 +586,7 @@ async def _serve_and_collect(
     )
 
     # get pixel-recos from client(s), collect and save
-    async with collector as col, from_clients_queue.open_sub() as sub:
+    async with collector, from_clients_queue.open_sub() as sub:
         serve_more = True
         # NOTE: `serve_more` will be false if the scan is complete
         #       or the MQ-sub times-out (too many MIA clients)
@@ -595,7 +595,7 @@ async def _serve_and_collect(
             # SEND PIXELS
             #
             pixreco_ids_sent = await _send_pixels(to_clients_queue, reco_algo, pixeler)
-            await col.register_sent_pixreco_ids(pixreco_ids_sent)
+            await collector.register_sent_pixreco_ids(pixreco_ids_sent)
 
             #
             # COLLECT PIXEL-RECOS
@@ -607,15 +607,15 @@ async def _serve_and_collect(
                         f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
                     )
                 try:
-                    await col.collect(msg['pixreco'], msg['start'], msg['end'])
+                    await collector.collect(msg['pixreco'], msg['start'], msg['end'])
                 except DuplicatePixelRecoException as e:
                     logging.error(e)
                 # if we've got enough pixrecos, let's get a jump on the next nside
-                if serve_more := col.ok_to_serve_more():
+                if serve_more := collector.ok_to_serve_more():
                     break
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return len(col.pixreco_ids_sent)
+    return len(collector.pixreco_ids_sent)
 
 
 def write_startup_json(
