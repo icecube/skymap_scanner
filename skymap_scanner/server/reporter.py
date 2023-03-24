@@ -377,7 +377,7 @@ class Reporter:
                     "done": n_done,
                     "est. percent": (
                         f"{n_done}/{self._estimated_nside_n_recos[nside]} "
-                        f"({n_done / self._estimated_nside_n_recos[nside]})"
+                        f"({n_done / self._estimated_nside_n_recos[nside]:.2f})"
                     ),
                 }
 
