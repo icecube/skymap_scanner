@@ -429,12 +429,12 @@ class PixelRecoCollector:
         LOGGER.debug(f"{self.nsides_dict=}")
 
         if pixreco.id_tuple in self.pixreco_ids_received:
-            raise DuplicatePixelRecoException(
+            raise ExtraPixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
         if pixreco.id_tuple not in self.pixreco_ids_sent:
-            raise DuplicatePixelRecoException(
-                f"Pixel-reco received not in sent set, it is probably from an earlier iteration: {pixreco.id_tuple}"
+            raise ExtraPixelRecoException(
+                f"Pixel-reco received not in sent set: {pixreco.id_tuple}"
             )
 
         self.pixreco_ids_received.add(pixreco.id_tuple)
