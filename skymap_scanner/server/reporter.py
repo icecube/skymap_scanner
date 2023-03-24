@@ -142,8 +142,8 @@ class WorkerStatsCollection:
             statistics.median(itertools.chain(*[i.runtimes for i in instances])),
             max(i.slowest() for i in instances),  # type: ignore[no-untyped-call]
             min(i.fastest() for i in instances),  # type: ignore[no-untyped-call]
-            min(i.start for i in instances),
-            max(i.end for i in instances),
+            min(i.roundtrip_start for i in instances),
+            max(i.roundtrip_end for i in instances),
             self.total_ct,
         )
 
