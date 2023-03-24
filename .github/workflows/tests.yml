@@ -165,6 +165,16 @@ jobs:
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
+        reco_algo: [
+          millipede_original,
+          dummy
+        ]
+        exclude:
+          # it's only useful to run dummy once
+          - reco_algo: dummy
+            eventfile: run00136766-evt000007637140-GOLD.pkl
+          - reco_algo: dummy
+            eventfile: run00136766-evt000007637140-GOLD.pkl
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
@@ -207,7 +217,7 @@ jobs:
 
           # Launch Server
           ./resources/launch_scripts/docker/launch_server.sh \
-            --reco-algo millipede_original \
+            --reco-algo ${{ matrix.reco_algo }} \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
@@ -241,6 +251,10 @@ jobs:
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
           echo $outfile
+
+          if [[ "${{ matrix.eventfile }}" == "dummy" ]]; then
+            exit 0
+          fi
 
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
