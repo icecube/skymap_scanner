@@ -15,7 +15,10 @@ except ImportError:
     I3Frame = Any
 
 
-def pixel_to_tuple(pixel: I3Frame) -> Tuple[int, int, int]:
+PixelRecoID = Tuple[int, int, int]
+
+
+def pframe_to_pixelrecoid(pixel: I3Frame) -> PixelRecoID:
     """Get a tuple representing a pixel PFrame for logging."""
     return (
         pixel[cfg.I3FRAME_NSIDE].value,
@@ -34,7 +37,7 @@ class PixelReco:
     reco_losses_inside: float
     reco_losses_total: float
     pos_var_index: int
-    id_tuple: Tuple[int, int, int] = dc.field(init=False, repr=False)
+    id_tuple: PixelRecoID = dc.field(init=False, repr=False)
     position: I3Position
     time: float
     energy: float

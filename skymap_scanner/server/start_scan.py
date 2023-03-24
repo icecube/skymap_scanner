@@ -26,9 +26,10 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..utils import extract_json_message, pixelreco
+from ..utils import extract_json_message
 from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
+from ..utils.pixelreco import NSidesDict, PixelReco, PixelRecoID, pframe_to_pixelrecoid
 from ..utils.utils import pow_of_two
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
@@ -53,7 +54,7 @@ class PixelsToReco:
 
     def __init__(
         self,
-        nsides_dict: pixelreco.NSidesDict,
+        nsides_dict: NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         baseline_GCD: str,
         min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
@@ -289,7 +290,7 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"({pixelreco.pixel_to_tuple(p_frame)}) ({posVariation=})..."
+                f"({pframe_to_pixelrecoid(p_frame)}) ({posVariation=})..."
             )
             yield p_frame
 
@@ -307,12 +308,10 @@ class BestPixelRecoFinder:
         self.n_posvar = n_posvar
 
         self.pixelNumToFramesMap: Dict[
-            Tuple[icetray.I3Int, icetray.I3Int], List[pixelreco.PixelReco]
+            Tuple[icetray.I3Int, icetray.I3Int], List[PixelReco]
         ] = {}
 
-    def cache_and_get_best(
-        self, pixreco: pixelreco.PixelReco
-    ) -> Optional[pixelreco.PixelReco]:
+    def cache_and_get_best(self, pixreco: PixelReco) -> Optional[PixelReco]:
         """Add pixreco to internal cache and possibly return the best reco for
         pixel.
 
@@ -360,7 +359,7 @@ class PixelRecoCollector:
     def __init__(
         self,
         n_posvar: int,  # Number of position variations to collect
-        nsides_dict: pixelreco.NSidesDict,
+        nsides_dict: NSidesDict,
         reporter: Reporter,
         predictive_scanning_threshold: float,
     ) -> None:
@@ -369,8 +368,8 @@ class PixelRecoCollector:
 
         self.reporter = reporter
         self.nsides_dict = nsides_dict
-        self._pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
-        self._pixreco_ids_sent__with_times: Dict[Tuple[int, int, int], float] = {}
+        self._pixreco_ids_received: Set[PixelRecoID] = set([])
+        self._pixreco_ids_sent__with_times: Dict[PixelRecoID, float] = {}
 
         if not (0.0 < predictive_scanning_threshold <= 1.0):
             raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
@@ -399,7 +398,7 @@ class PixelRecoCollector:
             self.parent._in_finder_context = False
 
     async def register_sent_pixreco_ids(
-        self, addl_pixreco_ids_sent: Set[Tuple[int, int, int]]
+        self, addl_pixreco_ids_sent: Set[PixelRecoID]
     ) -> None:
         """Register the pixel ids recently sent.
 
@@ -424,7 +423,7 @@ class PixelRecoCollector:
 
     async def collect(
         self,
-        pixreco: pixelreco.PixelReco,
+        pixreco: PixelReco,
         pixreco_runtime: float,
     ) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
@@ -493,7 +492,7 @@ async def scan(
     scan_id: str,
     reco_algo: str,
     event_metadata: EventMetadata,
-    nsides_dict: Optional[pixelreco.NSidesDict],
+    nsides_dict: Optional[NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD: str,
     output_dir: Optional[Path],
@@ -503,7 +502,7 @@ async def scan(
     max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
     predictive_scanning_threshold: float,
     skydriver_rc: Optional[RestClient],
-) -> pixelreco.NSidesDict:
+) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
     global_start_time = time.time()
@@ -568,14 +567,14 @@ async def _send_pixels(
     to_clients_queue: mq.Queue,
     reco_algo: str,
     pixeler: PixelsToReco,
-) -> Set[Tuple[int, int, int]]:
+) -> Set[PixelRecoID]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
 
     pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(pixeler.gen_new_pixel_pframes_to_scan()):
-            _tup = pixelreco.pixel_to_tuple(pframe)
+            _tup = pframe_to_pixelrecoid(pframe)
             LOGGER.info(f"Sending message M#{i} ({_tup})...")
             await pub.send(
                 {
@@ -597,7 +596,7 @@ async def _serve_and_collect(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
     reco_algo: str,
-    nsides_dict: pixelreco.NSidesDict,
+    nsides_dict: NSidesDict,
     pixeler: PixelsToReco,
     reporter: Reporter,
     predictive_scanning_threshold: float,
@@ -628,10 +627,8 @@ async def _serve_and_collect(
             #
             LOGGER.info("Receiving pixel-recos from clients...")
             async for msg in sub:
-                if not isinstance(msg['pixreco'], pixelreco.PixelReco):
-                    raise ValueError(
-                        f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
-                    )
+                if not isinstance(msg['pixreco'], PixelReco):
+                    raise ValueError(f"Message not {PixelReco}: {type(msg['pixreco'])}")
                 try:
                     await collector.collect(msg['pixreco'], msg['runtime'])
                 except ExtraPixelRecoException as e:
