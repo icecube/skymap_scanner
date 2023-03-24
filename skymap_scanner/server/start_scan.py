@@ -451,10 +451,8 @@ class PixelRecoCollector:
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more."""
-        return (
-            len(self.pixreco_ids_sent)
-            >= len(self.pixreco_ids_received) * self.predictive_scanning_threshold
-        )
+        weighted = len(self.pixreco_ids_received) * self.predictive_scanning_threshold
+        return weighted >= len(self.pixreco_ids_sent)
 
 
 async def serve(
