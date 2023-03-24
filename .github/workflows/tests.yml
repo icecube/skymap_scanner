@@ -166,8 +166,8 @@ jobs:
           run00136662-evt000035405932-BRONZE.pkl
         ]
         reco_algo: [
-          millipede_original,
-          dummy
+          dummy,
+          millipede_original
         ]
         exclude:
           # it's only useful to run dummy once

@@ -3,6 +3,7 @@
 
 import datetime
 import random
+import time
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -45,6 +46,7 @@ class Dummy(RecoInterface):
             )
             frame["Dummy_time"] = dataclasses.I3Double(random.random())
             frame["Dummy_energy"] = dataclasses.I3Double(random.random())
+            time.sleep(random.uniform(1, 3))
 
         tray.AddModule(add_vals, "add_vals")
 
