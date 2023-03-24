@@ -377,8 +377,12 @@ class PixelRecoCollector:
         self._end_game = False
 
     @property
-    def n_received(self) -> int:
+    def n_sent(self) -> int:
         return len(self._pixreco_ids_sent__with_times)
+
+    @property
+    def n_received(self) -> int:
+        return len(self._pixreco_ids_received)
 
     def finder_context(self) -> '_FinderContextManager':
         """Creates a context manager for startup & ending conditions."""
@@ -475,6 +479,10 @@ class PixelRecoCollector:
             roundtrip_start=self._pixreco_ids_sent__with_times[pixreco.id_tuple],
             roundtrip_end=time.time(),
         )
+
+    def is_scan_done(self) -> bool:
+        """Has every pixel been collected?"""
+        return self.n_received == self.n_sent
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
@@ -636,15 +644,24 @@ async def _serve_and_collect(
                     await collector.collect(msg['pixreco'], msg['runtime'])
                 except ExtraPixelRecoException as e:
                     logging.error(e)
+
+                # are we done?
+                if collector.is_scan_done():
+                    LOGGER.info("Done receiving/saving pixel-recos from clients.")
+                    return collector.n_sent
+
                 # if we've got enough pixrecos, let's get a jump on the next round
                 if serve_more := collector.ok_to_serve_more():
                     break
 
-            if not serve_more:  # do-while loop
-                break  # scan is complete or MQ-sub timed-out (too many MIA clients)
+            # do-while loop logic
+            if serve_more:
+                continue
+            LOGGER.error("The MQ-sub must have timed out (too many MIA clients)")
+            return collector.n_sent
 
-    LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return collector.n_received
+    # this statement should never be reached
+    raise RuntimeError("Unknown state -- there is a bug in the collection logic")
 
 
 def write_startup_json(
