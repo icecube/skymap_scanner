@@ -38,7 +38,7 @@ from .utils import fetch_event_contents
 StrDict = Dict[str, Any]
 
 
-class DuplicatePixelRecoException(Exception):
+class ExtraPixelRecoException(Exception):
     """Raised when a pixel-reco (message) is received that is semantically
     equivalent to a prior.
 
@@ -457,7 +457,7 @@ class PixelRecoCollector:
             if best.nside not in self.nsides_dict:
                 self.nsides_dict[best.nside] = {}
             if best.pixel in self.nsides_dict[best.nside]:
-                raise DuplicatePixelRecoException(
+                raise ExtraPixelRecoException(
                     f"NSide {best.nside} / Pixel {best.pixel} is already in nsides_dict"
                 )
             self.nsides_dict[best.nside][best.pixel] = best
@@ -622,8 +622,8 @@ async def _serve_and_collect(
                         f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
                     )
                 try:
-                    await collector.collect(msg['pixreco'], msg['start'], msg['end'])
-                except DuplicatePixelRecoException as e:
+                    await collector.collect(msg['pixreco'], msg['runtime'])
+                except ExtraPixelRecoException as e:
                     logging.error(e)
                 # if we've got enough pixrecos, let's get a jump on the next nside
                 if serve_more := collector.ok_to_serve_more():
