@@ -5,7 +5,6 @@
 
 import argparse
 import asyncio
-import itertools as it
 import json
 import logging
 import time
@@ -366,6 +365,8 @@ class PixelRecoCollector:
         predictive_scanning_threshold: float,
     ) -> None:
         self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
+        self._in_finder_context = False
+
         self.reporter = reporter
         self.nsides_dict = nsides_dict
         self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
@@ -376,11 +377,22 @@ class PixelRecoCollector:
         self.predictive_scanning_threshold = predictive_scanning_threshold
         self._end_game = False
 
-    async def __aenter__(self) -> "PixelRecoCollector":
-        return self
+    def finder_context(self) -> '_FinderContextManager':
+        """Creates a context manager for startup & ending conditions."""
+        return self._FinderContextManager(self._finder, self)
 
-    async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
-        self._finder.finish()
+    class _FinderContextManager:
+        def __init__(self, finder: BestPixelRecoFinder, parent: 'PixelRecoCollector'):
+            self.finder = finder
+            self.parent = parent
+
+        async def __aenter__(self) -> "PixelRecoCollector._FinderContextManager":
+            self.parent._in_finder_context = True
+            return self
+
+        async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
+            self.finder.finish()
+            self.parent._in_finder_context = False
 
     async def register_sent_pixreco_ids(
         self, addl_pixreco_ids_sent: Set[Tuple[int, int, int]]
@@ -410,6 +422,10 @@ class PixelRecoCollector:
         pixreco_end: float,
     ) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
+        if not self._in_finder_context:
+            raise RuntimeError(
+                "Must be in `PixelRecoCollector.finder_context()` context."
+            )
         LOGGER.debug(f"{self.nsides_dict=}")
 
         if pixreco.id_tuple in self.pixreco_ids_received:
@@ -585,8 +601,7 @@ async def _serve_and_collect(
         predictive_scanning_threshold=predictive_scanning_threshold,
     )
 
-    # get pixel-recos from client(s), collect and save
-    async with collector, from_clients_queue.open_sub() as sub:
+    async with collector.finder_context(), from_clients_queue.open_sub() as sub:
         serve_more = True
         # NOTE: `serve_more` will be false if the scan is complete
         #       or the MQ-sub times-out (too many MIA clients)
