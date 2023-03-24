@@ -369,13 +369,17 @@ class PixelRecoCollector:
 
         self.reporter = reporter
         self.nsides_dict = nsides_dict
-        self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
-        self.pixreco_ids_sent: Set[Tuple[int, int, int]] = set([])
+        self._pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
+        self._pixreco_ids_sent__with_times: Dict[Tuple[int, int, int], float] = {}
 
         if not (0.0 < predictive_scanning_threshold <= 1.0):
             raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
-        self.predictive_scanning_threshold = predictive_scanning_threshold
+        self._predictive_scanning_threshold = predictive_scanning_threshold
         self._end_game = False
+
+    @property
+    def n_received(self) -> int:
+        return len(self._pixreco_ids_sent__with_times)
 
     def finder_context(self) -> '_FinderContextManager':
         """Creates a context manager for startup & ending conditions."""
@@ -403,7 +407,10 @@ class PixelRecoCollector:
         scan), `self.predictive_scanning_threshold` will now be ignored.
         """
         if addl_pixreco_ids_sent:
-            self.pixreco_ids_sent.update(addl_pixreco_ids_sent)
+            now = time.time()
+            self._pixreco_ids_sent__with_times.update(
+                {p: now for p in addl_pixreco_ids_sent}
+            )
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
                 summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
@@ -418,8 +425,7 @@ class PixelRecoCollector:
     async def collect(
         self,
         pixreco: pixelreco.PixelReco,
-        pixreco_start: float,
-        pixreco_end: float,
+        pixreco_runtime: float,
     ) -> None:
         """Cache pixreco until we can save the pixel's best received reco."""
         if not self._in_finder_context:
@@ -428,17 +434,17 @@ class PixelRecoCollector:
             )
         LOGGER.debug(f"{self.nsides_dict=}")
 
-        if pixreco.id_tuple in self.pixreco_ids_received:
+        if pixreco.id_tuple in self._pixreco_ids_received:
             raise ExtraPixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
-        if pixreco.id_tuple not in self.pixreco_ids_sent:
+        if pixreco.id_tuple not in self._pixreco_ids_sent__with_times:
             raise ExtraPixelRecoException(
                 f"Pixel-reco received not in sent set: {pixreco.id_tuple}"
             )
 
-        self.pixreco_ids_received.add(pixreco.id_tuple)
-        logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
+        self._pixreco_ids_received.add(pixreco.id_tuple)
+        logging_id = f"S#{len(self._pixreco_ids_received) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
@@ -464,7 +470,12 @@ class PixelRecoCollector:
             LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
 
         # report after potential save
-        await self.reporter.record_pixreco(pixreco.nside, pixreco_start, pixreco_end)
+        await self.reporter.record_pixreco(
+            pixreco.nside,
+            pixreco_runtime,
+            roundtrip_start=self._pixreco_ids_sent__with_times[pixreco.id_tuple],
+            roundtrip_end=time.time(),
+        )
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
@@ -474,8 +485,8 @@ class PixelRecoCollector:
         if self._end_game:
             return False
 
-        weighted = len(self.pixreco_ids_received) * self.predictive_scanning_threshold
-        return weighted >= len(self.pixreco_ids_sent)
+        weighted = len(self._pixreco_ids_received) * self._predictive_scanning_threshold
+        return weighted >= len(self._pixreco_ids_sent__with_times)
 
 
 async def scan(
@@ -633,7 +644,7 @@ async def _serve_and_collect(
                 break  # scan is complete or MQ-sub timed-out (too many MIA clients)
 
     LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return len(collector.pixreco_ids_sent)
+    return collector.n_received
 
 
 def write_startup_json(

@@ -169,8 +169,8 @@ def reco_pixel(
             pickle.dump(
                 {
                     "pixreco": pixreco,
-                    "start": start_time,
-                    "end": time.time(),
+                    # can't trust the clocks running in containers, but we can trust the relative time
+                    "runtime": time.time() - start_time,
                 },
                 f,
             )

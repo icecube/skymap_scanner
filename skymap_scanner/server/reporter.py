@@ -27,8 +27,8 @@ class WorkerStats:
     """Holds stats for the per-reco/worker level."""
 
     def __init__(self) -> None:
-        self.start = float("inf")
-        self.end = float("-inf")
+        self.roundtrip_start = float("inf")
+        self.roundtrip_end = float("-inf")
 
         self.runtimes: List[float] = []
         # self.runtimes.sort()  # will make stats calls much faster
@@ -54,10 +54,16 @@ class WorkerStats:
         # pstdev  # Population standard deviation of data.
         # stdev  # Sample standard deviation of data.
 
-    def update(self, start: float, end: float) -> "WorkerStats":
-        bisect.insort(self.runtimes, end - start)
-        self.start = min(self.start, start)
-        self.end = max(self.end, end)
+    def update(
+        self,
+        runtime: float,
+        roundtrip_start: float,
+        roundtrip_end: float,
+    ) -> "WorkerStats":
+        """Insert the runtime and recalculate round-trip start/end times."""
+        bisect.insort(self.runtimes, runtime)
+        self.roundtrip_start = min(self.roundtrip_start, roundtrip_start)
+        self.roundtrip_end = max(self.roundtrip_end, roundtrip_end)
         return self
 
     @staticmethod
@@ -66,8 +72,8 @@ class WorkerStats:
         median: float,
         slowest: float,
         fastest: float,
-        start: float,
-        end: float,
+        roundtrip_start: float,
+        roundtrip_end: float,
         count: int,
     ) -> Dict[str, str]:
         return {
@@ -75,22 +81,25 @@ class WorkerStats:
             "median reco (worker time)": str(dt.timedelta(seconds=int(median))),
             "slowest reco (worker time)": str(dt.timedelta(seconds=int(slowest))),
             "fastest reco (worker time)": str(dt.timedelta(seconds=int(fastest))),
-            "start time (first reco)": str(dt.datetime.fromtimestamp(int(start))),
-            "end time (last reco)": str(dt.datetime.fromtimestamp(int(end))),
-            "runtime (wall time)": str(dt.timedelta(seconds=int(end - start))),
+            "start time": str(dt.datetime.fromtimestamp(int(roundtrip_start))),
+            "end time": str(dt.datetime.fromtimestamp(int(roundtrip_end))),
+            "runtime (wall time)": str(
+                dt.timedelta(seconds=int(roundtrip_end - roundtrip_start))
+            ),
             "mean reco (scanner wall time)": str(
-                dt.timedelta(seconds=int((end - start) / count))
+                dt.timedelta(seconds=int((roundtrip_end - roundtrip_start) / count))
             ),
         }
 
     def get_summary(self) -> Dict[str, str]:
+        """Make a human-readable dict summary of the instance."""
         return self._make_summary(
             self.mean(),  # type: ignore[no-untyped-call]
             self.median(),  # type: ignore[no-untyped-call]
             self.slowest(),  # type: ignore[no-untyped-call]
             self.fastest(),  # type: ignore[no-untyped-call]
-            self.start,
-            self.end,
+            self.roundtrip_start,
+            self.roundtrip_end,
             len(self.runtimes),
         )
 
@@ -109,20 +118,21 @@ class WorkerStatsCollection:
     @property
     def first_reco_start(self) -> float:
         # O(n), n < 10
-        return min(w.start for w in self._worker_stats_by_nside.values())
+        return min(w.roundtrip_start for w in self._worker_stats_by_nside.values())
 
     def update(
         self,
         nside: int,
-        pixreco_start: float,
-        pixreco_end: float,
+        pixreco_runtime: float,
+        roundtrip_start: float,
+        roundtrip_end: float,
     ) -> int:
         """Return reco-count of nside's list after updating."""
         try:
             worker_stats = self._worker_stats_by_nside[nside]
         except KeyError:
             worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
-        worker_stats.update(pixreco_start, pixreco_end)
+        worker_stats.update(pixreco_runtime, roundtrip_start, roundtrip_end)
         return len(worker_stats.runtimes)
 
     def _get_aggregate_summary(self) -> Dict[str, str]:
@@ -138,6 +148,7 @@ class WorkerStatsCollection:
         )
 
     def get_summary(self) -> StrDict:
+        """Make human-readable dict summaries for all nsides & an aggregate."""
         dicto: StrDict = self._get_aggregate_summary()
         for nside, worker_stats in self._worker_stats_by_nside.items():
             dicto[f"nside-{nside}"] = worker_stats.get_summary()
@@ -235,8 +246,9 @@ class Reporter:
     async def record_pixreco(
         self,
         pixreco_nside: int,
-        pixreco_start: float,
-        pixreco_end: float,
+        pixreco_runtime: float,
+        roundtrip_start: float,
+        roundtrip_end: float,
     ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_pixreco)
@@ -244,8 +256,9 @@ class Reporter:
         # update stats
         nside_ct = self.worker_stats_collection.update(
             pixreco_nside,
-            pixreco_start,
-            pixreco_end,
+            pixreco_runtime,
+            roundtrip_start,
+            roundtrip_end,
         )
 
         # make report(s)
