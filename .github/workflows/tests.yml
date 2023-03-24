@@ -252,7 +252,7 @@ jobs:
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
           echo $outfile
 
-          if [[ "${{ matrix.eventfile }}" == "dummy" ]]; then
+          if [[ "${{ matrix.reco_algo }}" == "dummy" ]]; then
             exit 0
           fi
 
