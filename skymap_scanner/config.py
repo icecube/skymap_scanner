@@ -15,13 +15,13 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
-NSideProgression = Tuple[Tuple[int, int]]
+NSideProgression = Tuple[Tuple[int, int], ...]
 FINAL_NSIDE_PIXEL_EXTENSION = 0
-DEFAULT_NSIDE_PROGRESSION: NSideProgression = [
+DEFAULT_NSIDE_PROGRESSION: NSideProgression = (
     (8, 12),
     (64, 12),
     (512, FINAL_NSIDE_PIXEL_EXTENSION),
-]
+)
 
 # physics strings
 INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
