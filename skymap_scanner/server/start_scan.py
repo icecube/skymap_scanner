@@ -41,14 +41,14 @@ from .utils import fetch_event_contents, validate_nside_progression
 StrDict = Dict[str, Any]
 
 
-@dc.dataclass
+@dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
 class SentPixel:
     """Used for tracking a single sent pixel."""
 
     nside: int
     pixel_id: int
     posvar_id: int
-    sent_time: float
+    sent_time: float = dc.field(compare=False)  # compare also excludes field from hash
 
     @staticmethod
     def from_pframe(pframe: icetray.I3Frame) -> 'SentPixel':
