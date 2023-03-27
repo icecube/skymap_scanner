@@ -119,7 +119,7 @@ jobs:
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --client-startup-json ./startup.json \
-            --nsides 1:0 \
+            --nsides 1:12 \
             --simulated-event \
             &
 
@@ -222,7 +222,7 @@ jobs:
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --client-startup-json ./startup.json \
-            --nsides 1:0 \
+            --nsides 1:12 \
             --real-event \
             &
 
