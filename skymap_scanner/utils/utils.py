@@ -124,21 +124,3 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
     dec = float(dec)
 
     return (ra, dec)
-
-
-# fmt: on
-def estimated_nside_n_recos(
-    nsides: List[Tuple[int, int]], n_posvar: int
-) -> Dict[int, int]:
-    """Get estimated # of recos per nside.
-
-    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
-    """
-
-    def prev(n: Tuple[int, int]) -> int:
-        idx = nsides.index(n)
-        if idx == 0:
-            return 1
-        return nsides[idx - 1][0]
-
-    return {N[0]: int(n_posvar * N[1] * (N[0] / prev(N)) ** 2) for N in nsides}

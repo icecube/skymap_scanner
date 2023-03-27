@@ -9,7 +9,7 @@ import datetime as dt
 import itertools
 import statistics
 import time
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from rest_tools.client import RestClient
 
@@ -17,8 +17,10 @@ from .. import config as cfg
 from ..utils import pixelreco
 from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
-from ..utils.utils import estimated_nside_n_recos, pyobj_to_string_repr
+from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
+from .types import NSideProgression
+from .utils import n_recos_by_nside_lowerbound
 
 StrDict = Dict[str, Any]
 
@@ -164,8 +166,7 @@ class Reporter:
         global_start_time: float,
         nsides_dict: pixelreco.NSidesDict,
         n_posvar: int,
-        min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        nside_progression: NSideProgression,
         skydriver_rc: Optional[RestClient],
         event_metadata: EventMetadata,
     ) -> None:
@@ -179,10 +180,8 @@ class Reporter:
                 - the nsides_dict
             `n_posvar`
                 - number of position variations per pixel
-            `min_nside`
-                - min nside value
-            `max_nside`
-                - max nside value
+            `nside_progression`
+                - the list of nsides & pixel-extensions
             `skydriver_rc`
                 - a connection to the SkyDriver REST interface
             `event_metadata`
@@ -203,14 +202,7 @@ class Reporter:
         if n_posvar <= 0:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
-
-        self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
-        # TODO: remove HARDCODED estimate along with ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        nsides: List[Tuple[int, int]] = [(8, 12), (64, 12), (512, 24)]
-        if min_nside == 1 and max_nside == 1:
-            nsides = [(1, 12)]
-        self._estimated_nside_n_recos = estimated_nside_n_recos(nsides, self.n_posvar)
+        self.nside_progression = nside_progression
 
         self.skydriver_rc = skydriver_rc
         self.event_metadata = event_metadata
@@ -359,7 +351,11 @@ class Reporter:
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed_reco_walltime / (
                 self.worker_stats_collection.total_ct
-                / sum(self._estimated_nside_n_recos.values())
+                / sum(
+                    n_recos_by_nside_lowerbound(
+                        self.nside_progression, self.n_posvar
+                    ).values()
+                )
             )
             proc_stats["predictions"] = {
                 "time left": str(
@@ -369,7 +365,9 @@ class Reporter:
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
                 ),
                 "total # of reconstructions": sum(
-                    self._estimated_nside_n_recos.values()
+                    n_recos_by_nside_lowerbound(
+                        self.nside_progression, self.n_posvar
+                    ).values()
                 ),
                 "end": str(
                     dt.datetime.fromtimestamp(
@@ -389,8 +387,8 @@ class Reporter:
                 saved[nside] = {
                     "done": n_done,
                     "est. percent": (
-                        f"{n_done}/{self._estimated_nside_n_recos[nside]} "
-                        f"({n_done / self._estimated_nside_n_recos[nside]:.2f})"
+                        f"{n_done}/{n_recos_by_nside_lowerbound(self.nside_progression, self.n_posvar)[nside]} "
+                        f"({n_done / n_recos_by_nside_lowerbound(self.nside_progression, self.n_posvar)[nside]:.2f})"
                     ),
                 }
 
@@ -425,8 +423,7 @@ class Reporter:
         }
         scan_metadata = {
             "scan_id": self.scan_id,
-            "min_nside": self.min_nside,  # TODO: replace with nsides (https://github.com/icecube/skymap_scanner/issues/79)
-            "max_nside": self.max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            "nside_progression": self.nside_progression,
             "position_variations": self.n_posvar,
         }
 

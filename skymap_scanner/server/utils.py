@@ -4,12 +4,14 @@
 import json
 import pickle
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
+import cachetools.func
 from rest_tools.client import RestClient
 
 from .. import config as cfg
 from . import LOGGER
+from .types import NSideProgression
 
 
 def fetch_event_contents(
@@ -40,3 +42,21 @@ def fetch_event_contents(
 
     LOGGER.info(f"Fetched event contents from file: {event_file}")
     return data
+
+
+@cachetools.func.lru_cache()
+def n_recos_by_nside_lowerbound(
+    nsides: NSideProgression, n_posvar: int
+) -> Dict[int, int]:
+    """Get estimated # of recos per nside.
+
+    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+    """
+
+    def prev(n: Tuple[int, int]) -> int:
+        idx = nsides.index(n)
+        if idx == 0:
+            return 1
+        return nsides[idx - 1][0]
+
+    return {N[0]: int(n_posvar * N[1] * (N[0] / prev(N)) ** 2) for N in nsides}

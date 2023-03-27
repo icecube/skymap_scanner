@@ -2,7 +2,6 @@
 
 import dataclasses as dc
 import enum
-import os
 from pathlib import Path
 from typing import Final
 
