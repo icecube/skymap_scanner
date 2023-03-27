@@ -520,7 +520,12 @@ class PixelRecoCollector:
             return False
         # now, sanity check contents, slower: O(n)
         sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixels)
-        return sent_ids == self._pixreco_received_lookup
+        if sent_ids == self._pixreco_received_lookup:
+            return True
+        raise RuntimeError(
+            f"Sanity check failed: Collected enough pixels,"
+            f" but does not match: {sent_ids=} vs {self._pixreco_received_lookup=}"
+        )
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
