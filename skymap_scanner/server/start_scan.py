@@ -31,7 +31,7 @@ from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixelreco import NSidesDict, PixelReco, PixelRecoID, pframe_to_pixelrecoid
 from . import LOGGER
-from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import fetch_event_contents, validate_nside_progression
 
@@ -155,23 +155,26 @@ class PixelsToReco:
             return time
         return min_t + adj_d/ccc
 
-    def gen_new_pixel_pframes_to_scan(self) -> Iterator[icetray.I3Frame]:
+    def gen_new_pixel_pframes_to_scan(
+        self,
+        pixreco_ids_already_sent: Set[PixelRecoID],
+    ) -> Iterator[icetray.I3Frame]:
         """Yield pixels (PFrames) to be reco'd."""
 
+        def pixel_already_sent(pixel: Tuple[icetray.I3Int, icetray.I3Int]) -> bool:
+            # Has this pixel already been sent? Ignore the position-variation id
+            for x_nside, x_pixel_id, _ in pixreco_ids_already_sent:
+                if x_nside == pixel[0] and x_pixel_id == pixel[1]:
+                    return True
+            return False
+
         # find pixels to refine
-        pixels_to_refine = choose_new_pixels_to_scan(
-            self.nsides_dict, self.nside_progression
-        )
-        if len(pixels_to_refine) == 0:
+        pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, self.nside_progression)
+        pixels_to_refine = [p for p in pixels_to_refine if not pixel_already_sent(p)]
+        if not pixels_to_refine:
             LOGGER.info("There are no pixels to refine.")
             return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
-
-        # sanity check nsides_dict
-        for nside in self.nsides_dict:
-            for pixel in self.nsides_dict[nside]:
-                if (nside,pixel) in pixels_to_refine:
-                    raise RuntimeError("pixel to refine is already done processing")
 
         # submit the pixels we need to submit
         for i, (nside, pix) in enumerate(pixels_to_refine):
@@ -373,7 +376,7 @@ class PixelRecoCollector:
         return len(self._pixreco_ids_sent__with_times)
 
     @property
-    def _pixreco_ids_sent(self) -> Set[PixelRecoID]:
+    def pixreco_ids_sent(self) -> Set[PixelRecoID]:
         """Just the PixelReco IDs that have been sent."""
         return set(self._pixreco_ids_sent__with_times.keys())
 
@@ -479,7 +482,7 @@ class PixelRecoCollector:
         if len(self._pixreco_ids_sent__with_times) != self.n_sent:
             return False
         # now, sanity check contents, slower: O(n)
-        return self._pixreco_ids_sent == self._pixreco_ids_received
+        return self.pixreco_ids_sent == self._pixreco_ids_received
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
@@ -572,13 +575,16 @@ async def _send_pixels(
     to_clients_queue: mq.Queue,
     reco_algo: str,
     pixeler: PixelsToReco,
+    pixreco_ids_already_sent: Set[PixelRecoID],
 ) -> Set[PixelRecoID]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
 
     pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.gen_new_pixel_pframes_to_scan()):
+        for i, pframe in enumerate(
+            pixeler.gen_new_pixel_pframes_to_scan(pixreco_ids_already_sent)
+        ):
             _tup = pframe_to_pixelrecoid(pframe)
             LOGGER.info(f"Sending message M#{i} ({_tup})...")
             await pub.send(
@@ -625,7 +631,12 @@ async def _serve_and_collect(
             #
             # SEND PIXELS -- the next logical round of pixels (not necessarily the next nside)
             #
-            pixreco_ids_sent = await _send_pixels(to_clients_queue, reco_algo, pixeler)
+            pixreco_ids_sent = await _send_pixels(
+                to_clients_queue,
+                reco_algo,
+                pixeler,
+                collector.pixreco_ids_sent,
+            )
             await collector.register_sent_pixreco_ids(pixreco_ids_sent)
 
             #

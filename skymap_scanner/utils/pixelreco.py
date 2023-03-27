@@ -55,4 +55,4 @@ class PixelReco:
         return recos.get_reco_interface_object(reco_algo).to_pixelreco(frame, geometry)
 
 
-NSidesDict = Dict[int, Dict[int, PixelReco]]
+NSidesDict = Dict[int, Dict[int, PixelReco]]  # nside:(id:PixelReco}

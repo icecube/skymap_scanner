@@ -125,7 +125,7 @@ def find_pixels_to_refine(
     return [x for x in pixels_to_refine]
 
 
-def choose_new_pixels_to_scan_around_MCtruth(
+def choose_pixels_to_reconstruct_around_MCtruth(
     nsides_dict: NSidesDict,
     mc_ra_dec: Tuple[float, float],
     nside: int,
@@ -169,20 +169,23 @@ def choose_new_pixels_to_scan_around_MCtruth(
     return scan_pixels
 
 
-def choose_new_pixels_to_scan(
+def choose_pixels_to_reconstruct(
     nsides_dict: NSidesDict,
     nside_progression: NSideProgression,
     ang_dist: float = 2.,
     mc_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
-    """Get the next set of pixels to scan/refine by searching `nsides_dict`."""
+    """Get more pixels to reconstruct/refine by searching `nsides_dict`.
+
+    Some of the pixel returned may have previously been generated.
+    """
     nside_progression = validate_nside_progression(nside_progression)
 
     # special case if we have MC truth
     if mc_ra_dec:
         LOGGER.debug("Getting pixels around MC truth...")
         # scan only at max_nside around the true minimum
-        return choose_new_pixels_to_scan_around_MCtruth(
+        return choose_pixels_to_reconstruct_around_MCtruth(
             nsides_dict,
             mc_ra_dec=mc_ra_dec,
             nside=nside_progression[-1][0],  # use final nside
@@ -217,19 +220,15 @@ def choose_new_pixels_to_scan(
         LOGGER.debug(f"Found {len(pixels_to_refine)} pixels to refine: {pixels_to_refine}...")
         if len(pixels_to_refine) > 0:
             # have the list of pixels to refine - find their subdivisions
-            upgraded_pixels_to_refine = []
-            for p in pixels_to_refine:
-                u = healpix_pixel_upgrade(current_nside, next_nside, p) # upgrade to the next nside
-                upgraded_pixels_to_refine.extend(u)
-            # only scan non-existent pixels
-            # (filter out those previously generated)
-            if next_nside in nsides_dict:
-                upgraded_pixels_to_refine = [
-                    pix for pix in upgraded_pixels_to_refine
-                    if pix not in nsides_dict[next_nside].keys()
-                ]
+            upgraded_pixels_to_refine: List[Tuple[icetray.I3Int, icetray.I3Int]] = []
+            for pixel in pixels_to_refine:
+                # upgrade to the next nside
+                upgraded_pixels_to_refine.extend(
+                    (next_nside, x) for x in healpix_pixel_upgrade(current_nside, next_nside, pixel)
+                )
+            # extend
             LOGGER.debug(f"Extending list of pixels (nside={next_nside}) by {len(upgraded_pixels_to_refine)} ({upgraded_pixels_to_refine})...")
-            all_pixels_to_refine.extend([(next_nside, pix) for pix in upgraded_pixels_to_refine])
+            all_pixels_to_refine.extend(upgraded_pixels_to_refine)
 
     LOGGER.debug(f"Search Complete: Got {len(all_pixels_to_refine)} pixels to refine: {all_pixels_to_refine}.")
     return all_pixels_to_refine
