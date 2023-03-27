@@ -61,13 +61,14 @@ def validate_nside_progression(
         raise ValueError(
             f"Invalid NSide Progression: the final pixel extension number needs to be {cfg.FINAL_NSIDE_PIXEL_EXTENSION} ({nside_progression})"
         )
-    if any(not isinstance(n[1], int) or n[1] <= 0 for n in nside_progression):
+    if any(not isinstance(n[1], int) or n[1] <= 0 for n in nside_progression[:-1]):
+        # doesn't check last extension #
         raise ValueError(
-            f"Invalid NSide Progression: extension must be positive int ({nside_progression})"
+            f"Invalid NSide Progression: extension number must be positive int ({nside_progression})"
         )
     if any(not _is_pow_of_two(n[0]) for n in nside_progression):
         raise ValueError(
-            f"Invalid NSide Progression: extension must be positive n^2 ({nside_progression})"
+            f"Invalid NSide Progression: nside value must be positive n^2 ({nside_progression})"
         )
     return nside_progression
 
