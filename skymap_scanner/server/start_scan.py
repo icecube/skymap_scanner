@@ -784,7 +784,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--nsides",
-        des="nside_progression",
+        dest="nside_progression",
         default=cfg.DEFAULT_NSIDE_PROGRESSION,
         help=(
             f"The progression of nside values to use, "
