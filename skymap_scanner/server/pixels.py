@@ -189,17 +189,21 @@ def choose_pixels_to_reconstruct(
             angular_dist=ang_dist*numpy.pi/180.
         )
 
-    # initial pixel generation
+    # INITIAL PIXEL GENERATION
     if not nsides_dict:
         LOGGER.debug(f"No previous nsides_dict, getting pixels for {nside_progression[0][0]}...")
         scan_pixels = list(range(healpy.nside2npix(nside_progression[0][0])))
         return set((nside_progression[0][0], pix) for pix in scan_pixels)
 
-    # generate pixels to refine
     all_pixels_to_refine: Set[Tuple[icetray.I3Int, icetray.I3Int]] = set()
+
+    # GENERATE PIXELS TO REFINE
     # iterate through each nside looking for what subset of pixels to reco using the next nside
-    for i, (current_nside, pixel_extension_number) in enumerate(nside_progression[:-1]):  # skip final
-        next_nside = nside_progression[i+1][0]  # index will always be defined since we're not iterating the final nside
+    for i, (current_nside, _) in enumerate(nside_progression[:-1]):  # skip final
+
+        # get what nside will be refining to & the pixel-extension to be used
+        # index will always be defined since we're not iterating the final nside
+        next_nside, pixel_extension_number = nside_progression[i+1]
         LOGGER.debug(
             f"Attempting to get pixels for ("
             f"current_nside={current_nside}, "

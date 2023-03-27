@@ -60,12 +60,12 @@ def validate_nside_progression(
         raise ValueError(
             f"Invalid NSide Progression: nsides are not in ascending order ({nside_progression})"
         )
-    if nside_progression[-1][1] != cfg.FINAL_NSIDE_PIXEL_EXTENSION:
+    if nside_progression[0][1] != cfg.FIRST_NSIDE_PIXEL_EXTENSION:
         raise ValueError(
-            f"Invalid NSide Progression: the final pixel extension number needs to be {cfg.FINAL_NSIDE_PIXEL_EXTENSION} ({nside_progression})"
+            f"Invalid NSide Progression: the first pixel extension number must be {cfg.FIRST_NSIDE_PIXEL_EXTENSION} ({nside_progression})"
         )
-    if any(not isinstance(n[1], int) or n[1] <= 0 for n in nside_progression[:-1]):
-        # doesn't check last extension #
+    if any(not isinstance(n[1], int) or n[1] <= 0 for n in nside_progression[1:]):
+        # don't check first extension #
         raise ValueError(
             f"Invalid NSide Progression: extension number must be positive int ({nside_progression})"
         )
@@ -78,18 +78,21 @@ def validate_nside_progression(
 
 @cachetools.func.lru_cache()
 def n_recos_by_nside_lowerbound(
-    nsides: cfg.NSideProgression, n_posvar: int
+    nside_progression: cfg.NSideProgression, n_posvar: int
 ) -> Dict[int, int]:
     """Get estimated # of recos per nside.
 
     These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
     """
 
-    def prev(n: Tuple[int, int]) -> int:
+    def previous_nside(n: Tuple[int, int]) -> int:
         # get previous nside value
-        idx = nsides.index(n)
+        idx = nside_progression.index(n)
         if idx == 0:
             return 1
-        return nsides[idx - 1][0]
+        return nside_progression[idx - 1][0]
 
-    return {N[0]: int(n_posvar * N[1] * (N[0] / prev(N)) ** 2) for N in nsides}
+    return {
+        N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
+        for N in nside_progression
+    }

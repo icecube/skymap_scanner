@@ -788,8 +788,8 @@ def main() -> None:
         help=(
             f"The progression of nside values to use, "
             f"each ':'-paired with their pixel extension value. "
-            f"The final nside's pixel extension must be {cfg.FINAL_NSIDE_PIXEL_EXTENSION}. "
-            f"Example: --nsides 8:12 64:12 512:{cfg.FINAL_NSIDE_PIXEL_EXTENSION}"
+            f"The first nside's pixel extension must be {cfg.FIRST_NSIDE_PIXEL_EXTENSION}. "
+            f"Example: --nsides 8:{cfg.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
         ),
         nargs='*',
         type=_nside_and_pixelextension,
