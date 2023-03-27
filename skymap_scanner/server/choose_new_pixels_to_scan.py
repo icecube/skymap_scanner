@@ -87,7 +87,6 @@ def find_global_min_pixel(nsides_dict: NSidesDict) -> Tuple[Optional[int], Optio
 def find_pixels_to_refine(
     nsides_dict: NSidesDict,
     nside: int,
-    total_pixels_for_this_nside: int,
     pixel_extension_number: int = 24,
     llh_diff_to_trigger_refinement: int = 200000,
 ) -> List[int]:
@@ -247,17 +246,10 @@ def choose_new_pixels_to_scan(
             LOGGER.debug(f"No more pixels to scan: (next_nside={next_nside} > max_nside={max_nside})")
             break # no more pixels to scan
 
-        total_pixels_scanning_and_existing = set()
-        if current_nside in nsides_dict:
-            total_pixels_scanning_and_existing.update(list(nsides_dict[current_nside].keys()))
-        for __n, __p in all_pixels_to_refine:
-            if __n == current_nside:
-                total_pixels_scanning_and_existing.add(__p)
-
+        # Find which (finished) pixels are best to refine
         pixels_to_refine = find_pixels_to_refine(
             nsides_dict,
             nside=current_nside,
-            total_pixels_for_this_nside=len(total_pixels_scanning_and_existing),
             pixel_extension_number=pixel_extension_number
         )
         LOGGER.debug(f"Found {len(pixels_to_refine)} pixels to refine: {pixels_to_refine}...")
