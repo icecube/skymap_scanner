@@ -820,15 +820,21 @@ def main() -> None:
     # predictive_scanning_threshold
     parser.add_argument(
         "--predictive-scanning-threshold",
-        default=1.0,
+        default=cfg.PREDICTIVE_SCANNING_THRESHOLD_DEFAULT,
         help=(
             "The percentage of reconstructed pixels collected before "
             "the next nside's round of pixels can be served"
         ),
         type=lambda x: argparse_tools.validate_arg(
             float(x),
-            0.0 < float(x) < 1.0,
-            argparse.ArgumentTypeError(f"value must be (0.0, 1.0]: '{x}'"),
+            cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN
+            <= float(x)
+            <= cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX,
+            argparse.ArgumentTypeError(
+                f"value must be "
+                f"[{cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN}, "
+                f"{cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX}]: '{x}'"
+            ),
         ),
     )
 

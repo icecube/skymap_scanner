@@ -40,6 +40,10 @@ BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
 SOURCE_BASELINE_GCD_METADATA = "original_base_GCD_for_diff_filename.txt"
 GCDQp_FILENAME = "GCDQp.i3"
 
+PREDICTIVE_SCANNING_THRESHOLD_MIN = 0.1
+PREDICTIVE_SCANNING_THRESHOLD_MAX = 1.0
+PREDICTIVE_SCANNING_THRESHOLD_DEFAULT = 1.0
+
 
 class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""
