@@ -434,6 +434,7 @@ class PixelRecoCollector:
         """
         if addl_sent_pixels:
             for sentpix in addl_sent_pixels:
+                self.reporter.increment_pixels_sent_ct(sentpix.nside)
                 try:
                     self._sent_pixels_by_nside[sentpix.nside].append(sentpix)
                 except KeyError:

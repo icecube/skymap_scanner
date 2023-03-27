@@ -20,7 +20,6 @@ from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import n_recos_by_nside_lowerbound
 
 StrDict = Dict[str, Any]
 
@@ -204,6 +203,8 @@ class Reporter:
         self.n_posvar = n_posvar
         self.nside_progression = nside_progression
 
+        self._n_pixels_sent_by_nside: Dict[int, int] = {}
+
         self.skydriver_rc = skydriver_rc
         self.event_metadata = event_metadata
 
@@ -229,6 +230,13 @@ class Reporter:
         ):
             RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
         self._call_order["last_called"] = current  # type: ignore[assignment]
+
+    def increment_pixels_sent_ct(self, nside: int, increment: int = 1) -> None:
+        """Increment the number of pixels sent by nside."""
+        try:
+            self._n_pixels_sent_by_nside[nside] += increment
+        except KeyError:
+            self._n_pixels_sent_by_nside[nside] = increment
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
@@ -351,11 +359,7 @@ class Reporter:
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed_reco_walltime / (
                 self.worker_stats_collection.total_ct
-                / sum(
-                    n_recos_by_nside_lowerbound(
-                        self.nside_progression, self.n_posvar
-                    ).values()
-                )
+                / sum(self._n_pixels_sent_by_nside.values())
             )
             proc_stats["predictions"] = {
                 "time left": str(
@@ -365,9 +369,7 @@ class Reporter:
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
                 ),
                 "total # of reconstructions": sum(
-                    n_recos_by_nside_lowerbound(
-                        self.nside_progression, self.n_posvar
-                    ).values()
+                    self._n_pixels_sent_by_nside.values()
                 ),
                 "end": str(
                     dt.datetime.fromtimestamp(
@@ -387,8 +389,8 @@ class Reporter:
                 saved[nside] = {
                     "done": n_done,
                     "est. percent": (
-                        f"{n_done}/{n_recos_by_nside_lowerbound(self.nside_progression, self.n_posvar)[nside]} "
-                        f"({n_done / n_recos_by_nside_lowerbound(self.nside_progression, self.n_posvar)[nside]:.2f})"
+                        f"{n_done}/{self._n_pixels_sent_by_nside[nside]} "
+                        f"({n_done / self._n_pixels_sent_by_nside[nside]:.4f})"
                     ),
                 }
 
