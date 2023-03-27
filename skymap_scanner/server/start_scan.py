@@ -30,11 +30,10 @@ from ..utils import extract_json_message
 from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixelreco import NSidesDict, PixelReco, PixelRecoID, pframe_to_pixelrecoid
-from ..utils.utils import pow_of_two
 from . import LOGGER
 from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
 from .reporter import Reporter
-from .utils import fetch_event_contents
+from .utils import fetch_event_contents, validate_nside_progression
 
 StrDict = Dict[str, Any]
 
@@ -57,8 +56,7 @@ class PixelsToReco:
         nsides_dict: NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         baseline_GCD: str,
-        min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        nside_progression: cfg.NSideProgression,
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
@@ -71,10 +69,8 @@ class PixelsToReco:
                 - the nsides_dict
             `GCDQp_packet`
                 - the GCDQp frame packet
-            `min_nside`
-                - min nside value
-            `max_nside`
-                - max nside value
+            `nside_progression`
+                - the list of nsides & pixel-extensions
             `input_time_name`
                 - name of an I3Double to use as the vertex time for the coarsest scan
             `input_pos_name`
@@ -116,10 +112,7 @@ class PixelsToReco:
             ]
 
         # Set nside values
-        if max_nside < min_nside:
-            raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
-        self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        self.nside_progression = nside_progression
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -167,8 +160,7 @@ class PixelsToReco:
 
         # find pixels to refine
         pixels_to_refine = choose_new_pixels_to_scan(
-            # TODO: replace with self.nsides & implement
-            self.nsides_dict, min_nside=self.min_nside, max_nside=self.max_nside
+            self.nsides_dict, self.nside_progression
         )
         if len(pixels_to_refine) == 0:
             LOGGER.info("There are no pixels to refine.")
@@ -514,8 +506,7 @@ async def scan(
     output_dir: Optional[Path],
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
-    min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-    max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+    nside_progression: cfg.NSideProgression,
     predictive_scanning_threshold: float,
     skydriver_rc: Optional[RestClient],
 ) -> NSidesDict:
@@ -531,8 +522,7 @@ async def scan(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
         baseline_GCD=baseline_GCD,
-        min_nside=min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        nside_progression=nside_progression,
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
@@ -545,8 +535,7 @@ async def scan(
         global_start_time,
         nsides_dict,
         len(pixeler.pos_variations),
-        min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        nside_progression,
         skydriver_rc,
         event_metadata,
     )
@@ -673,8 +662,7 @@ async def _serve_and_collect(
 def write_startup_json(
     client_startup_json: Path,
     event_metadata: EventMetadata,
-    min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-    max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+    nside_progression: cfg.NSideProgression,
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> str:
@@ -685,9 +673,7 @@ def write_startup_json(
     if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
         scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
     else:
-        # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        # scan_id = f"{event_id}-{'-'.join(f'{n}:{x}' for n,x in nsides)}-{int(time.time())}"
-        scan_id = f"{str(event_metadata)}-{min_nside}-{max_nside}-{int(time.time())}"
+        scan_id = f"{event_metadata.event_id}-{'-'.join(f'{n}:{x}' for n,x in nside_progression)}-{int(time.time())}"
 
     json_dict = {
         "scan_id": scan_id,
@@ -712,12 +698,9 @@ def write_startup_json(
 def main() -> None:
     """Get command-line arguments and perform event scan via clients."""
 
-    def _nside_and_pixelextension(val: str) -> int:  # -> Tuple[int, int]:
-        val = val.split(":")[0]  # for SkyDriver until real implementation (below)
-        return pow_of_two(val)
-        # TODO: use code below instead (https://github.com/icecube/skymap_scanner/issues/79)
-        # nside, ext = val.split(":")
-        # return pow_of_two(nside), int(ext)
+    def _nside_and_pixelextension(val: str) -> Tuple[int, int]:
+        nside, ext = val.split(":")
+        return int(nside), int(ext)
 
     parser = argparse.ArgumentParser(
         description=(
@@ -790,16 +773,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--nsides",
-        default=[
-            cfg.MIN_NSIDE_DEFAULT,
-            cfg.MAX_NSIDE_DEFAULT,
-        ],  # TODO: [(8,12), (64,12), (512,24)] (https://github.com/icecube/skymap_scanner/issues/79)
+        des="nside_progression",
+        default=cfg.DEFAULT_NSIDE_PROGRESSION,
         help=(
-            "The min and max nside value, if one value is given only do that one iteration"
-            # TODO: use message below instead (https://github.com/icecube/skymap_scanner/issues/79)
-            # "The nside values to use for each iteration, "
-            # "each ':'-paired with their pixel extension value. "
-            # "Example: --nsides 8:12 64:12 512:24"
+            f"The progression of nside values to use, "
+            f"each ':'-paired with their pixel extension value. "
+            f"The final nside's pixel extension must be {cfg.FINAL_NSIDE_PIXEL_EXTENSION}. "
+            f"Example: --nsides 8:12 64:12 512:{cfg.FINAL_NSIDE_PIXEL_EXTENSION}"
         ),
         nargs='*',
         type=_nside_and_pixelextension,
@@ -849,21 +829,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides
-    args.nsides = sorted(args.nsides)
-    # TODO: un-comment validity check below (https://github.com/icecube/skymap_scanner/issues/79)
-    # if list(set(n[0] for n in args.nsides)) != [n[0] for n in args.nsides]:
-    #     raise argparse.ArgumentTypeError(
-    #         f"'--nsides' cannot contain duplicate nsides: {args.nsides}"
-    #     )
-    # TODO - actually implement variable nside sequences (https://github.com/icecube/skymap_scanner/issues/79)
-    # for now...
-    if len(args.nsides) > 2:
-        raise argparse.ArgumentTypeError("'--nsides' cannot contain more than 2 values")
-    min_nside = args.nsides[0]
-    max_nside = args.nsides[-1]  # if only one value, then also grab index-0
-    logging.warning(
-        f"VARIABLE NSIDE SEQUENCES NOT YET IMPLEMENTED: using {min_nside=} & {max_nside=} with default pixel-extension values"
-    )
+    args.nside_progression = validate_nside_progression(args.nside_progression)
 
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():
@@ -898,8 +864,7 @@ def main() -> None:
     scan_id = write_startup_json(
         args.client_startup_json,
         event_metadata,
-        min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        args.nside_progression,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
@@ -933,8 +898,7 @@ def main() -> None:
             output_dir=args.output_dir,
             to_clients_queue=to_clients_queue,
             from_clients_queue=from_clients_queue,
-            min_nside=min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-            max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            nside_progression=args.nside_progression,
             predictive_scanning_threshold=args.predictive_scanning_threshold,
             skydriver_rc=skydriver_rc,
         )

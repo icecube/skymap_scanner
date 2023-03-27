@@ -14,12 +14,12 @@ from typing import Any, Callable, Dict, List, Optional
 from rest_tools.client import RestClient
 
 from .. import config as cfg
+from ..config import NSideProgression
 from ..utils import pixelreco
 from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .types import NSideProgression
 from .utils import n_recos_by_nside_lowerbound
 
 StrDict = Dict[str, Any]

@@ -10,9 +10,9 @@ import healpy  # type: ignore[import]
 import numpy
 from icecube import icetray  # type: ignore[import]
 
+from ..config import NSideProgression, validate_nside_progression
 from ..utils.pixelreco import NSidesDict
 from . import LOGGER
-from .types import NSideProgression
 
 
 def __healpix_pixel_upgrade(nside, pix) -> list:
@@ -175,6 +175,7 @@ def choose_new_pixels_to_scan(
     mc_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
     """Get the next set of pixels to scan/refine by searching `nsides_dict`."""
+    nside_progression = validate_nside_progression(nside_progression)
 
     # special case if we have MC truth
     if mc_ra_dec:
