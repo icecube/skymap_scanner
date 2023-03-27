@@ -15,14 +15,14 @@ from ..utils.pixelreco import NSidesDict
 from . import LOGGER
 
 
-def __healpix_pixel_upgrade(nside, pix):
+def __healpix_pixel_upgrade(nside, pix) -> list:
     pix_nested = healpy.ring2nest(nside, pix)
     pix_upgraded = (pix_nested << 2)
     sub_pixels = [pix_upgraded, pix_upgraded+1, pix_upgraded+2, pix_upgraded+3]
     return healpy.nest2ring(nside*2, sub_pixels)
 
 
-def healpix_pixel_upgrade(from_nside, to_nside, pix):
+def healpix_pixel_upgrade(from_nside, to_nside, pix) -> list:
     if to_nside < from_nside:
         raise RuntimeError("to_nside needs to be greater than from_nside")
     if to_nside==from_nside:
@@ -45,7 +45,7 @@ def healpix_pixel_upgrade(from_nside, to_nside, pix):
 
 
 # TODO: maybe use healpy to find neighboring pixels and scan all 8 neighbors+the current pixel
-def find_pixels_around_pixel(request_nside, pix_nside, pix, num=10):
+def find_pixels_around_pixel(request_nside, pix_nside, pix, num=10) -> list:
     pixel_area = healpy.nside2pixarea(request_nside)
     area_for_requested_pixels = pixel_area*float(num)
     radius_around = numpy.sqrt(area_for_requested_pixels/numpy.pi)
@@ -202,19 +202,7 @@ def choose_new_pixels_to_scan(
         random.shuffle(scan_pixels)
         return [(min_nside, pix) for pix in scan_pixels]
 
-    # Find any unfinished pixels for min_nside (LEGACY CODE)
-    scan_pixels = []
-    for i in range(healpy.nside2npix(min_nside)):
-        if i not in nsides_dict[min_nside].keys():
-            scan_pixels.append(i)
-    if len(scan_pixels) > 0:
-        random.shuffle(scan_pixels)
-        all_pixels_to_refine = [(min_nside, pix) for pix in scan_pixels]
-        LOGGER.debug(
-            f"Found {len(all_pixels_to_refine)} unfinished pixels for min_nside={min_nside} ({all_pixels_to_refine})..."
-        )
-    else:
-        all_pixels_to_refine = []
+    all_pixels_to_refine: List[Tuple[icetray.I3Int, icetray.I3Int]] = []
 
     # some or all 768 pixels with nside min_nside exist
     # start w/ min
@@ -255,24 +243,21 @@ def choose_new_pixels_to_scan(
         LOGGER.debug(f"Found {len(pixels_to_refine)} pixels to refine: {pixels_to_refine}...")
         if len(pixels_to_refine) > 0:
             # have the list of pixels to refine - find their subdivisions
-
             upgraded_pixels_to_refine = []
             for p in pixels_to_refine:
                 u = healpix_pixel_upgrade(current_nside, next_nside, p) # upgrade to the next nside
                 upgraded_pixels_to_refine.extend(u)
 
             # only scan non-existent pixels
+            # (filter out those previously generated)
             if next_nside in nsides_dict:
-                upgraded_pixels_to_refine_nonexisting = [
+                upgraded_pixels_to_refine = [
                     pix for pix in upgraded_pixels_to_refine
                     if pix not in nsides_dict[next_nside].keys()
                 ]
-            else:
-                upgraded_pixels_to_refine_nonexisting = upgraded_pixels_to_refine
 
-            to_extend = [(next_nside, pix) for pix in upgraded_pixels_to_refine_nonexisting]
-            LOGGER.debug(f"Extending list of pixels by {len(to_extend)} ({to_extend})...")
-            all_pixels_to_refine.extend(to_extend)
+            LOGGER.debug(f"Extending list of pixels (nside={next_nside}) by {len(upgraded_pixels_to_refine)} ({upgraded_pixels_to_refine})...")
+            all_pixels_to_refine.extend([(next_nside, pix) for pix in upgraded_pixels_to_refine])
 
         current_nside = next_nside # test the next nside
 
