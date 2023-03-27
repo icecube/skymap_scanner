@@ -5,6 +5,8 @@
 
 import argparse
 import asyncio
+import dataclasses as dc
+import itertools
 import json
 import logging
 import random
@@ -37,6 +39,34 @@ from .reporter import Reporter
 from .utils import fetch_event_contents, validate_nside_progression
 
 StrDict = Dict[str, Any]
+
+
+@dc.dataclass
+class SentPixel:
+    """Used for tracking a single sent pixel."""
+
+    nside: int
+    pixel_id: int
+    posvar_id: int
+    sent_time: float
+
+    @staticmethod
+    def from_pframe(pframe: icetray.I3Frame) -> 'SentPixel':
+        """Get an instance from a Pframe."""
+        return SentPixel(
+            nside=pframe[cfg.I3FRAME_NSIDE].value,
+            pixel_id=pframe[cfg.I3FRAME_PIXEL].value,
+            posvar_id=pframe[cfg.I3FRAME_POSVAR].value,
+            sent_time=time.time(),
+        )
+
+    def matches_pixreco(self, pixreco: PixelReco) -> bool:
+        """Does this match the PixelReco instance?"""
+        return (
+            self.nside == pixreco.nside
+            and self.pixel_id == pixreco.pixel
+            and self.posvar_id == pixreco.pos_var_index
+        )
 
 
 class ExtraPixelRecoException(Exception):
@@ -158,14 +188,14 @@ class PixelsToReco:
 
     def gen_new_pixel_pframes(
         self,
-        pixreco_ids_already_sent: Set[PixelRecoID],
+        already_sent_pixels: Set[SentPixel],
     ) -> Iterator[icetray.I3Frame]:
         """Yield pixels (PFrames) to be reco'd."""
 
         def pixel_already_sent(pixel: Tuple[icetray.I3Int, icetray.I3Int]) -> bool:
             # Has this pixel already been sent? Ignore the position-variation id
-            for x_nside, x_pixel_id, _ in pixreco_ids_already_sent:
-                if x_nside == pixel[0] and x_pixel_id == pixel[1]:
+            for sent_pixel in already_sent_pixels:
+                if sent_pixel.nside == pixel[0] and sent_pixel.pixel_id == pixel[1]:
                     return True
             return False
 
@@ -362,8 +392,8 @@ class PixelRecoCollector:
 
         self.reporter = reporter
         self.nsides_dict = nsides_dict
-        self._pixreco_ids_received: Set[PixelRecoID] = set([])
-        self._pixreco_ids_sent__with_times: Dict[PixelRecoID, float] = {}
+        self._pixreco_received: Set[PixelRecoID] = set([])
+        self._sent_pixels_by_nside: Dict[int, List[SentPixel]] = {}
 
         if not (0.0 < predictive_scanning_threshold <= 1.0):
             raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
@@ -372,12 +402,12 @@ class PixelRecoCollector:
 
     @property
     def n_sent(self) -> int:
-        return len(self._pixreco_ids_sent__with_times)
+        return sum(len(x) for x in self._sent_pixels_by_nside.values())
 
     @property
-    def pixreco_ids_sent(self) -> Set[PixelRecoID]:
-        """Just the PixelReco IDs that have been sent."""
-        return set(self._pixreco_ids_sent__with_times.keys())
+    def sent_pixels(self) -> Set[SentPixel]:
+        """Just the PixelSent instances that have been sent."""
+        return set(itertools.chain(*self._sent_pixels_by_nside.values()))
 
     def finder_context(self) -> '_FinderContextManager':
         """Creates a context manager for startup & ending conditions."""
@@ -396,19 +426,19 @@ class PixelRecoCollector:
             self.finder.finish()
             self.parent._in_finder_context = False
 
-    async def register_sent_pixreco_ids(
-        self, addl_pixreco_ids_sent: Set[PixelRecoID]
-    ) -> None:
+    async def register_sent_pixels(self, addl_sent_pixels: Set[SentPixel]) -> None:
         """Register the pixel ids recently sent.
 
-        When `addl_pixreco_ids_sent` is empty (happens at the end of the
+        When `addl_sent_pixels` is empty (happens at the end of the
         scan), `self.predictive_scanning_threshold` will now be ignored.
         """
-        if addl_pixreco_ids_sent:
-            now = time.time()
-            self._pixreco_ids_sent__with_times.update(
-                {p: now for p in addl_pixreco_ids_sent}
-            )
+        if addl_sent_pixels:
+            for sentpix in addl_sent_pixels:
+                try:
+                    self._sent_pixels_by_nside[sentpix.nside].append(sentpix)
+                except KeyError:
+                    self._sent_pixels_by_nside[sentpix.nside] = [sentpix]
+
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
                 summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
@@ -432,17 +462,24 @@ class PixelRecoCollector:
             )
         LOGGER.debug(f"{self.nsides_dict=}")
 
-        if pixreco.id_tuple in self._pixreco_ids_received:
+        if pixreco.id_tuple in self._pixreco_received:
             raise ExtraPixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
-        if pixreco.id_tuple not in self._pixreco_ids_sent__with_times:
+
+        # match to corresponding SentPixel
+        sent_pixel = None
+        for sent_pixel in self._sent_pixels_by_nside[pixreco.nside]:
+            if sent_pixel.matches_pixreco(pixreco):
+                break
+        if not sent_pixel:
             raise ExtraPixelRecoException(
                 f"Pixel-reco received not in sent set: {pixreco.id_tuple}"
             )
 
-        self._pixreco_ids_received.add(pixreco.id_tuple)
-        logging_id = f"S#{len(self._pixreco_ids_received) - 1}"
+        # append
+        self._pixreco_received.add(pixreco.id_tuple)
+        logging_id = f"S#{len(self._pixreco_received) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
@@ -471,17 +508,18 @@ class PixelRecoCollector:
         await self.reporter.record_pixreco(
             pixreco.nside,
             pixreco_runtime,
-            roundtrip_start=self._pixreco_ids_sent__with_times[pixreco.id_tuple],
+            roundtrip_start=sent_pixel.sent_time,
             roundtrip_end=time.time(),
         )
 
     def is_scan_done(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
-        if len(self._pixreco_ids_sent__with_times) != self.n_sent:
+        if len(self._sent_pixels_by_nside) != self.n_sent:
             return False
         # now, sanity check contents, slower: O(n)
-        return self.pixreco_ids_sent == self._pixreco_ids_received
+        sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixels)
+        return sent_ids == self._pixreco_received
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
@@ -491,11 +529,11 @@ class PixelRecoCollector:
         if self._end_game:
             return False
 
-        target = (
-            len(self._pixreco_ids_sent__with_times)
-            * self._predictive_scanning_threshold
-        )
-        return len(self._pixreco_ids_received) >= target
+        # get percentage of latest nside (otherwise BIG + small >> threshold)
+        latest_nside = max(self.nsides_dict.keys())
+
+        target = len(self._sent_pixels_by_nside) * self._predictive_scanning_threshold
+        return len(self.nsides_dict[latest_nside]) >= target
 
 
 async def scan(
@@ -574,32 +612,29 @@ async def _send_pixels(
     to_clients_queue: mq.Queue,
     reco_algo: str,
     pixeler: PixelsToReco,
-    pixreco_ids_already_sent: Set[PixelRecoID],
-) -> Set[PixelRecoID]:
+    already_sent_pixels: Set[SentPixel],
+) -> Set[SentPixel]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
 
-    pixreco_ids_sent = set([])
+    sent_pixels: Set[SentPixel] = set([])
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(
-            pixeler.gen_new_pixel_pframes(pixreco_ids_already_sent)
-        ):
-            _tup = pframe_to_pixelrecoid(pframe)
-            LOGGER.info(f"Sending message M#{i} ({_tup})...")
+        for i, pframe in enumerate(pixeler.gen_new_pixel_pframes(already_sent_pixels)):
+            LOGGER.info(f"Sending message M#{i} ({pframe_to_pixelrecoid(pframe)})...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
-            pixreco_ids_sent.add(_tup)
+            sent_pixels.add(SentPixel.from_pframe(pframe))
 
     # check if anything was actually processed
-    if not pixreco_ids_sent:
+    if not sent_pixels:
         LOGGER.info("No additional pixels were sent.")
     else:
-        LOGGER.info(f"Done serving pixels to clients: {len(pixreco_ids_sent)}.")
-    return pixreco_ids_sent
+        LOGGER.info(f"Done serving pixels to clients: {len(sent_pixels)}.")
+    return sent_pixels
 
 
 async def _serve_and_collect(
@@ -630,13 +665,13 @@ async def _serve_and_collect(
             #
             # SEND PIXELS -- the next logical round of pixels (not necessarily the next nside)
             #
-            pixreco_ids_sent = await _send_pixels(
+            sent_pixels = await _send_pixels(
                 to_clients_queue,
                 reco_algo,
                 pixeler,
-                collector.pixreco_ids_sent,
-            )  # NOTE: when this list is empty (no pixels sent), we are waiting for the final recos
-            await collector.register_sent_pixreco_ids(pixreco_ids_sent)
+                collector.sent_pixels,
+            )  # NOTE: when this set is empty (no pixels sent), we are waiting for the final recos
+            await collector.register_sent_pixels(sent_pixels)
 
             #
             # COLLECT PIXEL-RECOS
@@ -839,8 +874,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides
-    args.nside_progression = tuple(args.nside_progression)
-    args.nside_progression = validate_nside_progression(args.nside_progression)  # type: ignore[arg-type]
+    args.nside_progression = validate_nside_progression(tuple(args.nside_progression))
 
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():
