@@ -381,8 +381,9 @@ class PixelRecoCollector:
         return len(self._pixreco_ids_sent__with_times)
 
     @property
-    def n_received(self) -> int:
-        return len(self._pixreco_ids_received)
+    def _pixreco_ids_sent(self) -> Set[PixelRecoID]:
+        """Just the PixelReco IDs that have been sent."""
+        return set(self._pixreco_ids_sent__with_times.keys())
 
     def finder_context(self) -> '_FinderContextManager':
         """Creates a context manager for startup & ending conditions."""
@@ -482,7 +483,11 @@ class PixelRecoCollector:
 
     def is_scan_done(self) -> bool:
         """Has every pixel been collected?"""
-        return self.n_received == self.n_sent
+        # first check lengths, faster: O(1)
+        if len(self._pixreco_ids_sent__with_times) != self.n_sent:
+            return False
+        # now, sanity check contents, slower: O(n)
+        return self._pixreco_ids_sent == self._pixreco_ids_received
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
