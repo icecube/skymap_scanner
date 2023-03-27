@@ -619,7 +619,8 @@ async def _serve_and_collect(
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
 
-    Return the number of pixels sent. Stop when this is 0.
+    Return the number of pixels sent. Stop when all sent pixels have
+    been received (or the MQ-sub times-out).
     """
     collector = PixelRecoCollector(
         n_posvar=len(pixeler.pos_variations),
