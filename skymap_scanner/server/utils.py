@@ -52,10 +52,13 @@ def validate_nside_progression(
     nside_progression: cfg.NSideProgression,
 ) -> cfg.NSideProgression:
     """Validate and sort the nside progression."""
-    nside_progression.sort()
     if len(set(n[0] for n in nside_progression)) != len(nside_progression):
         raise ValueError(
             f"Invalid NSide Progression: has duplicate nsides ({nside_progression})"
+        )
+    if [n[0] for n in nside_progression] != sorted(n[0] for n in nside_progression):
+        raise ValueError(
+            f"Invalid NSide Progression: nsides are not in ascending order ({nside_progression})"
         )
     if nside_progression[-1][1] != cfg.FINAL_NSIDE_PIXEL_EXTENSION:
         raise ValueError(
