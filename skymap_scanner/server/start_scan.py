@@ -178,7 +178,7 @@ class PixelsToReco:
             LOGGER.debug(
                 f"Generating position-variations from pixel P#{i}: {(nside, pix)}"
             )
-            yield from self._gen_pixel_variations(nside=nside, pixel=pix)
+            yield from self._gen_pframes(nside=nside, pixel=pix)
 
     def i3particle(self, position, direction, energy, time):
         # generate the particle from scratch
@@ -202,7 +202,7 @@ class PixelsToReco:
         particle.energy = energy
         return particle
 
-    def _gen_pixel_variations(
+    def _gen_pframes(
         self,
         nside: icetray.I3Int,
         pixel: icetray.I3Int,

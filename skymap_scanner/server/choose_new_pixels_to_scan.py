@@ -10,9 +10,10 @@ import healpy  # type: ignore[import]
 import numpy
 from icecube import icetray  # type: ignore[import]
 
-from ..config import NSideProgression, validate_nside_progression
+from ..config import NSideProgression
 from ..utils.pixelreco import NSidesDict
 from . import LOGGER
+from .utils import validate_nside_progression
 
 
 def __healpix_pixel_upgrade(nside, pix) -> list:
