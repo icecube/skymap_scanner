@@ -117,16 +117,10 @@ def find_pixels_to_refine(
                 pixels_to_refine.add(neighbor)
 
     # refine the global minimum
-
-    num_pixels = len(pixels_dict)
-    max_pixels = total_pixels_for_this_nside
-    # print("nside", nside, "total_pixels_for_this_nside", max_pixels, "num_pixels", num_pixels)
-    if float(num_pixels)/float(max_pixels) > 0.3: # start only once 30% have been scanned
-        global_min_pix_nside, global_min_pix_index = find_global_min_pixel(nsides_dict)
-
-        if global_min_pix_index is not None:
-            all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_nside, global_min_pix_index, num=pixel_extension_number)
-            pixels_to_refine.update([x for x in all_refine_pixels if x in pixels_dict])
+    global_min_pix_nside, global_min_pix_index = find_global_min_pixel(nsides_dict)
+    if global_min_pix_index is not None:
+        all_refine_pixels = find_pixels_around_pixel(nside, global_min_pix_nside, global_min_pix_index, num=pixel_extension_number)
+        pixels_to_refine.update([x for x in all_refine_pixels if x in pixels_dict])
 
     return [x for x in pixels_to_refine]
 
