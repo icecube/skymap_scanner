@@ -155,7 +155,7 @@ class PixelsToReco:
             return time
         return min_t + adj_d/ccc
 
-    def gen_new_pixel_pframes_to_scan(
+    def gen_new_pixel_pframes(
         self,
         pixreco_ids_already_sent: Set[PixelRecoID],
     ) -> Iterator[icetray.I3Frame]:
@@ -583,7 +583,7 @@ async def _send_pixels(
     pixreco_ids_sent = set([])
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(
-            pixeler.gen_new_pixel_pframes_to_scan(pixreco_ids_already_sent)
+            pixeler.gen_new_pixel_pframes(pixreco_ids_already_sent)
         ):
             _tup = pframe_to_pixelrecoid(pframe)
             LOGGER.info(f"Sending message M#{i} ({_tup})...")
@@ -636,7 +636,7 @@ async def _serve_and_collect(
                 reco_algo,
                 pixeler,
                 collector.pixreco_ids_sent,
-            )
+            )  # NOTE: when this list is empty (no pixels sent), we are waiting for the final recos
             await collector.register_sent_pixreco_ids(pixreco_ids_sent)
 
             #
