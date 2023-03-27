@@ -695,6 +695,7 @@ async def _serve_and_collect(
 
                 # if we've got enough pixrecos, let's get a jump on the next round
                 if serve_more := collector.ok_to_serve_more():
+                    LOGGER.info("Predictive threshold met")
                     break
 
             # do-while loop logic
