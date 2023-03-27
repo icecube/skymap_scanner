@@ -3,8 +3,7 @@
 # fmt: off
 # pylint: skip-file
 
-import random
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import numpy
@@ -130,7 +129,7 @@ def choose_pixels_to_reconstruct_around_MCtruth(
     mc_ra_dec: Tuple[float, float],
     nside: int,
     angular_dist: float = 2.*numpy.pi/180.,
-) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
+) -> Set[Tuple[icetray.I3Int, icetray.I3Int]]:
     ra, dec = mc_ra_dec
 
     # MC true pixel
@@ -164,9 +163,7 @@ def choose_pixels_to_reconstruct_around_MCtruth(
         if p not in existing_pixels:
             scan_pixels.append( (nside, p) )
 
-    #scan_pixels = [(nside, pix) for pix in sorted_pixels]
-
-    return scan_pixels
+    return set(scan_pixels)
 
 
 def choose_pixels_to_reconstruct(
@@ -174,7 +171,7 @@ def choose_pixels_to_reconstruct(
     nside_progression: NSideProgression,
     ang_dist: float = 2.,
     mc_ra_dec: Optional[Tuple[float, float]] = None,
-) -> List[Tuple[icetray.I3Int, icetray.I3Int]]:
+) -> Set[Tuple[icetray.I3Int, icetray.I3Int]]:
     """Get more pixels to reconstruct/refine by searching `nsides_dict`.
 
     Some of the pixel returned may have previously been generated.
@@ -196,11 +193,10 @@ def choose_pixels_to_reconstruct(
     if not nsides_dict:
         LOGGER.debug(f"No previous nsides_dict, getting pixels for {nside_progression[0][0]}...")
         scan_pixels = list(range(healpy.nside2npix(nside_progression[0][0])))
-        random.shuffle(scan_pixels)
-        return [(nside_progression[0][0], pix) for pix in scan_pixels]
+        return set((nside_progression[0][0], pix) for pix in scan_pixels)
 
     # generate pixels to refine
-    all_pixels_to_refine: List[Tuple[icetray.I3Int, icetray.I3Int]] = []
+    all_pixels_to_refine: Set[Tuple[icetray.I3Int, icetray.I3Int]] = set()
     # iterate through each nside looking for what subset of pixels to reco using the next nside
     for i, (current_nside, pixel_extension_number) in enumerate(nside_progression[:-1]):  # skip final
         next_nside = nside_progression[i+1][0]  # index will always be defined since we're not iterating the final nside
@@ -226,9 +222,9 @@ def choose_pixels_to_reconstruct(
                 upgraded_pixels_to_refine.extend(
                     (next_nside, x) for x in healpix_pixel_upgrade(current_nside, next_nside, pixel)
                 )
-            # extend
+            # update set
             LOGGER.debug(f"Extending list of pixels (nside={next_nside}) by {len(upgraded_pixels_to_refine)} ({upgraded_pixels_to_refine})...")
-            all_pixels_to_refine.extend(upgraded_pixels_to_refine)
+            all_pixels_to_refine.update(upgraded_pixels_to_refine)
 
     LOGGER.debug(f"Search Complete: Got {len(all_pixels_to_refine)} pixels to refine: {all_pixels_to_refine}.")
     return all_pixels_to_refine

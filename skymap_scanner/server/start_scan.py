@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 import logging
+import random
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
@@ -170,17 +171,15 @@ class PixelsToReco:
 
         # find pixels to refine
         pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, self.nside_progression)
-        pixels_to_refine = [p for p in pixels_to_refine if not pixel_already_sent(p)]
+        pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))
         if not pixels_to_refine:
             LOGGER.info("There are no pixels to refine.")
             return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
-        # submit the pixels we need to submit
-        for i, (nside, pix) in enumerate(pixels_to_refine):
-            LOGGER.debug(
-                f"Generating position-variations from pixel P#{i}: {(nside, pix)}"
-            )
+        # submit the pixels we need to submit (in random order)
+        for i, (nside, pix) in enumerate(sorted(pixels_to_refine, key=lambda _: random.random())):
+            LOGGER.debug(f"Generating pframe(s) from pixel P#{i}: {(nside, pix)}")
             yield from self._gen_pframes(nside=nside, pixel=pix)
 
     def i3particle(self, position, direction, energy, time):
