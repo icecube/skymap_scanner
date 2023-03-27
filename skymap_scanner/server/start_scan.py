@@ -392,7 +392,7 @@ class PixelRecoCollector:
 
         self.reporter = reporter
         self.nsides_dict = nsides_dict
-        self._pixreco_received: Set[PixelRecoID] = set([])
+        self._pixreco_received_lookup: Set[PixelRecoID] = set([])
         self._sent_pixels_by_nside: Dict[int, List[SentPixel]] = {}
 
         if not (0.0 < predictive_scanning_threshold <= 1.0):
@@ -462,7 +462,7 @@ class PixelRecoCollector:
             )
         LOGGER.debug(f"{self.nsides_dict=}")
 
-        if pixreco.id_tuple in self._pixreco_received:
+        if pixreco.id_tuple in self._pixreco_received_lookup:
             raise ExtraPixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
@@ -478,8 +478,8 @@ class PixelRecoCollector:
             )
 
         # append
-        self._pixreco_received.add(pixreco.id_tuple)
-        logging_id = f"S#{len(self._pixreco_received) - 1}"
+        self._pixreco_received_lookup.add(pixreco.id_tuple)
+        logging_id = f"S#{len(self._pixreco_received_lookup) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
@@ -519,7 +519,7 @@ class PixelRecoCollector:
             return False
         # now, sanity check contents, slower: O(n)
         sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixels)
-        return sent_ids == self._pixreco_received
+        return sent_ids == self._pixreco_received_lookup
 
     def ok_to_serve_more(self) -> bool:
         """Return whether enough pixel-recos collected to serve more.
@@ -531,9 +531,11 @@ class PixelRecoCollector:
 
         # get percentage of latest nside (otherwise BIG + small >> threshold)
         latest_nside = max(self.nsides_dict.keys())
+        # use nsides_dict (faster than using self._pixreco_received_lookup)
+        finished = len(self.nsides_dict[latest_nside]) * self._finder.n_posvar
 
         target = len(self._sent_pixels_by_nside) * self._predictive_scanning_threshold
-        return len(self.nsides_dict[latest_nside]) >= target
+        return finished >= target
 
 
 async def scan(
