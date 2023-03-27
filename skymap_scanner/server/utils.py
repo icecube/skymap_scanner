@@ -83,6 +83,7 @@ def n_recos_by_nside_lowerbound(
     """
 
     def prev(n: Tuple[int, int]) -> int:
+        # get previous nside value
         idx = nsides.index(n)
         if idx == 0:
             return 1

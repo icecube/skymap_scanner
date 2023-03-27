@@ -839,7 +839,8 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides
-    args.nside_progression = validate_nside_progression(args.nside_progression)
+    args.nside_progression = tuple(args.nside_progression)
+    args.nside_progression = validate_nside_progression(args.nside_progression)  # type: ignore[arg-type]
 
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():

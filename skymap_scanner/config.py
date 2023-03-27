@@ -3,7 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-from typing import Final, List, Tuple
+from typing import Final, Tuple
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -15,7 +15,7 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
-NSideProgression = List[Tuple[int, int]]
+NSideProgression = Tuple[Tuple[int, int]]
 FINAL_NSIDE_PIXEL_EXTENSION = 0
 DEFAULT_NSIDE_PROGRESSION: NSideProgression = [
     (8, 12),
