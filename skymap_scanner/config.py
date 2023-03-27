@@ -16,7 +16,7 @@ from wipac_dev_tools import from_environment_as_dataclass
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
 NSideProgression = List[Tuple[int, int]]
-FINAL_NSIDE_PIXEL_EXTENSION = -1
+FINAL_NSIDE_PIXEL_EXTENSION = 0
 DEFAULT_NSIDE_PROGRESSION: NSideProgression = [
     (8, 12),
     (64, 12),
