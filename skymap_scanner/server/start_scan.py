@@ -216,7 +216,7 @@ class PixelsToReco:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        if nside == self.min_nside:
+        if nside == self.nside_progression[0][0]:
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
@@ -226,7 +226,7 @@ class PixelsToReco:
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
 
-                if coarser_nside < self.min_nside:
+                if coarser_nside < self.nside_progression[0][0]:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
@@ -235,7 +235,7 @@ class PixelsToReco:
                         # coarser pixel found
                         break
 
-            if coarser_nside < self.min_nside:
+            if coarser_nside < self.nside_progression[0][0]:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
                 time = self.fallback_time
