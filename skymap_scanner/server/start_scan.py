@@ -530,6 +530,9 @@ class PixelRecoCollector:
         if self._end_game:
             return False
 
+        if not self.nsides_dict:  # nothing has been saved yet
+            return False
+
         # get percentage of latest nside (otherwise BIG + small >> threshold)
         latest_nside = max(self.nsides_dict.keys())
         # use nsides_dict (faster than using self._pixreco_received_lookup)
