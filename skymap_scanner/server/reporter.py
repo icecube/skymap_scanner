@@ -356,8 +356,12 @@ class Reporter:
         return ScanResult.from_nsides_dict(self.nsides_dict, self.event_metadata)
 
     def predicted_total_recos(self) -> int:
-        """Get a prediction for the total number of recos for the entire
-        scan."""
+        """Get a prediction for total number of recos for the entire scan.
+
+        If we've sent the last nside, then just use the # of recos sent.
+        """
+        if max(self._n_pixels_sent_by_nside.keys()) == self.nside_progression[-1][0]:
+            return sum(self._n_pixels_sent_by_nside.values())
         return max(
             total_n_recos_lowerbound(self.nside_progression, self.n_posvar),
             sum(self._n_pixels_sent_by_nside.values()),
