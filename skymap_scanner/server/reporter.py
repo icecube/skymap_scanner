@@ -182,6 +182,8 @@ class WorkerStatsCollection:
         """Cached `WorkerStats` aggregate."""
         if not self._aggregate:
             instances = self._worker_stats_by_nside.values()
+            if not instances:
+                return WorkerStats()
             self._aggregate = WorkerStats(
                 worker_runtimes=list(
                     itertools.chain(*[i.worker_runtimes for i in instances])
