@@ -26,23 +26,40 @@ StrDict = Dict[str, Any]
 
 
 class WorkerStats:
-    """Holds stats for the per-reco/worker level."""
+    """Holds stats for the per-reco/worker level.
 
-    def __init__(self) -> None:
+    "Worker runtime"  - the time actually spent doing a reco
+    "Round-trip time" - the time a pixel takes from server, to worker,
+                        and back -- includes any time spent on worker(s)
+                        that died mid-reco
+    """
+
+    def __init__(
+        self,
+        worker_runtimes: Optional[List[float]] = None,
+        roundtrips: Optional[List[float]] = None,
+    ) -> None:
         self.roundtrip_start = float("inf")
         self.roundtrip_end = float("-inf")
 
-        self.runtimes: List[float] = []
-        # self.runtimes.sort()  # will make stats calls much faster
+        self.worker_runtimes: List[float] = worker_runtimes if worker_runtimes else []
+        self.worker_runtimes.sort()  # speed up stats
+        self.roundtrips: List[float] = roundtrips if roundtrips else []
+        self.roundtrips.sort()  # speed up stats
 
-        self.fastest = lambda: min(self.runtimes)
-        self.slowest = lambda: max(self.runtimes)
+        self.fastest_worker = lambda: min(self.worker_runtimes)
+        self.fastest_roundtrip = lambda: min(self.roundtrips)
+
+        self.slowest_worker = lambda: max(self.worker_runtimes)
+        self.slowest_roundtrip = lambda: max(self.roundtrips)
 
         # Fast, floating point arithmetic mean.
-        self.fmean = lambda: statistics.fmean(self.runtimes)
-        self.mean = self.fmean  # use fmean since these are floats
+        self.mean_worker = lambda: statistics.fmean(self.worker_runtimes)
+        self.mean_roundtrip = lambda: statistics.fmean(self.roundtrips)
+
         # Median (middle value) of data.
-        self.median = lambda: float(statistics.median(self.runtimes))
+        self.median_worker = lambda: float(statistics.median(self.worker_runtimes))
+        self.median_roundtrip = lambda: float(statistics.median(self.roundtrips))
 
         # other statistics functions...
         # geometric_mean Geometric mean of data.
@@ -58,52 +75,65 @@ class WorkerStats:
 
     def update(
         self,
-        runtime: float,
+        worker_runtime: float,
         roundtrip_start: float,
         roundtrip_end: float,
     ) -> "WorkerStats":
         """Insert the runtime and recalculate round-trip start/end times."""
-        bisect.insort(self.runtimes, runtime)
+        bisect.insort(self.worker_runtimes, worker_runtime)
+        bisect.insort(self.roundtrips, self.roundtrip_start - self.roundtrip_end)
         self.roundtrip_start = min(self.roundtrip_start, roundtrip_start)
         self.roundtrip_end = max(self.roundtrip_end, roundtrip_end)
         return self
 
-    @staticmethod
-    def _make_summary(
-        mean: float,
-        median: float,
-        slowest: float,
-        fastest: float,
-        roundtrip_start: float,
-        roundtrip_end: float,
-        count: int,
-    ) -> Dict[str, str]:
-        return {
-            "mean reco (worker time)": str(dt.timedelta(seconds=int(mean))),
-            "median reco (worker time)": str(dt.timedelta(seconds=int(median))),
-            "slowest reco (worker time)": str(dt.timedelta(seconds=int(slowest))),
-            "fastest reco (worker time)": str(dt.timedelta(seconds=int(fastest))),
-            "start time": str(dt.datetime.fromtimestamp(int(roundtrip_start))),
-            "end time": str(dt.datetime.fromtimestamp(int(roundtrip_end))),
-            "runtime (wall time)": str(
-                dt.timedelta(seconds=int(roundtrip_end - roundtrip_start))
-            ),
-            "mean reco (scanner wall time)": str(
-                dt.timedelta(seconds=int((roundtrip_end - roundtrip_start) / count))
-            ),
-        }
-
-    def get_summary(self) -> Dict[str, str]:
+    def get_summary(self) -> Dict[str, Dict[str, str]]:
         """Make a human-readable dict summary of the instance."""
-        return self._make_summary(
-            self.mean(),  # type: ignore[no-untyped-call]
-            self.median(),  # type: ignore[no-untyped-call]
-            self.slowest(),  # type: ignore[no-untyped-call]
-            self.fastest(),  # type: ignore[no-untyped-call]
-            self.roundtrip_start,
-            self.roundtrip_end,
-            len(self.runtimes),
-        )
+        return {
+            "worker time": {
+                # worker times
+                "mean": str(
+                    dt.timedelta(seconds=int(self.mean_worker()))  # type: ignore[no-untyped-call]
+                ),
+                "median": str(
+                    dt.timedelta(seconds=int(self.median_worker()))  # type: ignore[no-untyped-call]
+                ),
+                "slowest": str(
+                    dt.timedelta(seconds=int(self.slowest_worker()))  # type: ignore[no-untyped-call]
+                ),
+                "fastest": str(
+                    dt.timedelta(seconds=int(self.fastest_worker()))  # type: ignore[no-untyped-call]
+                ),
+            },
+            "round-trip time": {
+                "mean": str(
+                    dt.timedelta(seconds=int(self.mean_roundtrip()))  # type: ignore[no-untyped-call]
+                ),
+                "median": str(
+                    dt.timedelta(seconds=int(self.median_roundtrip()))  # type: ignore[no-untyped-call]
+                ),
+                "slowest": str(
+                    dt.timedelta(seconds=int(self.slowest_roundtrip()))  # type: ignore[no-untyped-call]
+                ),
+                "fastest": str(
+                    dt.timedelta(seconds=int(self.fastest_roundtrip()))  # type: ignore[no-untyped-call]
+                ),
+            },
+            "wall time": {
+                "start": str(dt.datetime.fromtimestamp(int(self.roundtrip_start))),
+                "end": str(dt.datetime.fromtimestamp(int(self.roundtrip_end))),
+                "runtime": str(
+                    dt.timedelta(seconds=int(self.roundtrip_end - self.roundtrip_start))
+                ),
+                "mean reco": str(
+                    dt.timedelta(
+                        seconds=int(
+                            (self.roundtrip_end - self.roundtrip_start)
+                            / len(self.worker_runtimes)
+                        )
+                    )
+                ),
+            },
+        }
 
 
 class WorkerStatsCollection:
@@ -115,7 +145,7 @@ class WorkerStatsCollection:
     @property
     def total_ct(self) -> int:
         # O(n) b/c len is O(1), n < 10
-        return sum(len(w.runtimes) for w in self._worker_stats_by_nside.values())
+        return sum(len(w.worker_runtimes) for w in self._worker_stats_by_nside.values())
 
     @property
     def first_reco_start(self) -> float:
@@ -135,19 +165,18 @@ class WorkerStatsCollection:
         except KeyError:
             worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
         worker_stats.update(pixreco_runtime, roundtrip_start, roundtrip_end)
-        return len(worker_stats.runtimes)
+        return len(worker_stats.worker_runtimes)
 
     def _get_aggregate_summary(self) -> Dict[str, str]:
+        """Expensive so don't call it often."""
         instances = self._worker_stats_by_nside.values()
-        return WorkerStats._make_summary(
-            sum(i.mean() * len(i.runtimes) for i in instances) / self.total_ct,  # type: ignore[no-untyped-call]
-            statistics.median(itertools.chain(*[i.runtimes for i in instances])),
-            max(i.slowest() for i in instances),  # type: ignore[no-untyped-call]
-            min(i.fastest() for i in instances),  # type: ignore[no-untyped-call]
-            min(i.roundtrip_start for i in instances),
-            max(i.roundtrip_end for i in instances),
-            self.total_ct,
+        aggregate = WorkerStats(
+            worker_runtimes=list(
+                itertools.chain(*[i.worker_runtimes for i in instances])
+            ),
+            roundtrips=list(itertools.chain(*[i.roundtrips for i in instances])),
         )
+        return aggregate.get_summary()
 
     def get_summary(self) -> StrDict:
         """Make human-readable dict summaries for all nsides & an aggregate."""
