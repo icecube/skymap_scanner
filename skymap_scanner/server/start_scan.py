@@ -516,7 +516,7 @@ class PixelRecoCollector:
     def is_scan_done(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
-        if len(self._sent_pixels_by_nside) != self.n_sent:
+        if self.n_sent != len(self._pixreco_received_lookup):
             return False
         # now, sanity check contents, slower: O(n)
         sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixels)
