@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=all --output-file=requirements-all.txt
 #
-astropy==5.2.1
+astropy==5.2.2
     # via
     #   healpy
     #   skymap-scanner (setup.py)
@@ -26,7 +26,7 @@ coloredlogs==15.0.1
     # via wipac-dev-tools
 contourpy==1.0.7
     # via matplotlib
-cryptography==39.0.2
+cryptography==40.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
@@ -34,13 +34,13 @@ ed25519==1.5
     # via nkeys
 ewms-pilot==0.4.1
     # via skymap-scanner (setup.py)
-fonttools==4.39.2
+fonttools==4.39.3
     # via matplotlib
 google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
     #   oms-mqclient
-google-auth==2.16.2
+google-auth==2.16.3
     # via
     #   google-api-core
     #   oms-mqclient
@@ -54,14 +54,14 @@ googleapis-common-protos[grpc]==1.59.0
     #   oms-mqclient
 grpc-google-iam-v1==0.12.6
     # via google-cloud-pubsub
-grpcio==1.51.3
+grpcio==1.53.0
     # via
     #   google-api-core
     #   google-cloud-pubsub
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.51.3
+grpcio-status==1.53.0
     # via
     #   google-api-core
     #   google-cloud-pubsub
@@ -142,7 +142,7 @@ python-dateutil==2.8.2
     # via
     #   matplotlib
     #   pandas
-pytz==2022.7.1
+pytz==2023.2
     # via pandas
 pyyaml==6.0
     # via astropy
