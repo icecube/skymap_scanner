@@ -469,7 +469,7 @@ class Reporter:
                 when = self.worker_stats_collection.aggregate.ends[
                     int(predicted_total * i) - 1
                 ]
-                timeline[i] = str(dt.datetime.fromtimestamp(int(when)))
+                timeline[i] = str(dt.timedelta(seconds=int(when - self.global_start)))
             except IndexError:
                 pass
 
