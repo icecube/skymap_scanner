@@ -169,6 +169,7 @@ class Reporter:
         nside_progression: NSideProgression,
         skydriver_rc: Optional[RestClient],
         event_metadata: EventMetadata,
+        predictive_scanning_threshold: float,
     ) -> None:
         """
         Arguments:
@@ -186,6 +187,8 @@ class Reporter:
                 - a connection to the SkyDriver REST interface
             `event_metadata`
                 - a collection of metadata about the event
+            `predictive_scanning_threshold`
+                - the predictive scanning threshold (used only for reporting)
 
         Environment Variables:
             `SKYSCAN_PROGRESS_INTERVAL_SEC`
@@ -194,6 +197,7 @@ class Reporter:
                 - produce a (partial) skymap result with this interval
         """
         self.is_event_scan_done = False
+        self.predictive_scanning_threshold = predictive_scanning_threshold
 
         self.scan_id = scan_id
         self.global_start = global_start_time
@@ -316,6 +320,8 @@ class Reporter:
                     dt.timedelta(seconds=int(time.time() - self.global_start))
                 ),
             },
+            "last updated": str(dt.datetime.fromtimestamp(int(time.time()))),
+            "predictive scanning threshold": self.predictive_scanning_threshold,
         }
 
         if not self.worker_stats_collection.total_ct:  # still waiting

@@ -599,6 +599,7 @@ async def scan(
         nside_progression,
         skydriver_rc,
         event_metadata,
+        predictive_scanning_threshold,
     )
     await reporter.precomputing_report()
 
