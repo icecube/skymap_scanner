@@ -95,7 +95,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -204,7 +204,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -286,7 +286,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
