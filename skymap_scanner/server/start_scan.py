@@ -448,7 +448,7 @@ class PixelRecoCollector:
             self._end_game = True
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
-                summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive the remaining recos.",
+                summary_msg="The Skymap Scanner is waiting to receive the remaining recos.",
             )
 
     async def collect(
