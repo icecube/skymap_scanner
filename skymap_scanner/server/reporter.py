@@ -167,7 +167,7 @@ class WorkerStatsCollection:
         worker_stats.update(pixreco_runtime, roundtrip_start, roundtrip_end)
         return len(worker_stats.worker_runtimes)
 
-    def _get_aggregate_summary(self) -> Dict[str, str]:
+    def _get_aggregate_summary(self) -> Dict[str, Dict[str, str]]:
         """Expensive so don't call it often."""
         instances = self._worker_stats_by_nside.values()
         aggregate = WorkerStats(
