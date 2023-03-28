@@ -353,8 +353,6 @@ class Reporter:
                     dt.timedelta(seconds=int(time.time() - self.global_start))
                 ),
             },
-            "last updated": str(dt.datetime.fromtimestamp(int(time.time()))),
-            "predictive scanning threshold": self.predictive_scanning_threshold,
         }
 
         if not self.worker_stats_collection.total_ct:  # still waiting
@@ -472,6 +470,8 @@ class Reporter:
             "epilogue": epilogue_msg,
             "tallies": self._get_tallies(),
             "processing_stats": self._get_processing_progress(),
+            "predictive_scanning_threshold": self.predictive_scanning_threshold,
+            "last_updated": str(dt.datetime.fromtimestamp(int(time.time()))),
         }
         scan_metadata = {
             "scan_id": self.scan_id,
