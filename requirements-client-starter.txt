@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=client-starter --output-file=requirements-client-starter.txt
 #
-astropy==5.2.1
+astropy==5.2.2
     # via
     #   healpy
     #   skymap-scanner (setup.py)
