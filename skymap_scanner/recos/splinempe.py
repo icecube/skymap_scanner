@@ -156,7 +156,7 @@ class GulliverFitter:
 
         return mini
 
-    def evaluate_hypo(self, particle):
+    def fit(self, particle):
         """[Given an hypothesis (I3Particle), it returns the results of a SplineMPE fit made
             using it as a seed]
 
@@ -250,61 +250,54 @@ class SplineMPE(RecoInterface):
 
         llh = self.build_llh()
 
+        # Important: vertex_fitter modifies llh!
         self.vertex_fitter = GulliverFitter("vertex", llh)
 
-    def scan_direction(self, zenith, azimuth):
+    def scan_direction(self, frame, zenith, azimuth, time_minimization=False, time_fitter = None):
         # This is supposed to get the seed for the KS test.
-        self.vertex_fitter.fitter.Fit(gulliver.I3EventHypothesis(frame[seed_name]))
+        seed_particle = frame[seed_name]
+        _prefit_result, _prefit_hypo = self.vertex_fitter.fit(seed_particle)
 
         direction = dataclasses.I3Direction(zenith, azimuth)
 
         # If the mode is 'default', 7 seed vertices are produced for each direction.
         if mode == "default":
-            pos_seeds = self.get_vert_seeds(
+            pos_seeds = self.get_vertex_seeds(
                 seed_cp.pos, direc, r_ax=r_ax, v_ax=v_ax, ang_steps=3
             )
-            vals = []
-            particles = []
+            vals, particles = [], []
 
             # A gulliver fit is performed for each vertex.
             for j in range(len(pos_seeds)):
-                vert_miner = fitter_core("vertex", eventllh.eventllh)
-
-                hypo = gulliver.I3EventHypothesis(
-                    self.pos_dir2part(seed_cp, pos_seeds[j], direc)
-                )
-
-                fitparams = vert_miner.fitterCore.Fit(hypo)
+                particle = self.pos_dir2part(seed_cp, pos_seeds[j], direc)
+                fitparams, hypo = self.vertex_fitter.fit(particle)
                 vals.append(fitparams.logl)
                 particles.append(copy.copy(hypo.particle))
 
             min_ind = np.nanargmin(vals)
-            logls[i] = vals[min_ind]
-            xyzs[i, :] = [
+            logl = vals[min_ind]
+            coords = [
                 particles[min_ind].pos.x,
                 particles[min_ind].pos.y,
                 particles[min_ind].pos.z,
             ]
 
             # Minimization on the time, if required.
-            if times:
-                best_seed = particles[min_ind]
-                hypo = gulliver.I3EventHypothesis(best_seed)
-                fitparams = time_miner.Fit(hypo)
-                logls[i] = fitparams.logl
+            if time_minimization:
+                seed = particles[min_ind]
+                fitparams, hypo = time_fitter.fit(seed) 
+                logl = fitparams.logl
 
-        # If the mode is 'fast', only the seed vertex is used for each
-        # direction.
         elif mode == "fast":
-            vert_miner = fitter_core("vertex", eventllh.eventllh)
-            hypo = gulliver.I3EventHypothesis(
-                self.pos_dir2part(seed_cp, seed_cp.pos, direc)
-            )
-            fitparams = vert_miner.fitterCore.Fit(hypo)
-            logls[i] = fitparams.logl
-            xyzs[i] = seed_cp.pos
+            # only the seed vertex is used for each direction.
+            particle = self.pos_dir2part(seed_cp, seed_cp.pos, direc)
+            fitparams, hypo = self.vertex_fitter.fit(particle)
+            logl = fitparams.logl
+            coords = seed_cp.pos
 
-    def get_vert_seeds(
+        return logl, coords
+
+    def get_vertex_seeds(
         self, vert_mid, direc, v_ax=[-40.0, 40.0], r_ax=[150.0], ang_steps=3
     ):
         """[Given a vertex and a direction it returns some vertex seeds to perform a SplineMPE fit
