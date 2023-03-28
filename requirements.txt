@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt
 #
-astropy==5.2.1
+astropy==5.2.2
     # via
     #   healpy
     #   skymap-scanner (setup.py)
