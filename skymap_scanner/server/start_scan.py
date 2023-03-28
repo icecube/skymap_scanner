@@ -392,7 +392,7 @@ class PixelRecoCollector:
 
         self.reporter = reporter
         self.nsides_dict = nsides_dict
-        self._pixreco_received_lookup: Set[PixelRecoID] = set([])
+        self._pixrecoid_received_quick_lookup: Set[PixelRecoID] = set([])
         self._sent_pixels_by_nside: Dict[int, List[SentPixel]] = {}
 
         if not (0.0 < predictive_scanning_threshold <= 1.0):
@@ -463,7 +463,7 @@ class PixelRecoCollector:
             )
         LOGGER.debug(f"{self.nsides_dict=}")
 
-        if pixreco.id_tuple in self._pixreco_received_lookup:
+        if pixreco.id_tuple in self._pixrecoid_received_quick_lookup:
             raise ExtraPixelRecoException(
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
@@ -479,8 +479,8 @@ class PixelRecoCollector:
             )
 
         # append
-        self._pixreco_received_lookup.add(pixreco.id_tuple)
-        logging_id = f"S#{len(self._pixreco_received_lookup) - 1}"
+        self._pixrecoid_received_quick_lookup.add(pixreco.id_tuple)
+        logging_id = f"S#{len(self._pixrecoid_received_quick_lookup) - 1}"
         LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
 
         # get best pixreco
@@ -516,15 +516,15 @@ class PixelRecoCollector:
     def is_scan_done(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
-        if self.n_sent != len(self._pixreco_received_lookup):
+        if self.n_sent != len(self._pixrecoid_received_quick_lookup):
             return False
         # now, sanity check contents, slower: O(n)
         sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixels)
-        if sent_ids == self._pixreco_received_lookup:
+        if sent_ids == self._pixrecoid_received_quick_lookup:
             return True
         raise RuntimeError(
             f"Sanity check failed: Collected enough pixels,"
-            f" but does not match: {sent_ids=} vs {self._pixreco_received_lookup=}"
+            f" but does not match: {sent_ids=} vs {self._pixrecoid_received_quick_lookup=}"
         )
 
     def ok_to_serve_more(self) -> bool:
