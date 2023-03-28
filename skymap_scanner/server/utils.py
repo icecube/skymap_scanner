@@ -4,8 +4,9 @@
 import json
 import pickle
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
+import cachetools.func
 from rest_tools.client import RestClient
 
 from .. import config as cfg
@@ -73,3 +74,36 @@ def validate_nside_progression(
             f"Invalid NSide Progression: nside value must be positive n^2 ({nside_progression})"
         )
     return nside_progression
+
+
+@cachetools.func.lru_cache()
+def n_recos_by_nside_lowerbound(
+    nside_progression: cfg.NSideProgression, n_posvar: int
+) -> Dict[int, int]:
+    """Get estimated # of recos per nside.
+
+    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+    """
+
+    def previous_nside(n: Tuple[int, int]) -> int:
+        # get previous nside value
+        idx = nside_progression.index(n)
+        if idx == 0:
+            return 1
+        return nside_progression[idx - 1][0]
+
+    return {
+        N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
+        for N in nside_progression
+    }
+
+
+@cachetools.func.lru_cache()
+def total_n_recos_lowerbound(
+    nside_progression: cfg.NSideProgression, n_posvar: int
+) -> int:
+    """Get estimated # of total recos for the scan.
+
+    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+    """
+    return sum(n_recos_by_nside_lowerbound(nside_progression, n_posvar).values())
