@@ -40,14 +40,19 @@ class WorkerStats:
         roundtrips: Optional[List[float]] = None,
         roundtrip_start: float = float("inf"),
         roundtrip_end: float = float("-inf"),
+        ends: Optional[List[float]] = None,
     ) -> None:
         self.roundtrip_start = roundtrip_start
         self.roundtrip_end = roundtrip_end
 
         self.worker_runtimes: List[float] = worker_runtimes if worker_runtimes else []
         self.worker_runtimes.sort()  # speed up stats
+        #
         self.roundtrips: List[float] = roundtrips if roundtrips else []
         self.roundtrips.sort()  # speed up stats
+        #
+        self.ends: List[float] = ends if ends else []
+        self.ends.sort()  # speed up stats
 
         self.fastest_worker = lambda: min(self.worker_runtimes)
         self.fastest_roundtrip = lambda: min(self.roundtrips)
@@ -84,6 +89,7 @@ class WorkerStats:
         """Insert the runtime and recalculate round-trip start/end times."""
         bisect.insort(self.worker_runtimes, worker_runtime)
         bisect.insort(self.roundtrips, roundtrip_end - roundtrip_start)
+        bisect.insort(self.ends, roundtrip_end)
         self.roundtrip_start = min(self.roundtrip_start, roundtrip_start)
         self.roundtrip_end = max(self.roundtrip_end, roundtrip_end)
         return self
@@ -143,15 +149,16 @@ class WorkerStatsCollection:
 
     def __init__(self) -> None:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
+        self._aggregate: Optional[WorkerStats] = None
 
     @property
     def total_ct(self) -> int:
-        # O(n) b/c len is O(1), n < 10
+        """O(n) b/c len is O(1), n < 10."""
         return sum(len(w.worker_runtimes) for w in self._worker_stats_by_nside.values())
 
     @property
     def first_reco_start(self) -> float:
-        # O(n), n < 10
+        """O(n), n < 10."""
         return min(w.roundtrip_start for w in self._worker_stats_by_nside.values())
 
     def update(
@@ -162,6 +169,7 @@ class WorkerStatsCollection:
         roundtrip_end: float,
     ) -> int:
         """Return reco-count of nside's list after updating."""
+        self._aggregate = None  # clear
         try:
             worker_stats = self._worker_stats_by_nside[nside]
         except KeyError:
@@ -169,22 +177,25 @@ class WorkerStatsCollection:
         worker_stats.update(pixreco_runtime, roundtrip_start, roundtrip_end)
         return len(worker_stats.worker_runtimes)
 
-    def _get_aggregate_summary(self) -> Dict[str, Dict[str, str]]:
-        """Expensive so don't call it often."""
-        instances = self._worker_stats_by_nside.values()
-        aggregate = WorkerStats(
-            worker_runtimes=list(
-                itertools.chain(*[i.worker_runtimes for i in instances])
-            ),
-            roundtrips=list(itertools.chain(*[i.roundtrips for i in instances])),
-            roundtrip_start=min(i.roundtrip_start for i in instances),
-            roundtrip_end=max(i.roundtrip_end for i in instances),
-        )
-        return aggregate.get_summary()
+    @property
+    def aggregate(self) -> WorkerStats:
+        """Cached `WorkerStats` aggregate."""
+        if not self._aggregate:
+            instances = self._worker_stats_by_nside.values()
+            self._aggregate = WorkerStats(
+                worker_runtimes=list(
+                    itertools.chain(*[i.worker_runtimes for i in instances])
+                ),
+                roundtrips=list(itertools.chain(*[i.roundtrips for i in instances])),
+                roundtrip_start=min(i.roundtrip_start for i in instances),
+                roundtrip_end=max(i.roundtrip_end for i in instances),
+                ends=list(itertools.chain(*[i.ends for i in instances])),
+            )
+        return self._aggregate
 
     def get_summary(self) -> StrDict:
         """Make human-readable dict summaries for all nsides & an aggregate."""
-        dicto: StrDict = {"all recos": self._get_aggregate_summary()}
+        dicto: StrDict = {"all recos": self.aggregate.get_summary()}
         for nside, worker_stats in self._worker_stats_by_nside.items():
             dicto[f"nside-{nside}"] = worker_stats.get_summary()
         return dicto
@@ -448,15 +459,28 @@ class Reporter:
                     "est. future recos": n,
                 }
 
+        # see when we reached X% done
+        predicted_total = self.predicted_total_recos()
+        timeline = {}
+        for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 0.975, 0.9875, 1.0]:
+            try:
+                when = self.worker_stats_collection.aggregate.ends[
+                    int(predicted_total * i) - 1
+                ]
+                timeline[i] = str(dt.datetime.fromtimestamp(int(when)))
+            except IndexError:
+                pass
+
         return {
             "by_nside": by_nside,
             # total completed pixels
             "total_pixels": sum(v["done"] for v in by_nside.values()),
             "total_recos": self.worker_stats_collection.total_ct,
             "est. percent": (
-                f"{self.worker_stats_collection.total_ct}/{self.predicted_total_recos()} "
-                f"({self.worker_stats_collection.total_ct / self.predicted_total_recos():.4f})"
+                f"{self.worker_stats_collection.total_ct}/{predicted_total} "
+                f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
             ),
+            "timeline": timeline,
         }
 
     async def after_computing_report(self) -> ScanResult:
