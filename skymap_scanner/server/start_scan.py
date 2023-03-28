@@ -544,7 +544,16 @@ class PixelRecoCollector:
         finished = len(self.nsides_dict[latest_nside]) * self._finder.n_posvar
 
         target = len(self._sent_pixels_by_nside) * self._predictive_scanning_threshold
-        return finished >= target
+
+        if finished >= target:
+            LOGGER.debug(
+                f"threshold: "
+                f"len of {self.nsides_dict[latest_nside]=} * {self._finder.n_posvar} "
+                f">= "
+                f"len of {self._sent_pixels_by_nside=} * {self._predictive_scanning_threshold=}"
+            )
+            return True
+        return False
 
 
 async def scan(
