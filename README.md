@@ -220,3 +220,13 @@ There are more command-line arguments than those shown in [Example Startup](#exa
 
 #### Runtime-Configurable Reconstructions
 Recos are registered by being placed in a dedicated module within the `skymap_scanner.recos` sub-package. Each module must contain a class of the same name (eg: `skymap_scanner.recos.foo` has `skymap_scanner.recos.foo.Foo`) that fully inherits from `skymap_scanner.recos.RecoInterface`. This includes implementing the static methods: `traysegment()` (for IceTray) and `to_pixelreco()` (for MQ). Specialized reco-specific logic in the upstream/pixel-generation phase is done on an ad-hoc basis, eg: `if reco_algo == 'millipede_original': ...`. On the command line, choosing your reco is provided via `--reco-algo` (on the server).
+
+## Making Branch-Based Images for Production-like Testing
+If you need to test your updates in a production-like environment at a scale that isn't provided by CI, then create a branch-based image. This image will be available on Docker Hub and CVMFS.
+Step:
+1. Go to _Actions_ tab
+1. Go to `docker & singularity/cvmfs releases` workflow tab (on left column)
+1. Click _Run workflow_, select your branch, and click the _Run workflow_ button
+1. Wait for the workflow steps to complete
+    * You can check the workflow's progress by clicking the top-most entry (there will be a small delay after the previous step)
+1. Check https://hub.docker.com/r/icecube/skymap_scanner/tags and/or CVMFS (the filepath will be the bottom-most line of https://github.com/WIPACrepo/cvmfs-actions/blob/main/docker_images.txt)
