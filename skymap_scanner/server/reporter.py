@@ -20,7 +20,7 @@ from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import n_recos_by_nside_lowerbound
+from .utils import n_recos_by_nside_lowerbound, total_n_recos_lowerbound
 
 StrDict = Dict[str, Any]
 
