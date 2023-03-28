@@ -539,16 +539,22 @@ class PixelRecoCollector:
             return False
 
         # get percentage of latest nside (otherwise BIG + small >> threshold)
-        latest_nside = max(self.nsides_dict.keys())
-        # use nsides_dict (faster than using self._pixreco_received_lookup)
-        finished = len(self.nsides_dict[latest_nside]) * self._finder.n_posvar
+        latest_saved_nside = max(self.nsides_dict.keys())
 
+        # Have we already said yes to this nside?
+        # Ex: nside=8 reached threshold so we sent out nside=64,
+        #     now we're asking about nside=8 again--it's not okay to serve more.
+        if latest_saved_nside < max(self._sent_pixels_by_nside.keys()):
+            return False
+
+        # calculate based on # of recos
+        # use nsides_dict (faster than using self._pixreco_received_lookup)
+        n_recos_fin = len(self.nsides_dict[latest_saved_nside]) * self._finder.n_posvar
         target = (
-            len(self._sent_pixels_by_nside[latest_nside])
+            len(self._sent_pixels_by_nside[latest_saved_nside])
             * self._predictive_scanning_threshold
         )
-
-        return finished >= target
+        return n_recos_fin >= target
 
 
 async def scan(
