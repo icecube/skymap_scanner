@@ -1,12 +1,27 @@
-import os
-import json
+"""Helper script to extract CausalQTot and MJD data from i3 to h5."""
+
+# mypy: ignore-errors
+# fmt:off
+
 import argparse
+import json
+import os
 
 from I3Tray import I3Tray
+from icecube import (
+    MuonGun,
+    VHESelfVeto,
+    astro,
+    dataclasses,
+    gulliver,
+    icetray,
+    recclasses,
+)
 from icecube.filterscripts import alerteventfollowup, filter_globals
-from icecube import icetray, dataclasses, gulliver, recclasses
-from icecube.full_event_followup import frame_packet_to_i3live_json, i3live_json_to_frame_packet
-from icecube import astro, MuonGun, VHESelfVeto
+from icecube.full_event_followup import (
+    frame_packet_to_i3live_json,
+    i3live_json_to_frame_packet,
+)
 
 
 def alertify(frame):

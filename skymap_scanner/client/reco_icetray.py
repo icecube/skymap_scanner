@@ -7,6 +7,7 @@ import datetime
 import logging
 import os
 import pickle
+import time
 from pathlib import Path
 from typing import Any, List, Union
 
@@ -83,16 +84,19 @@ def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     return pixel_fname
 
 
-def check_baseline_GCD(baseline_GCD_file : Union[str, None]) -> bool:
+def check_baseline_GCD(baseline_GCD_file: Union[str, None]) -> bool:
     LOGGER.debug(f"Testing baseline GCD at {baseline_GCD_file}")
 
     if baseline_GCD_file is None:
         return False
-    
+
     if os.path.isfile(baseline_GCD_file):
         return True
     else:
-        raise RuntimeError(f"The provided baseline GCD file could not be read '{baseline_GCD_file}'. Cannot build GCD from GCD diff.")
+        raise RuntimeError(
+            f"The provided baseline GCD file could not be read '{baseline_GCD_file}'. Cannot build GCD from GCD diff."
+        )
+
 
 def reco_pixel(
     reco_algo: str,
@@ -102,6 +106,7 @@ def reco_pixel(
     out_pkl: Path,
 ) -> Path:
     """Actually do the reco."""
+    start_time = time.time()
     LOGGER.info(f"Reco'ing pixel: {pixelreco.pixel_to_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
@@ -131,7 +136,7 @@ def reco_pixel(
             "GCD_uncompress_GCD_patch",
             keep_compressed=False,
             base_path="",
-            base_filename=baseline_GCD_file
+            base_filename=baseline_GCD_file,
         )
 
     # perform fit
@@ -158,13 +163,17 @@ def reco_pixel(
                 f"Pickle-dumping reco {pixelreco.pixel_to_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
-            geometry = get_baseline_gcd_frames(
-                baseline_GCD_file,
-                GCDQp_packet
-            )[0]
+            geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
             pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")
-            pickle.dump(pixreco, f)
+            pickle.dump(
+                {
+                    "pixreco": pixreco,
+                    "start": start_time,
+                    "end": time.time(),
+                },
+                f,
+            )
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
@@ -248,9 +257,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,
+        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,
+        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")

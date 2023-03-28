@@ -15,16 +15,16 @@ jobs:
   #     - uses: actions/setup-python@v3
   #     - uses: WIPACrepo/wipac-dev-flake8-action@v1
 
-  # mypy:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v3
-  #       with:
-  #         python-version: '3.9'
-  #     - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
-  wait-for-branch-protections-on-main:  # pass always when not on main (don't use 'if' b/c downstream)
+  wait-for-tests-on-main:  # pass always when not on main (don't use 'if' b/c downstream)
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -106,7 +106,7 @@ jobs:
           '
 
   py-setup:
-    needs: [wait-for-branch-protections-on-main]  # have to wait for tests so wipac-dev-py-setup-action can push (branch protection on main)
+    # needs: [wait-for-tests-on-main]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -121,7 +121,6 @@ jobs:
           git_committer_email: ${{ env.BOT_EMAIL }}
 
   py-versions:
-    needs: [py-setup]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
@@ -131,7 +130,7 @@ jobs:
         uses: WIPACrepo/wipac-dev-py-versions-action@v2
 
   pip-install:
-    # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
+    # If this fails, the longer tests are sure to fail
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
@@ -150,7 +149,7 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [py-setup, pip-install, wait-for-branch-protections-on-main]  # have to wait for tests so python-semantic-release can push (branch protection on main)
+    needs: [py-setup, pip-install, wait-for-tests-on-main]  # have to wait for tests so python-semantic-release can push (branch protection on main)
     runs-on: ubuntu-latest
     concurrency: release
     steps:

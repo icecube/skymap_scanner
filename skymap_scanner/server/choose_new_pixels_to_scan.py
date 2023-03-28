@@ -11,7 +11,6 @@ import numpy
 from icecube import icetray  # type: ignore[import]
 
 from .. import config as cfg
-from ..utils.load_scan_state import load_cache_state
 from ..utils.pixelreco import NSidesDict
 from . import LOGGER
 
@@ -71,7 +70,7 @@ def pixel_dist(from_nside, from_pix, to_nside, to_pix):
 
 
 def find_global_min_pixel(nsides_dict: NSidesDict) -> Tuple[Optional[int], Optional[int]]:
-    global_min_pix_index = (None, None)
+    global_min_pix_index: Tuple[Optional[int], Optional[int]] = (None, None)
     min_llh = None
 
     for nside in list(nsides_dict.keys()):
@@ -158,7 +157,7 @@ def choose_new_pixels_to_scan_around_MCtruth(
     sorted_pixels = pixels[numpy.argsort(pixel_space_angles)].tolist()
 
     if not nsides_dict:
-        existing_pixels = []
+        existing_pixels: List[int] = []
     else:
         if nside not in nsides_dict:
             existing_pixels = []
@@ -294,30 +293,3 @@ def choose_new_pixels_to_scan(
 
     LOGGER.debug(f"Search Complete: Got {len(all_pixels_to_refine)} pixels to refine: {all_pixels_to_refine}.")
     return all_pixels_to_refine
-
-
-if __name__ == "__main__":
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    if len(args) != 1:
-        raise RuntimeError("You need to specify exactly one event ID")
-    eventID = args[0]
-
-    state_dict = load_cache_state(
-        eventID,
-        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
-        cache_dir=options.CACHEDIR
-    )
-    pixels = choose_new_pixels_to_scan(state_dict[cfg.STATEDICT_NSIDES])
-
-    print(("got", pixels))
-    print(("number of pixels to scan is", len(pixels)))
