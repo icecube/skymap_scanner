@@ -383,21 +383,32 @@ class Reporter:
 
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
-        saved = {}
+        by_nside = {}
         if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
                 n_done = len(self.nsides_dict[nside])
-                saved[nside] = {
+                by_nside[nside] = {
                     "done": n_done,
                     "est. percent": (
                         f"{n_done}/{self._n_pixels_sent_by_nside[nside]} "
                         f"({n_done / self._n_pixels_sent_by_nside[nside]:.4f})"
                     ),
                 }
+        # add estimates for future nsides
+        lowerbounds = n_recos_by_nside_lowerbound(self.nside_progression, self.n_posvar)
+        for nside, n in lowerbounds.items():
+            if nside not in self.nsides_dict:
+                by_nside[nside] = {
+                    "done": 0,
+                    "est. percent": "N/A",
+                    "est. future recos": n,
+                }
 
         return {
-            "by_nside": saved,
-            "total": sum(v["done"] for v in saved.values()),  # total completed pixels
+            "by_nside": by_nside,
+            "total": sum(
+                v["done"] for v in by_nside.values()
+            ),  # total completed pixels
             "total_recos": self.worker_stats_collection.total_ct,
         }
 
