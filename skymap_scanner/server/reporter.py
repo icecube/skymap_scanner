@@ -184,7 +184,7 @@ class WorkerStatsCollection:
 
     def get_summary(self) -> StrDict:
         """Make human-readable dict summaries for all nsides & an aggregate."""
-        dicto: StrDict = self._get_aggregate_summary()
+        dicto: StrDict = {"whole scan": self._get_aggregate_summary()}
         for nside, worker_stats in self._worker_stats_by_nside.items():
             dicto[f"nside-{nside}"] = worker_stats.get_summary()
         return dicto
