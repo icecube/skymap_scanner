@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.5.1 (2023-03-28)
+### Other
+* Option to pull in extra I3Particle directions into json ([#160](https://github.com/icecube/skymap_scanner/issues/160)) ([`b6dc292`](https://github.com/icecube/skymap_scanner/commit/b6dc292d9dc7d9cf214cc8abbc9ddeaf2eed390a))
+
 ## v3.5.0 (2023-03-23)
 
 
