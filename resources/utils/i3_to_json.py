@@ -58,7 +58,7 @@ def alertify(frame):
         frame['PoleEHESummaryPulseInfo'] = recclasses.I3PortiaEvent()
 
 
-def write_json(frame):
+def write_json(frame, extra=None):
     pnf = frame_packet_to_i3live_json(i3live_json_to_frame_packet(
         frame[filter_globals.alert_candidate_full_message].value,
         pnf_framing=False), pnf_framing=True)
@@ -80,9 +80,36 @@ def write_json(frame):
             # Accumulate
             edep +=  (e0-e1)
         fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy, 'emuhi': muhi.energy, 'emuin':edep}
+
+    if extra is not None:
+        extra_namer = {'OnlineL2_SplineMPE':'ol2_mpe'}
+        for i3part_key in extra[(fullmsg['run_id'], fullmsg['event_id'])]:
+            part = extra[(fullmsg['run_id'], fullmsg['event_id'])][i3part_key]
+            ra, dec = astro.dir_to_equa(part.dir.zenith, part.dir.azimuth,
+                                        frame['I3EventHeader'].start_time.mod_julian_day_double)
+            fullmsg[extra_namer.get(i3part_key, i3part_key)] = {'ra':ra.item(), 'dec':dec.item()}
+
     with open(f'{fullmsg["unique_id"]}.json', 'w') as f:
         json.dump(fullmsg, f)
         print(f'Wrote {fullmsg["unique_id"]}.json')
+
+
+def extract_original(i3files, orig_keys):
+    extracted = {}
+    def pullout(frame):
+        uid = (frame['I3EventHeader'].run_id, frame['I3EventHeader'].event_id)
+        dd = {}
+        for ok in orig_keys:
+            try:
+                dd[ok] = frame[ok]
+            except KeyError as e:
+                print('KeyError:', e, uid)
+        extracted[uid] = dd
+    tray = I3Tray()
+    tray.Add('I3Reader', Filenamelist=i3files)
+    tray.Add(pullout)
+    tray.Execute()
+    return extracted
 
 
 def main():
@@ -94,9 +121,16 @@ def main():
                         type=str,
                         help='baseline gcd file for creating the GCD diff')
     parser.add_argument('--nframes', type=int, default=None, help='number of frames to process')
+    parser.add_argument('--extra', action='append',
+                        default=None, help='extra I3Particles to pull out from original i3 file')
     parser.add_argument('-o', '--out', default='/dev/null',
                         help='output I3 file')
     args = parser.parse_args()
+
+    if args.extra is not None:
+        extracted = extract_original(args.i3s, args.extra)
+    else:
+        extracted = None
 
     tray = I3Tray()
     tray.Add('I3Reader', Filenamelist=args.i3s)
@@ -112,7 +146,7 @@ def main():
              base_GCD_path=os.path.dirname(args.basegcd),
              base_GCD_filename=os.path.basename(args.basegcd),
              If=lambda f: filter_globals.EHEAlertFilter in f)
-    tray.Add(write_json, If=lambda f: filter_globals.EHEAlertFilter in f)
+    tray.Add(write_json, extra=extracted, If=lambda f: filter_globals.EHEAlertFilter in f)
     tray.AddModule('I3Writer',
                    'writer',
                    filename=args.out,
