@@ -81,7 +81,7 @@ class WorkerStats:
     ) -> "WorkerStats":
         """Insert the runtime and recalculate round-trip start/end times."""
         bisect.insort(self.worker_runtimes, worker_runtime)
-        bisect.insort(self.roundtrips, self.roundtrip_start - self.roundtrip_end)
+        bisect.insort(self.roundtrips, roundtrip_end - roundtrip_start)
         self.roundtrip_start = min(self.roundtrip_start, roundtrip_start)
         self.roundtrip_end = max(self.roundtrip_end, roundtrip_end)
         return self
