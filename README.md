@@ -223,10 +223,12 @@ Recos are registered by being placed in a dedicated module within the `skymap_sc
 
 ## Making Branch-Based Images for Production-like Testing
 If you need to test your updates in a production-like environment at a scale that isn't provided by CI, then create a branch-based image. This image will be available on Docker Hub and CVMFS.
-Step:
+### Steps:
 1. Go to _Actions_ tab
 1. Go to `docker & singularity/cvmfs releases` workflow tab (on left column)
 1. Click _Run workflow_, select your branch, and click the _Run workflow_ button
 1. Wait for the workflow steps to complete
     * You can check the workflow's progress by clicking the top-most entry (there will be a small delay after the previous step)
 1. Check https://hub.docker.com/r/icecube/skymap_scanner/tags and/or CVMFS (the filepath will be the bottom-most line of https://github.com/WIPACrepo/cvmfs-actions/blob/main/docker_images.txt)
+### Note
+The resulting image is specific to the branch's most recent commit. To test subsequent updates, you will need to repeat this process.
