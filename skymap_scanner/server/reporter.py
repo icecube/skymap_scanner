@@ -480,7 +480,7 @@ class Reporter:
                 f"{self.worker_stats_collection.total_ct}/{predicted_total} "
                 f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
             ),
-            "timeline": timeline,
+            "est. timeline": timeline,
         }
 
     async def after_computing_report(self) -> ScanResult:
