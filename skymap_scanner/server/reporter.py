@@ -342,6 +342,14 @@ class Reporter:
         """Get ScanResult."""
         return ScanResult.from_nsides_dict(self.nsides_dict, self.event_metadata)
 
+    def predicted_total_recos(self) -> int:
+        """Get a prediction for the total number of recos for the entire
+        scan."""
+        return max(
+            total_n_recos_lowerbound(self.nside_progression, self.n_posvar),
+            sum(self._n_pixels_sent_by_nside.values()),
+        )
+
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
         proc_stats: StrDict = {
@@ -396,8 +404,7 @@ class Reporter:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
             secs_predicted = elapsed_reco_walltime / (
-                self.worker_stats_collection.total_ct
-                / total_n_recos_lowerbound(self.nside_progression, self.n_posvar)
+                self.worker_stats_collection.total_ct / self.predicted_total_recos()
             )
             proc_stats["predictions"] = {
                 "time left": str(
@@ -444,8 +451,12 @@ class Reporter:
         return {
             "by_nside": by_nside,
             # total completed pixels
-            "total": sum(v["done"] for v in by_nside.values()),
+            "total_pixels": sum(v["done"] for v in by_nside.values()),
             "total_recos": self.worker_stats_collection.total_ct,
+            "est. percent": (
+                f"{self.worker_stats_collection.total_ct}/{self.predicted_total_recos()} "
+                f"({self.worker_stats_collection.total_ct / self.predicted_total_recos():.4f})"
+            ),
         }
 
     async def after_computing_report(self) -> ScanResult:
