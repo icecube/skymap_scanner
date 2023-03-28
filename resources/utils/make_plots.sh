@@ -19,8 +19,10 @@ if [[ "$2" != +([[:digit:]]) ]]; then
     exit 2
 fi
 
+parent_dir="plots-$scanid"
+mkdir $parent_dir
 while true; do
-    dir="$(date +'%Y-%m-%d-%R')-$scanid"
+    dir="$parent_dir/$(date +'%Y-%m-%d-%R')-$scanid"
     docker run --network="host" --rm -i --shm-size=6gb  \
         --mount type=bind,source=$(readlink -f .),target=/local \
         $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
