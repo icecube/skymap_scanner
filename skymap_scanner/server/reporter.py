@@ -38,9 +38,11 @@ class WorkerStats:
         self,
         worker_runtimes: Optional[List[float]] = None,
         roundtrips: Optional[List[float]] = None,
+        roundtrip_start: float = float("inf"),
+        roundtrip_end: float = float("-inf"),
     ) -> None:
-        self.roundtrip_start = float("inf")
-        self.roundtrip_end = float("-inf")
+        self.roundtrip_start = roundtrip_start
+        self.roundtrip_end = roundtrip_end
 
         self.worker_runtimes: List[float] = worker_runtimes if worker_runtimes else []
         self.worker_runtimes.sort()  # speed up stats
@@ -175,6 +177,8 @@ class WorkerStatsCollection:
                 itertools.chain(*[i.worker_runtimes for i in instances])
             ),
             roundtrips=list(itertools.chain(*[i.roundtrips for i in instances])),
+            roundtrip_start=min(i.roundtrip_start for i in instances),
+            roundtrip_end=max(i.roundtrip_end for i in instances),
         )
         return aggregate.get_summary()
 
