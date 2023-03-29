@@ -19,8 +19,8 @@ StrDict = Dict[str, Any]
 
 
 @dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
-class SentPixel:
-    """Used for tracking a single sent pixel."""
+class SentPixelVariation:
+    """Used for tracking a single sent pixel variation."""
 
     nside: int
     pixel_id: int
@@ -28,9 +28,9 @@ class SentPixel:
     sent_time: float = dc.field(compare=False)  # compare also excludes field from hash
 
     @staticmethod
-    def from_pframe(pframe: icetray.I3Frame) -> "SentPixel":
+    def from_pframe(pframe: icetray.I3Frame) -> "SentPixelVariation":
         """Get an instance from a Pframe."""
-        return SentPixel(
+        return SentPixelVariation(
             nside=pframe[cfg.I3FRAME_NSIDE].value,
             pixel_id=pframe[cfg.I3FRAME_PIXEL].value,
             posvar_id=pframe[cfg.I3FRAME_POSVAR].value,
@@ -131,7 +131,7 @@ class PixelRecoCollector:
         # data stores
         self.nsides_dict = nsides_dict
         self._pixrecoid_received_quick_lookup: Set[PixelRecoID] = set([])
-        self._sent_pixels_by_nside: Dict[int, List[SentPixel]] = {}
+        self._sent_pixvars_by_nside: Dict[int, List[SentPixelVariation]] = {}
 
         # percentage progress trackers
         self._thresholds = PixelRecoCollector._make_thresholds(
@@ -163,12 +163,12 @@ class PixelRecoCollector:
 
     @property
     def n_sent(self) -> int:
-        return sum(len(x) for x in self._sent_pixels_by_nside.values())
+        return sum(len(x) for x in self._sent_pixvars_by_nside.values())
 
     @property
-    def sent_pixels(self) -> Set[SentPixel]:
+    def sent_pixvars(self) -> Set[SentPixelVariation]:
         """Just the PixelSent instances that have been sent."""
-        return set(itertools.chain(*self._sent_pixels_by_nside.values()))
+        return set(itertools.chain(*self._sent_pixvars_by_nside.values()))
 
     def finder_context(self) -> "_FinderContextManager":
         """Creates a context manager for startup & ending conditions."""
@@ -187,19 +187,21 @@ class PixelRecoCollector:
             self.finder.finish()
             self.parent._in_finder_context = False
 
-    async def register_sent_pixels(self, addl_sent_pixels: Set[SentPixel]) -> None:
+    async def register_sent_pixvars(
+        self, addl_sent_pixvars: Set[SentPixelVariation]
+    ) -> None:
         """Register the pixel ids recently sent.
 
-        When `addl_sent_pixels` is empty (happens at the end of the
+        When `addl_sent_pixvars` is empty (happens at the end of the
         scan), `self.predictive_scanning_threshold` will now be ignored.
         """
-        if addl_sent_pixels:
-            for sentpix in addl_sent_pixels:
-                self.reporter.increment_pixels_sent_ct(sentpix.nside)
+        if addl_sent_pixvars:
+            for spv in addl_sent_pixvars:
+                self.reporter.increment_pixels_sent_ct(spv.nside)
                 try:
-                    self._sent_pixels_by_nside[sentpix.nside].append(sentpix)
+                    self._sent_pixvars_by_nside[spv.nside].append(spv)
                 except KeyError:
-                    self._sent_pixels_by_nside[sentpix.nside] = [sentpix]
+                    self._sent_pixvars_by_nside[spv.nside] = [spv]
 
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
@@ -228,12 +230,12 @@ class PixelRecoCollector:
                 f"Pixel-reco has already been received: {pixreco.id_tuple}"
             )
 
-        # match to corresponding SentPixel
-        sent_pixel = None
-        for sent_pixel in self._sent_pixels_by_nside[pixreco.nside]:
-            if sent_pixel.matches_pixreco(pixreco):
+        # match to corresponding SentPixelVariation
+        sent_pixvar = None
+        for sent_pixvar in self._sent_pixvars_by_nside[pixreco.nside]:
+            if sent_pixvar.matches_pixreco(pixreco):
                 break
-        if not sent_pixel:
+        if not sent_pixvar:
             raise ExtraPixelRecoException(
                 f"Pixel-reco received not in sent set: {pixreco.id_tuple}"
             )
@@ -269,7 +271,7 @@ class PixelRecoCollector:
         await self.reporter.record_pixreco(
             pixreco.nside,
             pixreco_runtime,
-            roundtrip_start=sent_pixel.sent_time,
+            roundtrip_start=sent_pixvar.sent_time,
             roundtrip_end=time.time(),
         )
 
@@ -279,7 +281,7 @@ class PixelRecoCollector:
         if self.n_sent != len(self._pixrecoid_received_quick_lookup):
             return False
         # now, sanity check contents, slower: O(n)
-        sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixels)
+        sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixvars)
         if sent_ids == self._pixrecoid_received_quick_lookup:
             return True
         raise RuntimeError(
@@ -298,9 +300,9 @@ class PixelRecoCollector:
 
         # recalculate nsides' percentage done
         updated_percents = {}
-        for nside, sentpix in self._sent_pixels_by_nside.items():
+        for nside, spv in self._sent_pixvars_by_nside.items():
             finished = len(self.nsides_dict[nside]) * self._finder.n_posvar
-            updated_percents[nside] = finished / len(sentpix)
+            updated_percents[nside] = finished / len(spv)
 
         def bin_it(percent: float) -> float:
             return self._thresholds[bisect(self._thresholds, percent) - 1]

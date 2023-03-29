@@ -32,7 +32,7 @@ from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixelreco import NSidesDict, PixelReco, pframe_to_pixelrecoid
 from . import LOGGER
-from .collector import ExtraPixelRecoException, PixelRecoCollector, SentPixel
+from .collector import ExtraPixelRecoException, PixelRecoCollector, SentPixelVariation
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
@@ -150,15 +150,15 @@ class PixelsToReco:
 
     def gen_new_pixel_pframes(
         self,
-        already_sent_pixels: Set[SentPixel],
+        already_sent_pixvars: Set[SentPixelVariation],
         nside_subprogression: NSideProgression,
     ) -> Iterator[icetray.I3Frame]:
         """Yield pixels (PFrames) to be reco'd for each `nside_available`."""
 
         def pixel_already_sent(pixel: Tuple[icetray.I3Int, icetray.I3Int]) -> bool:
             # Has this pixel already been sent? Ignore the position-variation id
-            for sent_pixel in already_sent_pixels:
-                if sent_pixel.nside == pixel[0] and sent_pixel.pixel_id == pixel[1]:
+            for sent_pixvar in already_sent_pixvars:
+                if sent_pixvar.nside == pixel[0] and sent_pixvar.pixel_id == pixel[1]:
                     return True
             return False
 
@@ -361,16 +361,16 @@ async def _send_pixels(
     to_clients_queue: mq.Queue,
     reco_algo: str,
     pixeler: PixelsToReco,
-    already_sent_pixels: Set[SentPixel],
+    already_sent_pixvars: Set[SentPixelVariation],
     nside_subprogression: NSideProgression,
-) -> Set[SentPixel]:
+) -> Set[SentPixelVariation]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
 
-    sent_pixels: Set[SentPixel] = set([])
+    sent_pixvars: Set[SentPixelVariation] = set([])
     async with to_clients_queue.open_pub() as pub:
         for i, pframe in enumerate(
-            pixeler.gen_new_pixel_pframes(already_sent_pixels, nside_subprogression)
+            pixeler.gen_new_pixel_pframes(already_sent_pixvars, nside_subprogression)
         ):
             LOGGER.info(f"Sending message M#{i} ({pframe_to_pixelrecoid(pframe)})...")
             await pub.send(
@@ -379,14 +379,14 @@ async def _send_pixels(
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
-            sent_pixels.add(SentPixel.from_pframe(pframe))
+            sent_pixvars.add(SentPixelVariation.from_pframe(pframe))
 
     # check if anything was actually processed
-    if not sent_pixels:
+    if not sent_pixvars:
         LOGGER.info("No additional pixels were sent.")
     else:
-        LOGGER.info(f"Done serving pixels to clients: {len(sent_pixels)}.")
-    return sent_pixels
+        LOGGER.info(f"Done serving pixels to clients: {len(sent_pixvars)}.")
+    return sent_pixvars
 
 
 async def _serve_and_collect(
@@ -419,26 +419,26 @@ async def _serve_and_collect(
             #
             # SEND PIXELS -- the next logical round of pixels (not necessarily the next nside)
             #
-            sent_pixels = await _send_pixels(
+            sent_pixvars = await _send_pixels(
                 to_clients_queue,
                 reco_algo,
                 pixeler,
-                collector.sent_pixels,
+                collector.sent_pixvars,
                 # we want to open re-refinement for all nsides <= max_nside_to_refine
                 nside_progression.get_slice_plus_one(max_nside_to_refine),
             )
             # Check if scan is done --
             # we collected everything & there was no re-refinement of a region
             if potentiallly_done:
-                if not sent_pixels:
+                if not sent_pixvars:
                     LOGGER.info("Done receiving/saving pixel-recos from clients.")
                     return collector.n_sent
                 potentiallly_done = False
-            # NOTE: when `sent_pixels` is empty (and we didn't previously
+            # NOTE: when `sent_pixvars` is empty (and we didn't previously
             #       collect all we sent) it just means there were no addl
             #       pixels to refine this time around. That doesn't mean
             #       there won't be more in the future.
-            await collector.register_sent_pixels(sent_pixels)
+            await collector.register_sent_pixvars(sent_pixvars)
 
             #
             # COLLECT PIXEL-RECOS
