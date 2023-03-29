@@ -73,13 +73,28 @@ def alertify(frame):
         frame['PoleEHESummaryPulseInfo'] = recclasses.I3PortiaEvent()
 
 
-def write_json(frame, extra=None):
+def write_json(frame, extra):
     pnf = frame_packet_to_i3live_json(i3live_json_to_frame_packet(
         frame[filter_globals.alert_candidate_full_message].value,
         pnf_framing=False), pnf_framing=True)
     msg = json.loads(frame[filter_globals.alert_candidate_full_message].value)
     pnfmsg = json.loads(pnf)
     fullmsg = {key: value for (key, value) in (list(msg.items()) + list(pnfmsg.items())) if key !='frames'}
+    extra_namer = {'OnlineL2_SplineMPE':'ol2_mpe'}
+    try:
+        uid_sub = (fullmsg['run_id'],
+                   fullmsg['event_id'],
+                   frame['I3EventHeader'].sub_event_id)
+        for i3part_key in extra[uid_sub]:
+            part = extra[uid_sub][i3part_key]
+            ra, dec = astro.dir_to_equa(
+                part.dir.zenith, part.dir.azimuth,
+                frame['I3EventHeader'].start_time.mod_julian_day_double)
+            fullmsg[extra_namer.get(i3part_key, i3part_key)] = {'ra':ra.item(), 'dec':dec.item()}
+    except KeyError as e:
+        print('Q-frame was split into multiple P-frames, skipping subevents not in input i3 file', e)
+        return False
+
     if 'I3MCTree' in frame:
         prim = dataclasses.get_most_energetic_primary(frame['I3MCTree'])
         muhi = dataclasses.get_most_energetic_muon(frame['I3MCTree'])
@@ -96,23 +111,18 @@ def write_json(frame, extra=None):
             edep +=  (e0-e1)
         fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy, 'emuhi': muhi.energy, 'emuin':edep}
 
-    if extra is not None:
-        extra_namer = {'OnlineL2_SplineMPE':'ol2_mpe'}
-        for i3part_key in extra[(fullmsg['run_id'], fullmsg['event_id'])]:
-            part = extra[(fullmsg['run_id'], fullmsg['event_id'])][i3part_key]
-            ra, dec = astro.dir_to_equa(part.dir.zenith, part.dir.azimuth,
-                                        frame['I3EventHeader'].start_time.mod_julian_day_double)
-            fullmsg[extra_namer.get(i3part_key, i3part_key)] = {'ra':ra.item(), 'dec':dec.item()}
-
-    with open(f'{fullmsg["unique_id"]}.json', 'w') as f:
+    jf = f'{fullmsg["unique_id"]}.sub{uid_sub[2]:03}.json'
+    with open(jf, 'w') as f:
         json.dump(fullmsg, f)
-        print(f'Wrote {fullmsg["unique_id"]}.json')
+        print(f'Wrote {jf}')
 
 
 def extract_original(i3files, orig_keys):
     extracted = {}
     def pullout(frame):
-        uid = (frame['I3EventHeader'].run_id, frame['I3EventHeader'].event_id)
+        uid = (frame['I3EventHeader'].run_id,
+               frame['I3EventHeader'].event_id,
+               frame['I3EventHeader'].sub_event_id)
         dd = {}
         for ok in orig_keys:
             try:
@@ -137,15 +147,12 @@ def main():
                         help='baseline gcd file for creating the GCD diff')
     parser.add_argument('--nframes', type=int, default=None, help='number of frames to process')
     parser.add_argument('--extra', action='append',
-                        default=None, help='extra I3Particles to pull out from original i3 file')
+                        default=[], help='extra I3Particles to pull out from original i3 file')
     parser.add_argument('-o', '--out', default='/dev/null',
                         help='output I3 file')
     args = parser.parse_args()
 
-    if args.extra is not None:
-        extracted = extract_original(args.i3s, args.extra)
-    else:
-        extracted = None
+    extracted = extract_original(args.i3s, args.extra)
 
     tray = I3Tray()
     tray.Add('I3Reader', Filenamelist=args.i3s)
