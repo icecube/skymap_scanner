@@ -59,7 +59,7 @@ class Dummy(RecoInterface):
     def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
-            pixel=frame[cfg.I3FRAME_PIXEL].value,
+            pixel_id=frame[cfg.I3FRAME_PIXEL].value,
             llh=frame["Dummy_llh"].value,
             reco_losses_inside=random.random(),
             reco_losses_total=random.random(),

@@ -252,7 +252,7 @@ class MillipedeOriginal(RecoInterface):
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
-            pixel=frame[cfg.I3FRAME_PIXEL].value,
+            pixel_id=frame[cfg.I3FRAME_PIXEL].value,
             llh=llh,
             reco_losses_inside=reco_losses_inside,
             reco_losses_total=reco_losses_total,
