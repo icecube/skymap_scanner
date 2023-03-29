@@ -64,7 +64,7 @@ def main():
             msg = pickle.load(f)
 
         return ScanResult.from_nsides_dict(
-            {msg["pixreco"].nside: {msg["pixreco"].pixel: msg["pixreco"]}}
+            {msg["pixfin"].nside: {msg["pixfin"].pixel: msg["pixfin"]}}
         )
 
     actual = load_from_out_pkl(args.actual)

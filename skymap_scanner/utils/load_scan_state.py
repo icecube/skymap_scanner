@@ -12,7 +12,7 @@ from icecube import icetray
 from .. import config as cfg
 from . import LOGGER
 from .event_tools import EventMetadata
-from .pixel_classes import PixelReco, RecoPixelVariation
+from .pixel_classes import RecoPixelFinal, RecoPixelVariation
 from .utils import hash_frame_packet, load_framepacket_from_file
 
 
@@ -97,8 +97,8 @@ def load_scan_state(
             if len(loaded_frames) > 1:
                 raise RuntimeError("Pixel file \"{0}\" has more than one frame in it.")
 
-            # add PixelReco to pixel-dict
-            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = PixelReco.from_recopixelvariation(
+            # add RecoPixelFinal to pixel-dict
+            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = RecoPixelFinal.from_recopixelvariation(
                 RecoPixelVariation.from_i3frame(
                     loaded_frames[0], geometry, reco_algo
                 )

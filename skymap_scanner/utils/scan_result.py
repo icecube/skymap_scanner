@@ -24,7 +24,7 @@ from matplotlib import pyplot as plt
 from matplotlib import text
 
 from .event_tools import EventMetadata
-from .pixel_classes import NSidesDict, PixelReco
+from .pixel_classes import NSidesDict, RecoPixelFinal
 
 ###############################################################################
 # DATA TYPES
@@ -58,7 +58,7 @@ class ScanResult:
     plotting / processing / transmission of the scan result.
 
     nsides_dict is a dictionary keyed by 'nside' values for which a scan
-    result is available (e.g. 8, 64, 512), see `pixelreco.NSidesDict`.
+    result is available (e.g. 8, 64, 512), see `pixel_classes.NSidesDict`.
     The scan result is a dictionary:
     - i (pixel index, integer) ->
         'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
@@ -372,28 +372,28 @@ class ScanResult:
             nside_pixel_values = np.zeros(len(pixel_dict), dtype=_dtype)
             logger.info(f"nside {nside} has {len(pixel_dict)} pixels / {12 * nside**2} total.")
 
-            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
-                nside_pixel_values[i] = cls._pixelreco_to_tuple(pixreco, nside, pixel_id)
+            for i, (pixel_id, pixfin) in enumerate(sorted(pixel_dict.items())):
+                nside_pixel_values[i] = cls._pixelreco_to_tuple(pixfin, nside, pixel_id)
 
             result[cls.format_nside(nside)] = nside_pixel_values
 
         return cls(result)
 
     @staticmethod
-    def _pixelreco_to_tuple(pixreco: PixelReco, nside: int, pixel_id: int) -> PixelTuple:
+    def _pixelreco_to_tuple(pixfin: RecoPixelFinal, nside: int, pixel_id: int) -> PixelTuple:
         if (
-            not isinstance(pixreco, PixelReco)
-            or nside != pixreco.nside
-            or pixel_id != pixreco.pixel_id
+            not isinstance(pixfin, RecoPixelFinal)
+            or nside != pixfin.nside
+            or pixel_id != pixfin.pixel_id
         ):
-            msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
+            msg = f"Invalid {RecoPixelFinal} for {(nside,pixel_id)}: {pixfin}"
             logging.error(msg)
             raise ValueError(msg)
         return (
-            pixreco.pixel_id,  # index
-            pixreco.llh,  # llh
-            pixreco.reco_losses_inside,  # E_in
-            pixreco.reco_losses_total,  # E_tot
+            pixfin.pixel_id,  # index
+            pixfin.llh,  # llh
+            pixfin.reco_losses_inside,  # E_in
+            pixfin.reco_losses_total,  # E_tot
         )
 
     """

@@ -12,10 +12,10 @@ from icecube.icetray import I3Frame  # type: ignore[import]  # noqa: F401
 
 OUT_PKL_FPATH = sys.argv[1]  # "/local/pkls/1660761104.474899.out.pkl"
 with open(OUT_PKL_FPATH, "rb") as f:
-    pixreco = pickle.load(f)
-    print(pixreco)
+    pixfin = pickle.load(f)
+    print(pixfin)
 with open(OUT_PKL_FPATH, "wb") as f:
     pickle.dump(
-        {"pixreco": pixreco["pixreco"], "runtime": 65},
+        {"pixfin": pixfin["pixfin"], "runtime": 65},
         f,
     )

@@ -11,8 +11,8 @@ import numpy
 from .. import config as cfg
 from ..utils.pixel_classes import (
     NSidesDict,
-    PixelReco,
-    PixelRecoID,
+    PTuple,
+    RecoPixelFinal,
     RecoPixelVariation,
     SentPixelVariation,
 )
@@ -23,15 +23,15 @@ StrDict = Dict[str, Any]
 
 
 class ExtraRecoPixelVariationException(Exception):
-    """Raised when a pixel-reco (message) is received that is semantically
-    equivalent to a prior.
+    """Raised when a RecoPixelVariation (message) is received that is
+    semantically equivalent to a prior.
 
-    For example, a pixel-reco (message) that has the same NSide, Pixel
-    ID, and Variation ID as an already received message.
+    For example, a RecoPixelVariation (message) that has the same NSide,
+    Pixel ID, and Variation ID as an already received message.
     """
 
 
-class PixelRecoFinder:
+class RecoPixelFinalFinder:
     """Facilitate finding the best reco result for any pixel variation."""
 
     def __init__(
@@ -46,8 +46,8 @@ class PixelRecoFinder:
 
     def cache_and_get_best(
         self, reco_pixel_variation: RecoPixelVariation
-    ) -> Optional[PixelReco]:
-        """Add pixreco to internal cache and possibly return the best reco for
+    ) -> Optional[RecoPixelFinal]:
+        """Add pixfin to internal cache and possibly return the best reco for
         pixel.
 
         If all the recos for the embedded pixel have be received, return
@@ -70,14 +70,14 @@ class PixelRecoFinder:
                 best = self.cache_by_nside_pixid[index][0]
 
             del self.cache_by_nside_pixid[index]  # del list
-            return PixelReco.from_recopixelvariation(best)
+            return RecoPixelFinal.from_recopixelvariation(best)
 
         return None
 
     def finish(self) -> None:
-        """Check if all the pixel-recos were received.
+        """Check if all the RecoPixelFinal were received/retrieved.
 
-        If an entire pixel (and all its pixel-recos) was dropped by
+        If an entire pixel (and all its variations) was dropped by
         client(s), this will not catch it.
         """
         if len(self.cache_by_nside_pixid) != 0:
@@ -88,7 +88,8 @@ class PixelRecoFinder:
 
 
 class Collector:
-    """Manage collecting, filtering, reporting, and saving of PixelRecos."""
+    """Manage collecting, filtering, reporting, and saving of
+    RecoPixelFinals."""
 
     def __init__(
         self,
@@ -98,14 +99,14 @@ class Collector:
         predictive_scanning_threshold: float,
         nsides: List[int],
     ) -> None:
-        self._finder = PixelRecoFinder(n_posvar=n_posvar)
+        self._finder = RecoPixelFinalFinder(n_posvar=n_posvar)
         self._in_finder_context = False
 
         self.reporter = reporter
 
         # data stores
         self.nsides_dict = nsides_dict
-        self._pixrecoid_received_quick_lookup: Set[PixelRecoID] = set([])
+        self._pixfinid_received_quick_lookup: Set[PTuple] = set([])
         self._sent_pixvars_by_nside: Dict[int, List[SentPixelVariation]] = {}
 
         # percentage progress trackers
@@ -148,7 +149,7 @@ class Collector:
         return self._FinderContextManager(self._finder, self)
 
     class _FinderContextManager:
-        def __init__(self, finder: PixelRecoFinder, parent: "Collector"):
+        def __init__(self, finder: RecoPixelFinalFinder, parent: "Collector"):
             self.finder = finder
             self.parent = parent
 
@@ -191,12 +192,13 @@ class Collector:
         reco_pixel_variation: RecoPixelVariation,
         reco_runtime: float,
     ) -> None:
-        """Cache pixreco until we can save the pixel's best received reco."""
+        """Cache RecoPixelVariation until we can save the pixel's best received
+        reco (RecoPixelFinal)."""
         if not self._in_finder_context:
             raise RuntimeError("Must be in `Collector.finder_context()` context.")
         LOGGER.debug(f"{self.nsides_dict=}")
 
-        if reco_pixel_variation.id_tuple in self._pixrecoid_received_quick_lookup:
+        if reco_pixel_variation.id_tuple in self._pixfinid_received_quick_lookup:
             raise ExtraRecoPixelVariationException(
                 f"RecoPixelVariation has already been received: {reco_pixel_variation.id_tuple}"
             )
@@ -212,35 +214,35 @@ class Collector:
             )
 
         # append
-        self._pixrecoid_received_quick_lookup.add(reco_pixel_variation.id_tuple)
-        logging_id = f"S#{len(self._pixrecoid_received_quick_lookup) - 1}"
+        self._pixfinid_received_quick_lookup.add(reco_pixel_variation.id_tuple)
+        logging_id = f"S#{len(self._pixfinid_received_quick_lookup) - 1}"
         LOGGER.info(f"Got a RecoPixelVariation {logging_id} {reco_pixel_variation}")
 
-        # get best pixreco
-        pixreco = self._finder.cache_and_get_best(reco_pixel_variation)
+        # get best pixfin
+        pixfin = self._finder.cache_and_get_best(reco_pixel_variation)
         LOGGER.info(
             f"Cached RecoPixelVariation {reco_pixel_variation.id_tuple} {reco_pixel_variation}"
         )
 
-        # save pixreco (if we got it)
-        if not pixreco:
+        # save pixfin (if we got it)
+        if not pixfin:
             LOGGER.debug(
-                f"PixelReco not yet done ({reco_pixel_variation.id_tuple} {reco_pixel_variation}"
+                f"RecoPixelFinal not yet done ({reco_pixel_variation.id_tuple} {reco_pixel_variation}"
             )
         else:
-            LOGGER.info(f"Saving a PixelReco (done @ {logging_id}): {pixreco}")
-            # insert pixreco into nsides_dict
-            if pixreco.nside not in self.nsides_dict:
-                self.nsides_dict[pixreco.nside] = {}
-            if pixreco.pixel_id in self.nsides_dict[pixreco.nside]:
+            LOGGER.info(f"Saving a RecoPixelFinal (done @ {logging_id}): {pixfin}")
+            # insert pixfin into nsides_dict
+            if pixfin.nside not in self.nsides_dict:
+                self.nsides_dict[pixfin.nside] = {}
+            if pixfin.pixel_id in self.nsides_dict[pixfin.nside]:
                 raise ExtraRecoPixelVariationException(
-                    f"NSide {pixreco.nside} / Pixel {pixreco.pixel_id} is already in nsides_dict"
+                    f"NSide {pixfin.nside} / Pixel {pixfin.pixel_id} is already in nsides_dict"
                 )
-            self.nsides_dict[pixreco.nside][pixreco.pixel_id] = pixreco
-            LOGGER.debug(f"Saved (found during {logging_id}): {pixreco}")
+            self.nsides_dict[pixfin.nside][pixfin.pixel_id] = pixfin
+            LOGGER.debug(f"Saved (found during {logging_id}): {pixfin}")
 
         # report after potential save
-        await self.reporter.record_pixreco(
+        await self.reporter.record_pixfin(
             reco_pixel_variation.nside,
             reco_runtime,
             roundtrip_start=sent_pixvar.sent_time,
@@ -250,15 +252,15 @@ class Collector:
     def collected_everything_sent(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
-        if self.n_sent != len(self._pixrecoid_received_quick_lookup):
+        if self.n_sent != len(self._pixfinid_received_quick_lookup):
             return False
         # now, sanity check contents, slower: O(n)
         sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixvars)
-        if sent_ids == self._pixrecoid_received_quick_lookup:
+        if sent_ids == self._pixfinid_received_quick_lookup:
             return True
         raise RuntimeError(
             f"Sanity check failed: Collected enough pixels,"
-            f" but does not match: {sent_ids=} vs {self._pixrecoid_received_quick_lookup=}"
+            f" but does not match: {sent_ids=} vs {self._pixfinid_received_quick_lookup=}"
         )
 
     def get_max_nside_to_refine(self) -> Optional[int]:

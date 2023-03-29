@@ -34,7 +34,7 @@ from ..utils.pixel_classes import (
     NSidesDict,
     RecoPixelVariation,
     SentPixelVariation,
-    pframe_to_pixelrecoid,
+    pframe_tuple,
 )
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
@@ -282,7 +282,7 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"({pframe_to_pixelrecoid(p_frame)}) ({posVariation=})..."
+                f"({pframe_tuple(p_frame)}) ({posVariation=})..."
             )
             yield p_frame
 
@@ -335,7 +335,7 @@ async def scan(
     await reporter.precomputing_report()
 
     # Start the scan iteration loop
-    total_n_pixreco = await _serve_and_collect(
+    total_n_pixfin = await _serve_and_collect(
         to_clients_queue,
         from_clients_queue,
         reco_algo,
@@ -347,7 +347,7 @@ async def scan(
     )
 
     # sanity check
-    if not total_n_pixreco:
+    if not total_n_pixfin:
         raise RuntimeError("No pixels were ever sent.")
 
     # get, log, & post final results
@@ -377,7 +377,7 @@ async def _send_pixels(
         for i, pframe in enumerate(
             pixeler.gen_new_pixel_pframes(already_sent_pixvars, nside_subprogression)
         ):
-            LOGGER.info(f"Sending message M#{i} ({pframe_to_pixelrecoid(pframe)})...")
+            LOGGER.info(f"Sending message M#{i} ({pframe_tuple(pframe)})...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
@@ -404,10 +404,10 @@ async def _serve_and_collect(
     predictive_scanning_threshold: float,
     nside_progression: NSideProgression,
 ) -> int:
-    """Run the next (or first) scan iteration (set of pixel-recos).
+    """Scan an entire event.
 
-    Return the number of pixels sent. Stop when all sent pixels have
-    been received (or the MQ-sub times-out).
+    Return the number of pixel-variations sent. Stop when all sent
+    pixels-variations have been received (or the MQ-sub times-out).
     """
     collector = Collector(
         n_posvar=len(pixeler.pos_variations),
@@ -436,7 +436,7 @@ async def _serve_and_collect(
             # we collected everything & there was no re-refinement of a region
             if potentiallly_done:
                 if not sent_pixvars:
-                    LOGGER.info("Done receiving/saving pixel-recos from clients.")
+                    LOGGER.info("Done receiving/saving recos from clients.")
                     return collector.n_sent
                 potentiallly_done = False
             # NOTE: when `sent_pixvars` is empty (and we didn't previously
@@ -448,24 +448,24 @@ async def _serve_and_collect(
             #
             # COLLECT PIXEL-RECOS
             #
-            LOGGER.info("Receiving pixel-recos from clients...")
+            LOGGER.info("Receiving recos from clients...")
             async for msg in sub:
-                if not isinstance(msg['pixreco'], RecoPixelVariation):
+                if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
                     raise ValueError(
-                        f"Message not {RecoPixelVariation}: {type(msg['pixreco'])}"
+                        f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
                     )
                 try:
-                    await collector.collect(msg['pixreco'], msg['runtime'])
+                    await collector.collect(msg['reco_pixel_variation'], msg['runtime'])
                 except ExtraRecoPixelVariationException as e:
                     logging.error(e)
 
                 # are we potentially done?
                 if collector.collected_everything_sent():
-                    LOGGER.debug("Potentially done receiving/saving pixel-recos...")
+                    LOGGER.debug("Potentially done receiving/saving recos...")
                     potentiallly_done = True
                     break
 
-                # if we've got enough pixrecos, let's get a jump on the next round
+                # if we've got enough pixfins, let's get a jump on the next round
                 if max_nside_to_refine := collector.get_max_nside_to_refine():
                     LOGGER.info(f"Predictive threshold met (max={max_nside_to_refine})")
                     break

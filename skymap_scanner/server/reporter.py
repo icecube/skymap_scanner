@@ -163,7 +163,7 @@ class WorkerStatsCollection:
     def update(
         self,
         nside: int,
-        pixreco_runtime: float,
+        pixfin_runtime: float,
         roundtrip_start: float,
         roundtrip_end: float,
     ) -> int:
@@ -173,7 +173,7 @@ class WorkerStatsCollection:
             worker_stats = self._worker_stats_by_nside[nside]
         except KeyError:
             worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
-        worker_stats.update(pixreco_runtime, roundtrip_start, roundtrip_end)
+        worker_stats.update(pixfin_runtime, roundtrip_start, roundtrip_end)
         return len(worker_stats.worker_runtimes)
 
     @property
@@ -266,8 +266,8 @@ class Reporter:
         self._call_order = {
             "current_previous": {  # current_fucntion: previous_fucntion
                 self.precomputing_report: [None],
-                self.record_pixreco: [self.precomputing_report, self.record_pixreco],
-                self.after_computing_report: [self.record_pixreco],
+                self.record_pixfin: [self.precomputing_report, self.record_pixfin],
+                self.after_computing_report: [self.record_pixfin],
             },
             "last_called": None,
         }
@@ -293,27 +293,27 @@ class Reporter:
         self._check_call_order(self.precomputing_report)
         await self._send_progress(summary_msg="The Skymap Scanner has started up.")
 
-    async def record_pixreco(
+    async def record_pixfin(
         self,
-        pixreco_nside: int,
-        pixreco_runtime: float,
+        pixfin_nside: int,
+        pixfin_runtime: float,
         roundtrip_start: float,
         roundtrip_end: float,
     ) -> None:
         """Send reports/logs/plots if needed."""
-        self._check_call_order(self.record_pixreco)
+        self._check_call_order(self.record_pixfin)
 
         # update stats
         nside_ct = self.worker_stats_collection.update(
-            pixreco_nside,
-            pixreco_runtime,
+            pixfin_nside,
+            pixfin_runtime,
             roundtrip_start,
             roundtrip_end,
         )
 
         # make report(s)
         if nside_ct == 1:
-            # always report the first received pixreco so we know things are rolling
+            # always report the first received pixfin so we know things are rolling
             await self.make_reports_if_needed(bypass_timers=True)
         else:
             await self.make_reports_if_needed()
