@@ -123,8 +123,8 @@ class NSideProgression(OrderedDict[int, int]):
             )
         return int_int_list
 
-    def __hash__(self) -> int:
-        return hash(self._get_int_int_list())
+    def __hash__(self) -> int:  # type: ignore[override]
+        return hash(set(self._get_int_int_list()))
 
     @cachetools.func.lru_cache()
     def n_recos_by_nside_lowerbound(self, n_posvar: int) -> Dict[int, int]:
