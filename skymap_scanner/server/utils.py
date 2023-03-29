@@ -3,8 +3,9 @@
 
 import json
 import pickle
+from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cachetools.func
 from rest_tools.client import RestClient
@@ -48,62 +49,70 @@ def _is_pow_of_two(intval: int) -> bool:
     return isinstance(intval, int) and (intval > 0) and (intval & (intval - 1) == 0)
 
 
-def validate_nside_progression(
-    nside_progression: cfg.NSideProgression,
-) -> cfg.NSideProgression:
-    """Validate and sort the nside progression."""
-    if len(set(n[0] for n in nside_progression)) != len(nside_progression):
-        raise ValueError(
-            f"Invalid NSide Progression: has duplicate nsides ({nside_progression})"
-        )
-    if [n[0] for n in nside_progression] != sorted(n[0] for n in nside_progression):
-        raise ValueError(
-            f"Invalid NSide Progression: nsides are not in ascending order ({nside_progression})"
-        )
-    if nside_progression[0][1] != cfg.FIRST_NSIDE_PIXEL_EXTENSION:
-        raise ValueError(
-            f"Invalid NSide Progression: the first pixel extension number must be {cfg.FIRST_NSIDE_PIXEL_EXTENSION} ({nside_progression})"
-        )
-    if any(not isinstance(n[1], int) or n[1] <= 0 for n in nside_progression[1:]):
-        # don't check first extension #
-        raise ValueError(
-            f"Invalid NSide Progression: extension number must be positive int ({nside_progression})"
-        )
-    if any(not _is_pow_of_two(n[0]) for n in nside_progression):
-        raise ValueError(
-            f"Invalid NSide Progression: nside value must be positive n^2 ({nside_progression})"
-        )
-    return nside_progression
+class NSideProgression(OrderedDict[int, int]):
+    """Holds a valid progression of nsides."""
 
+    FIRST_NSIDE_PIXEL_EXTENSION = 12  # this is mandated by HEALPix algorithm
+    DEFAULT = [(8, FIRST_NSIDE_PIXEL_EXTENSION), (64, 12), (512, 24)]
 
-@cachetools.func.lru_cache()
-def n_recos_by_nside_lowerbound(
-    nside_progression: cfg.NSideProgression, n_posvar: int
-) -> Dict[int, int]:
-    """Get estimated # of recos per nside.
+    def __init__(self, int_int_list: List[Tuple[int, int]]):
+        super().__init__(NSideProgression._prevalidate(int_int_list))
 
-    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
-    """
+    @property
+    def min_nside(self) -> int:
+        """Get the minimum (first) nside value."""
+        return next(iter(self))
 
-    def previous_nside(n: Tuple[int, int]) -> int:
-        # get previous nside value
-        idx = nside_progression.index(n)
-        if idx == 0:
-            return 1
-        return nside_progression[idx - 1][0]
+    @staticmethod
+    def _prevalidate(int_int_list: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        """Validate and sort the nside progression."""
+        if len(set(n[0] for n in int_int_list)) != len(int_int_list):
+            raise ValueError(
+                f"Invalid NSide Progression: has duplicate nsides ({int_int_list})"
+            )
+        if [n[0] for n in int_int_list] != sorted(n[0] for n in int_int_list):
+            raise ValueError(
+                f"Invalid NSide Progression: nsides are not in ascending order ({int_int_list})"
+            )
+        if int_int_list[0][1] != NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION:
+            raise ValueError(
+                f"Invalid NSide Progression: the first pixel extension number must be {NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION} ({int_int_list})"
+            )
+        if any(not isinstance(n[1], int) or n[1] <= 0 for n in int_int_list[1:]):
+            # don't check first extension #
+            raise ValueError(
+                f"Invalid NSide Progression: extension number must be positive int ({int_int_list})"
+            )
+        if any(not _is_pow_of_two(n[0]) for n in int_int_list):
+            raise ValueError(
+                f"Invalid NSide Progression: nside value must be positive n^2 ({int_int_list})"
+            )
+        return int_int_list
 
-    return {
-        N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
-        for N in nside_progression
-    }
+    @cachetools.func.lru_cache()
+    def n_recos_by_nside_lowerbound(self, n_posvar: int) -> Dict[int, int]:
+        """Get estimated # of recos per nside.
 
+        These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+        """
+        nside_progression: List[Tuple[int, int]] = list(self.items())
 
-@cachetools.func.lru_cache()
-def total_n_recos_lowerbound(
-    nside_progression: cfg.NSideProgression, n_posvar: int
-) -> int:
-    """Get estimated # of total recos for the scan.
+        def previous_nside(n: Tuple[int, int]) -> int:
+            # get previous nside value
+            idx = nside_progression.index(n)
+            if idx == 0:
+                return 1
+            return nside_progression[idx - 1][0]
 
-    These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
-    """
-    return sum(n_recos_by_nside_lowerbound(nside_progression, n_posvar).values())
+        return {
+            N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
+            for N in nside_progression
+        }
+
+    @cachetools.func.lru_cache()
+    def total_n_recos_lowerbound(self, n_posvar: int) -> int:
+        """Get estimated # of total recos for the scan.
+
+        These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+        """
+        return sum(self.n_recos_by_nside_lowerbound(n_posvar).values())

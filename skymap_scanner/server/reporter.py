@@ -14,13 +14,12 @@ from typing import Any, Callable, Dict, List, Optional
 from rest_tools.client import RestClient
 
 from .. import config as cfg
-from ..config import NSideProgression
 from ..utils import pixelreco
 from ..utils.event_tools import EventMetadata
 from ..utils.scan_result import ScanResult
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import n_recos_by_nside_lowerbound, total_n_recos_lowerbound
+from .utils import NSideProgression
 
 StrDict = Dict[str, Any]
 
@@ -361,14 +360,14 @@ class Reporter:
         If we've sent the last nside, then just use the # of recos sent.
         """
         if not self._n_pixels_sent_by_nside:
-            return total_n_recos_lowerbound(self.nside_progression, self.n_posvar)
+            return self.nside_progression.total_n_recos_lowerbound(self.n_posvar)
 
         # in final nside
-        if max(self._n_pixels_sent_by_nside.keys()) == self.nside_progression[-1][0]:
+        if max(self._n_pixels_sent_by_nside.keys()) == self.nside_progression.max_nside:
             return sum(self._n_pixels_sent_by_nside.values())
 
         return max(
-            total_n_recos_lowerbound(self.nside_progression, self.n_posvar),
+            self.nside_progression.total_n_recos_lowerbound(self.n_posvar),
             sum(self._n_pixels_sent_by_nside.values()),
         )
 
@@ -435,9 +434,7 @@ class Reporter:
                 "total runtime at finish": str(
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
                 ),
-                "total # of reconstructions": total_n_recos_lowerbound(
-                    self.nside_progression, self.n_posvar
-                ),
+                "total # of reconstructions": self.predicted_total_recos(),
                 "end": str(
                     dt.datetime.fromtimestamp(
                         int(time.time() + (secs_predicted - elapsed_reco_walltime))
@@ -461,7 +458,7 @@ class Reporter:
                     ),
                 }
         # add estimates for future nsides
-        lowerbounds = n_recos_by_nside_lowerbound(self.nside_progression, self.n_posvar)
+        lowerbounds = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
         for nside, n in lowerbounds.items():
             if nside not in self.nsides_dict:
                 by_nside[nside] = {

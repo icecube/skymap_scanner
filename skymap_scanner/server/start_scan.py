@@ -36,7 +36,7 @@ from ..utils.pixelreco import NSidesDict, PixelReco, PixelRecoID, pframe_to_pixe
 from . import LOGGER
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
-from .utils import fetch_event_contents, validate_nside_progression
+from .utils import NSideProgression, fetch_event_contents
 
 StrDict = Dict[str, Any]
 
@@ -100,8 +100,8 @@ class PixelsToReco:
                 - the nsides_dict
             `GCDQp_packet`
                 - the GCDQp frame packet
-            `nside_progression`
-                - the list of nsides & pixel-extensions
+            `min_nside`
+                - the minimum nside value
             `input_time_name`
                 - name of an I3Double to use as the vertex time for the coarsest scan
             `input_pos_name`
@@ -142,8 +142,8 @@ class PixelsToReco:
                 dataclasses.I3Position(0.,0.,0.),
             ]
 
-        # Set nside values
-        self.nside_progression = nside_progression
+        # Set min nside
+        self.min_nside = min_nside
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -248,7 +248,7 @@ class PixelsToReco:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith,azimuth)
 
-        if nside == self.nside_progression[0][0]:
+        if nside == self.min_nside:
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
@@ -258,7 +258,7 @@ class PixelsToReco:
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
 
-                if coarser_nside < self.nside_progression[0][0]:
+                if coarser_nside < self.min_nside:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
 
@@ -267,7 +267,7 @@ class PixelsToReco:
                         # coarser pixel found
                         break
 
-            if coarser_nside < self.nside_progression[0][0]:
+            if coarser_nside < self.min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
                 time = self.fallback_time
@@ -527,7 +527,7 @@ class PixelRecoCollector:
             f" but does not match: {sent_ids=} vs {self._pixrecoid_received_quick_lookup=}"
         )
 
-    def ok_to_serve_more(self) -> bool:
+    def ok_to_serve_more(self) -> List[int]:
         """Return whether enough pixel-recos collected to serve more.
 
         If we are approaching the end of the scan, always return False.
@@ -567,7 +567,7 @@ async def scan(
     output_dir: Optional[Path],
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
-    nside_progression: cfg.NSideProgression,
+    nside_progression: NSideProgression,
     predictive_scanning_threshold: float,
     skydriver_rc: Optional[RestClient],
 ) -> NSidesDict:
@@ -583,7 +583,7 @@ async def scan(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
         baseline_GCD=baseline_GCD,
-        nside_progression=nside_progression,
+        min_nside=nside_progression.min_nside,
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
@@ -730,7 +730,7 @@ async def _serve_and_collect(
 def write_startup_json(
     client_startup_json: Path,
     event_metadata: EventMetadata,
-    nside_progression: cfg.NSideProgression,
+    nside_progression: NSideProgression,
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> str:
@@ -741,7 +741,11 @@ def write_startup_json(
     if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
         scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
     else:
-        scan_id = f"{event_metadata.event_id}-{'-'.join(f'{n}:{x}' for n,x in nside_progression)}-{int(time.time())}"
+        scan_id = (
+            f"{event_metadata.event_id}-"
+            f"{'-'.join(f'{n}:{x}' for n,x in nside_progression.items())}-"
+            f"{int(time.time())}"
+        )
 
     json_dict = {
         "scan_id": scan_id,
@@ -842,12 +846,12 @@ def main() -> None:
     parser.add_argument(
         "--nsides",
         dest="nside_progression",
-        default=cfg.DEFAULT_NSIDE_PROGRESSION,
+        default=NSideProgression.DEFAULT,
         help=(
             f"The progression of nside values to use, "
             f"each ':'-paired with their pixel extension value. "
-            f"The first nside's pixel extension must be {cfg.FIRST_NSIDE_PIXEL_EXTENSION}. "
-            f"Example: --nsides 8:{cfg.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
+            f"The first nside's pixel extension must be {NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION}. "
+            f"Example: --nsides 8:{NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
         ),
         nargs='*',
         type=_nside_and_pixelextension,
@@ -897,7 +901,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides
-    args.nside_progression = validate_nside_progression(tuple(args.nside_progression))
+    args.nside_progression = NSideProgression(args.nside_progression)
 
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():

@@ -3,7 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-from typing import Final, Tuple
+from typing import Final
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -15,13 +15,6 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
-NSideProgression = Tuple[Tuple[int, int], ...]
-FIRST_NSIDE_PIXEL_EXTENSION = 12  # this is mandated by HEALPix algorithm
-DEFAULT_NSIDE_PROGRESSION: NSideProgression = (
-    (8, FIRST_NSIDE_PIXEL_EXTENSION),
-    (64, 12),
-    (512, 24),
-)
 
 # physics strings
 INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
