@@ -413,11 +413,9 @@ class PixelRecoCollector:
         if not (0.0 < predictive_scanning_threshold <= 1.0):
             raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
 
-        thresholds = list(
-            r / 10.0 for r in range(math.ceil(predictive_scanning_threshold * 10), 11)
-        )
-        if thresholds[0] != predictive_scanning_threshold:
-            thresholds = [predictive_scanning_threshold] + thresholds
+        thresholds = [predictive_scanning_threshold]
+        base = sorted([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+        thresholds.extend(base[bisect(base, predictive_scanning_threshold) :])
 
         LOGGER.info(f"Thresholds: {thresholds}")
         return thresholds
