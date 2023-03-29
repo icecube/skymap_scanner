@@ -16,6 +16,6 @@ with open(OUT_PKL_FPATH, "rb") as f:
     print(pixfin)
 with open(OUT_PKL_FPATH, "wb") as f:
     pickle.dump(
-        {"pixfin": pixfin["pixfin"], "runtime": 65},
+        {"reco_pixel_variation": pixfin["reco_pixel_variation"], "runtime": 65},
         f,
     )
