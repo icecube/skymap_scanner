@@ -162,11 +162,13 @@ def reco_pixel(
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
-            pixfin = RecoPixelVariation.from_i3frame(frame, geometry, reco_algo)
-            LOGGER.info(f"RecoPixelFinal: {pixfin}")
+            reco_pixel_variation = RecoPixelVariation.from_i3frame(
+                frame, geometry, reco_algo
+            )
+            LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
             pickle.dump(
                 {
-                    "pixfin": pixfin,
+                    "reco_pixel_variation": reco_pixel_variation,
                     # can't trust the clocks running in containers, but we can trust the relative time
                     "runtime": time.time() - start_time,
                 },
