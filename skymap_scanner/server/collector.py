@@ -142,8 +142,17 @@ class PixelRecoCollector:
     @staticmethod
     def _make_thresholds(predictive_scanning_threshold: float) -> List[float]:
         """Ex: predictive_scanning_threshold=0.66 -> [0.66, .7, 0.8, 0.9, 1.0]."""
-        if not (0.0 < predictive_scanning_threshold <= 1.0):
-            raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
+        if not (
+            cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN
+            < predictive_scanning_threshold
+            <= cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX
+        ):
+            raise ValueError(
+                f"`predictive_scanning_threshold` must be "
+                f"[{cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN}, "
+                f"{cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX}]: "
+                f"'{predictive_scanning_threshold}'"
+            )
 
         thresholds = [predictive_scanning_threshold]
         base = sorted([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
