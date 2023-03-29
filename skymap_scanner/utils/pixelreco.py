@@ -36,11 +36,31 @@ class PixelReco:
     llh: float
     reco_losses_inside: float
     reco_losses_total: float
-    pos_var_index: int
-    id_tuple: PixelRecoID = dc.field(init=False, repr=False)
     position: I3Position
     time: float
     energy: float
+
+    @staticmethod
+    def from_recopixelvariation(reco_pixvar: "RecoPixelVariation") -> "PixelReco":
+        """Effectively removes the position variation id."""
+        return PixelReco(
+            nside=reco_pixvar.nside,
+            pixel=reco_pixvar.pixel,
+            llh=reco_pixvar.llh,
+            reco_losses_inside=reco_pixvar.reco_losses_inside,
+            reco_losses_total=reco_pixvar.reco_losses_total,
+            position=reco_pixvar.position,
+            time=reco_pixvar.time,
+            energy=reco_pixvar.energy,
+        )
+
+
+@dc.dataclass
+class RecoPixelVariation(PixelReco):
+    """A dataclass representing a pixel-variation reconstruction."""
+
+    pos_var_index: int
+    id_tuple: PixelRecoID = dc.field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
@@ -50,9 +70,11 @@ class PixelReco:
         frame: I3Frame,
         geometry: I3Frame,
         reco_algo: str,
-    ) -> "PixelReco":
+    ) -> "RecoPixelVariation":
         """Get a PixelReco instance by parsing the I3Frame."""
-        return recos.get_reco_interface_object(reco_algo).to_pixelreco(frame, geometry)
+        return recos.get_reco_interface_object(reco_algo).to_recopixelvariation(
+            frame, geometry
+        )
 
 
 NSidesDict = Dict[int, Dict[int, PixelReco]]  # nside:(id:PixelReco}

@@ -1,16 +1,12 @@
 """Tools for conducting & representing a pixel reconstruction."""
 
 
-import dataclasses as dc
 import importlib
 import pkgutil
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
-
-from .. import config as cfg
+from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
-    from ..utils.pixelreco import PixelReco
+    from ..utils.pixelreco import RecoPixelVariation
 
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
@@ -36,7 +32,9 @@ class RecoInterface:
         raise NotImplementedError()
 
     @staticmethod
-    def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> "PixelReco":
+    def to_recopixelvariation(
+        frame: I3Frame, geometry: I3Frame
+    ) -> "RecoPixelVariation":
         raise NotImplementedError()
 
 
@@ -51,7 +49,7 @@ def get_reco_interface_object(name: str) -> RecoInterface:
     """Dynamically import the reco sub-module's class."""
     try:
         module = importlib.import_module(f"{__name__}.{name.lower()}")
-        return getattr(module, ''.join(x.capitalize() for x in name.split('_')))
+        return getattr(module, "".join(x.capitalize() for x in name.split("_")))
     except ModuleNotFoundError as e:
         if name not in get_all_reco_algos():
             # checking this in 'except' allows us to use 'from e'

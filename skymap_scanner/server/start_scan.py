@@ -32,7 +32,7 @@ from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixelreco import NSidesDict, PixelReco, pframe_to_pixelrecoid
 from . import LOGGER
-from .collector import ExtraPixelRecoException, PixelRecoCollector, SentPixelVariation
+from .collector import ExtraRecoPixelVariationException, Collector, SentPixelVariation
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
@@ -404,7 +404,7 @@ async def _serve_and_collect(
     Return the number of pixels sent. Stop when all sent pixels have
     been received (or the MQ-sub times-out).
     """
-    collector = PixelRecoCollector(
+    collector = Collector(
         n_posvar=len(pixeler.pos_variations),
         nsides_dict=nsides_dict,
         reporter=reporter,
@@ -449,7 +449,7 @@ async def _serve_and_collect(
                     raise ValueError(f"Message not {PixelReco}: {type(msg['pixreco'])}")
                 try:
                     await collector.collect(msg['pixreco'], msg['runtime'])
-                except ExtraPixelRecoException as e:
+                except ExtraRecoPixelVariationException as e:
                     logging.error(e)
 
                 # are we potentially done?

@@ -27,7 +27,7 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.pixelreco import PixelReco
+from ..utils.pixelreco import RecoPixelVariation
 from . import RecoInterface
 
 
@@ -240,7 +240,7 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify2, "notify2")
 
     @staticmethod
-    def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
+    def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
         # Calculate reco losses, based on load_scan_state()
         reco_losses_inside, reco_losses_total = MillipedeOriginal.get_reco_losses_inside(
             p_frame=frame, g_frame=geometry,
@@ -250,7 +250,7 @@ class MillipedeOriginal(RecoInterface):
             llh = float("nan")
         else:
             llh = frame["MillipedeStarting2ndPass_millipedellh"].logl
-        return PixelReco(
+        return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel=frame[cfg.I3FRAME_PIXEL].value,
             llh=llh,

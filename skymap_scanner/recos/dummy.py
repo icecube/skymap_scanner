@@ -20,7 +20,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
-from ..utils.pixelreco import PixelReco
+from ..utils.pixelreco import RecoPixelVariation
 from . import RecoInterface
 
 
@@ -56,8 +56,8 @@ class Dummy(RecoInterface):
         tray.AddModule(notify1, "notify1")
 
     @staticmethod
-    def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
-        return PixelReco(
+    def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
+        return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel=frame[cfg.I3FRAME_PIXEL].value,
             llh=frame["Dummy_llh"].value,
