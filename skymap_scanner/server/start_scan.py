@@ -9,8 +9,10 @@ import dataclasses as dc
 import itertools
 import json
 import logging
+import math
 import random
 import time
+from bisect import bisect
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
@@ -87,7 +89,7 @@ class PixelsToReco:
         nsides_dict: NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         baseline_GCD: str,
-        nside_progression: cfg.NSideProgression,
+        min_nside: int,
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
@@ -189,8 +191,9 @@ class PixelsToReco:
     def gen_new_pixel_pframes(
         self,
         already_sent_pixels: Set[SentPixel],
+        nside_subprogression: NSideProgression,
     ) -> Iterator[icetray.I3Frame]:
-        """Yield pixels (PFrames) to be reco'd."""
+        """Yield pixels (PFrames) to be reco'd for each `nside_available`."""
 
         def pixel_already_sent(pixel: Tuple[icetray.I3Int, icetray.I3Int]) -> bool:
             # Has this pixel already been sent? Ignore the position-variation id
@@ -200,7 +203,7 @@ class PixelsToReco:
             return False
 
         # find pixels to refine
-        pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, self.nside_progression)
+        pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, nside_subprogression)
         pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))
         if not pixels_to_refine:
             LOGGER.info("There are no pixels to refine.")
@@ -386,19 +389,38 @@ class PixelRecoCollector:
         nsides_dict: NSidesDict,
         reporter: Reporter,
         predictive_scanning_threshold: float,
+        nsides: List[int],
     ) -> None:
         self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
         self._in_finder_context = False
 
         self.reporter = reporter
+
+        # data stores
         self.nsides_dict = nsides_dict
         self._pixrecoid_received_quick_lookup: Set[PixelRecoID] = set([])
         self._sent_pixels_by_nside: Dict[int, List[SentPixel]] = {}
 
+        # percentage progress trackers
+        self._thresholds = PixelRecoCollector._make_thresholds(
+            predictive_scanning_threshold
+        )
+        self._nsides_percents_done = {n: 0.0 for n in nsides}
+
+    @staticmethod
+    def _make_thresholds(predictive_scanning_threshold: float) -> List[float]:
+        """Ex: predictive_scanning_threshold=0.66 -> [0.66, .7, 0.8, 0.9, 1.0]."""
         if not (0.0 < predictive_scanning_threshold <= 1.0):
             raise ValueError("`predictive_scanning_threshold` must be (0.0, 1.0])")
-        self._predictive_scanning_threshold = predictive_scanning_threshold
-        self._end_game = False
+
+        thresholds = list(
+            r / 10.0 for r in range(math.ceil(predictive_scanning_threshold * 10), 11)
+        )
+        if thresholds[0] != predictive_scanning_threshold:
+            thresholds = [predictive_scanning_threshold] + thresholds
+
+        LOGGER.info(f"Thresholds: {thresholds}")
+        return thresholds
 
     @property
     def n_sent(self) -> int:
@@ -445,10 +467,9 @@ class PixelRecoCollector:
                 summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
             )
         else:
-            self._end_game = True
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
-                summary_msg="The Skymap Scanner is waiting to receive the remaining recos.",
+                summary_msg="The Skymap Scanner is waiting to receive recos.",
             )
 
     async def collect(
@@ -513,7 +534,7 @@ class PixelRecoCollector:
             roundtrip_end=time.time(),
         )
 
-    def is_scan_done(self) -> bool:
+    def collected_everything_sent(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
         if self.n_sent != len(self._pixrecoid_received_quick_lookup):
@@ -527,34 +548,44 @@ class PixelRecoCollector:
             f" but does not match: {sent_ids=} vs {self._pixrecoid_received_quick_lookup=}"
         )
 
-    def ok_to_serve_more(self) -> List[int]:
-        """Return whether enough pixel-recos collected to serve more.
+    def get_max_nside_to_refine(self) -> Optional[int]:
+        """Return max nside value from all nsides that just now breached a new
+        threshold.
 
-        If we are approaching the end of the scan, always return False.
+        Return `None` if no nsides just now breached a new threshold
         """
-        if self._end_game:
-            return False
-
         if not self.nsides_dict:  # nothing has been saved yet
-            return False
+            return None
 
-        # get percentage of latest nside (otherwise BIG + small >> threshold)
-        latest_saved_nside = max(self.nsides_dict.keys())
+        # recalculate nsides' percentage done
+        updated_percents = {}
+        for nside, sentpix in self._sent_pixels_by_nside.items():
+            finished = len(self.nsides_dict[nside]) * self._finder.n_posvar
+            updated_percents[nside] = finished / len(sentpix)
 
-        # Have we already said yes to this nside?
-        # Ex: nside=8 reached threshold so we sent out nside=64,
-        #     now we're asking about nside=8 again--it's not okay to serve more.
-        if latest_saved_nside < max(self._sent_pixels_by_nside.keys()):
-            return False
+        def bin_it(percent: float) -> float:
+            return self._thresholds[bisect(self._thresholds, percent) - 1]
 
-        # calculate based on # of recos
-        # use nsides_dict (faster than using self._pixreco_received_lookup)
-        n_recos_fin = len(self.nsides_dict[latest_saved_nside]) * self._finder.n_posvar
-        target = (
-            len(self._sent_pixels_by_nside[latest_saved_nside])
-            * self._predictive_scanning_threshold
-        )
-        return n_recos_fin >= target
+        def reached_new_threshold(nside: int, percent: float) -> bool:
+            if percent < self._thresholds[0]:  # doesn't meet minimum threshold
+                return False
+            # did percentage reached new threshold?
+            if nside not in self._nsides_percents_done:
+                old_bin = 0.0
+            else:
+                old_bin = bin_it(self._nsides_percents_done[nside])
+            return bin_it(percent) > old_bin
+
+        newly_thresholded_nsides = [
+            nside
+            for nside, prog in updated_percents.items()
+            if reached_new_threshold(nside, prog)
+        ]
+        self._nsides_percents_done = updated_percents
+
+        if not newly_thresholded_nsides:
+            return None
+        return max(newly_thresholded_nsides)
 
 
 async def scan(
@@ -612,6 +643,7 @@ async def scan(
         pixeler,
         reporter,
         predictive_scanning_threshold,
+        nside_progression,
     )
 
     # sanity check
@@ -635,13 +667,16 @@ async def _send_pixels(
     reco_algo: str,
     pixeler: PixelsToReco,
     already_sent_pixels: Set[SentPixel],
+    nside_subprogression: NSideProgression,
 ) -> Set[SentPixel]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
 
     sent_pixels: Set[SentPixel] = set([])
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.gen_new_pixel_pframes(already_sent_pixels)):
+        for i, pframe in enumerate(
+            pixeler.gen_new_pixel_pframes(already_sent_pixels, nside_subprogression)
+        ):
             LOGGER.info(f"Sending message M#{i} ({pframe_to_pixelrecoid(pframe)})...")
             await pub.send(
                 {
@@ -667,6 +702,7 @@ async def _serve_and_collect(
     pixeler: PixelsToReco,
     reporter: Reporter,
     predictive_scanning_threshold: float,
+    nside_progression: NSideProgression,
 ) -> int:
     """Run the next (or first) scan iteration (set of pixel-recos).
 
@@ -678,12 +714,13 @@ async def _serve_and_collect(
         nsides_dict=nsides_dict,
         reporter=reporter,
         predictive_scanning_threshold=predictive_scanning_threshold,
+        nsides=list(nside_progression.keys()),
     )
 
+    max_nside_to_refine = None  # start by not refining any (ie we generate first nside)
+    potentiallly_done = False
     async with collector.finder_context(), from_clients_queue.open_sub() as sub:
         while True:
-            serve_more = False
-
             #
             # SEND PIXELS -- the next logical round of pixels (not necessarily the next nside)
             #
@@ -692,7 +729,20 @@ async def _serve_and_collect(
                 reco_algo,
                 pixeler,
                 collector.sent_pixels,
-            )  # NOTE: when this set is empty (no pixels sent), we are waiting for the final recos
+                # we want to open re-refinement for all nsides <= max_nside_to_refine
+                nside_progression.get_slice_plus_one(max_nside_to_refine),
+            )
+            # Check if scan is done --
+            # we collected everything & there was no re-refinement of a region
+            if potentiallly_done:
+                if not sent_pixels:
+                    LOGGER.info("Done receiving/saving pixel-recos from clients.")
+                    return collector.n_sent
+                potentiallly_done = False
+            # NOTE: when `sent_pixels` is empty (and we didn't previously
+            #       collect all we sent) it just means there were no addl
+            #       pixels to refine this time around. That doesn't mean
+            #       there won't be more in the future.
             await collector.register_sent_pixels(sent_pixels)
 
             #
@@ -707,18 +757,19 @@ async def _serve_and_collect(
                 except ExtraPixelRecoException as e:
                     logging.error(e)
 
-                # are we done?
-                if collector.is_scan_done():
-                    LOGGER.info("Done receiving/saving pixel-recos from clients.")
-                    return collector.n_sent
+                # are we potentially done?
+                if collector.collected_everything_sent():
+                    LOGGER.debug("Potentially done receiving/saving pixel-recos...")
+                    potentiallly_done = True
+                    break
 
                 # if we've got enough pixrecos, let's get a jump on the next round
-                if serve_more := collector.ok_to_serve_more():
-                    LOGGER.info("Predictive threshold met")
+                if max_nside_to_refine := collector.get_max_nside_to_refine():
+                    LOGGER.info(f"Predictive threshold met (max={max_nside_to_refine})")
                     break
 
             # do-while loop logic
-            if serve_more:
+            if max_nside_to_refine or potentiallly_done:
                 continue
             LOGGER.error("The MQ-sub must have timed out (too many MIA clients)")
             return collector.n_sent

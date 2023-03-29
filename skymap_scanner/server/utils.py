@@ -50,7 +50,7 @@ def _is_pow_of_two(intval: int) -> bool:
 
 
 class NSideProgression(OrderedDict[int, int]):
-    """Holds a valid progression of nsides."""
+    """Holds a valid progression of nsides & pixel-extension numbers."""
 
     FIRST_NSIDE_PIXEL_EXTENSION = 12  # this is mandated by HEALPix algorithm
     DEFAULT = [(8, FIRST_NSIDE_PIXEL_EXTENSION), (64, 12), (512, 24)]
@@ -62,6 +62,40 @@ class NSideProgression(OrderedDict[int, int]):
     def min_nside(self) -> int:
         """Get the minimum (first) nside value."""
         return next(iter(self))
+
+    def _get_int_int_list(self) -> List[Tuple[int, int]]:
+        return list(self.items())
+
+    @property
+    def max_nside(self) -> int:
+        """Get the minimum (first) nside value."""
+        return next(reversed(self))
+
+    def get_at_index(self, index: int) -> Tuple[int, int]:
+        """Get nside value and pixel extension number at index."""
+        return self._get_int_int_list()[index]
+
+    def get_slice_plus_one(self, max_nside: Optional[int]) -> "NSideProgression":
+        """Return a slice starting at the min nside + next nside if there.
+
+        Provide `None` to return the first nside.
+
+        Elements are shallow copies.
+        """
+        int_int_list = self._get_int_int_list()
+
+        if max_nside is None:
+            return NSideProgression([int_int_list[0]])
+
+        if max_nside not in self.keys():
+            raise ValueError(f"Cannot make slice (invalid nside): {max_nside}")
+
+        if max_nside == self.max_nside:  # cannot do plus-one
+            return NSideProgression(int_int_list)
+
+        index = list(self.keys()).index(max_nside)
+        slice_plus_one = int_int_list[: index + 1]
+        return NSideProgression(slice_plus_one)
 
     @staticmethod
     def _prevalidate(int_int_list: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
@@ -95,18 +129,18 @@ class NSideProgression(OrderedDict[int, int]):
 
         These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
         """
-        nside_progression: List[Tuple[int, int]] = list(self.items())
+        int_int_list = self._get_int_int_list()
 
         def previous_nside(n: Tuple[int, int]) -> int:
             # get previous nside value
-            idx = nside_progression.index(n)
+            idx = int_int_list.index(n)
             if idx == 0:
                 return 1
-            return nside_progression[idx - 1][0]
+            return int_int_list[idx - 1][0]
 
         return {
             N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
-            for N in nside_progression
+            for N in int_int_list
         }
 
     @cachetools.func.lru_cache()

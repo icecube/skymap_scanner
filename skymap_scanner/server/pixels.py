@@ -9,10 +9,9 @@ import healpy  # type: ignore[import]
 import numpy
 from icecube import icetray  # type: ignore[import]
 
-from ..config import NSideProgression
 from ..utils.pixelreco import NSidesDict
 from . import LOGGER
-from .utils import validate_nside_progression
+from .utils import NSideProgression
 
 
 def __healpix_pixel_upgrade(nside, pix) -> list:
@@ -172,12 +171,14 @@ def choose_pixels_to_reconstruct(
     ang_dist: float = 2.,
     mc_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> Set[Tuple[icetray.I3Int, icetray.I3Int]]:
-    """Get more pixels to reconstruct/refine by searching `nsides_dict`.
+    """Get more pixels to reconstruct/refine.
+
+    Pixels are returned for the nsides listed in `nside_progression`
+    by searching for a region around each nside's global minima
+    (found in `nsides_dict`).
 
     Some of the pixel returned may have previously been generated.
     """
-    nside_progression = validate_nside_progression(nside_progression)
-
     # special case if we have MC truth
     if mc_ra_dec:
         LOGGER.debug("Getting pixels around MC truth...")
@@ -185,25 +186,25 @@ def choose_pixels_to_reconstruct(
         return choose_pixels_to_reconstruct_around_MCtruth(
             nsides_dict,
             mc_ra_dec=mc_ra_dec,
-            nside=nside_progression[-1][0],  # use final nside
+            nside=nside_progression.max_nside,  # use final nside
             angular_dist=ang_dist*numpy.pi/180.
         )
 
     # INITIAL PIXEL GENERATION
     if not nsides_dict:
-        LOGGER.debug(f"No previous nsides_dict, getting pixels for {nside_progression[0][0]}...")
-        scan_pixels = list(range(healpy.nside2npix(nside_progression[0][0])))
-        return set((nside_progression[0][0], pix) for pix in scan_pixels)
+        LOGGER.debug(f"No previous nsides_dict, getting pixels for {nside_progression.min_nside}...")
+        scan_pixels = list(range(healpy.nside2npix(nside_progression.min_nside)))
+        return set((nside_progression.min_nside, pix) for pix in scan_pixels)
 
     all_pixels_to_refine: Set[Tuple[icetray.I3Int, icetray.I3Int]] = set()
 
     # GENERATE PIXELS TO REFINE
     # iterate through each nside looking for what subset of pixels to reco using the next nside
-    for i, (current_nside, _) in enumerate(nside_progression[:-1]):  # skip final
+    for i, (current_nside, _) in enumerate(list(nside_progression.items())[:-1]):  # skip final
 
-        # get what nside will be refining to & the pixel-extension to be used
+        # get what nside we will be refining to & the pixel-extension to be used
         # index will always be defined since we're not iterating the final nside
-        next_nside, pixel_extension_number = nside_progression[i+1]
+        next_nside, pixel_extension_number = nside_progression.get_at_index(i+1)
         LOGGER.debug(
             f"Attempting to get pixels for ("
             f"current_nside={current_nside}, "
