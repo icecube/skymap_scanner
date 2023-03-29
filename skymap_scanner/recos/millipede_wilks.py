@@ -27,7 +27,7 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.pixelreco import RecoPixelVariation
+from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
 
@@ -327,7 +327,7 @@ class MillipedeWilks(RecoInterface):
             llh=llh,
             reco_losses_inside=reco_losses_inside,
             reco_losses_total=reco_losses_total,
-            pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
+            posvar_id=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["MillipedeStarting2ndPass"].pos,
             time=frame["MillipedeStarting2ndPass"].time,
             energy=frame["MillipedeStarting2ndPass"].energy,

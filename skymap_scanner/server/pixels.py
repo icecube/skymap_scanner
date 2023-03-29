@@ -9,7 +9,7 @@ import healpy  # type: ignore[import]
 import numpy
 from icecube import icetray  # type: ignore[import]
 
-from ..utils.pixelreco import NSidesDict
+from ..utils.pixel_classes import NSidesDict
 from . import LOGGER
 from .utils import NSideProgression
 

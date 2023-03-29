@@ -1,7 +1,8 @@
-"""Tools for representing a pixel reconstruction."""
+"""Classes for representing a pixel-like things in various forms."""
 
 
 import dataclasses as dc
+import time
 from typing import Any, Dict, Tuple
 
 from .. import config as cfg
@@ -27,12 +28,17 @@ def pframe_to_pixelrecoid(pixel: I3Frame) -> PixelRecoID:
     )
 
 
-@dc.dataclass
-class PixelReco:
-    """A *lightweight* dataclass representing a pixel reconstruction."""
+@dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
+class _PixelLike:
 
     nside: int
-    pixel: int
+    pixel_id: int
+
+
+@dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
+class PixelReco(_PixelLike):
+    """A *lightweight* dataclass representing a pixel reconstruction."""
+
     llh: float
     reco_losses_inside: float
     reco_losses_total: float
@@ -45,7 +51,7 @@ class PixelReco:
         """Effectively removes the position variation id."""
         return PixelReco(
             nside=reco_pixvar.nside,
-            pixel=reco_pixvar.pixel,
+            pixel_id=reco_pixvar.pixel_id,
             llh=reco_pixvar.llh,
             reco_losses_inside=reco_pixvar.reco_losses_inside,
             reco_losses_total=reco_pixvar.reco_losses_total,
@@ -55,15 +61,25 @@ class PixelReco:
         )
 
 
-@dc.dataclass
-class RecoPixelVariation(PixelReco):
+@dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
+class RecoPixelVariation(_PixelLike):
     """A dataclass representing a pixel-variation reconstruction."""
 
-    pos_var_index: int
+    posvar_id: int
     id_tuple: PixelRecoID = dc.field(init=False, repr=False)
 
+    # same as PixelReco (not inheriting so we can strong type the difference)
+    llh: float
+    reco_losses_inside: float
+    reco_losses_total: float
+    position: I3Position
+    time: float
+    energy: float
+
     def __post_init__(self) -> None:
-        self.id_tuple = (self.nside, self.pixel, self.pos_var_index)
+        object.__setattr__(  # b/c frozen
+            self, "id_tuple", (self.nside, self.pixel_id, self.posvar_id)
+        )
 
     @staticmethod
     def from_i3frame(
@@ -78,3 +94,31 @@ class RecoPixelVariation(PixelReco):
 
 
 NSidesDict = Dict[int, Dict[int, PixelReco]]  # nside:(id:PixelReco}
+
+
+@dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
+class SentPixelVariation(_PixelLike):
+    """Used for tracking a single sent pixel variation."""
+
+    nside: int
+    pixel_id: int
+    posvar_id: int
+    sent_time: float = dc.field(compare=False)  # compare also excludes field from hash
+
+    @staticmethod
+    def from_pframe(pframe: I3Frame) -> "SentPixelVariation":
+        """Get an instance from a Pframe."""
+        return SentPixelVariation(
+            nside=pframe[cfg.I3FRAME_NSIDE].value,
+            pixel_id=pframe[cfg.I3FRAME_PIXEL].value,
+            posvar_id=pframe[cfg.I3FRAME_POSVAR].value,
+            sent_time=time.time(),
+        )
+
+    def matches_reco_pixel_variation(self, reco_pixvar: RecoPixelVariation) -> bool:
+        """Does this match the PixelReco instance?"""
+        return (
+            self.nside == reco_pixvar.nside
+            and self.pixel_id == reco_pixvar.pixel_id
+            and self.posvar_id == reco_pixvar.posvar_id
+        )

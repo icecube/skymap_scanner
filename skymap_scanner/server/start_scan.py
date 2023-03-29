@@ -30,9 +30,14 @@ from .. import recos
 from ..utils import extract_json_message
 from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
-from ..utils.pixelreco import NSidesDict, PixelReco, pframe_to_pixelrecoid
+from ..utils.pixel_classes import (
+    NSidesDict,
+    RecoPixelVariation,
+    SentPixelVariation,
+    pframe_to_pixelrecoid,
+)
 from . import LOGGER
-from .collector import ExtraRecoPixelVariationException, Collector, SentPixelVariation
+from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
@@ -445,8 +450,10 @@ async def _serve_and_collect(
             #
             LOGGER.info("Receiving pixel-recos from clients...")
             async for msg in sub:
-                if not isinstance(msg['pixreco'], PixelReco):
-                    raise ValueError(f"Message not {PixelReco}: {type(msg['pixreco'])}")
+                if not isinstance(msg['pixreco'], RecoPixelVariation):
+                    raise ValueError(
+                        f"Message not {RecoPixelVariation}: {type(msg['pixreco'])}"
+                    )
                 try:
                     await collector.collect(msg['pixreco'], msg['runtime'])
                 except ExtraRecoPixelVariationException as e:

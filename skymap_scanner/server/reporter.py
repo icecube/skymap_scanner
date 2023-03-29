@@ -14,8 +14,8 @@ from typing import Any, Callable, Dict, List, Optional
 from rest_tools.client import RestClient
 
 from .. import config as cfg
-from ..utils import pixelreco
 from ..utils.event_tools import EventMetadata
+from ..utils.pixel_classes import NSidesDict
 from ..utils.scan_result import ScanResult
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
@@ -209,7 +209,7 @@ class Reporter:
         self,
         scan_id: str,
         global_start_time: float,
-        nsides_dict: pixelreco.NSidesDict,
+        nsides_dict: NSidesDict,
         n_posvar: int,
         nside_progression: NSideProgression,
         skydriver_rc: Optional[RestClient],

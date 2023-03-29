@@ -6,7 +6,7 @@ import pkgutil
 from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
-    from ..utils.pixelreco import RecoPixelVariation
+    from ..utils.pixel_classes import RecoPixelVariation
 
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]

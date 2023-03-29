@@ -20,7 +20,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
-from ..utils.pixelreco import RecoPixelVariation
+from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
 
@@ -63,7 +63,7 @@ class Dummy(RecoInterface):
             llh=frame["Dummy_llh"].value,
             reco_losses_inside=random.random(),
             reco_losses_total=random.random(),
-            pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
+            posvar_id=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["Dummy_pos"],
             time=frame["Dummy_time"].value,
             energy=frame["Dummy_time"].value,

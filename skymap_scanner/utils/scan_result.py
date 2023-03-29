@@ -24,7 +24,7 @@ from matplotlib import pyplot as plt
 from matplotlib import text
 
 from .event_tools import EventMetadata
-from .pixelreco import NSidesDict, PixelReco
+from .pixel_classes import NSidesDict, PixelReco
 
 ###############################################################################
 # DATA TYPES
@@ -384,13 +384,13 @@ class ScanResult:
         if (
             not isinstance(pixreco, PixelReco)
             or nside != pixreco.nside
-            or pixel_id != pixreco.pixel
+            or pixel_id != pixreco.pixel_id
         ):
             msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
             logging.error(msg)
             raise ValueError(msg)
         return (
-            pixreco.pixel,  # index
+            pixreco.pixel_id,  # index
             pixreco.llh,  # llh
             pixreco.reco_losses_inside,  # E_in
             pixreco.reco_losses_total,  # E_tot

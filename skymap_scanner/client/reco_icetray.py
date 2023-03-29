@@ -24,8 +24,8 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..utils import pixelreco
 from ..utils.load_scan_state import get_baseline_gcd_frames
+from ..utils.pixel_classes import RecoPixelVariation, pframe_to_pixelrecoid
 from ..utils.utils import save_GCD_frame_packet_to_file
 
 LOGGER = logging.getLogger("skyscan.client.reco")
@@ -107,7 +107,7 @@ def reco_pixel(
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
-    LOGGER.info(f"Reco'ing pixel: {pixelreco.pframe_to_pixelrecoid(pframe)}...")
+    LOGGER.info(f"Reco'ing pixel: {pframe_to_pixelrecoid(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
@@ -150,7 +150,7 @@ def reco_pixel(
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:
         LOGGER.debug(
-            f"writeout_reco {pixelreco.pframe_to_pixelrecoid(frame)}: {frame_for_logging(frame)}"
+            f"writeout_reco {pframe_to_pixelrecoid(frame)}: {frame_for_logging(frame)}"
         )
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
@@ -160,11 +160,11 @@ def reco_pixel(
         save_to_disk_cache(frame, out_pkl.parent)
         with open(out_pkl, "wb") as f:
             LOGGER.info(
-                f"Pickle-dumping reco {pixelreco.pframe_to_pixelrecoid(frame)}: "
+                f"Pickle-dumping reco {pframe_to_pixelrecoid(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
-            pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
+            pixreco = RecoPixelVariation.from_i3frame(frame, geometry, reco_algo)
             LOGGER.info(f"PixelReco: {pixreco}")
             pickle.dump(
                 {
@@ -191,7 +191,7 @@ def reco_pixel(
 
     if not out_pkl.exists():
         raise FileNotFoundError(
-            f"Out file was not written {pixelreco.pframe_to_pixelrecoid(pframe)}: {out_pkl}"
+            f"Out file was not written {pframe_to_pixelrecoid(pframe)}: {out_pkl}"
         )
     return out_pkl
 

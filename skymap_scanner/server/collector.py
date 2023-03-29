@@ -1,49 +1,25 @@
 """The Skymap Scanner Server."""
 
 
-import dataclasses as dc
 import itertools
 import time
 from bisect import bisect
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy
-from icecube import icetray  # type: ignore[import]  # pylint: disable=import-error
 
 from .. import config as cfg
-from ..utils.pixelreco import NSidesDict, PixelReco, PixelRecoID, RecoPixelVariation
+from ..utils.pixel_classes import (
+    NSidesDict,
+    PixelReco,
+    PixelRecoID,
+    RecoPixelVariation,
+    SentPixelVariation,
+)
 from . import LOGGER
 from .reporter import Reporter
 
 StrDict = Dict[str, Any]
-
-
-@dc.dataclass(frozen=True, eq=True)  # frozen + eq makes instances hashable
-class SentPixelVariation:
-    """Used for tracking a single sent pixel variation."""
-
-    nside: int
-    pixel_id: int
-    posvar_id: int
-    sent_time: float = dc.field(compare=False)  # compare also excludes field from hash
-
-    @staticmethod
-    def from_pframe(pframe: icetray.I3Frame) -> "SentPixelVariation":
-        """Get an instance from a Pframe."""
-        return SentPixelVariation(
-            nside=pframe[cfg.I3FRAME_NSIDE].value,
-            pixel_id=pframe[cfg.I3FRAME_PIXEL].value,
-            posvar_id=pframe[cfg.I3FRAME_POSVAR].value,
-            sent_time=time.time(),
-        )
-
-    def matches_reco_pixel_variation(self, reco_pixvar: RecoPixelVariation) -> bool:
-        """Does this match the PixelReco instance?"""
-        return (
-            self.nside == reco_pixvar.nside
-            and self.pixel_id == reco_pixvar.pixel
-            and self.posvar_id == reco_pixvar.pos_var_index
-        )
 
 
 class ExtraRecoPixelVariationException(Exception):
@@ -77,7 +53,7 @@ class PixelRecoFinder:
         If all the recos for the embedded pixel have be received, return
         the best one. Otherwise, return None.
         """
-        index = (reco_pixel_variation.nside, reco_pixel_variation.pixel)
+        index = (reco_pixel_variation.nside, reco_pixel_variation.pixel_id)
 
         if index not in self.cache_by_nside_pixid:
             self.cache_by_nside_pixid[index] = []
@@ -94,7 +70,7 @@ class PixelRecoFinder:
                 best = self.cache_by_nside_pixid[index][0]
 
             del self.cache_by_nside_pixid[index]  # del list
-            return best  # TODO fix return type
+            return PixelReco.from_recopixelvariation(best)
 
         return None
 
@@ -256,11 +232,11 @@ class Collector:
             # insert pixreco into nsides_dict
             if pixreco.nside not in self.nsides_dict:
                 self.nsides_dict[pixreco.nside] = {}
-            if pixreco.pixel in self.nsides_dict[pixreco.nside]:
+            if pixreco.pixel_id in self.nsides_dict[pixreco.nside]:
                 raise ExtraRecoPixelVariationException(
-                    f"NSide {pixreco.nside} / Pixel {pixreco.pixel} is already in nsides_dict"
+                    f"NSide {pixreco.nside} / Pixel {pixreco.pixel_id} is already in nsides_dict"
                 )
-            self.nsides_dict[pixreco.nside][pixreco.pixel] = pixreco
+            self.nsides_dict[pixreco.nside][pixreco.pixel_id] = pixreco
             LOGGER.debug(f"Saved (found during {logging_id}): {pixreco}")
 
         # report after potential save
