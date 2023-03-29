@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=pulsar --output-file=requirements-pulsar.txt
 #
-astropy==5.2.2
+astropy==5.2.1
     # via
     #   healpy
     #   skymap-scanner (setup.py)
