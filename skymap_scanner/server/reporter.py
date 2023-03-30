@@ -7,6 +7,7 @@ import bisect
 import dataclasses as dc
 import datetime as dt
 import itertools
+import math
 import statistics
 import time
 from typing import Any, Callable, Dict, List, Optional
@@ -472,9 +473,8 @@ class Reporter:
         predicted_total = self.predicted_total_recos()
         timeline = {}
         for i in cfg.REPORTER_TIMELINE_PERCENTAGES:
-            index = int(predicted_total * i) - 1
-            if index < 0:  # protect from tiny % & small total
-                continue  # Ex: 1% of 12 is 0 (index is -1)  # don't want last item...
+            # round up b/c it's when it reached X
+            index = math.ceil(predicted_total * i) - 1
             try:
                 when = self.worker_stats_collection.aggregate.ends[index]
                 timeline[i] = str(dt.timedelta(seconds=int(when - self.global_start)))
