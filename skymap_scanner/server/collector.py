@@ -113,6 +113,7 @@ class Collector:
         thresholds = Collector._make_thresholds(predictive_scanning_threshold)
         self._nsides_thresholds = {n: thresholds for n in nsides}
         self._nsides_thresholds[max(nsides)] = [1.0]  # final nside must reach 100%
+        LOGGER.info(f"Thresholds: {self._nsides_thresholds}")
         self._nsides_percents_done = {n: 0.0 for n in nsides}
 
     @staticmethod
@@ -133,8 +134,6 @@ class Collector:
         thresholds = [predictive_scanning_threshold]
         base = sorted([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         thresholds.extend(base[bisect(base, predictive_scanning_threshold) :])
-
-        LOGGER.info(f"Thresholds: {thresholds}")
         return thresholds
 
     @property
@@ -218,13 +217,13 @@ class Collector:
         # append
         self._pixfinid_received_quick_lookup.add(reco_pixel_variation.id_tuple)
         logging_id = f"S#{len(self._pixfinid_received_quick_lookup) - 1}"
-        LOGGER.info(f"Got a RecoPixelVariation {logging_id} {reco_pixel_variation}")
+        LOGGER.info(
+            f"Got RecoPixelVariation {logging_id} {reco_pixel_variation.id_tuple}"
+        )
 
         # get best pixfin
         pixfin = self._finder.cache_and_get_best(reco_pixel_variation)
-        LOGGER.info(
-            f"Cached RecoPixelVariation {reco_pixel_variation.id_tuple} {reco_pixel_variation}"
-        )
+        LOGGER.debug(f"Cached RecoPixelVariation {reco_pixel_variation.id_tuple}")
 
         # save pixfin (if we got it)
         if not pixfin:
@@ -232,7 +231,9 @@ class Collector:
                 f"RecoPixelFinal not yet done ({reco_pixel_variation.id_tuple} {reco_pixel_variation}"
             )
         else:
-            LOGGER.info(f"Saving a RecoPixelFinal (done @ {logging_id}): {pixfin}")
+            LOGGER.info(
+                f"Saving RecoPixelFinal (done @ {logging_id}): {(pixfin.nside,pixfin.pixel_id)}"
+            )
             # insert pixfin into nsides_dict
             if pixfin.nside not in self.nsides_dict:
                 self.nsides_dict[pixfin.nside] = {}
@@ -304,4 +305,7 @@ class Collector:
 
         if not newly_thresholded_nsides:
             return None
+        LOGGER.info(
+            f"Met thresholds: {newly_thresholded_nsides} ({self._nsides_percents_done})"
+        )
         return max(newly_thresholded_nsides)

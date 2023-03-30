@@ -168,8 +168,14 @@ class PixelsToReco:
             return False
 
         # find pixels to refine
+        LOGGER.info(f"Looking for refinements for {nside_subprogression}...")
+        #
         pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, nside_subprogression)
+        LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
+        #
         pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))
+        LOGGER.info(f"Filtered down to {len(pixels_to_refine)} pixels (others already sent).")
+        #
         if not pixels_to_refine:
             LOGGER.info("There are no pixels to refine.")
             return
@@ -282,7 +288,7 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"({pframe_tuple(p_frame)}) ({posVariation=})..."
+                f"{pframe_tuple(p_frame)} ({posVariation=})..."
             )
             yield p_frame
 
@@ -377,7 +383,7 @@ async def _send_pixels(
         for i, pframe in enumerate(
             pixeler.gen_new_pixel_pframes(already_sent_pixvars, nside_subprogression)
         ):
-            LOGGER.info(f"Sending message M#{i} ({pframe_tuple(pframe)})...")
+            LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,

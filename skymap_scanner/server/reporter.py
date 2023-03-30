@@ -538,7 +538,7 @@ class Reporter:
         result = self._get_result()
         serialized = result.serialize()
 
-        LOGGER.info(pyobj_to_string_repr(serialized))
+        LOGGER.debug(pyobj_to_string_repr(serialized))
         if not self.skydriver_rc:
             return result
 
