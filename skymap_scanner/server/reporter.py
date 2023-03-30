@@ -472,12 +472,13 @@ class Reporter:
         predicted_total = self.predicted_total_recos()
         timeline = {}
         for i in cfg.REPORTER_TIMELINE_PERCENTAGES:
+            index = int(predicted_total * i) - 1
+            if index < 0:  # protect from tiny % & small total
+                continue  # Ex: 1% of 12 is 0 (index is -1)  # don't want last item...
             try:
-                when = self.worker_stats_collection.aggregate.ends[
-                    int(predicted_total * i) - 1
-                ]
+                when = self.worker_stats_collection.aggregate.ends[index]
                 timeline[i] = str(dt.timedelta(seconds=int(when - self.global_start)))
-            except IndexError:
+            except IndexError:  # have not reached that point yet
                 pass
 
         return {
