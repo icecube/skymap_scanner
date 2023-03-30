@@ -16,7 +16,7 @@ from rest_tools.client import RestClient
 from .. import config as cfg
 from ..utils.event_tools import EventMetadata
 from ..utils.pixel_classes import NSidesDict
-from ..utils.scan_result import ScanResult
+from ..utils.scan_result import SkyScanResult
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
 from .utils import NSideProgression
@@ -350,9 +350,9 @@ class Reporter:
             self.last_time_reported_skymap = current_time
             await self._send_result()
 
-    def _get_result(self) -> ScanResult:
-        """Get ScanResult."""
-        return ScanResult.from_nsides_dict(self.nsides_dict, self.event_metadata)
+    def _get_result(self) -> SkyScanResult:
+        """Get SkyScanResult."""
+        return SkyScanResult.from_nsides_dict(self.nsides_dict, self.event_metadata)
 
     def predicted_total_recos(self) -> int:
         """Get a prediction for total number of recos for the entire scan.
@@ -491,7 +491,7 @@ class Reporter:
             "est. timeline": timeline,
         }
 
-    async def after_computing_report(self) -> ScanResult:
+    async def after_computing_report(self) -> SkyScanResult:
         """Get, log, and send final results to SkyDriver."""
         self._check_call_order(self.after_computing_report)
 
@@ -533,7 +533,7 @@ class Reporter:
         }
         await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
 
-    async def _send_result(self) -> ScanResult:
+    async def _send_result(self) -> SkyScanResult:
         """Send result to SkyDriver (if the connection is established)."""
         result = self._get_result()
         serialized = result.serialize()

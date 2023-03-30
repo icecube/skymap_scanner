@@ -6,7 +6,7 @@ import pickle
 from pathlib import Path
 
 from skymap_scanner.utils.pixel_classes import RecoPixelFinal
-from skymap_scanner.utils.scan_result import ScanResult
+from skymap_scanner.utils.scan_result import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 from compare_scan_results import compare_then_exit
@@ -59,13 +59,13 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    def load_from_out_pkl(out_pkl_fpath: Path) -> ScanResult:
-        """Load a ScanResult from the "out" pkl file."""
+    def load_from_out_pkl(out_pkl_fpath: Path) -> SkyScanResult:
+        """Load a SkyScanResult from the "out" pkl file."""
         with open(out_pkl_fpath, "rb") as f:
             msg = pickle.load(f)
 
         pixfin = RecoPixelFinal.from_recopixelvariation(msg["reco_pixel_variation"])
-        return ScanResult.from_nsides_dict({pixfin.nside: {pixfin.pixel_id: pixfin}})
+        return SkyScanResult.from_nsides_dict({pixfin.nside: {pixfin.pixel_id: pixfin}})
 
     actual = load_from_out_pkl(args.actual)
     expected = load_from_out_pkl(args.expected)

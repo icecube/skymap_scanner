@@ -5,23 +5,22 @@ import logging
 import sys
 from pathlib import Path
 
-from skymap_scanner.utils.scan_result import ScanResult
+from skymap_scanner.utils.scan_result import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 
-def read_file(filepath: Path) -> ScanResult:
+def read_file(filepath: Path) -> SkyScanResult:
     if filepath.suffix == ".json":
-        return ScanResult.read_json(filepath)
+        return SkyScanResult.read_json(filepath)
     elif filepath.suffix == ".npz":
-        return ScanResult.read_npz(filepath)
+        return SkyScanResult.read_npz(filepath)
     else:
         raise Exception("Unsupported file type: {filepath}")
 
 
 def main():
-    """
-    Loads two scan results in numpy format and exit with the outcome of the comparison.
-    """
+    """Loads two scan results in numpy format and exit with the outcome of the
+    comparison."""
 
     logging.basicConfig(level=logging.DEBUG)
 
@@ -84,9 +83,9 @@ def main():
 
 
 def compare_then_exit(
-    actual: ScanResult,
+    actual: SkyScanResult,
     actual_fpath: Path,
-    expected: ScanResult,
+    expected: SkyScanResult,
     expected_fpath: Path,
     do_assert: bool,
     diff_out_dir: str,

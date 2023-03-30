@@ -9,7 +9,7 @@ import logging
 
 import skymap_scanner.config as cfg
 from skymap_scanner.utils.load_scan_state import load_cache_state
-from skymap_scanner.utils.scan_result import ScanResult
+from skymap_scanner.utils.scan_result import SkyScanResult
 
 
 def main():
@@ -39,9 +39,9 @@ def main():
     )
 
     """
-    The output filename is partially built inside the ScanResult class.
+    The output filename is partially built inside the SkyScanResult class.
     """
-    result = ScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
+    result = SkyScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
     output_file = result.to_npz(eventID, output_path=args.output_path)
 
     print(f"Saved to {output_file}")
