@@ -15,4 +15,4 @@ serialzed = rc.request_seq("GET", f"/scan/result/{args.scan_id}")["skyscan_resul
 
 result = SkyScanResult.deserialize(serialzed)
 result.create_plot(dosave=True)
-result.create_plot_zoomed(dosave=True)
+result.create_plot_zoomed(dosave=True, plot_bounding_box=True)
