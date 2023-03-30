@@ -120,7 +120,7 @@ class NSideProgression(OrderedDict[int, int]):
             )
         if any(not _is_pow_of_two(n[0]) for n in int_int_list):
             raise ValueError(
-                f"Invalid NSide Progression: nside value must be positive n^2 ({int_int_list})"
+                f"Invalid NSide Progression: nside value must be positive 2^n ({int_int_list})"
             )
         return int_int_list
 
