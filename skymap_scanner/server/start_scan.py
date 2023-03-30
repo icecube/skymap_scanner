@@ -424,7 +424,7 @@ async def _serve_and_collect(
     )
 
     max_nside_to_refine = None  # start by not refining any (ie we generate first nside)
-    potentiallly_done = False
+    collected_everything_sent = False
     async with collector.finder_context(), from_clients_queue.open_sub() as sub:
         while True:
             #
@@ -440,11 +440,11 @@ async def _serve_and_collect(
             )
             # Check if scan is done --
             # we collected everything & there was no re-refinement of a region
-            if potentiallly_done:
+            if collected_everything_sent:
                 if not sent_pixvars:
                     LOGGER.info("Done receiving/saving recos from clients.")
                     return collector.n_sent
-                potentiallly_done = False
+                collected_everything_sent = False
             # NOTE: when `sent_pixvars` is empty (and we didn't previously
             #       collect all we sent) it just means there were no addl
             #       pixels to refine this time around. That doesn't mean
@@ -466,9 +466,9 @@ async def _serve_and_collect(
                     logging.error(e)
 
                 # are we potentially done?
-                if collector.collected_everything_sent():
+                if collector.has_collected_everything_sent():
                     LOGGER.debug("Potentially done receiving/saving recos...")
-                    potentiallly_done = True
+                    collected_everything_sent = True
                     break
 
                 # if we've got enough pixfins, let's get a jump on the next round
@@ -477,7 +477,7 @@ async def _serve_and_collect(
                     break
 
             # do-while loop logic
-            if max_nside_to_refine or potentiallly_done:
+            if max_nside_to_refine or collected_everything_sent:
                 continue
             LOGGER.error("The MQ-sub must have timed out (too many MIA clients)")
             return collector.n_sent

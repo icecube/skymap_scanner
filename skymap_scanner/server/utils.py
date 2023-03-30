@@ -91,10 +91,11 @@ class NSideProgression(OrderedDict[int, int]):
             raise ValueError(f"Cannot make slice (invalid nside): {max_nside}")
 
         if max_nside == self.max_nside:  # cannot do plus-one
+            # (technically would work with python's slice syntax: [1,2][:10000] -> [1,2])
             return NSideProgression(int_int_list)
 
         index = list(self.keys()).index(max_nside)
-        slice_plus_one = int_int_list[: index + 1]
+        slice_plus_one = int_int_list[: index + 2]  # 8 & [8, 64, 512] -> [8, 64]
         return NSideProgression(slice_plus_one)
 
     @staticmethod

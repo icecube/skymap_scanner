@@ -252,7 +252,7 @@ class Collector:
             roundtrip_end=time.time(),
         )
 
-    def collected_everything_sent(self) -> bool:
+    def has_collected_everything_sent(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
         if self.n_sent != len(self._pixfinid_received_quick_lookup):
