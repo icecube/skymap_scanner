@@ -281,7 +281,7 @@ class Collector:
         # recalculate nsides' percentage done
         updated_percents = {}
         for nside, spv in self._sent_pixvars_by_nside.items():
-            finished = len(self.nsides_dict[nside]) * self._finder.n_posvar
+            finished = len(self.nsides_dict.get(nside, [])) * self._finder.n_posvar
             updated_percents[nside] = finished / len(spv)
 
         def bin_it(nside: int, percent: float) -> float:
