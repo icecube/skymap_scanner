@@ -110,7 +110,9 @@ class Collector:
         self._sent_pixvars_by_nside: Dict[int, List[SentPixelVariation]] = {}
 
         # percentage progress trackers
-        self._thresholds = Collector._make_thresholds(predictive_scanning_threshold)
+        thresholds = Collector._make_thresholds(predictive_scanning_threshold)
+        self._nsides_thresholds = {n: thresholds for n in nsides}
+        self._nsides_thresholds[max(nsides)] = [1.0]  # final nside must reach 100%
         self._nsides_percents_done = {n: 0.0 for n in nsides}
 
     @staticmethod
@@ -278,18 +280,20 @@ class Collector:
             finished = len(self.nsides_dict[nside]) * self._finder.n_posvar
             updated_percents[nside] = finished / len(spv)
 
-        def bin_it(percent: float) -> float:
-            return self._thresholds[bisect(self._thresholds, percent) - 1]
+        def bin_it(nside: int, percent: float) -> float:
+            # find the threshold bin (floor) for the nside
+            _thresholds = self._nsides_thresholds[nside]
+            return _thresholds[bisect(_thresholds, percent) - 1]
 
         def reached_new_threshold(nside: int, percent: float) -> bool:
-            if percent < self._thresholds[0]:  # doesn't meet minimum threshold
+            if percent < self._nsides_thresholds[nside][0]:  # meet min threshold?
                 return False
             # did percentage reached new threshold?
             if nside not in self._nsides_percents_done:
                 old_bin = 0.0
             else:
-                old_bin = bin_it(self._nsides_percents_done[nside])
-            return bin_it(percent) > old_bin
+                old_bin = bin_it(nside, self._nsides_percents_done[nside])
+            return bin_it(nside, percent) > old_bin
 
         newly_thresholded_nsides = [
             nside
