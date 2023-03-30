@@ -180,7 +180,10 @@ class Collector:
 
             await self.reporter.make_reports_if_needed(
                 bypass_timers=True,
-                summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
+                summary_msg=(
+                    f"The Skymap Scanner has sent out {len(addl_sent_pixvars)} "
+                    f"pixels and is waiting to receive recos."
+                ),
             )
         else:
             await self.reporter.make_reports_if_needed(

@@ -334,11 +334,12 @@ class Reporter:
         ):
             self.last_time_reported = current_time
             if self.worker_stats_collection.total_ct == 0:
-                epilogue_msg = (
-                    "I will report back when I start getting pixel-reconstructions."
-                )
+                epilogue_msg = "I will report back when I start getting recos."
             else:
-                epilogue_msg = f"I will report back again in {cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds."
+                epilogue_msg = (
+                    f"I will report back again in "
+                    f"{cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds if I have an update."
+                )
             await self._send_progress(summary_msg, epilogue_msg)
 
         # check if we need to send a report to the skymap logger
