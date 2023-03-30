@@ -471,7 +471,7 @@ class Reporter:
         # see when we reached X% done
         predicted_total = self.predicted_total_recos()
         timeline = {}
-        for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 0.975, 0.9875, 1.0]:
+        for i in cfg.REPORTER_TIMELINE_PERCENTAGES:
             try:
                 when = self.worker_stats_collection.aggregate.ends[
                     int(predicted_total * i) - 1

@@ -41,6 +41,23 @@ PREDICTIVE_SCANNING_THRESHOLD_MIN = 0.1
 PREDICTIVE_SCANNING_THRESHOLD_MAX = 1.0
 PREDICTIVE_SCANNING_THRESHOLD_DEFAULT = 1.0
 
+REPORTER_TIMELINE_PERCENTAGES = [
+    0.01,  # close enough to the first message
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.8,
+    0.9,
+    0.95,  # start narrowing to show outliers
+    0.975,
+    0.9875,
+    1.0,
+]
+COLLECTOR_BASE_THRESHOLDS = sorted([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+
 
 class RecoAlgo(enum.Enum):
     """The supported reconstruction algorithms."""

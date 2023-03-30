@@ -132,8 +132,8 @@ class Collector:
             )
 
         thresholds = [predictive_scanning_threshold]
-        base = sorted([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-        thresholds.extend(base[bisect(base, predictive_scanning_threshold) :])
+        bstart = bisect(cfg.COLLECTOR_BASE_THRESHOLDS, predictive_scanning_threshold)
+        thresholds.extend(cfg.COLLECTOR_BASE_THRESHOLDS[bstart:])
         return thresholds
 
     @property
