@@ -307,18 +307,17 @@ class Collector:
             updated_percents[nside] = finished / len(spv)
 
         def bin_it(nside: int, percent: float) -> float:
-            # find the threshold bin (floor) for the nside
-            _thresholds = self._nsides_thresholds[nside]
-            return _thresholds[bisect(_thresholds, percent) - 1]
+            # find the threshold bin (floor) for the nside (0.0 if too low)
+            prev_bin = 0.0
+            for tbin in self._nsides_thresholds[nside]:
+                if percent < tbin:
+                    return prev_bin
+                prev_bin = tbin
+            return self._nsides_thresholds[nside][-1]  # it's the last bin
 
         def reached_new_threshold(nside: int, percent: float) -> bool:
-            if percent < self._nsides_thresholds[nside][0]:  # meet min threshold?
-                return False
             # did percentage reached new threshold?
-            if nside not in self._nsides_percents_done:
-                old_bin = 0.0
-            else:
-                old_bin = bin_it(nside, self._nsides_percents_done[nside])
+            old_bin = bin_it(nside, self._nsides_percents_done.get(nside, 0.0))
             return bin_it(nside, percent) > old_bin
 
         newly_thresholded_nsides = [
