@@ -252,7 +252,7 @@ jobs:
           with open(os.getenv("outfile")) as f:
             pydict = json.load(f)
           nsides = "${{ matrix.nsides }}"
-          assert len(pydict) == len(nsides.count(":"))
+          assert len(pydict) == nsides.count(":")
           '
       - name: broker docker logs
         if: always()
