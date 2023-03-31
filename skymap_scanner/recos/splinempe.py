@@ -3,6 +3,9 @@
 
 import datetime
 import numpy as np
+from pathlib import Path
+import os
+
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -33,18 +36,21 @@ class SplineMPE(RecoInterface):
     StochTimingSpline = spline_path / "InfHighEStoch_mie_prob_z20a10.fits"
     StochAmplitudeSpline = spline_path / "InfHighEStoch_mie_abs_z20a10.fits"
 
-    def get_splines(self) -> None:
-        bare_mu_spline = I3PhotoSplineService(
+    def get_prejitter(self, config="max") -> int:
+        return 2 if config = "max" else 4
+
+    def get_splines(self) -> List[photonics_service.I3PhotoSplineService]:
+        bare_mu_spline = photonics_service.I3PhotoSplineService(
             self.BareMuAmplitudeSpline,
             self.BareMuTimingSpline,
-            timingSigma=self.PreJitter,
+            timingSigma=self.get_prejitter(),
         )
-        stoch_spline = I3PhotoSplineService(
+        stoch_spline = photonics_service.I3PhotoSplineService(
             self.StochAmplitudeSpline,
             self.StochTimingSpline,
-            timingSigma=self.PreJitter,
+            timingSigma=self.get_prejitter(),
         )
-        noise_spline = I3PhotoSplineService(
+        noise_spline = photonics_service.I3PhotoSplineService(
             self.BareMuAmplitudeSpline, self.BareMuTimingSpline, timingSigma=1000
         )
         return bare_mu_spline, stoch_spline, noise_spline
@@ -188,7 +194,7 @@ class SplineMPE(RecoInterface):
             pixel=frame[cfg.I3FRAME_PIXEL].value,
             llh=frame["splinempe-reco"].value,
             reco_losses_inside=np.NaN,
-            reco_losses_total=np.Nan,
+            reco_losses_total=np.NaN,
             pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["splinempe-reco"].pos,
             time=frame["splinempe-reco"].time,
