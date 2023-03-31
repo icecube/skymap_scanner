@@ -5,9 +5,9 @@
 
 import argparse
 import asyncio
-import itertools as it
 import json
 import logging
+import random
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
@@ -27,25 +27,22 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..utils import extract_json_message, pixelreco
+from ..utils import extract_json_message
 from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
-from ..utils.utils import pow_of_two
+from ..utils.pixel_classes import (
+    NSidesDict,
+    RecoPixelVariation,
+    SentPixelVariation,
+    pframe_tuple,
+)
 from . import LOGGER
-from .choose_new_pixels_to_scan import choose_new_pixels_to_scan
+from .collector import Collector, ExtraRecoPixelVariationException
+from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
-from .utils import fetch_event_contents
+from .utils import NSideProgression, fetch_event_contents
 
 StrDict = Dict[str, Any]
-
-
-class DuplicatePixelRecoException(Exception):
-    """Raised when a pixel-reco (message) is received that is semantically
-    equivalent to a prior.
-
-    For example, a pixel-reco (message) that has the same NSide, Pixel
-    ID, and Variation ID as an already received message.
-    """
 
 
 # fmt: off
@@ -54,11 +51,10 @@ class PixelsToReco:
 
     def __init__(
         self,
-        nsides_dict: pixelreco.NSidesDict,
+        nsides_dict: NSidesDict,
         GCDQp_packet: List[icetray.I3Frame],
         baseline_GCD: str,
-        min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        min_nside: int,
         input_time_name: str,
         input_pos_name: str,
         output_particle_name: str,
@@ -72,9 +68,7 @@ class PixelsToReco:
             `GCDQp_packet`
                 - the GCDQp frame packet
             `min_nside`
-                - min nside value
-            `max_nside`
-                - max nside value
+                - the minimum nside value
             `input_time_name`
                 - name of an I3Double to use as the vertex time for the coarsest scan
             `input_pos_name`
@@ -115,11 +109,8 @@ class PixelsToReco:
                 dataclasses.I3Position(0.,0.,0.),
             ]
 
-        # Set nside values
-        if max_nside < min_nside:
-            raise ValueError(f"Invalid max/min nside: {max_nside=} < {min_nside=}")
-        self.min_nside = min_nside  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        self.max_nside = max_nside  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        # Set min nside
+        self.min_nside = min_nside
 
         # Validate & read GCDQp_packet
         p_frame = GCDQp_packet[-1]
@@ -162,31 +153,38 @@ class PixelsToReco:
             return time
         return min_t + adj_d/ccc
 
-    def generate_pframes(self) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames to be reco'd."""
+    def gen_new_pixel_pframes(
+        self,
+        already_sent_pixvars: Set[SentPixelVariation],
+        nside_subprogression: NSideProgression,
+    ) -> Iterator[icetray.I3Frame]:
+        """Yield pixels (PFrames) to be reco'd for each `nside_available`."""
+
+        def pixel_already_sent(pixel: Tuple[icetray.I3Int, icetray.I3Int]) -> bool:
+            # Has this pixel already been sent? Ignore the position-variation id
+            for sent_pixvar in already_sent_pixvars:
+                if sent_pixvar.nside == pixel[0] and sent_pixvar.pixel_id == pixel[1]:
+                    return True
+            return False
 
         # find pixels to refine
-        pixels_to_refine = choose_new_pixels_to_scan(
-            # TODO: replace with self.nsides & implement
-            self.nsides_dict, min_nside=self.min_nside, max_nside=self.max_nside
-        )
-        if len(pixels_to_refine) == 0:
+        LOGGER.info(f"Looking for refinements for {nside_subprogression}...")
+        #
+        pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, nside_subprogression)
+        LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
+        #
+        pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))
+        LOGGER.info(f"Filtered down to {len(pixels_to_refine)} pixels (others already sent).")
+        #
+        if not pixels_to_refine:
             LOGGER.info("There are no pixels to refine.")
             return
         LOGGER.debug(f"Got pixels to refine: {pixels_to_refine}")
 
-        # sanity check nsides_dict
-        for nside in self.nsides_dict:
-            for pixel in self.nsides_dict[nside]:
-                if (nside,pixel) in pixels_to_refine:
-                    raise RuntimeError("pixel to refine is already done processing")
-
-        # submit the pixels we need to submit
-        for i, (nside, pix) in enumerate(pixels_to_refine):
-            LOGGER.debug(
-                f"Generating position-variations from pixel P#{i}: {(nside, pix)}"
-            )
-            yield from self._gen_pixel_variations(nside=nside, pixel=pix)
+        # submit the pixels we need to submit (in random order)
+        for i, (nside, pix) in enumerate(sorted(pixels_to_refine, key=lambda _: random.random())):
+            LOGGER.debug(f"Generating pframe(s) from pixel P#{i}: {(nside, pix)}")
+            yield from self._gen_pframes(nside=nside, pixel=pix)
 
     def i3particle(self, position, direction, energy, time):
         # generate the particle from scratch
@@ -210,7 +208,7 @@ class PixelsToReco:
         particle.energy = energy
         return particle
 
-    def _gen_pixel_variations(
+    def _gen_pframes(
         self,
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
@@ -290,159 +288,26 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"({pixelreco.pixel_to_tuple(p_frame)}) ({posVariation=})..."
+                f"{pframe_tuple(p_frame)} ({posVariation=})..."
             )
             yield p_frame
 
 
 # fmt: on
-class BestPixelRecoFinder:
-    """Facilitate finding the best reco result for any pixel."""
-
-    def __init__(
-        self,
-        n_posvar: int,  # Number of position variations to collect
-    ) -> None:
-        if n_posvar <= 0:
-            raise ValueError(f"n_posvar is not positive: {n_posvar}")
-        self.n_posvar = n_posvar
-
-        self.pixelNumToFramesMap: Dict[
-            Tuple[icetray.I3Int, icetray.I3Int], List[pixelreco.PixelReco]
-        ] = {}
-
-    def cache_and_get_best(
-        self, pixreco: pixelreco.PixelReco
-    ) -> Optional[pixelreco.PixelReco]:
-        """Add pixreco to internal cache and possibly return the best reco for
-        pixel.
-
-        If all the recos for the embedded pixel have be received, return
-        the best one. Otherwise, return None.
-        """
-        index = (pixreco.nside, pixreco.pixel)
-
-        if index not in self.pixelNumToFramesMap:
-            self.pixelNumToFramesMap[index] = []
-        self.pixelNumToFramesMap[index].append(pixreco)
-
-        if len(self.pixelNumToFramesMap[index]) >= self.n_posvar:
-            # find minimum llh
-            best = None
-            for this in self.pixelNumToFramesMap[index]:
-                if (not best) or (this.llh < best.llh and not numpy.isnan(this.llh)):
-                    best = this
-            if best is None:
-                # just push the first if all of them are nan
-                best = self.pixelNumToFramesMap[index][0]
-
-            del self.pixelNumToFramesMap[index]  # del list
-            return best
-
-        return None
-
-    def finish(self) -> None:
-        """Check if all the pixel-recos were received.
-
-        If an entire pixel (and all its pixel-recos) was dropped by
-        client(s), this will not catch it.
-        """
-        if len(self.pixelNumToFramesMap) != 0:
-            raise RuntimeError(
-                f"Pixels left in cache, not all of the packets seem to be complete: "
-                f"{self.pixelNumToFramesMap}"
-            )
-
-
-class PixelRecoCollector:
-    """Manage the collecting, filtering, reporting, and saving of pixel-reco
-    results."""
-
-    def __init__(
-        self,
-        n_posvar: int,  # Number of position variations to collect
-        nsides_dict: pixelreco.NSidesDict,
-        reporter: Reporter,
-        pixreco_ids_sent: Set[Tuple[int, int, int]],
-    ) -> None:
-        self._finder = BestPixelRecoFinder(n_posvar=n_posvar)
-        self.reporter = reporter
-        self.nsides_dict = nsides_dict
-        self.pixreco_ids_received: Set[Tuple[int, int, int]] = set([])
-        self.pixreco_ids_sent = pixreco_ids_sent
-
-    async def __aenter__(self) -> "PixelRecoCollector":
-        await self.reporter.make_reports_if_needed(
-            bypass_timers=True,
-            summary_msg="The Skymap Scanner has sent out pixels and is waiting to receive recos.",
-        )
-        return self
-
-    async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:  # type: ignore[no-untyped-def]
-        self._finder.finish()
-
-    async def collect(
-        self,
-        pixreco: pixelreco.PixelReco,
-        pixreco_start: float,
-        pixreco_end: float,
-    ) -> None:
-        """Cache pixreco until we can save the pixel's best received reco."""
-        LOGGER.debug(f"{self.nsides_dict=}")
-
-        if pixreco.id_tuple in self.pixreco_ids_received:
-            raise DuplicatePixelRecoException(
-                f"Pixel-reco has already been received: {pixreco.id_tuple}"
-            )
-        if pixreco.id_tuple not in self.pixreco_ids_sent:
-            raise DuplicatePixelRecoException(
-                f"Pixel-reco received not in sent set, it is probably from an earlier iteration: {pixreco.id_tuple}"
-            )
-
-        self.pixreco_ids_received.add(pixreco.id_tuple)
-        logging_id = f"S#{len(self.pixreco_ids_received) - 1}"
-        LOGGER.info(f"Got a pixel-reco {logging_id} {pixreco}")
-
-        # get best pixreco
-        best = self._finder.cache_and_get_best(pixreco)
-        LOGGER.info(f"Cached pixel-reco {pixreco.id_tuple} {pixreco}")
-
-        # save best pixreco (if we got it)
-        if not best:
-            LOGGER.debug(f"Best pixel-reco not yet found ({pixreco.id_tuple} {pixreco}")
-        else:
-            LOGGER.info(
-                f"Saving a BEST pixel-reco (found {logging_id}): "
-                f"{best.id_tuple} {best}"
-            )
-            # insert pixreco into nsides_dict
-            if best.nside not in self.nsides_dict:
-                self.nsides_dict[best.nside] = {}
-            if best.pixel in self.nsides_dict[best.nside]:
-                raise DuplicatePixelRecoException(
-                    f"NSide {best.nside} / Pixel {best.pixel} is already in nsides_dict"
-                )
-            self.nsides_dict[best.nside][best.pixel] = best
-            LOGGER.debug(f"Saved (found during {logging_id}): {best.id_tuple} {best}")
-
-        # report after potential save
-        await self.reporter.record_pixreco(pixreco.nside, pixreco_start, pixreco_end)
-
-
-async def serve(
+async def scan(
     scan_id: str,
     reco_algo: str,
     event_metadata: EventMetadata,
-    nsides_dict: Optional[pixelreco.NSidesDict],
+    nsides_dict: Optional[NSidesDict],
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD: str,
     output_dir: Optional[Path],
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
-    min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-    max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+    nside_progression: NSideProgression,
+    predictive_scanning_threshold: float,
     skydriver_rc: Optional[RestClient],
-) -> pixelreco.NSidesDict:
+) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
     global_start_time = time.time()
@@ -455,8 +320,7 @@ async def serve(
         nsides_dict=nsides_dict,
         GCDQp_packet=GCDQp_packet,
         baseline_GCD=baseline_GCD,
-        min_nside=min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        min_nside=nside_progression.min_nside,
         input_time_name=cfg.INPUT_TIME_NAME,
         input_pos_name=cfg.INPUT_POS_NAME,
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
@@ -469,31 +333,27 @@ async def serve(
         global_start_time,
         nsides_dict,
         len(pixeler.pos_variations),
-        min_nside,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        nside_progression,
         skydriver_rc,
         event_metadata,
+        predictive_scanning_threshold,
     )
     await reporter.precomputing_report()
 
     # Start the scan iteration loop
-    total_n_pixreco = 0
-    for i in it.count():
-        logging.info(f"Starting new scan iteration (#{i})")
-        n_pixreco = await serve_scan_iteration(
-            to_clients_queue,
-            from_clients_queue,
-            reco_algo,
-            nsides_dict,
-            pixeler,
-            reporter,
-        )
-        if not n_pixreco:  # we're done
-            break
-        total_n_pixreco += n_pixreco
+    total_n_pixfin = await _serve_and_collect(
+        to_clients_queue,
+        from_clients_queue,
+        reco_algo,
+        nsides_dict,
+        pixeler,
+        reporter,
+        predictive_scanning_threshold,
+        nside_progression,
+    )
 
     # sanity check
-    if not total_n_pixreco:
+    if not total_n_pixfin:
         raise RuntimeError("No pixels were ever sent.")
 
     # get, log, & post final results
@@ -508,81 +368,128 @@ async def serve(
     return nsides_dict
 
 
-async def serve_scan_iteration(
+async def _send_pixels(
     to_clients_queue: mq.Queue,
-    from_clients_queue: mq.Queue,
     reco_algo: str,
-    nsides_dict: pixelreco.NSidesDict,
     pixeler: PixelsToReco,
-    reporter: Reporter,
-) -> int:
-    """Run the next (or first) scan iteration (set of pixel-recos).
-
-    Return the number of pixels sent. Stop when this is 0.
-    """
-
-    #
-    # SEND PIXELS
-    #
-
-    # get pixels & send to client(s)
+    already_sent_pixvars: Set[SentPixelVariation],
+    nside_subprogression: NSideProgression,
+) -> Set[SentPixelVariation]:
+    """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
-    pixreco_ids_sent = set([])
+
+    sent_pixvars: Set[SentPixelVariation] = set([])
     async with to_clients_queue.open_pub() as pub:
-        for i, pframe in enumerate(pixeler.generate_pframes()):  # queue_to_clients
-            _tup = pixelreco.pixel_to_tuple(pframe)
-            LOGGER.info(f"Sending message M#{i} ({_tup})...")
+        for i, pframe in enumerate(
+            pixeler.gen_new_pixel_pframes(already_sent_pixvars, nside_subprogression)
+        ):
+            LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
-            pixreco_ids_sent.add(_tup)
+            sent_pixvars.add(SentPixelVariation.from_pframe(pframe))
 
     # check if anything was actually processed
-    if not pixreco_ids_sent:
-        LOGGER.info("No pixels were sent for this iteration.")
-        return 0
-    LOGGER.info(f"Done serving pixel-variations to clients: {len(pixreco_ids_sent)}.")
+    if not sent_pixvars:
+        LOGGER.info("No additional pixels were sent.")
+    else:
+        LOGGER.info(f"Done serving pixels to clients: {len(sent_pixvars)}.")
+    return sent_pixvars
 
-    #
-    # COLLECT PIXEL-RECOS
-    #
 
-    collector = PixelRecoCollector(
+async def _serve_and_collect(
+    to_clients_queue: mq.Queue,
+    from_clients_queue: mq.Queue,
+    reco_algo: str,
+    nsides_dict: NSidesDict,
+    pixeler: PixelsToReco,
+    reporter: Reporter,
+    predictive_scanning_threshold: float,
+    nside_progression: NSideProgression,
+) -> int:
+    """Scan an entire event.
+
+    Return the number of pixel-variations sent. Stop when all sent
+    pixels-variations have been received (or the MQ-sub times-out).
+    """
+    collector = Collector(
         n_posvar=len(pixeler.pos_variations),
         nsides_dict=nsides_dict,
         reporter=reporter,
-        pixreco_ids_sent=pixreco_ids_sent,
+        predictive_scanning_threshold=predictive_scanning_threshold,
+        nsides=list(nside_progression.keys()),
     )
 
-    # get pixel-recos from client(s), collect and save
-    LOGGER.info("Receiving pixel-recos from clients...")
-    async with collector as col:  # enter collector 1st for detecting when no pixel-recos received
-        async with from_clients_queue.open_sub() as sub:
+    max_nside_thresholded = None  # -> generates first nside
+    collected_all_sent = False
+    async with collector.finder_context(), from_clients_queue.open_sub() as sub:
+        while True:
+            #
+            # SEND PIXELS -- the next logical round of pixels (not necessarily the next nside)
+            #
+            sent_pixvars = await _send_pixels(
+                to_clients_queue,
+                reco_algo,
+                pixeler,
+                collector.sent_pixvars,
+                # we want to open re-refinement for all nsides <= max_nside_thresholded
+                nside_progression.get_slice_plus_one(max_nside_thresholded),
+            )
+            # Check if scan is done --
+            # there was no re-refinement of a region & collected everything sent
+            if not sent_pixvars and collected_all_sent:
+                LOGGER.info("Done receiving/saving recos from clients.")
+                return collector.n_sent
+            # NOTE: when `sent_pixvars` is empty (and we didn't previously
+            #       collect all we sent) it just means there were no addl
+            #       pixels to refine this time around. That doesn't mean
+            #       there won't be more in the future.
+            await collector.register_sent_pixvars(sent_pixvars)
+
+            #
+            # COLLECT PIXEL-RECOS
+            #
+            LOGGER.info("Receiving recos from clients...")
+            collected_all_sent = False
             async for msg in sub:
-                if not isinstance(msg['pixreco'], pixelreco.PixelReco):
+                if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
                     raise ValueError(
-                        f"Message not {pixelreco.PixelReco}: {type(msg['pixreco'])}"
+                        f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
                     )
                 try:
-                    await col.collect(msg['pixreco'], msg['start'], msg['end'])
-                except DuplicatePixelRecoException as e:
+                    await collector.collect(msg['reco_pixel_variation'], msg['runtime'])
+                except ExtraRecoPixelVariationException as e:
                     logging.error(e)
-                # if we've got all the pixrecos, no need to wait for queue's timeout
-                if col.pixreco_ids_sent == col.pixreco_ids_received:
+
+                # if we've got enough pixfins, let's get a jump on the next round
+                if max_nside_thresholded := collector.get_max_nside_thresholded():
+                    collected_all_sent = collector.has_collected_all_sent()
+                    # NOTE: POTENTIAL END-GAME SCENARIO
+                    # nsides=[8,64,512]. 512 & 64 have been done for a long time.
+                    # Now, 8 just thresholded. We don't know if a re-refinement
+                    # is needed. (IOW were/are the most recent nside-8 pixels very
+                    # important?) AND if they turn out to not warrant re-refinement,
+                    # we need to know if we collected everything AKA we're done!
+                    LOGGER.info(f"Threshold met (max={max_nside_thresholded})")
                     break
 
-    LOGGER.info("Done receiving/saving pixel-recos from clients.")
-    return len(pixreco_ids_sent)
+            # do-while loop logic
+            if max_nside_thresholded:
+                continue
+            LOGGER.error("The MQ-sub must have timed out (too many MIA clients)")
+            return collector.n_sent
+
+    # this statement should never be reached
+    raise RuntimeError("Unknown state -- there is an error upstream")
 
 
 def write_startup_json(
     client_startup_json: Path,
     event_metadata: EventMetadata,
-    min_nside: int,  # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-    max_nside: int,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+    nside_progression: NSideProgression,
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> str:
@@ -593,9 +500,11 @@ def write_startup_json(
     if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
         scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
     else:
-        # TODO: replace with nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        # scan_id = f"{event_id}-{'-'.join(f'{n}:{x}' for n,x in nsides)}-{int(time.time())}"
-        scan_id = f"{str(event_metadata)}-{min_nside}-{max_nside}-{int(time.time())}"
+        scan_id = (
+            f"{event_metadata.event_id}-"
+            f"{'-'.join(f'{n}:{x}' for n,x in nside_progression.items())}-"
+            f"{int(time.time())}"
+        )
 
     json_dict = {
         "scan_id": scan_id,
@@ -620,12 +529,9 @@ def write_startup_json(
 def main() -> None:
     """Get command-line arguments and perform event scan via clients."""
 
-    def _nside_and_pixelextension(val: str) -> int:  # -> Tuple[int, int]:
-        val = val.split(":")[0]  # for SkyDriver until real implementation (below)
-        return pow_of_two(val)
-        # TODO: use code below instead (https://github.com/icecube/skymap_scanner/issues/79)
-        # nside, ext = val.split(":")
-        # return pow_of_two(nside), int(ext)
+    def _nside_and_pixelextension(val: str) -> Tuple[int, int]:
+        nside, ext = val.split(":")
+        return int(nside), int(ext)
 
     parser = argparse.ArgumentParser(
         description=(
@@ -698,16 +604,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--nsides",
-        default=[
-            cfg.MIN_NSIDE_DEFAULT,
-            cfg.MAX_NSIDE_DEFAULT,
-        ],  # TODO: [(8,12), (64,12), (512,24)] (https://github.com/icecube/skymap_scanner/issues/79)
+        dest="nside_progression",
+        default=NSideProgression.DEFAULT,
         help=(
-            "The min and max nside value, if one value is given only do that one iteration"
-            # TODO: use message below instead (https://github.com/icecube/skymap_scanner/issues/79)
-            # "The nside values to use for each iteration, "
-            # "each ':'-paired with their pixel extension value. "
-            # "Example: --nsides 8:12 64:12 512:24"
+            f"The progression of nside values to use, "
+            f"each ':'-paired with their pixel extension value. "
+            f"The first nside's pixel extension must be {NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION}. "
+            f"Example: --nsides 8:{NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
         ),
         nargs='*',
         type=_nside_and_pixelextension,
@@ -725,6 +628,27 @@ def main() -> None:
         help='include this flag if the event was simulated',
     )
 
+    # predictive_scanning_threshold
+    parser.add_argument(
+        "--predictive-scanning-threshold",
+        default=cfg.PREDICTIVE_SCANNING_THRESHOLD_DEFAULT,
+        help=(
+            "The percentage of reconstructed pixels collected before "
+            "the next nside's round of pixels can be served"
+        ),
+        type=lambda x: argparse_tools.validate_arg(
+            float(x),
+            cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN
+            <= float(x)
+            <= cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX,
+            argparse.ArgumentTypeError(
+                f"value must be "
+                f"[{cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN}, "
+                f"{cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX}]: '{x}'"
+            ),
+        ),
+    )
+
     args = parser.parse_args()
     logging_tools.set_level(
         cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
@@ -736,21 +660,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides
-    args.nsides = sorted(args.nsides)
-    # TODO: un-comment validity check below (https://github.com/icecube/skymap_scanner/issues/79)
-    # if list(set(n[0] for n in args.nsides)) != [n[0] for n in args.nsides]:
-    #     raise argparse.ArgumentTypeError(
-    #         f"'--nsides' cannot contain duplicate nsides: {args.nsides}"
-    #     )
-    # TODO - actually implement variable nside sequences (https://github.com/icecube/skymap_scanner/issues/79)
-    # for now...
-    if len(args.nsides) > 2:
-        raise argparse.ArgumentTypeError("'--nsides' cannot contain more than 2 values")
-    min_nside = args.nsides[0]
-    max_nside = args.nsides[-1]  # if only one value, then also grab index-0
-    logging.warning(
-        f"VARIABLE NSIDE SEQUENCES NOT YET IMPLEMENTED: using {min_nside=} & {max_nside=} with default pixel-extension values"
-    )
+    args.nside_progression = NSideProgression(args.nside_progression)
 
     # check if Baseline GCD directory is reachable (also checks default value)
     if not Path(args.gcd_dir).is_dir():
@@ -785,8 +695,7 @@ def main() -> None:
     scan_id = write_startup_json(
         args.client_startup_json,
         event_metadata,
-        min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-        max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+        args.nside_progression,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
@@ -810,7 +719,7 @@ def main() -> None:
 
     # go!
     asyncio.run(
-        serve(
+        scan(
             scan_id=scan_id,
             reco_algo=args.reco_algo,
             event_metadata=event_metadata,
@@ -820,8 +729,8 @@ def main() -> None:
             output_dir=args.output_dir,
             to_clients_queue=to_clients_queue,
             from_clients_queue=from_clients_queue,
-            min_nside=min_nside,  # TODO: replace with args.nsides & implement (https://github.com/icecube/skymap_scanner/issues/79)
-            max_nside=max_nside,  # TODO: remove (https://github.com/icecube/skymap_scanner/issues/79)
+            nside_progression=args.nside_progression,
+            predictive_scanning_threshold=args.predictive_scanning_threshold,
             skydriver_rc=skydriver_rc,
         )
     )

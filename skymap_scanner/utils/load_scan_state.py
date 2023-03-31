@@ -12,7 +12,7 @@ from icecube import icetray
 from .. import config as cfg
 from . import LOGGER
 from .event_tools import EventMetadata
-from .pixelreco import PixelReco
+from .pixel_classes import RecoPixelFinal, RecoPixelVariation
 from .utils import hash_frame_packet, load_framepacket_from_file
 
 
@@ -97,9 +97,11 @@ def load_scan_state(
             if len(loaded_frames) > 1:
                 raise RuntimeError("Pixel file \"{0}\" has more than one frame in it.")
 
-            # add PixelReco to pixel-dict
-            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = PixelReco.from_i3frame(
-                loaded_frames[0], geometry, reco_algo
+            # add RecoPixelFinal to pixel-dict
+            state_dict[cfg.STATEDICT_NSIDES][nside][pixel] = RecoPixelFinal.from_recopixelvariation(
+                RecoPixelVariation.from_i3frame(
+                    loaded_frames[0], geometry, reco_algo
+                )
             )
 
         # get rid of empty dicts
@@ -110,8 +112,10 @@ def load_scan_state(
 
 
 def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dict:
-    """
-    Load GCDQp from a cache directory. This function may be used for reading a cache from the legacy skymap scanners.
+    """Load GCDQp from a cache directory.
+
+    This function may be used for reading a cache from the legacy skymap
+    scanners.
     """
     event_cache_dir = os.path.join(cache_dir, str(event_metadata))
 

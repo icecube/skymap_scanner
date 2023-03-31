@@ -3,6 +3,7 @@
 
 import datetime
 import random
+import time
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -19,7 +20,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
-from ..utils.pixelreco import PixelReco
+from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
 
@@ -45,6 +46,7 @@ class Dummy(RecoInterface):
             )
             frame["Dummy_time"] = dataclasses.I3Double(random.random())
             frame["Dummy_energy"] = dataclasses.I3Double(random.random())
+            time.sleep(random.uniform(1, 3))
 
         tray.AddModule(add_vals, "add_vals")
 
@@ -54,14 +56,14 @@ class Dummy(RecoInterface):
         tray.AddModule(notify1, "notify1")
 
     @staticmethod
-    def to_pixelreco(frame: I3Frame, geometry: I3Frame) -> PixelReco:
-        return PixelReco(
+    def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
+        return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
-            pixel=frame[cfg.I3FRAME_PIXEL].value,
+            pixel_id=frame[cfg.I3FRAME_PIXEL].value,
             llh=frame["Dummy_llh"].value,
             reco_losses_inside=random.random(),
             reco_losses_total=random.random(),
-            pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
+            posvar_id=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["Dummy_pos"],
             time=frame["Dummy_time"].value,
             energy=frame["Dummy_time"].value,

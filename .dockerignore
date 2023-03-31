@@ -7,7 +7,6 @@ aws_ec2
 *.i3.zst
 *.i3.gz
 *.i3.bz2
-resources
 i3deepice/.git
 i3deepice/.gitignore
 i3deepice/examples

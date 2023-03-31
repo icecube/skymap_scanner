@@ -24,7 +24,7 @@ from matplotlib import pyplot as plt
 from matplotlib import text
 
 from .event_tools import EventMetadata
-from .pixelreco import NSidesDict, PixelReco
+from .pixel_classes import NSidesDict, RecoPixelFinal
 
 ###############################################################################
 # DATA TYPES
@@ -52,13 +52,13 @@ class InvalidPixelValueError(Exception):
 ###############################################################################
 # MAIN CLASS
 
-class ScanResult:
+class SkyScanResult:
     """This class parses a nsides_dict and stores the relevant numeric result
     of the scan. Ideally it should serve as the basic data structure for
     plotting / processing / transmission of the scan result.
 
     nsides_dict is a dictionary keyed by 'nside' values for which a scan
-    result is available (e.g. 8, 64, 512), see `pixelreco.NSidesDict`.
+    result is available (e.g. 8, 64, 512), see `pixel_classes.NSidesDict`.
     The scan result is a dictionary:
     - i (pixel index, integer) ->
         'frame', 'llh', 'recoLossesInside', 'recoLossesTotal'
@@ -121,7 +121,7 @@ class ScanResult:
 
     def __eq__(self, other: object) -> bool:
         """Are the two instance's result lists strictly equal?"""
-        if not isinstance(other, ScanResult):
+        if not isinstance(other, SkyScanResult):
             return False
         if self.result.keys() != other.result.keys():
             return False
@@ -238,7 +238,7 @@ class ScanResult:
 
     def is_close(
         self,
-        other: "ScanResult",
+        other: "SkyScanResult",
         equal_nan: bool = True,
         dump_json_diff: Optional[Path] = None,
         do_disqualify_zero_energy_pixels: bool = False,  # TODO: remove?
@@ -358,7 +358,7 @@ class ScanResult:
         cls,
         nsides_dict: NSidesDict,
         event_metadata: Optional[EventMetadata] = None
-    ) -> "ScanResult":
+    ) -> "SkyScanResult":
         """Factory method for nsides_dict."""
         logger = logging.getLogger(__name__)
 
@@ -370,30 +370,30 @@ class ScanResult:
         for nside, pixel_dict in nsides_dict.items():
             _dtype = np.dtype(cls.PIXEL_TYPE, metadata=dict(nside=nside, **event_metadata_dict))
             nside_pixel_values = np.zeros(len(pixel_dict), dtype=_dtype)
-            logger.info(f"nside {nside} has {len(pixel_dict)} pixels / {12 * nside**2} total.")
+            logger.debug(f"nside {nside} has {len(pixel_dict)} pixels / {12 * nside**2} total.")
 
-            for i, (pixel_id, pixreco) in enumerate(sorted(pixel_dict.items())):
-                nside_pixel_values[i] = cls._pixelreco_to_tuple(pixreco, nside, pixel_id)
+            for i, (pixel_id, pixfin) in enumerate(sorted(pixel_dict.items())):
+                nside_pixel_values[i] = cls._pixelreco_to_tuple(pixfin, nside, pixel_id)
 
             result[cls.format_nside(nside)] = nside_pixel_values
 
         return cls(result)
 
     @staticmethod
-    def _pixelreco_to_tuple(pixreco: PixelReco, nside: int, pixel_id: int) -> PixelTuple:
+    def _pixelreco_to_tuple(pixfin: RecoPixelFinal, nside: int, pixel_id: int) -> PixelTuple:
         if (
-            not isinstance(pixreco, PixelReco)
-            or nside != pixreco.nside
-            or pixel_id != pixreco.pixel
+            not isinstance(pixfin, RecoPixelFinal)
+            or nside != pixfin.nside
+            or pixel_id != pixfin.pixel_id
         ):
-            msg = f"Invalid {PixelReco} for {(nside,pixel_id)}: {pixreco}"
+            msg = f"Invalid {RecoPixelFinal} for {(nside,pixel_id)}: {pixfin}"
             logging.error(msg)
             raise ValueError(msg)
         return (
-            pixreco.pixel,  # index
-            pixreco.llh,  # llh
-            pixreco.reco_losses_inside,  # E_in
-            pixreco.reco_losses_total,  # E_tot
+            pixfin.pixel_id,  # index
+            pixfin.llh,  # llh
+            pixfin.reco_losses_inside,  # E_in
+            pixfin.reco_losses_total,  # E_tot
         )
 
     """
@@ -401,7 +401,7 @@ class ScanResult:
     """
 
     @classmethod
-    def read_npz(cls, filename: Union[str, Path]) -> "ScanResult":
+    def read_npz(cls, filename: Union[str, Path]) -> "SkyScanResult":
         """Load from .npz file."""
         npz = np.load(filename)
         result = dict()
@@ -442,7 +442,7 @@ class ScanResult:
     """
 
     @classmethod
-    def read_json(cls, filename: Union[str, Path]) -> "ScanResult":
+    def read_json(cls, filename: Union[str, Path]) -> "SkyScanResult":
         """Load from .json file."""
         with open(filename) as f:
             pydict = json.load(f)
@@ -465,7 +465,7 @@ class ScanResult:
     """
 
     @classmethod
-    def deserialize(cls, pydict: PyDictResult) -> "ScanResult":
+    def deserialize(cls, pydict: PyDictResult) -> "SkyScanResult":
         """Deserialize from a python-native dict."""
         result = dict()
 

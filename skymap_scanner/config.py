@@ -2,7 +2,6 @@
 
 import dataclasses as dc
 import enum
-import os
 from pathlib import Path
 from typing import Final
 
@@ -16,8 +15,6 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
-MIN_NSIDE_DEFAULT: Final = 8
-MAX_NSIDE_DEFAULT: Final = 512
 
 # physics strings
 INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
@@ -39,6 +36,29 @@ MSG_KEY_PFRAME: Final = "pframe"
 BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
 SOURCE_BASELINE_GCD_METADATA = "original_base_GCD_for_diff_filename.txt"
 GCDQp_FILENAME = "GCDQp.i3"
+
+PREDICTIVE_SCANNING_THRESHOLD_MIN = 0.1
+PREDICTIVE_SCANNING_THRESHOLD_MAX = 1.0
+PREDICTIVE_SCANNING_THRESHOLD_DEFAULT = 1.0
+
+REPORTER_TIMELINE_PERCENTAGES = [
+    0.01,  # close enough to the first message
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.8,
+    0.9,
+    0.95,  # start narrowing to show outliers
+    0.99,
+    0.999,
+    0.9999,
+    0.99999,
+    1.0,
+]
+COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
 class RecoAlgo(enum.Enum):
