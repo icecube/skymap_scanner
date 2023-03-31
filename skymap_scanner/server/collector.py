@@ -193,7 +193,7 @@ class Collector:
         """
         if addl_sent_pixvars:
             for spv in addl_sent_pixvars:
-                self.reporter.increment_pixels_sent_ct(spv.nside)
+                self.reporter.increment_sent_ct(spv.nside)
                 try:
                     self._sent_pixvars_by_nside[spv.nside].append(spv)
                 except KeyError:
@@ -269,7 +269,7 @@ class Collector:
             LOGGER.debug(f"Saved (found during {logging_id}): {pixfin}")
 
         # report after potential save
-        await self.reporter.record_pixfin(
+        await self.reporter.record_another(
             reco_pixel_variation.nside,
             reco_runtime,
             roundtrip_start=sent_pixvar.sent_time,

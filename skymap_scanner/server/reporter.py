@@ -164,7 +164,7 @@ class WorkerStatsCollection:
     def update(
         self,
         nside: int,
-        pixfin_runtime: float,
+        runtime: float,
         roundtrip_start: float,
         roundtrip_end: float,
     ) -> int:
@@ -174,7 +174,7 @@ class WorkerStatsCollection:
             worker_stats = self._worker_stats_by_nside[nside]
         except KeyError:
             worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
-        worker_stats.update(pixfin_runtime, roundtrip_start, roundtrip_end)
+        worker_stats.update(runtime, roundtrip_start, roundtrip_end)
         return len(worker_stats.worker_runtimes)
 
     @property
@@ -254,7 +254,7 @@ class Reporter:
         self.n_posvar = n_posvar
         self.nside_progression = nside_progression
 
-        self._n_pixels_sent_by_nside: Dict[int, int] = {}
+        self._n_sent_by_nside: Dict[int, int] = {}
 
         self.skydriver_rc = skydriver_rc
         self.event_metadata = event_metadata
@@ -267,8 +267,8 @@ class Reporter:
         self._call_order = {
             "current_previous": {  # current_fucntion: previous_fucntion
                 self.precomputing_report: [None],
-                self.record_pixfin: [self.precomputing_report, self.record_pixfin],
-                self.after_computing_report: [self.record_pixfin],
+                self.record_another: [self.precomputing_report, self.record_another],
+                self.after_computing_report: [self.record_another],
             },
             "last_called": None,
         }
@@ -282,39 +282,39 @@ class Reporter:
             RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
         self._call_order["last_called"] = current  # type: ignore[assignment]
 
-    def increment_pixels_sent_ct(self, nside: int, increment: int = 1) -> None:
-        """Increment the number of pixels sent by nside."""
+    def increment_sent_ct(self, nside: int, increment: int = 1) -> None:
+        """Increment the number sent by nside."""
         try:
-            self._n_pixels_sent_by_nside[nside] += increment
+            self._n_sent_by_nside[nside] += increment
         except KeyError:
-            self._n_pixels_sent_by_nside[nside] = increment
+            self._n_sent_by_nside[nside] = increment
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
         self._check_call_order(self.precomputing_report)
         await self._send_progress(summary_msg="The Skymap Scanner has started up.")
 
-    async def record_pixfin(
+    async def record_another(
         self,
-        pixfin_nside: int,
-        pixfin_runtime: float,
+        nside: int,
+        runtime: float,
         roundtrip_start: float,
         roundtrip_end: float,
     ) -> None:
         """Send reports/logs/plots if needed."""
-        self._check_call_order(self.record_pixfin)
+        self._check_call_order(self.record_another)
 
         # update stats
         nside_ct = self.worker_stats_collection.update(
-            pixfin_nside,
-            pixfin_runtime,
+            nside,
+            runtime,
             roundtrip_start,
             roundtrip_end,
         )
 
         # make report(s)
         if nside_ct == 1:
-            # always report the first received pixfin so we know things are rolling
+            # always report the first received so we know things are rolling
             await self.make_reports_if_needed(bypass_timers=True)
         else:
             await self.make_reports_if_needed()
@@ -362,13 +362,11 @@ class Reporter:
         If the scan is done, use the # of recos sent.
         """
         if self.is_event_scan_done:
-            return sum(
-                self._n_pixels_sent_by_nside[nside] for nside in self.nside_progression
-            )
+            return sum(self._n_sent_by_nside[nside] for nside in self.nside_progression)
 
         estimates = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
         estimates_with_sents = sum(
-            self._n_pixels_sent_by_nside.get(nside, estimates[nside])
+            self._n_sent_by_nside.get(nside, estimates[nside])
             for nside in self.nside_progression
         )
         # estimates-sum SHOULD be a lower bound, but if estimates_with_sents
@@ -450,22 +448,22 @@ class Reporter:
 
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
-        by_nside = {}
+        pixels_by_nside = {}
         if self.nsides_dict:
             for nside in sorted(self.nsides_dict):  # sorted by nside
                 n_done = len(self.nsides_dict[nside])
-                by_nside[nside] = {
+                pixels_by_nside[nside] = {
                     "done": n_done,
                     "est. percent": (
-                        f"{n_done}/{self._n_pixels_sent_by_nside[nside]} "
-                        f"({n_done / self._n_pixels_sent_by_nside[nside]:.4f})"
+                        f"{n_done}/{self._n_sent_by_nside[nside]} "
+                        f"({n_done / self._n_sent_by_nside[nside]:.4f})"
                     ),
                 }
         # add estimates for future nsides
         lowerbounds = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
         for nside, n in lowerbounds.items():
             if nside not in self.nsides_dict:
-                by_nside[nside] = {
+                pixels_by_nside[nside] = {
                     "done": 0,
                     "est. percent": "N/A",
                     "est. future recos": n,
@@ -484,9 +482,9 @@ class Reporter:
                 pass
 
         return {
-            "by_nside": by_nside,
+            "by_nside": pixels_by_nside,
             # total completed pixels
-            "total_pixels": sum(v["done"] for v in by_nside.values()),
+            "total_pixels": sum(v["done"] for v in pixels_by_nside.values()),
             "total_recos": self.worker_stats_collection.total_ct,
             "est. percent": (
                 f"{self.worker_stats_collection.total_ct}/{predicted_total} "
