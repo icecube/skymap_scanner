@@ -37,7 +37,7 @@ class SplineMPE(RecoInterface):
     StochAmplitudeSpline = spline_path / "InfHighEStoch_mie_abs_z20a10.fits"
 
     def get_prejitter(self, config="max") -> int:
-        return 2 if config = "max" else 4
+        return 2 if config == "max" else 4
 
     def get_splines(self) -> List[photonics_service.I3PhotoSplineService]:
         bare_mu_spline = photonics_service.I3PhotoSplineService(
