@@ -3,8 +3,9 @@
 
 import datetime
 import numpy as np
-from pathlib import Path
 import os
+from pathlib import Path
+from typing import Tuple
 
 
 from I3Tray import I3Units  # type: ignore[import]
@@ -39,7 +40,7 @@ class SplineMPE(RecoInterface):
     def get_prejitter(self, config="max") -> int:
         return 2 if config == "max" else 4
 
-    def get_splines(self) -> List[photonics_service.I3PhotoSplineService]:
+    def get_splines(self) -> Tuple[photonics_service.I3PhotoSplineService]:
         bare_mu_spline = photonics_service.I3PhotoSplineService(
             self.BareMuAmplitudeSpline,
             self.BareMuTimingSpline,
