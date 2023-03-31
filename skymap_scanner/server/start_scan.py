@@ -423,8 +423,8 @@ async def _serve_and_collect(
         nsides=list(nside_progression.keys()),
     )
 
-    max_nside_to_refine = None  # start by not refining any (ie we generate first nside)
-    collected_everything_sent = False
+    max_nside_thresholded = None  # -> generates first nside
+    collected_all_sent = False
     async with collector.finder_context(), from_clients_queue.open_sub() as sub:
         while True:
             #
@@ -435,16 +435,14 @@ async def _serve_and_collect(
                 reco_algo,
                 pixeler,
                 collector.sent_pixvars,
-                # we want to open re-refinement for all nsides <= max_nside_to_refine
-                nside_progression.get_slice_plus_one(max_nside_to_refine),
+                # we want to open re-refinement for all nsides <= max_nside_thresholded
+                nside_progression.get_slice_plus_one(max_nside_thresholded),
             )
             # Check if scan is done --
-            # we collected everything & there was no re-refinement of a region
-            if collected_everything_sent:
-                if not sent_pixvars:
-                    LOGGER.info("Done receiving/saving recos from clients.")
-                    return collector.n_sent
-                collected_everything_sent = False
+            # there was no re-refinement of a region & collected everything sent
+            if not sent_pixvars and collected_all_sent:
+                LOGGER.info("Done receiving/saving recos from clients.")
+                return collector.n_sent
             # NOTE: when `sent_pixvars` is empty (and we didn't previously
             #       collect all we sent) it just means there were no addl
             #       pixels to refine this time around. That doesn't mean
@@ -455,6 +453,7 @@ async def _serve_and_collect(
             # COLLECT PIXEL-RECOS
             #
             LOGGER.info("Receiving recos from clients...")
+            collected_all_sent = False
             async for msg in sub:
                 if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
                     raise ValueError(
@@ -465,25 +464,26 @@ async def _serve_and_collect(
                 except ExtraRecoPixelVariationException as e:
                     logging.error(e)
 
-                # are we potentially done?
-                if collector.has_collected_everything_sent():
-                    LOGGER.debug("Potentially done receiving/saving recos...")
-                    collected_everything_sent = True
-                    break
-
                 # if we've got enough pixfins, let's get a jump on the next round
-                if max_nside_to_refine := collector.get_max_nside_to_refine():
-                    LOGGER.info(f"Predictive threshold met (max={max_nside_to_refine})")
+                if max_nside_thresholded := collector.get_max_nside_thresholded():
+                    collected_all_sent = collector.has_collected_all_sent()
+                    # NOTE: POTENTIAL END-GAME SCENARIO
+                    # nsides=[8,64,512]. 512 & 64 have been done for a long time.
+                    # Now, 8 just thresholded. We don't know if a re-refinement
+                    # is needed. (IOW were/are the most recent nside-8 pixels very
+                    # important?) AND if they turn out to not warrant re-refinement,
+                    # we need to know if we collected everything AKA we're done!
+                    LOGGER.info(f"Threshold met (max={max_nside_thresholded})")
                     break
 
             # do-while loop logic
-            if max_nside_to_refine or collected_everything_sent:
+            if max_nside_thresholded:
                 continue
             LOGGER.error("The MQ-sub must have timed out (too many MIA clients)")
             return collector.n_sent
 
     # this statement should never be reached
-    raise RuntimeError("Unknown state -- there is a bug in the collection logic")
+    raise RuntimeError("Unknown state -- there is an error upstream")
 
 
 def write_startup_json(

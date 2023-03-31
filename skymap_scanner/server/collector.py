@@ -110,14 +110,15 @@ class Collector:
         self._sent_pixvars_by_nside: Dict[int, List[SentPixelVariation]] = {}
 
         # percentage progress trackers
-        thresholds = Collector._make_thresholds(predictive_scanning_threshold)
-        self._nsides_thresholds = {n: thresholds for n in nsides}
-        self._nsides_thresholds[max(nsides)] = [1.0]  # final nside must reach 100%
-        LOGGER.info(f"Thresholds: {self._nsides_thresholds}")
+        self._nsides_thresholds = Collector._make_nsides_thresholds(
+            predictive_scanning_threshold, nsides
+        )
         self._nsides_percents_done = {n: 0.0 for n in nsides}
 
     @staticmethod
-    def _make_thresholds(predictive_scanning_threshold: float) -> List[float]:
+    def _make_nsides_thresholds(
+        predictive_scanning_threshold: float, nsides: List[int]
+    ) -> Dict[int, List[float]]:
         """Ex: predictive_scanning_threshold=0.66 -> [0.66, .7, 0.8, 0.9, 1.0]."""
         if not (
             cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN
@@ -131,10 +132,19 @@ class Collector:
                 f"'{predictive_scanning_threshold}'"
             )
 
+        # make standard threshold series
         thresholds = [predictive_scanning_threshold]
         bstart = bisect(cfg.COLLECTOR_BASE_THRESHOLDS, predictive_scanning_threshold)
         thresholds.extend(cfg.COLLECTOR_BASE_THRESHOLDS[bstart:])
-        return thresholds
+
+        # make threshold series for each nside
+        by_nsides = {n: thresholds for n in nsides}
+        by_nsides[max(nsides)] = [1.0]  # final nside must reach 100%
+        LOGGER.info(f"Thresholds: {by_nsides}")
+        if not all(t[-1] == 1.0 for t in by_nsides.values()):
+            raise ValueError(f"Each threshold series must end with 1.0: {by_nsides}")
+
+        return by_nsides
 
     @property
     def n_sent(self) -> int:
@@ -255,7 +265,7 @@ class Collector:
             roundtrip_end=time.time(),
         )
 
-    def has_collected_everything_sent(self) -> bool:
+    def has_collected_all_sent(self) -> bool:
         """Has every pixel been collected?"""
         # first check lengths, faster: O(1)
         if self.n_sent != len(self._pixfinid_received_quick_lookup):
@@ -269,7 +279,7 @@ class Collector:
             f" but does not match: {sent_ids=} vs {self._pixfinid_received_quick_lookup=}"
         )
 
-    def get_max_nside_to_refine(self) -> Optional[int]:
+    def get_max_nside_thresholded(self) -> Optional[int]:
         """Return max nside value from all nsides that just now breached a new
         threshold.
 
