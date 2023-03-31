@@ -154,7 +154,7 @@ jobs:
         run: |
           docker logs rabbitmq
 
-  test-run-multi-nsides-dummy:
+  test-run-nsides-thresholds-dummy:
     needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
@@ -163,7 +163,11 @@ jobs:
         nsides: [
           "1:12",
           "1:12 2:12",
-          "1:12 2:12 4:12",
+          "1:12 2:12 4:12"
+        ]
+        predictive_scanning_threshold: [
+          1.0,
+          0.65,
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
@@ -213,6 +217,7 @@ jobs:
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --client-startup-json ./startup.json \
             --nsides ${{ matrix.nsides }} \
+            --predictive-scanning-threshold ${{ matrix.predictive_scanning_threshold }} \
             --real-event \
             &
 
