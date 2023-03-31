@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=rabbitmq --output-file=requirements-rabbitmq.txt
 #
-astropy==5.2.1
+astropy==5.2.2
     # via
     #   healpy
     #   skymap-scanner (setup.py)
@@ -26,7 +26,7 @@ cryptography==40.0.1
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.4.1
+ewms-pilot==0.4.2
     # via skymap-scanner (setup.py)
 fonttools==4.39.3
     # via matplotlib
@@ -85,7 +85,7 @@ python-dateutil==2.8.2
     # via
     #   matplotlib
     #   pandas
-pytz==2023.2
+pytz==2023.3
     # via pandas
 pyyaml==6.0
     # via astropy
