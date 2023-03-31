@@ -244,9 +244,8 @@ jobs:
       - name: check no nsides skipped
         run: |
           ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          export outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
           echo $outfile
-          pip install .  # don't need icecube, so no docker container needed
           python3 -c '
           import json
           import os
