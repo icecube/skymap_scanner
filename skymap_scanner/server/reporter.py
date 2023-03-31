@@ -267,8 +267,8 @@ class Reporter:
         self._call_order = {
             "current_previous": {  # current_fucntion: previous_fucntion
                 self.precomputing_report: [None],
-                self.record_another: [self.precomputing_report, self.record_another],
-                self.after_computing_report: [self.record_another],
+                self.record_reco: [self.precomputing_report, self.record_reco],
+                self.after_computing_report: [self.record_reco],
             },
             "last_called": None,
         }
@@ -294,7 +294,7 @@ class Reporter:
         self._check_call_order(self.precomputing_report)
         await self._send_progress(summary_msg="The Skymap Scanner has started up.")
 
-    async def record_another(
+    async def record_reco(
         self,
         nside: int,
         runtime: float,
@@ -302,7 +302,7 @@ class Reporter:
         roundtrip_end: float,
     ) -> None:
         """Send reports/logs/plots if needed."""
-        self._check_call_order(self.record_another)
+        self._check_call_order(self.record_reco)
 
         # update stats
         nside_ct = self.worker_stats_collection.update(

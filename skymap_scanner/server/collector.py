@@ -269,7 +269,7 @@ class Collector:
             LOGGER.debug(f"Saved (found during {logging_id}): {pixfin}")
 
         # report after potential save
-        await self.reporter.record_another(
+        await self.reporter.record_reco(
             reco_pixel_variation.nside,
             reco_runtime,
             roundtrip_start=sent_pixvar.sent_time,
