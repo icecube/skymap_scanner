@@ -249,7 +249,8 @@ jobs:
           pip install .  # don't need icecube, so no docker container needed
           python3 -c '
           import json
-          with open($outfile) as f:
+          import os
+          with open(os.getenv("outfile")) as f:
             pydict = json.load(f)
           nsides = "${{ matrix.nsides }}"
           assert len(pydict) == len(nsides.count(":"))
