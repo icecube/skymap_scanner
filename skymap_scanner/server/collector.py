@@ -133,9 +133,20 @@ class Collector:
             )
 
         # make standard threshold series
+        base_thresholds = sorted(set(cfg.COLLECTOR_BASE_THRESHOLDS + [1.0]))
         thresholds = [predictive_scanning_threshold]
-        bstart = bisect(cfg.COLLECTOR_BASE_THRESHOLDS, predictive_scanning_threshold)
-        thresholds.extend(cfg.COLLECTOR_BASE_THRESHOLDS[bstart:])
+        bstart = bisect(base_thresholds, predictive_scanning_threshold)
+        thresholds.extend(base_thresholds[bstart:])
+        if (
+            min(thresholds) < cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN
+            or max(thresholds) > cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX
+        ):
+            raise ValueError(
+                f"Each threshold series must be "
+                f"[{cfg.PREDICTIVE_SCANNING_THRESHOLD_MIN}, "
+                f"{cfg.PREDICTIVE_SCANNING_THRESHOLD_MAX}]: "
+                f"'{thresholds}'"
+            )
 
         # make threshold series for each nside
         by_nsides = {n: thresholds for n in nsides}
