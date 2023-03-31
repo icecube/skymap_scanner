@@ -22,7 +22,7 @@ MAX_NSIDE_DEFAULT: Final = 512
 # physics strings
 INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
 INPUT_POS_NAME: Final = "HESE_VHESelfVetoVertexPos"
-OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
+OUTPUT_PARTICLE_NAME: Final = "RecoSeedParticle"
 
 # For commonly used keys
 I3FRAME_NSIDE: Final = "SCAN_HealpixNSide"
