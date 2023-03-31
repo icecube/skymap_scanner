@@ -273,6 +273,7 @@ class Collector:
         # now, sanity check contents, slower: O(n)
         sent_ids = set((p.nside, p.pixel_id, p.posvar_id) for p in self.sent_pixvars)
         if sent_ids == self._pixfinid_received_quick_lookup:
+            LOGGER.info("Collected all sent")
             return True
         raise RuntimeError(
             f"Sanity check failed: Collected enough pixels,"
@@ -311,11 +312,13 @@ class Collector:
 
         newly_thresholded_nsides = [
             nside
-            for nside, prog in updated_percents.items()
-            if reached_new_threshold(nside, prog)
+            for nside, percent in updated_percents.items()
+            if reached_new_threshold(nside, percent)
         ]
+        LOGGER.debug(f"Old percents done: {self._nsides_percents_done}")
+        LOGGER.debug(f"New percents done: {updated_percents}")
+        LOGGER.debug(f"Newly thresholded nsides: {newly_thresholded_nsides}")
         self._nsides_percents_done = updated_percents
-        LOGGER.debug(f"Updated percents done: {self._nsides_percents_done}")
 
         if not newly_thresholded_nsides:
             return None
