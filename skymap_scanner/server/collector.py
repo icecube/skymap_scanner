@@ -315,6 +315,7 @@ class Collector:
             if reached_new_threshold(nside, prog)
         ]
         self._nsides_percents_done = updated_percents
+        LOGGER.debug(f"Updated percents done: {self._nsides_percents_done}")
 
         if not newly_thresholded_nsides:
             return None
