@@ -2,7 +2,7 @@
 
 
 import datetime
-import random
+import numpy as np
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -187,8 +187,8 @@ class SplineMPE(RecoInterface):
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel=frame[cfg.I3FRAME_PIXEL].value,
             llh=frame["splinempe-reco"].value,
-            reco_losses_inside=None,
-            reco_losses_total=None,
+            reco_losses_inside=np.NaN,
+            reco_losses_total=np.Nan,
             pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["splinempe-reco"].pos,
             time=frame["splinempe-reco"].time,
