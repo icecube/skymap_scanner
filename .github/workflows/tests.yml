@@ -248,11 +248,11 @@ jobs:
           echo $outfile
           pip install .  # don't need icecube, so no docker container needed
           python3 -c '
-            import json
-            with open($outfile) as f:
-              pydict = json.load(f)
-            nsides = "${{ matrix.nsides }}"
-            assert len(pydict) == len(nsides.count(":"))
+          import json
+          with open($outfile) as f:
+            pydict = json.load(f)
+          nsides = "${{ matrix.nsides }}"
+          assert len(pydict) == len(nsides.count(":"))
           '
       - name: broker docker logs
         if: always()
