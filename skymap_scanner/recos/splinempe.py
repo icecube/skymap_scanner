@@ -112,7 +112,7 @@ class SplineMPE(RecoInterface):
 
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
-            name + "SplineMPEllh",
+            "splinempe-llh",
             PhotonicsService=bare_mu_spline,
             PhotonicsServiceStochastics=stoch_spline,
             PhotonicsServiceRandomNoise=noise_spline,
@@ -151,10 +151,29 @@ class SplineMPE(RecoInterface):
 
         steps = self.get_steps()
 
-        tray.add(
+        tray.Add(
             "I3SimpleParametrizationFactory",
             "splinempe-param",
             **steps,
+        )
+
+        # the original splineMPE scan used OnlineL2_SplineMPE as a seed
+        tray.Add(
+            "I3BasicSeedServiceFactory",
+            "splinempe-seed",
+            FirstGuess=cfg.OUTPUT_PARTICLE_NAME,
+            # multiple can be provided as FirstGuesses=[,]
+            TimeShiftType="TNone",
+            PositionShiftType="None",
+        )
+
+        tray.Add(
+            "I3SimpleFitter",
+            OutputName="splinempe-reco",
+            SeedService="splinempe-seed",
+            Parametrization="splinempe-param",
+            LogLikelihood="splinempe-llh",
+            Minimizer="simplex",
         )
 
         def notify1(frame):
@@ -167,11 +186,11 @@ class SplineMPE(RecoInterface):
         return PixelReco(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel=frame[cfg.I3FRAME_PIXEL].value,
-            llh=frame["splinempe_llh"].value,
-            reco_losses_inside=random.random(),
-            reco_losses_total=random.random(),
+            llh=frame["splinempe-reco"].value,
+            reco_losses_inside=None,
+            reco_losses_total=None,
             pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
-            position=frame["splinempe_pos"],
-            time=frame["splinempe_time"].value,
-            energy=frame["splinempe_time"].value,
+            position=frame["splinempe-reco"].pos,
+            time=frame["splinempe-reco"].time,
+            energy=frame["splinempe-reco"].energy,
         )
