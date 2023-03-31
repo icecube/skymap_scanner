@@ -359,19 +359,21 @@ class Reporter:
     def predicted_total_recos(self) -> int:
         """Get a prediction for total number of recos for the entire scan.
 
-        If we've sent the last nside, then just use the # of recos sent.
+        If the scan is done, use the # of recos sent.
         """
-        if not self._n_pixels_sent_by_nside:
-            return self.nside_progression.total_n_recos_lowerbound(self.n_posvar)
+        if self.is_event_scan_done:
+            return sum(
+                self._n_pixels_sent_by_nside[nside] for nside in self.nside_progression
+            )
 
-        # in final nside
-        if max(self._n_pixels_sent_by_nside.keys()) == self.nside_progression.max_nside:
-            return sum(self._n_pixels_sent_by_nside.values())
-
-        return max(
-            self.nside_progression.total_n_recos_lowerbound(self.n_posvar),
-            sum(self._n_pixels_sent_by_nside.values()),
+        estimates = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
+        estimates_with_sents = sum(
+            self._n_pixels_sent_by_nside.get(nside, estimates[nside])
+            for nside in self.nside_progression
         )
+        # estimates-sum SHOULD be a lower bound, but if estimates_with_sents
+        #   is less than there will be more recos sent in the future
+        return max(estimates_with_sents, sum(estimates.values()))
 
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""

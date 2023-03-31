@@ -146,11 +146,3 @@ class NSideProgression(OrderedDict[int, int]):
             N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
             for N in int_int_list
         }
-
-    @cachetools.func.lru_cache()
-    def total_n_recos_lowerbound(self, n_posvar: int) -> int:
-        """Get estimated # of total recos for the scan.
-
-        These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
-        """
-        return sum(self.n_recos_by_nside_lowerbound(n_posvar).values())
