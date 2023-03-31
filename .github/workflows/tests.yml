@@ -154,7 +154,7 @@ jobs:
         run: |
           docker logs rabbitmq
 
-  test-run-docker-multi-nsides-dummy:
+  test-run-multi-nsides-dummy:
     needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
@@ -241,7 +241,7 @@ jobs:
         run: |
           docker logs rabbitmq
 
-  test-run-docker:
+  test-run-realistic:
     needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
@@ -331,11 +331,6 @@ jobs:
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
           echo $outfile
-
-          if [[ "${{ matrix.reco_algo }}" == "dummy" ]]; then
-            exit 0
-          fi
-
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
