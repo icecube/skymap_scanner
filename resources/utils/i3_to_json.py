@@ -101,15 +101,26 @@ def write_json(frame, extra):
         ra, dec = astro.dir_to_equa(prim.dir.zenith, prim.dir.azimuth,
                                     frame['I3EventHeader'].start_time.mod_julian_day_double)
 
+        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy}
+
+        if muhi is not None:
+            fullmsg['true']['emuhi'] = muhi.energy
+        else:
+            fullmsg['true']['emuhi'] = 0
+
         edep = 0
-        for track in MuonGun.Track.harvest(frame['I3MCTree'], frame['MMCTrackList']):
-            # Find distance to entrance and exit from sampling volume
-            intersections = VHESelfVeto.IntersectionsWithInstrumentedVolume(frame['I3Geometry'], track)
-            # Get the corresponding energies
-            e0, e1 = track.get_energy((intersections[0]-track.pos).magnitude), track.get_energy((intersections[1]-track.pos).magnitude)
-            # Accumulate
-            edep +=  (e0-e1)
-        fullmsg['true'] = {'ra':ra.item(), 'dec':dec.item(), 'eprim': prim.energy, 'emuhi': muhi.energy, 'emuin':edep}
+        if 'MMCTrackList' in frame:
+            for track in MuonGun.Track.harvest(frame['I3MCTree'], frame['MMCTrackList']):
+                intersections = VHESelfVeto.IntersectionsWithInstrumentedVolume(frame['I3Geometry'], track)
+                for entrance in intersections[::2]:
+                    l0 = (entrance-track.pos)*track.dir
+                    e0 = track.get_energy(l0) if l0 > 0 else track.get_energy(0)
+                    e1 = 0
+                    for exit in intersections[1::2]:
+                        l1 = (exit-track.pos)*track.dir
+                        e1 = track.get_energy(l1)
+                    edep += (e0-e1)
+        fullmsg['true']['emuin']=edep
 
     jf = f'{fullmsg["unique_id"]}.sub{uid_sub[2]:03}.json'
     with open(jf, 'w') as f:
