@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v3.6.0 (2023-04-01)
+### Other
+* Update job names ([#165](https://github.com/icecube/skymap_scanner/issues/165)) ([`41c814b`](https://github.com/icecube/skymap_scanner/commit/41c814bd2e54dabc7ddc79a0725782cba510b163))
+* <bot> update requirements.txt ([`f5feb5b`](https://github.com/icecube/skymap_scanner/commit/f5feb5b33df06a81d160b5ddbd282ec89a02fe39))
+* <bot> update requirements-rabbitmq.txt ([`2415434`](https://github.com/icecube/skymap_scanner/commit/24154342155ade979a36db75954db202c3bc9d56))
+* <bot> update requirements-pulsar.txt ([`63d9757`](https://github.com/icecube/skymap_scanner/commit/63d975794fffc1bc4d88bb581204a7cdb1aaaf93))
+* <bot> update requirements-nats.txt ([`8624cca`](https://github.com/icecube/skymap_scanner/commit/8624cca92ab7e013ba943d9dd0c85df1e79d3e58))
+* <bot> update requirements-gcp.txt ([`340226e`](https://github.com/icecube/skymap_scanner/commit/340226efa3c1dc32e415a438d79d689ac2bc9784))
+* <bot> update requirements-client-starter.txt ([`7d4af5d`](https://github.com/icecube/skymap_scanner/commit/7d4af5d90c373e63fca5d09567262a5107a75c50))
+* <bot> update requirements-all.txt ([`96fc5ba`](https://github.com/icecube/skymap_scanner/commit/96fc5ba4abc04d75a98b9d6152728d7ea86a5217))
+* Fix error when muon doesn't exist and correct edep for starting tracks ([#162](https://github.com/icecube/skymap_scanner/issues/162)) ([`454fe05`](https://github.com/icecube/skymap_scanner/commit/454fe05d0d4f66adaeb3d46468c4206760326f7b))
+
 ## v3.5.2 (2023-03-29)
 ### Other
 * Track subevents when converting i3 to json ([#161](https://github.com/icecube/skymap_scanner/issues/161)) ([`b279bd2`](https://github.com/icecube/skymap_scanner/commit/b279bd22217b0aa42b4a84407d02af0523363a76))
