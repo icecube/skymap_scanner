@@ -14,7 +14,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     gulliver,
     gulliver_modules,
     icetray,
-    millipede,
+    spline-reco,
     photonics_service,
     recclasses,
     simclasses,
@@ -129,7 +129,7 @@ class Splinempe(RecoInterface):
 
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
 
-        tray.AddService(
+        tray.Add(
             "I3SplineRecoLikelihoodFactory",
             "splinempe-llh",
             PhotonicsService=bare_mu_spline,
