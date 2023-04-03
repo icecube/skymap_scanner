@@ -105,6 +105,8 @@ class Splinempe(RecoInterface):
         vertex_step = 20 * I3Units.m
         vertex_bound = 2000 * I3Units.m
         vertex_bounds = [-vertex_bound, +vertex_bound]
+        time_bound = 500 * I3Units.ns
+        time_bounds = [-time_bound, +time_bound]
 
         steps = dict(
             StepX=vertex_step,
@@ -118,8 +120,7 @@ class Splinempe(RecoInterface):
             BoundsZenith=None,
             BoundsAzimuth=None,
             StepT=1.0 * I3Units.ns,
-            BoundsT=500 * I3Units.ns,
-            VertexMode="Default"
+            BoundsT=time_bounds
         )
 
         return steps
