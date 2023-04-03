@@ -409,7 +409,7 @@ jobs:
             icecube/skymap_scanner:local \
             python /local/pkls/get_toclient_msg_pkl.py \
             --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo {{ matrix.reco_algo }}
+            --reco-algo ${{ matrix.reco_algo }}
 
           hexdump -C tests/data/reco_pixel_pkls/${{ matrix.dir }}/in.pkl
 
