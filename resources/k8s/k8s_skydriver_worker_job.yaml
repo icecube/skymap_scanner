@@ -46,8 +46,8 @@ spec:
       #   command:
       #   - wget
       #   - "-O" 
-      #   - "/download/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits"
-      #   - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits"
+      #   - "/download/cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+      #   - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
       #   volumeMounts:
       #   - name: spline-table-vol
       #     mountPath: /download
@@ -56,8 +56,8 @@ spec:
       #   command:
       #   - wget
       #   - "-O" 
-      #   - "/download/cascade_single_spice_bfr-v2_flat_z20_a5.abs.fits"
-      #   - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_single_spice_bfr-v2_flat_z20_a5.abs.fits"
+      #   - "/download/cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
+      #   - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
       #   volumeMounts:
       #   - name: spline-table-vol
       #     mountPath: /download
@@ -66,8 +66,8 @@ spec:
       #   command:
       #   - wget
       #   - "-O" 
-      #   - "/download/cascade_single_spice_bfr-v2_flat_z20_a5.prob.fits"
-      #   - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_single_spice_bfr-v2_flat_z20_a5.prob.fits"
+      #   - "/download/cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
+      #   - "https://storage.googleapis.com/icecube-23-skymap-scanner/cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
       #   volumeMounts:
       #   - name: spline-table-vol
       #     mountPath: /download
