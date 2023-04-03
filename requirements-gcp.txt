@@ -98,7 +98,7 @@ packaging==23.0
     #   matplotlib
 pandas==1.5.3
     # via skymap-scanner (setup.py)
-pillow==9.4.0
+pillow==9.5.0
     # via matplotlib
 proto-plus==1.22.2
     # via google-cloud-pubsub
