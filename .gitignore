@@ -167,3 +167,4 @@ _condor_*
 *.out
 local-runs/
 temp.txt
+plots-*/

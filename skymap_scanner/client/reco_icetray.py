@@ -24,8 +24,8 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..utils import pixelreco
 from ..utils.load_scan_state import get_baseline_gcd_frames
+from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
 
 LOGGER = logging.getLogger("skyscan.client.reco")
@@ -107,7 +107,7 @@ def reco_pixel(
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
-    LOGGER.info(f"Reco'ing pixel: {pixelreco.pixel_to_tuple(pframe)}...")
+    LOGGER.info(f"Reco'ing pixel: {pframe_tuple(pframe)}...")
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
@@ -149,9 +149,7 @@ def reco_pixel(
 
     # Write reco out
     def writeout_reco(frame: icetray.I3Frame) -> None:
-        LOGGER.debug(
-            f"writeout_reco {pixelreco.pixel_to_tuple(frame)}: {frame_for_logging(frame)}"
-        )
+        LOGGER.debug(f"writeout_reco {pframe_tuple(frame)}: {frame_for_logging(frame)}")
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
@@ -160,17 +158,19 @@ def reco_pixel(
         save_to_disk_cache(frame, out_pkl.parent)
         with open(out_pkl, "wb") as f:
             LOGGER.info(
-                f"Pickle-dumping reco {pixelreco.pixel_to_tuple(frame)}: "
+                f"Pickle-dumping reco {pframe_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
-            pixreco = pixelreco.PixelReco.from_i3frame(frame, geometry, reco_algo)
-            LOGGER.info(f"PixelReco: {pixreco}")
+            reco_pixel_variation = RecoPixelVariation.from_i3frame(
+                frame, geometry, reco_algo
+            )
+            LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
             pickle.dump(
                 {
-                    "pixreco": pixreco,
-                    "start": start_time,
-                    "end": time.time(),
+                    "reco_pixel_variation": reco_pixel_variation,
+                    # can't trust the clocks running in containers, but we can trust the relative time
+                    "runtime": time.time() - start_time,
                 },
                 f,
             )
@@ -191,7 +191,7 @@ def reco_pixel(
 
     if not out_pkl.exists():
         raise FileNotFoundError(
-            f"Out file was not written {pixelreco.pixel_to_tuple(pframe)}: {out_pkl}"
+            f"Out file was not written {pframe_tuple(pframe)}: {out_pkl}"
         )
     return out_pkl
 

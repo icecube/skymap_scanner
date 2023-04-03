@@ -95,7 +95,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -154,16 +154,20 @@ jobs:
         run: |
           docker logs rabbitmq
 
-  test-run-docker:
+  test-run-nsides-thresholds-dummy:
     needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        eventfile: [
-          hese_event_01.json,
-          run00136766-evt000007637140-GOLD.pkl,
-          run00136662-evt000035405932-BRONZE.pkl
+        nsides: [
+          "1:12",
+          "1:12 2:12",
+          "1:12 2:12 4:12"
+        ]
+        predictive_scanning_threshold: [
+          1.0,
+          0.65,
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
@@ -194,7 +198,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
@@ -207,7 +211,111 @@ jobs:
 
           # Launch Server
           ./resources/launch_scripts/docker/launch_server.sh \
-            --reco-algo millipede_original \
+            --reco-algo dummy \
+            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
+            --cache-dir $SKYSCAN_CACHE_DIR \
+            --output-dir $SKYSCAN_OUTPUT_DIR \
+            --client-startup-json ./startup.json \
+            --nsides ${{ matrix.nsides }} \
+            --predictive-scanning-threshold ${{ matrix.predictive_scanning_threshold }} \
+            --real-event \
+            &
+
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+
+          # Launch Clients
+          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          echo "Launching $nclients clients"
+          mkdir $SKYSCAN_DEBUG_DIR
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          for i in $( seq 1 $nclients ); do
+            ./resources/launch_scripts/docker/launch_client.sh \
+              --client-startup-json ./startup.json \
+              --debug-directory $SKYSCAN_DEBUG_DIR \
+              &
+            echo -e "\tclient #$i launched"
+          done
+
+          # Wait for Everyone
+          wait -n  # for server
+          for i in $( seq 1 $nclients ); do
+            wait -n  # for client
+          done
+      - name: check no nsides skipped
+        run: |
+          ls $SKYSCAN_OUTPUT_DIR
+          export outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          echo $outfile
+          python3 -c '
+          import json
+          import os
+          with open(os.getenv("outfile")) as f:
+            pydict = json.load(f)
+          nsides = "${{ matrix.nsides }}"
+          assert len(pydict) == nsides.count(":")
+          '
+      - name: broker docker logs
+        if: always()
+        run: |
+          docker logs rabbitmq
+
+  test-run-realistic:
+    needs: test-build-docker
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        eventfile: [
+          hese_event_01.json,
+          run00136766-evt000007637140-GOLD.pkl,
+          run00136662-evt000035405932-BRONZE.pkl
+        ]
+        reco_algo: [
+          millipede_original
+        ]
+    env:
+      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      SKYSCAN_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_BROKER_AUTH: password  # using this would override password in address
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:latest
+        env:
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
+          RABBITMQ_VHOST: test
+          BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
+        options: >-
+          --name rabbitmq
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: icecube/skymap_scanner:local
+          load: true
+      - name: run
+        run: |
+          set -x
+
+          mkdir $SKYSCAN_CACHE_DIR
+          mkdir $SKYSCAN_OUTPUT_DIR
+
+          # Launch Server
+          ./resources/launch_scripts/docker/launch_server.sh \
+            --reco-algo ${{ matrix.reco_algo }} \
             --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
@@ -241,7 +349,6 @@ jobs:
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
           echo $outfile
-
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
@@ -272,7 +379,7 @@ jobs:
         with:
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true

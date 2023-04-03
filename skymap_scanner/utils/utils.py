@@ -13,15 +13,6 @@ from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
 from . import LOGGER
 
 
-def pow_of_two(value: Any) -> int:
-    """Return int-cast of `value` if it is an integer power of two (2^n)."""
-    intval = int(value)  # -> ValueError
-    # I know, I know, no one likes bit shifting... buuuut...
-    if (intval != 0) and (intval & (intval - 1) == 0):
-        return intval
-    raise ValueError(f"Not a power of two (2^n) {value}")
-
-
 def pyobj_to_string_repr(obj: Any) -> str:
     """Get the string repr of obj, an indented JSON if possible."""
     try:
@@ -124,17 +115,3 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
     dec = float(dec)
 
     return (ra, dec)
-
-
-# fmt: on
-def estimated_total_recos(nsides: List[Tuple[int, int]], n_posvar: int) -> int:
-    """This is an ESTIMATE (w/ predictive scanning it's a LOWER bound)."""
-
-    def prev(n: Tuple[int, int]) -> int:
-        idx = nsides.index(n)
-        if idx == 0:
-            return 1
-        return nsides[idx - 1][0]
-
-    total = n_posvar * sum(N[1] * (N[0] / prev(N)) ** 2 for N in nsides)
-    return int(total)
