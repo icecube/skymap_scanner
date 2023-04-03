@@ -500,7 +500,7 @@ class Reporter:
                 pass
 
         return {
-            "nsides in flight": by_nside,
+            "nsides": by_nside,
             # total completed pixels
             "total pixels": sum(v["done"] for v in by_nside.values()),
             "total recos": self.worker_stats_collection.total_ct,
