@@ -14,6 +14,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     gulliver,
     gulliver_modules,
     icetray,
+    lilliput,
     spline_reco,
     photonics_service,
     recclasses,
