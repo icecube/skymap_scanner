@@ -500,15 +500,15 @@ class Reporter:
                 pass
 
         return {
-            "by_nside": by_nside,
+            "nsides in flight": by_nside,
             # total completed pixels
-            "total_pixels": sum(v["done"] for v in by_nside.values()),
-            "total_recos": self.worker_stats_collection.total_ct,
-            "est. percent": (
+            "total pixels": sum(v["done"] for v in by_nside.values()),
+            "total recos": self.worker_stats_collection.total_ct,
+            "est. scan percent": (
                 f"{self.worker_stats_collection.total_ct}/{predicted_total} "
                 f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
             ),
-            "est. timeline": timeline,
+            "est. scan timeline": timeline,
         }
 
     async def after_computing_report(self) -> SkyScanResult:
