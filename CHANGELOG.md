@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v3.7.0 (2023-04-03)
+
+
 ## v3.6.1 (2023-04-03)
 ### Other
 * <bot> update requirements.txt ([`1566a44`](https://github.com/icecube/skymap_scanner/commit/1566a448c98121efbed7dfb3cb68a08293ce99d1))
