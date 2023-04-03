@@ -95,6 +95,10 @@ class Splinempe(RecoInterface):
     @staticmethod
     def get_energy_dependent_MPE(config="max"):
         return True if config == "max" else False
+    
+    @staticmethod
+    def get_simplex_max_iterations():
+        return 100
 
     @staticmethod
     def get_steps():
@@ -160,7 +164,7 @@ class Splinempe(RecoInterface):
             name="scipy_simplex_f",
             method="Nelder-Mead",
             tolerance=0.1,  # this was parameterized in the original code
-            max_iterations=max_iter,
+            max_iterations=Splinempe.get_simplex_max_iterations(),
         )
 
         # iminuit can be disabled if not necessary
