@@ -77,7 +77,7 @@ class Splinempe(RecoInterface):
         return "OnlineL2_CleanedMuonPulses"
 
     @staticmethod
-    def get_postjitter(self, config="max"):
+    def get_postjitter(config="max"):
         return 2 if config == "max" else 0
 
     @staticmethod
