@@ -100,9 +100,9 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
     
     # Generates the vertex seed for the initial scan. 
-    # It is only run if HESE_VHESelfVeto is not present in the frame.
+    # Only run if HESE_VHESelfVeto is not present in the frame.
     # VertexThreshold is 250 in the original HESE analysis (Tianlu)
-    # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already.
+    # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
     if reco_algo.lower() == 'millipede_original':
         # TODO: documentation for this conditional statement
         tray.AddModule('VHESelfVeto', 'selfveto',
@@ -130,6 +130,8 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
+    # If the event has a GCD diff (compressed GCD), only keep the diffs.
+    # The GCD will be reassembled from baseline + diff by the client.
     if baseline_GCD is not None:
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
