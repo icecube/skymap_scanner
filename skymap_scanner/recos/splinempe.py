@@ -220,7 +220,7 @@ class Splinempe(RecoInterface):
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel_id=frame[cfg.I3FRAME_PIXEL].value,
-            llh=frame["splinempe-reco_splinempe-llh"].logl,
+            llh=frame["splinempe-reco" + "FitParams"].logl,  # FitParams is hardcoded
             reco_losses_inside=np.NaN,
             reco_losses_total=np.NaN,
             posvar_id=frame[cfg.I3FRAME_POSVAR].value,
