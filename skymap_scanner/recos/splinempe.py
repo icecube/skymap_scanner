@@ -129,7 +129,7 @@ class Splinempe(RecoInterface):
 
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
 
-        tray.Add(
+        tray.AddService(
             "I3SplineRecoLikelihoodFactory",
             "splinempe-llh",
             PhotonicsService=bare_mu_spline,
