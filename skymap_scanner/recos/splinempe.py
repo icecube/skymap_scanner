@@ -197,11 +197,11 @@ class SplineMPE(RecoInterface):
     def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
-            pixel=frame[cfg.I3FRAME_PIXEL].value,
+            pixel_id=frame[cfg.I3FRAME_PIXEL].value,
             llh=frame["splinempe-reco"].value,
             reco_losses_inside=np.NaN,
             reco_losses_total=np.NaN,
-            pos_var_index=frame[cfg.I3FRAME_POSVAR].value,
+            posvar_id=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["splinempe-reco"].pos,
             time=frame["splinempe-reco"].time,
             energy=frame["splinempe-reco"].energy,
