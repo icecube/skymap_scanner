@@ -119,6 +119,7 @@ class Splinempe(RecoInterface):
             BoundsAzimuth=None,
             StepT=1.0 * I3Units.ns,
             BoundsT=500 * I3Units.ns,
+            VertexMode="Default"
         )
 
         return steps
