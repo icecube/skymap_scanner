@@ -39,7 +39,8 @@ Env variables
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_ADDRESS=<ip address>
 export SKYSCAN_BROKER_AUTH=<token>
-export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900
+export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
+export EWMS_PILOT_SUBPROC_TIMEOUT=1200
 ```
 
 Python install:
