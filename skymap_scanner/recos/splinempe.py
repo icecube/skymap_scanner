@@ -23,11 +23,12 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 
 from icecube.icetray import I3Frame  # type: ignore[import]
 
-from icecube.lilliput import scipymin, i3minuit # type: ignore[import]
+from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
+
 
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
@@ -44,11 +45,13 @@ class Splinempe(RecoInterface):
         return 2 if config == "max" else 4
 
     @staticmethod
-    def get_splines() -> tuple[
-        photonics_service.I3PhotoSplineService,
-        photonics_service.I3PhotoSplineService,
-        photonics_service.I3PhotoSplineService,
-    ]:
+    def get_splines() -> (
+        tuple[
+            photonics_service.I3PhotoSplineService,
+            photonics_service.I3PhotoSplineService,
+            photonics_service.I3PhotoSplineService,
+        ]
+    ):
         bare_mu_spline = photonics_service.I3PhotoSplineService(
             Splinempe.BareMuAmplitudeSpline,
             Splinempe.BareMuTimingSpline,
@@ -60,7 +63,9 @@ class Splinempe(RecoInterface):
             timingSigma=Splinempe.get_prejitter(),
         )
         noise_spline = photonics_service.I3PhotoSplineService(
-            Splinempe.BareMuAmplitudeSpline, Splinempe.BareMuTimingSpline, timingSigma=1000
+            Splinempe.BareMuAmplitudeSpline,
+            Splinempe.BareMuTimingSpline,
+            timingSigma=1000,
         )
         return bare_mu_spline, stoch_spline, noise_spline
 
@@ -95,7 +100,7 @@ class Splinempe(RecoInterface):
     @staticmethod
     def get_energy_dependent_MPE(config="max"):
         return True if config == "max" else False
-    
+
     @staticmethod
     def get_simplex_max_iterations():
         return 100
@@ -117,10 +122,10 @@ class Splinempe(RecoInterface):
             BoundsZ=vertex_bounds,
             StepZenith=0.1 * I3Units.radian,
             StepAzimuth=0.2 * I3Units.radian,
-            BoundsZenith=None,
-            BoundsAzimuth=None,
+            BoundsZenith=[0.0, 0.0],
+            BoundsAzimuth=[0.0, 0.0],
             StepT=1.0 * I3Units.ns,
-            BoundsT=time_bounds
+            BoundsT=time_bounds,
         )
 
         return steps
