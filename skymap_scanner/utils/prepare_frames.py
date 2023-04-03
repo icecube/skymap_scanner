@@ -92,6 +92,8 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
                  base_filename=base_GCD_filename)
 
     if pulsesName != nominalPulsesName:
+        # The purpose of this seems to copy over pulsesName to nominalPulsesName whenever pulsesName is different.
+        # This could be bad practice, as it destroys provenance for the data in nominalPulsesName.
         def copyPulseName(frame, old_name, new_name):
             mask = dataclasses.I3RecoPulseSeriesMapMask(frame, old_name)
             if new_name in frame:
@@ -99,6 +101,7 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
                 del frame[new_name]
             frame[new_name] = mask
             frame[new_name+"TimeRange"] = copy.deepcopy(frame[old_name+"TimeRange"])
+
         tray.AddModule(copyPulseName, "copyPulseName",
             old_name=pulsesName,
             new_name=nominalPulsesName)
@@ -137,6 +140,8 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
     if baseline_GCD is not None:
+        # The input event carries a compressed GCD.
+        # Only the GCD diff is propagated, the full GCD will be rebuilt downstream.
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
             for key in list(frame.keys()):
