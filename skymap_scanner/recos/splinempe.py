@@ -35,7 +35,8 @@ class Splinempe(RecoInterface):
     StochTimingSpline = spline_path / "InfHighEStoch_mie_prob_z20a10.fits"
     StochAmplitudeSpline = spline_path / "InfHighEStoch_mie_abs_z20a10.fits"
 
-    def get_prejitter(self, config="max") -> int:
+    @staticmethod
+    def get_prejitter(config="max") -> int:
         return 2 if config == "max" else 4
 
     @staticmethod
