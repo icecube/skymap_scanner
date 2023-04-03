@@ -65,7 +65,7 @@ class FrameArraySink(icetray.I3Module):
         
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD, reco_algo):
+def prepare_frames(frame_array, baseline_GCD : str, reco_algo : str, pulsesName : str):
     from icecube import (
         DomTools,
         VHESelfVeto,
@@ -76,8 +76,6 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
         recclasses,
         simclasses,
     )
-    
-    nominalPulsesName = "SplitUncleanedInIcePulses"
     
     output_frames = []
     
@@ -94,10 +92,10 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
-        Input=nominalPulsesName,
-        OutputHLC=nominalPulsesName+'HLC',
-        OutputSLC=nominalPulsesName+'SLC',
-        If=lambda frame: nominalPulsesName+'HLC' not in frame)
+        Input=pulsesName,
+        OutputHLC=pulsesName+'HLC',
+        OutputSLC=pulsesName+'SLC',
+        If=lambda frame: pulsesName+'HLC' not in frame)
     
     # Generates the vertex seed for the initial scan. 
     # Only run if HESE_VHESelfVeto is not present in the frame.
@@ -107,7 +105,7 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
         # TODO: documentation for this conditional statement
         tray.AddModule('VHESelfVeto', 'selfveto',
                        VertexThreshold=2,
-                       Pulses=nominalPulsesName+'HLC',
+                       Pulses=pulsesName+'HLC',
                        OutputBool='HESE_VHESelfVeto',
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -115,7 +113,7 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
     else:
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
-            Pulses=nominalPulsesName+'HLC',
+            Pulses=pulsesName+'HLC',
             OutputBool='HESE_VHESelfVeto',
             OutputVertexTime=cfg.INPUT_TIME_NAME,
             OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -124,7 +122,7 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo):
         # this only runs if the previous module did not return anything
         tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
                        VertexThreshold=5,
-                       Pulses=nominalPulsesName+'HLC',
+                       Pulses=pulsesName+'HLC',
                        OutputBool='VHESelfVeto_meaningless_lowen',
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
