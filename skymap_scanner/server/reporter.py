@@ -153,7 +153,10 @@ class WorkerStatsCollection:
 
     def ct_by_nside(self, nside: int) -> int:
         """Get length per given nside."""
-        return len(self._worker_stats_by_nside[nside].worker_runtimes)
+        try:
+            return len(self._worker_stats_by_nside[nside].worker_runtimes)
+        except KeyError:
+            return 0
 
     @property
     def total_ct(self) -> int:
