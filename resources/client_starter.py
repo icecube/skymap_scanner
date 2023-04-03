@@ -71,9 +71,9 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
 
     # Build the environment specification for condor
     vars = []
-    # RABBITMQ_* and EWMS_* are inherited via condor `getenv`, but we have default in case these are not set.
-    if not os.getenv("RABBITMQ_HEARTBEAT"):
-        vars.append("RABBITMQ_HEARTBEAT=600")
+    # EWMS_* are inherited via condor `getenv`, but we have default in case these are not set.
+    if not os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
+        vars.append("EWMS_PILOT_SUBPROC_TIMEOUT=1200")
     if not os.getenv("EWMS_PILOT_QUARANTINE_TIME"):
         vars.append("EWMS_PILOT_QUARANTINE_TIME=1800")
     # The container sets I3_DATA to /opt/i3-data, however `millipede_wilks` requires files (spline tables) that are not available in the image. For the time being we require CVFMS and we load I3_DATA from there. In order to override the environment variables we need to prepend APPTAINERENV_ or SINGULARITYENV_ to the variable name. There are site-dependent behaviour but these two should cover all cases. See https://github.com/icecube/skymap_scanner/issues/135#issuecomment-1449063054.
@@ -87,7 +87,7 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "arguments": f"/usr/local/icetray/env-shell.sh python -m skymap_scanner.client {client_args} --client-startup-json ./{client_startup_json.name}",
         "+SingularityImage": singularity_image,
         "Requirements": "HAS_CVMFS_icecube_opensciencegrid_org && has_avx",
-        "getenv": "SKYSCAN_*, EWMS_*, RABBITMQ_*, PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC",
+        "getenv": "SKYSCAN_*, EWMS_*",
         "output": str(logs_subdir / "client-$(ProcId).out"),
         "environment": f'"{environment}"',
         "error": str(logs_subdir / "client-$(ProcId).err"),
