@@ -30,10 +30,10 @@ class Splinempe(RecoInterface):
 
     spline_path = Path(os.path.expandvars("$I3_DATA")) / "photon-tables/splines"
 
-    BareMuTimingSpline = spline_path / "InfBareMu_mie_prob_z20a10_V2.fits"
-    BareMuAmplitudeSpline = spline_path / "InfBareMu_mie_abs_z20a10_V2.fits"
-    StochTimingSpline = spline_path / "InfHighEStoch_mie_prob_z20a10.fits"
-    StochAmplitudeSpline = spline_path / "InfHighEStoch_mie_abs_z20a10.fits"
+    BareMuTimingSpline = str(spline_path / "InfBareMu_mie_prob_z20a10_V2.fits")
+    BareMuAmplitudeSpline = str(spline_path / "InfBareMu_mie_abs_z20a10_V2.fits")
+    StochTimingSpline = str(spline_path / "InfHighEStoch_mie_prob_z20a10.fits")
+    StochAmplitudeSpline = str(spline_path / "InfHighEStoch_mie_abs_z20a10.fits")
 
     @staticmethod
     def get_prejitter(config="max") -> int:
