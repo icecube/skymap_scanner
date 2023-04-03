@@ -81,9 +81,12 @@ class Splinempe(RecoInterface):
     def get_pulses_name():
         # for reference, Millipede uses:
         ## pulsesName_orig = "SplitUncleanedInIcePulses"
-        ## pulsesName = "SplitUncleanedInIcePulsesIC"
+        pulsesName = "SplitUncleanedInIcePulsesIC"
         ## pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-        return "OnlineL2_CleanedMuonPulses"
+
+        # splineMPE is supposed to use:
+        # pulsesName = "OnlineL2_CleanedMuonPulses"
+        return pulsesName
 
     @staticmethod
     def get_postjitter(config="max"):
