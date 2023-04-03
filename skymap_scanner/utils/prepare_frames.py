@@ -103,12 +103,18 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
             old_name=pulsesName,
             new_name=nominalPulsesName)
 
+    # Separates pulses in HLC and SLC to obtain the HLC series.
+    # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
         Input=nominalPulsesName,
         OutputHLC=nominalPulsesName+'HLC',
         OutputSLC=nominalPulsesName+'SLC',
         If=lambda frame: nominalPulsesName+'HLC' not in frame)
-
+    
+    # Generates the vertex seed for the initial scan. 
+    # It is only run if HESE_VHESelfVeto is not present in the frame.
+    # VertexThreshold is 250 in the original HESE analysis (Tianlu)
+    # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already.
     if reco_algo.lower() == 'millipede_original':
         # TODO: documentation for this conditional statement
         tray.AddModule('VHESelfVeto', 'selfveto',
