@@ -65,7 +65,7 @@ class FrameArraySink(icetray.I3Module):
         
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUncleanedInIcePulses"):
+def prepare_frames(frame_array, baseline_GCD, reco_algo):
     from icecube import (
         DomTools,
         VHESelfVeto,
@@ -90,18 +90,6 @@ def prepare_frames(frame_array, baseline_GCD, reco_algo, pulsesName="SplitUnclea
                  keep_compressed=True,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
-
-    if pulsesName != nominalPulsesName:
-        def copyPulseName(frame, old_name, new_name):
-            mask = dataclasses.I3RecoPulseSeriesMapMask(frame, old_name)
-            if new_name in frame:
-                LOGGER.warning("** WARNING: {0} was already in frame. overwritten".format(new_name))
-                del frame[new_name]
-            frame[new_name] = mask
-            frame[new_name+"TimeRange"] = copy.deepcopy(frame[old_name+"TimeRange"])
-        tray.AddModule(copyPulseName, "copyPulseName",
-            old_name=pulsesName,
-            new_name=nominalPulsesName)
 
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
