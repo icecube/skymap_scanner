@@ -26,7 +26,7 @@ from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
 
-class SplineMPE(RecoInterface):
+class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
 
     spline_path = Path(os.path.expandvars("$I3_DATA")) / "photon-tables/splines"

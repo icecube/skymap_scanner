@@ -46,7 +46,9 @@ def get_all_reco_algos() -> List[str]:
 
 
 def get_reco_interface_object(name: str) -> RecoInterface:
-    """Dynamically import the reco sub-module's class."""
+    """Dynamically import the reco sub-module's class.
+        Implicitly assumes that name `foo_bar` corresponds to class `FooBar`.
+    """
     try:
         module = importlib.import_module(f"{__name__}.{name.lower()}")
         return getattr(module, "".join(x.capitalize() for x in name.split("_")))
