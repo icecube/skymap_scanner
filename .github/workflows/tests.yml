@@ -272,6 +272,7 @@ jobs:
         ]
         reco_algo: [
           millipede_original
+          splinempe
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
@@ -403,7 +404,7 @@ jobs:
             icecube/skymap_scanner:local \
             python /local/pkls/get_toclient_msg_pkl.py \
             --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo millipede_original
+            --reco-algo {{ matrix.reco_algo }}
 
           hexdump -C tests/data/reco_pixel_pkls/${{ matrix.dir }}/in.pkl
 
