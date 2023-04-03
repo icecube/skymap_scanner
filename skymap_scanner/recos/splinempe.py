@@ -25,7 +25,6 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
 
@@ -39,54 +38,61 @@ class Splinempe(RecoInterface):
     def get_prejitter(self, config="max") -> int:
         return 2 if config == "max" else 4
 
-    def get_splines(
-        self,
-    ) -> tuple[
+    @staticmethod
+    def get_splines() -> tuple[
         photonics_service.I3PhotoSplineService,
         photonics_service.I3PhotoSplineService,
         photonics_service.I3PhotoSplineService,
     ]:
         bare_mu_spline = photonics_service.I3PhotoSplineService(
-            self.BareMuAmplitudeSpline,
-            self.BareMuTimingSpline,
-            timingSigma=self.get_prejitter(),
+            Splinempe.BareMuAmplitudeSpline,
+            Splinempe.BareMuTimingSpline,
+            timingSigma=Splinempe.get_prejitter(),
         )
         stoch_spline = photonics_service.I3PhotoSplineService(
-            self.StochAmplitudeSpline,
-            self.StochTimingSpline,
-            timingSigma=self.get_prejitter(),
+            Splinempe.StochAmplitudeSpline,
+            Splinempe.StochTimingSpline,
+            timingSigma=Splinempe.get_prejitter(),
         )
         noise_spline = photonics_service.I3PhotoSplineService(
-            self.BareMuAmplitudeSpline, self.BareMuTimingSpline, timingSigma=1000
+            Splinempe.BareMuAmplitudeSpline, Splinempe.BareMuTimingSpline, timingSigma=1000
         )
         return bare_mu_spline, stoch_spline, noise_spline
 
-    def get_noise_model(self, config="max"):
+    @staticmethod
+    def get_noise_model(config="max"):
         return "SRT" if config == "max" else "none"
 
-    def get_energy_estimators(self):
+    @staticmethod
+    def get_energy_estimators():
         return ["OnlineL2_BestFit_MuEx"]
 
-    def get_pulses_name(self):
+    @staticmethod
+    def get_pulses_name():
         # for reference, Millipede uses:
         ## pulsesName_orig = "SplitUncleanedInIcePulses"
         ## pulsesName = "SplitUncleanedInIcePulsesIC"
         ## pulsesName_cleaned = pulsesName+'LatePulseCleaned'
         return "OnlineL2_CleanedMuonPulses"
 
+    @staticmethod
     def get_postjitter(self, config="max"):
         return 2 if config == "max" else 0
 
-    def get_KS_confidence_level(self, do_KS=False):
+    @staticmethod
+    def get_KS_confidence_level(do_KS=False):
         return 5 if do_KS else 0
 
-    def get_energy_dependent_jitter(self, config="max"):
+    @staticmethod
+    def get_energy_dependent_jitter(config="max"):
         return True if config == "max" else False
 
-    def get_energy_dependent_MPE(self, config="max"):
+    @staticmethod
+    def get_energy_dependent_MPE(config="max"):
         return True if config == "max" else False
 
-    def get_steps(self):
+    @staticmethod
+    def get_steps():
         vertex_step = 20 * I3Units.m
         vertex_bound = 2000 * I3Units.m
         vertex_bounds = [-vertex_bound, +vertex_bound]
@@ -120,7 +126,7 @@ class Splinempe(RecoInterface):
 
         tray.Add(notify0, "notify0")
 
-        bare_mu_spline, stoch_spline, noise_spline = self.get_splines()
+        bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
 
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
@@ -129,18 +135,18 @@ class Splinempe(RecoInterface):
             PhotonicsServiceStochastics=stoch_spline,
             PhotonicsServiceRandomNoise=noise_spline,
             ModelStochastics=False,
-            NoiseModel=self.get_noise_model(),
-            Pulses=self.get_pulses_name(),
-            E_Estimators=self.get_energy_estimators(),
+            NoiseModel=Splinempe.get_noise_model(),
+            Pulses=Splinempe.get_pulses_name(),
+            E_Estimators=Splinempe.get_energy_estimators(),
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
-            PostJitter=self.get_postjitter(),
-            KSConfidenceLevel=self.get_KS_confidence_level(),
+            PostJitter=Splinempe.get_postjitter(),
+            KSConfidenceLevel=Splinempe.get_KS_confidence_level(),
             ChargeCalcStep=0,
             CutMode="late",
-            EnergyDependentJitter=self.get_energy_dependent_jitter(),
-            EnergyDependentMPE=self.get_energy_dependent_MPE(),
+            EnergyDependentJitter=Splinempe.get_energy_dependent_jitter(),
+            EnergyDependentMPE=Splinempe.get_energy_dependent_MPE(),
         )
 
         # simplex should be the default
@@ -161,7 +167,7 @@ class Splinempe(RecoInterface):
             MinuitPrintLevel=0,
         )
 
-        steps = self.get_steps()
+        steps = Splinempe.get_steps()
 
         tray.Add(
             "I3SimpleParametrizationFactory",
