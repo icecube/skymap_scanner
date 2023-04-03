@@ -271,7 +271,7 @@ jobs:
           run00136662-evt000035405932-BRONZE.pkl
         ]
         reco_algo: [
-          millipede_original
+          millipede_original,
           splinempe
         ]
     env:
