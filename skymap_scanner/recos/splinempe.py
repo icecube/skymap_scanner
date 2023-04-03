@@ -14,13 +14,16 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     gulliver,
     gulliver_modules,
     icetray,
-    lilliput,
+#    lilliput,
     spline_reco,
     photonics_service,
     recclasses,
     simclasses,
 )
+
 from icecube.icetray import I3Frame  # type: ignore[import]
+
+from icecube.lilliput import scipymin, i3minuit
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
@@ -153,7 +156,7 @@ class Splinempe(RecoInterface):
 
         # simplex should be the default
         # note that IMinuitMinimizer also provides a simplex algorithm
-        tray.context["simplex"] = lilliput.scipymin.SciPyMinimizer(
+        tray.context["simplex"] = i3minuit.SciPyMinimizer(
             name="scipy_simplex_f",
             method="Nelder-Mead",
             tolerance=0.1,  # this was parameterized in the original code
@@ -161,7 +164,7 @@ class Splinempe(RecoInterface):
         )
 
         # iminuit can be disabled if not necessary
-        tray.context["iminuit"] = lilliput.i3minuit.IMinuitMinimizer(
+        tray.context["iminuit"] = scipymin.IMinuitMinimizer(
             name="iminuit",
             Tolerance=10,
             MaxIterations=1000,
