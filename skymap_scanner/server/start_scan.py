@@ -215,8 +215,8 @@ class PixelsToReco:
     ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd for a given `nside` and `pixel`."""
 
-        dec, ra = healpy.pix2ang(nside, pixel)
-        dec = dec - numpy.pi/2.
+        codec, ra = healpy.pix2ang(nside, pixel)
+        dec = numpy.pi/2 - codec
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_metadata.mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)

@@ -89,9 +89,6 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
         lons = np.arange(-150, 181, 30)
         lats = np.arange(-90, 91, 30)
 
-    # actual text at those coordinates
-    llats = -lats
-
     # white outline around text
     pe = [path_effects.Stroke(linewidth=1.5, foreground='white'),
           path_effects.Normal()]
@@ -124,7 +121,7 @@ def plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec,
     fdec_i = np.array(fgl.data['DEJ2000'])*np.pi/180.
     fgl_mask = np.logical_and(np.logical_and(fra_i > lower_ra, fra_i < upper_ra), np.logical_and(fdec_i > lower_dec, fdec_i < upper_dec))
     flon_i = fra_i
-    flat_i = -fdec_i
+    flat_i = fdec_i
 
     def color_filter(lon, lat):
         vals = healpy.get_interp_val(master_map, lon, lat, lonlat=True)
