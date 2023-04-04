@@ -22,8 +22,9 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 )
 
 from icecube.icetray import I3Frame  # type: ignore[import]
-
 from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
+from icecube.phys_services.which_split import which_split  # type: ignore[import]
+from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTConfigurationService  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
@@ -76,17 +77,6 @@ class Splinempe(RecoInterface):
     @staticmethod
     def get_energy_estimators():
         return ["OnlineL2_BestFit_MuEx"]
-
-    @staticmethod
-    def get_pulses_name():
-        # for reference, Millipede uses:
-        ## pulsesName_orig = "SplitUncleanedInIcePulses"
-        ## pulsesName = "SplitUncleanedInIcePulsesIC"
-        ## pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-        pulsesName = "SplitUncleanedInIcePulses"
-        # splineMPE is supposed to use:
-        # pulsesName = "OnlineL2_CleanedMuonPulses"
-        return pulsesName
 
     @staticmethod
     def get_postjitter(config="max"):
@@ -145,8 +135,46 @@ class Splinempe(RecoInterface):
 
         tray.Add(notify0, "notify0")
 
-        bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
+        base_pulseseries = "SplitUncleanedInIcePulses"
+        # PULSE CLEANING: from "SplitUncleanedInIcePulses" to "OnlineL2_CleanedMuonPulses".
 
+        # from icetray/filterscripts/python/all_filters.py
+        # RT = Radius and Time
+        seededRTConfig = I3DOMLinkSeededRTConfigurationService(
+            ic_ic_RTRadius=150.0 * I3Units.m,
+            ic_ic_RTTime=1000.0 * I3Units.ns,
+            treat_string_36_as_deepcore=False,
+            useDustlayerCorrection=False,
+            allowSelfCoincidence=True,
+        )
+
+        # from icetray/filterscripts/python/baseproc.py
+        rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
+        tray.AddModule(
+            "I3SeededRTCleaning_RecoPulseMask_Module",
+            "BaseProc_RTCleaning",
+            InputHitSeriesMapName=base_pulseseries,
+            OutputHitSeriesMapName=rt_cleaned_pulseseries,
+            STConfigService=seededRTConfig,
+            SeedProcedure="HLCCoreHits",
+            NHitsThreshold=2,
+            MaxNIterations=3,
+            Streams=[icetray.I3Frame.Physics],
+            If=which_split(split_name="InIceSplit"),
+        )
+
+        # from icetray/filterscripts/python/baseproc.py
+        cleaned_muon_pulseseries = "CleanedMuonPulses"
+        tray.AddModule(
+            "I3TimeWindowCleaning<I3RecoPulse>",
+            "BaseProc_TimeWindowCleaning",
+            InputResponse=rt_cleaned_pulseseries,
+            OutputResponse=cleaned_muon_pulseseries,
+            TimeWindow=6000 * I3Units.ns,
+            If=which_split(split_name="InIceSplit"),
+        )
+
+        bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
             "splinempe-llh",
@@ -155,7 +183,7 @@ class Splinempe(RecoInterface):
             PhotonicsServiceRandomNoise=noise_spline,
             ModelStochastics=False,
             NoiseModel=Splinempe.get_noise_model(),
-            Pulses=Splinempe.get_pulses_name(),
+            Pulses=cleaned_muon_pulseseries,
             E_Estimators=Splinempe.get_energy_estimators(),
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
