@@ -433,7 +433,7 @@ class SkyScanResult:
                            for k in self.result],
                          dtype=metadata_dtype)
             np.savez(filename, header=h, **self.result)
-        except TypeError:
+        except (TypeError, AttributeError):
             np.savez(filename, **self.result)
         return Path(filename)
 
@@ -845,6 +845,7 @@ class SkyScanResult:
                            systematics=False,
                            plot_bounding_box=False,
                            plot_4fgl=False,
+                           plot_original_contours=False,
                            final_channels=None):
         """Uses healpy to plot a map."""
         from .plotting_tools import format_fits_header, hp_ticklabels, plot_catalog
@@ -1063,6 +1064,22 @@ class SkyScanResult:
                 else:
                     healpy.projplot(theta, phi, linewidth=2, c=contour_color)
                 first = False
+        if plot_original_contours:
+            try:
+                cdir='/data/ana/realtime/alert_catalog_v2/contours/'
+                for lev, style in zip([50,90], ['-', '--']): 
+                    ogc = np.loadtxt(
+                        f'{cdir}run{event_metadata.run_id:08}.evt{event_metadata.event_id:012}.contour_{lev}.txt',
+                        skiprows=1)
+                    _ra, _dec = ogc.T
+                    healpy.projplot(_dec+np.pi/2, _ra, linewidth=1, c='white', linestyle=style, label=f'Original {lev}%')
+                    if lev==90:
+                        _ = np.asarray([_dec+np.pi/2, _ra]).T
+                        _[:,1] += np.pi-np.radians(ra)
+                        _[:,1] %= 2*np.pi
+                        print('AREA:', contour_areas[1], abs(area(_))*(180**2/np.pi**2), self.best_fit['E_in'])
+            except FileNotFoundError as e:
+                print(e, 'not found')
 
         # Add some grid lines
         healpy.graticule(dpar=2, dmer=2, force=True)
