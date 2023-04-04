@@ -117,5 +117,5 @@ wipac-dev-tools[coloredlogs]==1.6.14
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.16
+wipac-rest-tools==1.4.17
     # via skymap-scanner (setup.py)
