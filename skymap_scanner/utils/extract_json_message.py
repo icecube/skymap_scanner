@@ -102,9 +102,9 @@ def __extract_frame_packet(
     frame_packet,
     reco_algo: str,
     is_real_event: bool,
+    pulsesName,
     cache_dir="./cache/",
     GCD_dir : str = str(cfg.DEFAULT_GCD_DIR),
-    pulsesName,
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
