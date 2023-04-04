@@ -11,12 +11,12 @@ FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
 #        http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_abs_z20a10_V2.fits
 #RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_prob_z20a10_V2.fits \
 #        http://prod-exe.icecube.wisc.edu/spline-tables/InfBareMu_mie_prob_z20a10_V2.fits
-#RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_single_spice_bfr-v2_flat_z20_a5.abs.fits \
-#        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_single_spice_bfr-v2_flat_z20_a5.abs.fits
-#RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_single_spice_bfr-v2_flat_z20_a5.prob.fits \
-#        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_single_spice_bfr-v2_flat_z20_a5.prob.fits
-#RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits \
-#        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_effectivedistance_spice_bfr-v2_z20.eff.fits
+#RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits \
+#        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits
+#RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits \
+#        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits
+#RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_effectivedistance_spice_ftp-v1_z20.eff.fits \
+#        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_effectivedistance_spice_ftp-v1_z20.eff.fits
 
 
 #

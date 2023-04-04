@@ -22,10 +22,10 @@ Env variables
 export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
 export SKYSCAN_BROKER_AUTH=<token>
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
-export RABBITMQ_HEARTBEAT=600
+export EWMS_PILOT_SUBPROC_TIMEOUT=1200
 ```
 
-Currently, RabbitMQ uses URL parameters for the hostname, virtual host, and port (`[https://]HOST[:PORT][/VIRTUAL_HOST]`). The heartbeat is configured by `RABBITMQ_HEARTBEAT`. This may change in future updates.
+Currently, RabbitMQ uses URL parameters for the hostname, virtual host, and port (`[https://]HOST[:PORT][/VIRTUAL_HOST]`). The heartbeat is configured by `EWMS_PILOT_SUBPROC_TIMEOUT`. This may change in future updates.
 
 Python install:
 ```
@@ -39,7 +39,8 @@ Env variables
 export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_ADDRESS=<ip address>
 export SKYSCAN_BROKER_AUTH=<token>
-export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900
+export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
+export EWMS_PILOT_SUBPROC_TIMEOUT=1200
 ```
 
 Python install:
@@ -62,7 +63,7 @@ The server can be launched from anywhere with a stable network connection. You c
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 # export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
+export EWMS_PILOT_SUBPROC_TIMEOUT=1200
 ```
 ###### Command-Line Arguments
 ```
@@ -93,7 +94,7 @@ _NOTE: By default the launch script will pull, build, and run the latest image f
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
 export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
-export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
+export EWMS_PILOT_SUBPROC_TIMEOUT=1200
 ```
 
 #### 2. Launch Each Client
@@ -106,7 +107,7 @@ export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 # export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
-export RABBITMQ_HEARTBEAT=600  # replace with PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=900 for pulsar
+export EWMS_PILOT_SUBPROC_TIMEOUT=1200
 ```
 ###### Command-Line Arguments
 _See notes about `--client-startup-json` below. See `client.py` for additional optional args._
@@ -170,7 +171,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --client-startup-json ./client-startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS RABBITMQ_HEARTBEAT=600 EWMS_PILOT_QUARANTINE_TIME=1200"
+environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS EWMS_PILOT_SUBPROC_TIMEOUT=1200 EWMS_PILOT_QUARANTINE_TIME=1200"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
@@ -192,7 +193,7 @@ The extra envs for `I3_DATA` are to ensure it gets passed through for use inside
 
 ### Additional Configuration
 #### Environment Variables
-When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-, `PULSAR_`- and, `RABBITMQ_`-prefixed variables are also forwarded. See `skymap_scanner.config.ENV` for more detail.
+When the server and client(s) are launched within Docker containers, all environment variables must start with `SKYSCAN_` in order to be auto-copied forward by the [launch scripts](#how-to-run). `EWMS_`-prefixed variables are also forwarded. See `skymap_scanner.config.ENV` for more detail.
 ##### Timeouts
 The Skymap Scanner is designed to have realistic timeouts for HTCondor. That said, there are three main timeouts which can be altered:
 ```
@@ -213,7 +214,7 @@ The Skymap Scanner is designed to have realistic timeouts for HTCondor. That sai
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 ```
-Relatedly, the environment variable `RABBITMQ_HEARTBEAT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [1. Launch the Server](#1-launch-the-server) and [2. Launch Each Client](#2-launch-each-client)).
+Relatedly, the environment variable `EWMS_PILOT_SUBPROC_TIMEOUT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [1. Launch the Server](#1-launch-the-server) and [2. Launch Each Client](#2-launch-each-client)).
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.

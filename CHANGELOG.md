@@ -2,6 +2,20 @@
 
 <!--next-version-placeholder-->
 
+## v3.7.0 (2023-04-03)
+
+
+## v3.6.1 (2023-04-03)
+### Other
+* <bot> update requirements.txt ([`1566a44`](https://github.com/icecube/skymap_scanner/commit/1566a448c98121efbed7dfb3cb68a08293ce99d1))
+* <bot> update requirements-rabbitmq.txt ([`cda5e97`](https://github.com/icecube/skymap_scanner/commit/cda5e97fee992196fb1f61c3d5d1931f6b2fea7b))
+* <bot> update requirements-pulsar.txt ([`f8773a8`](https://github.com/icecube/skymap_scanner/commit/f8773a83296026dc01bce55460c29b9268c32cea))
+* <bot> update requirements-nats.txt ([`14340ad`](https://github.com/icecube/skymap_scanner/commit/14340ad86b6d39dc42d7f0c4040ca8118e100d26))
+* <bot> update requirements-gcp.txt ([`b97255e`](https://github.com/icecube/skymap_scanner/commit/b97255ecb2d1f6c072123120108af073a82ee37e))
+* <bot> update requirements-client-starter.txt ([`0477af1`](https://github.com/icecube/skymap_scanner/commit/0477af11bf1c917676568150cf1b5ba5b7a71b64))
+* <bot> update requirements-all.txt ([`549fddb`](https://github.com/icecube/skymap_scanner/commit/549fddbc1e30218357d718ea8124b801fb4949f7))
+* Substitute bfr-v2 to ftp-v1 in Dockerfiles and other scripts ([#167](https://github.com/icecube/skymap_scanner/issues/167)) ([`bd9ec16`](https://github.com/icecube/skymap_scanner/commit/bd9ec160378ea435d9b569d087095fc17e40e223))
+
 ## v3.6.0 (2023-04-01)
 ### Other
 * Update job names ([#165](https://github.com/icecube/skymap_scanner/issues/165)) ([`41c814b`](https://github.com/icecube/skymap_scanner/commit/41c814bd2e54dabc7ddc79a0725782cba510b163))
