@@ -80,7 +80,6 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
 
         lons = np.array(lon_set)
         lats = np.array(lat_set)
-        lat_offset = rot[1]+latra[1] + 0.05*(latra[1]-latra[0])
     else:
         lon_offset = -180
         lat_offset = 0
