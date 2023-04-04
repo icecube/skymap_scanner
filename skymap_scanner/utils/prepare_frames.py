@@ -12,6 +12,8 @@ import numpy
 from I3Tray import I3Tray, I3Units  # type: ignore[import]
 from icecube import icetray  # type: ignore[import]
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+from typing import Union
+
 
 from .. import config as cfg
 from . import LOGGER
@@ -65,7 +67,7 @@ class FrameArraySink(icetray.I3Module):
         
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD : str, reco_algo : str, pulsesName : str):
+def prepare_frames(frame_array, baseline_GCD : Union[None, str], reco_algo : str, pulsesName : str) -> list[icetray.I3Frame]:
     from icecube import (
         DomTools,
         VHESelfVeto,
