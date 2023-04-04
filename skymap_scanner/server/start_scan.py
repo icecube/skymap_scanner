@@ -230,7 +230,7 @@ class PixelsToReco:
             coarser_nside = nside
             while True:
                 coarser_nside = coarser_nside/2
-                coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
+                coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
 
                 if coarser_nside < self.min_nside:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
