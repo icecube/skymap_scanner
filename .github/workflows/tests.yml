@@ -227,7 +227,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins  # 30 mins
+          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./resources/launch_scripts/docker/launch_client.sh \
               --client-startup-json ./startup.json \
