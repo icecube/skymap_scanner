@@ -18,8 +18,8 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  # note: auth env vars are in job(s)
-  EWMS_PILOT_SUBPROC_TIMEOUT: 600
+  # auth env vars in job
+  RABBITMQ_HEARTBEAT: 600
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -129,7 +129,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
@@ -227,7 +227,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./resources/launch_scripts/docker/launch_client.sh \
               --client-startup-json ./startup.json \
@@ -271,7 +271,8 @@ jobs:
           run00136662-evt000035405932-BRONZE.pkl
         ]
         reco_algo: [
-          millipede_original
+          millipede_original,
+          splinempe
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
@@ -330,7 +331,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
+          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./resources/launch_scripts/docker/launch_client.sh \
               --client-startup-json ./startup.json \
@@ -352,7 +353,7 @@ jobs:
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
-            --expected $(echo tests/data/results_npz/$(basename $outfile) | sed 's/.json/.npz/g') \
+            --expected $(echo tests/data/results_npz/${{ matrix.reco_algo }}/$(basename $outfile) | sed 's/.json/.npz/g') \
             --disqualify-zero-energy-pixels \
             --assert \
             || (cat $(ls *.diff.json) && false)
@@ -372,6 +373,12 @@ jobs:
           "GOLD",
           "JSON",
         ]
+        reco_algo:
+            [
+              "millipede_original",
+              # "millipede_wilks"
+              # "splinempe"
+            ]
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -387,54 +394,54 @@ jobs:
         run: |
           # grab the GCDQp_packet key and throw into a file
           jq '.GCDQp_packet' \
-            tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json > \
-            tests/data/reco_pixel_pkls/${{ matrix.dir }}//GCDQp_packet.json
+            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
+            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
 
           # move python file to subdir to make bindings simpler
           cp tests/data/reco_pixel_pkls/get_toclient_msg_pkl.py \
-            tests/data/reco_pixel_pkls/${{ matrix.dir }}
+            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # create the in.pkl
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python /local/pkls/get_toclient_msg_pkl.py \
             --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo millipede_original
+            --reco-algo ${{ matrix.reco_algo }}
 
-          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.dir }}/in.pkl
+          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.pkl
 
           # run
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
             --in-pkl /local/pkls/in.pkl \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
-            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.dir }}/startup.json) \
+            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl
 
       - name: test output against known result (.pkl)
         run: |
-          ls tests/data/reco_pixel_pkls/${{ matrix.dir }}
+          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # need icecube for depickling, so docker container needed
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python tests/compare_reco_pixel_pkl.py \
             --actual /local/pkls/out.pkl \
-            --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.out.pkl)) \
+            --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.out.pkl)) \
             --diff-out-dir /local/pkls/ \
             --disqualify-zero-energy-pixels \
             --assert \
-            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.dir }}/*.diff.json) && false)
+            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
