@@ -845,7 +845,6 @@ class SkyScanResult:
                            systematics=False,
                            plot_bounding_box=False,
                            plot_4fgl=False,
-                           plot_original_contours=False,
                            final_channels=None):
         """Uses healpy to plot a map."""
         from .plotting_tools import format_fits_header, hp_ticklabels, plot_catalog
@@ -1005,7 +1004,7 @@ class SkyScanResult:
         #Begin the figure
         plt.clf()
         # Rotate into healpy coordinates
-        lon, lat = np.degrees(minRA), -np.degrees(minDec)
+        lon, lat = np.degrees(minRA), np.degrees(minDec)
         healpy.cartview(map=equatorial_map, title=plot_title,
             min=0., #min 2DeltaLLH value for colorscale
             max=40., #max 2DeltaLLH value for colorscale
@@ -1013,7 +1012,6 @@ class SkyScanResult:
             cbar=None, lonra=lonra, latra=latra,
             unit=r"$-2 \Delta \ln (L)$",
             )
-        plt.gca().invert_yaxis()
 
         fig = plt.gcf()
         ax = plt.gca()
@@ -1064,22 +1062,6 @@ class SkyScanResult:
                 else:
                     healpy.projplot(theta, phi, linewidth=2, c=contour_color)
                 first = False
-        if plot_original_contours:
-            try:
-                cdir='/data/ana/realtime/alert_catalog_v2/contours/'
-                for lev, style in zip([50,90], ['-', '--']): 
-                    ogc = np.loadtxt(
-                        f'{cdir}run{event_metadata.run_id:08}.evt{event_metadata.event_id:012}.contour_{lev}.txt',
-                        skiprows=1)
-                    _ra, _dec = ogc.T
-                    healpy.projplot(_dec+np.pi/2, _ra, linewidth=1, c='white', linestyle=style, label=f'Original {lev}%')
-                    if lev==90:
-                        _ = np.asarray([_dec+np.pi/2, _ra]).T
-                        _[:,1] += np.pi-np.radians(ra)
-                        _[:,1] %= 2*np.pi
-                        print('AREA:', contour_areas[1], abs(area(_))*(180**2/np.pi**2), self.best_fit['E_in'])
-            except FileNotFoundError as e:
-                print(e, 'not found')
 
         # Add some grid lines
         healpy.graticule(dpar=2, dmer=2, force=True)
@@ -1092,8 +1074,8 @@ class SkyScanResult:
 
         lower_lon = np.degrees(lower_ra)
         upper_lon = np.degrees(upper_ra)
-        tmp_lower_lat = -1.*np.degrees(lower_dec)
-        tmp_upper_lat = -1.*np.degrees(upper_dec)
+        tmp_lower_lat = np.degrees(lower_dec)
+        tmp_upper_lat = np.degrees(upper_dec)
         lower_lat = min(tmp_lower_lat, tmp_upper_lat)
         upper_lat = max(tmp_lower_lat, tmp_upper_lat)
 
@@ -1232,7 +1214,7 @@ class SkyScanResult:
             extra_dec_rad = np.radians(extra_dec)
             extra_radius_rad = np.radians(extra_radius)
             extra_lon = extra_ra_rad
-            extra_lat = -extra_dec_rad
+            extra_lat = extra_dec_rad
 
             healpy.projscatter(np.degrees(extra_lon), np.degrees(extra_lat),
                 lonlat=True, c='m', marker='x', s=20, label=r'Reported online (50%, 90%)')
@@ -1241,7 +1223,7 @@ class SkyScanResult:
                 spline_contour = circular_contour(extra_ra_rad, extra_dec_rad,
                     extra_radius_rad*cont_scale, healpy.get_nside(equatorial_map))
                 spline_lon = spline_contour[1]
-                spline_lat = -1.*(np.pi/2. - spline_contour[0])
+                spline_lat = np.pi/2. - spline_contour[0]
                 healpy.projplot(np.degrees(spline_lon), np.degrees(spline_lat), 
                     lonlat=True, linewidth=2., color=cont_col, 
                     linestyle=cont_sty)

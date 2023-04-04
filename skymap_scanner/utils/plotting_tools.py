@@ -92,8 +92,8 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
     # white outline around text
     pe = [path_effects.Stroke(linewidth=1.5, foreground='white'),
           path_effects.Normal()]
-    for _ in zip(lats, llats):
-        healpy.projtext(lon_offset, _[0], "{:.0f}$^\circ$".format(_[1]),
+    for _ in lats:
+        healpy.projtext(lon_offset, _, "{:.0f}$^\circ$".format(_),
                     lonlat=True, path_effects=pe, fontsize=10)
     if zoom:
         for _ in lons:
