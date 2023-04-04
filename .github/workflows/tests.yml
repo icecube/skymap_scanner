@@ -272,7 +272,8 @@ jobs:
         ]
         reco_algo: [
           millipede_original,
-          splinempe
+          # millipede_wilks,
+          # splinempe
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
