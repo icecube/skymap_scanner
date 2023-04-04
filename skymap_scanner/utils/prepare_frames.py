@@ -79,7 +79,7 @@ def prepare_frames(frame_array, baseline_GCD : Union[None, str], reco_algo : str
         simclasses,
     )
     
-    output_frames = []
+    output_frames : list[icetray.I3Frame] = []
     
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=frame_array)
