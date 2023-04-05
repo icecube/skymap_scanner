@@ -26,7 +26,7 @@ class FrameArraySource(icetray.I3Module):
             "The frames to push to modules downstream",
             [])
         self.AddOutBox("OutBox")
-        
+
     def Configure(self):
         self.frames = copy.copy(self.GetParameter("Frames"))
 
@@ -41,7 +41,7 @@ class FrameArraySource(icetray.I3Module):
             return
 
         self.PushFrame(self.frames.pop(0)) # push the frontmost item
-        
+
 
 class FrameArraySink(icetray.I3Module):
     def __init__(self, ctx):
@@ -50,24 +50,24 @@ class FrameArraySink(icetray.I3Module):
             "Array to which to add frames",
             [])
         self.AddOutBox("OutBox")
-        
+
     def Configure(self):
         self.frame_store = self.GetParameter("FrameStore")
 
     def Process(self):
         frame = self.PopFrame()
         if not frame: return
-        
+
         # ignore potential TrayInfo frames
         if frame.Stop == icetray.I3Frame.TrayInfo:
             self.PushFrame(frame)
             return
-        
+
         self.frame_store.append(frame)
-        
+
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD : Union[None, str], reco_algo : str, pulsesName : str) -> List[icetray.I3Frame]:
+def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]:
     # type hint using list available from python 3.11
     from icecube import (
         DomTools,
@@ -79,9 +79,9 @@ def prepare_frames(frame_array, baseline_GCD : Union[None, str], reco_algo : str
         recclasses,
         simclasses,
     )
-    
-    output_frames : list[icetray.I3Frame] = []
-    
+
+    output_frames: list[icetray.I3Frame] = []
+
     tray = I3Tray()
     tray.AddModule(FrameArraySource, Frames=frame_array)
 
@@ -99,7 +99,7 @@ def prepare_frames(frame_array, baseline_GCD : Union[None, str], reco_algo : str
         OutputHLC=pulsesName+'HLC',
         OutputSLC=pulsesName+'SLC',
         If=lambda frame: pulsesName+'HLC' not in frame)
-    
+
     # Generates the vertex seed for the initial scan. 
     # Only run if HESE_VHESelfVeto is not present in the frame.
     # VertexThreshold is 250 in the original HESE analysis (Tianlu)
@@ -143,11 +143,11 @@ def prepare_frames(frame_array, baseline_GCD : Union[None, str], reco_algo : str
                     del frame[non_diff_key]
                     LOGGER.debug(f"Deleted {non_diff_key} from frame because a corresponding Diff exists.")
         tray.AddModule(delFrameObjectsWithDiffsAvailable, "delFrameObjectsWithDiffsAvailable", Streams=[icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus])
-    
+
     tray.AddModule(FrameArraySink, FrameStore=output_frames)
     tray.AddModule("TrashCan")
     tray.Execute()
     tray.Finish()
     del tray
-    
+
     return output_frames
