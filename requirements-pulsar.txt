@@ -116,10 +116,10 @@ tzdata==2023.3
     # via pandas
 urllib3==1.26.15
     # via requests
-wipac-dev-tools[coloredlogs]==1.6.14
+wipac-dev-tools[coloredlogs]==1.6.15
     # via
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.17
+wipac-rest-tools==1.4.18
     # via skymap-scanner (setup.py)
