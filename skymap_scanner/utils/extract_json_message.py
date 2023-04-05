@@ -52,8 +52,9 @@ def extract_json_message(
     json_data,
     reco_algo: str,
     is_real_event: bool,
-    cache_dir="./cache/",
-    GCD_dir=None,
+    cache_dir: str,
+    GCD_dir: str,
+    pulsesName
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
@@ -69,6 +70,7 @@ def extract_json_message(
         is_real_event=is_real_event,
         cache_dir=cache_dir,
         GCD_dir=GCD_dir,
+        pulsesName=pulsesName
     )
 
     # try to load existing pixels if there are any
@@ -100,9 +102,9 @@ def __extract_frame_packet(
     frame_packet,
     reco_algo: str,
     is_real_event: bool,
-    cache_dir="./cache/",
-    GCD_dir : str = str(cfg.DEFAULT_GCD_DIR),
-    pulsesName="SplitUncleanedInIcePulses",
+    pulsesName: str,
+    cache_dir: str,
+    GCD_dir: str,
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))

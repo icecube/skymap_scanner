@@ -131,7 +131,9 @@ class PixelsToReco:
                 f"({self.event_header.run_id=}, {self.event_header.event_id=})"
             )
 
-        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC')
+        # The HLC pulse mask has been created in prepare_frames().
+        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
+        
         self.omgeo = g_frame["I3Geometry"].omgeo
 
     @staticmethod
@@ -689,6 +691,7 @@ def main() -> None:
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
+        pulsesName=cfg.INPUT_PULSES_NAME
     )
 
     # write startup files for client-spawning
