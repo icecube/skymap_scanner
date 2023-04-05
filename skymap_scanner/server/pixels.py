@@ -132,7 +132,7 @@ def choose_pixels_to_reconstruct_around_MCtruth(
     ra, dec = mc_ra_dec
 
     # MC true pixel
-    true_pix = healpy.ang2pix(nside, dec+numpy.pi/2., ra)
+    true_pix = healpy.ang2pix(nside, numpy.pi/2.-dec, ra)
 
     # true pixel dir
     x0,y0,z0 = healpy.pix2vec(nside, true_pix)
