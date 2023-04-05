@@ -32,7 +32,7 @@ cycler==0.11.0
     # via matplotlib
 ed25519==1.5
     # via nkeys
-ewms-pilot==0.5.0
+ewms-pilot==0.6.0
     # via skymap-scanner (setup.py)
 fonttools==4.39.3
     # via matplotlib
@@ -40,7 +40,7 @@ google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
     #   oms-mqclient
-google-auth==2.17.1
+google-auth==2.17.2
     # via
     #   google-api-core
     #   oms-mqclient
@@ -96,7 +96,7 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[all]==1.1.0
+oms-mqclient[all]==1.2.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
