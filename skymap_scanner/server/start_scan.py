@@ -691,6 +691,7 @@ def main() -> None:
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
+        pulsesName=cfg.INPUT_PULSES_NAME
     )
 
     # write startup files for client-spawning
