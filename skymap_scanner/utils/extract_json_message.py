@@ -52,8 +52,8 @@ def extract_json_message(
     json_data,
     reco_algo: str,
     is_real_event: bool,
-    cache_dir : str,
-    GCD_dir : str,
+    cache_dir: str,
+    GCD_dir: str,
     pulsesName
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
@@ -102,9 +102,9 @@ def __extract_frame_packet(
     frame_packet,
     reco_algo: str,
     is_real_event: bool,
-    pulsesName : str,
-    cache_dir : str,
-    GCD_dir : str,
+    pulsesName: str,
+    cache_dir: str,
+    GCD_dir: str,
 ) -> Tuple[str, EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
