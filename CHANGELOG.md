@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v3.8.1 (2023-04-05)
+### Other
+* <bot> update requirements.txt ([`12bfcc6`](https://github.com/icecube/skymap_scanner/commit/12bfcc6bf90923d47c89a4b81e166f90c0dc568e))
+* <bot> update requirements-rabbitmq.txt ([`5e77607`](https://github.com/icecube/skymap_scanner/commit/5e776071336c87c742706d41f4326e547c9bd71f))
+* <bot> update requirements-pulsar.txt ([`d348a87`](https://github.com/icecube/skymap_scanner/commit/d348a87391e2b3ee91be81db17b6528d27b4fe5d))
+* <bot> update requirements-nats.txt ([`2e7c370`](https://github.com/icecube/skymap_scanner/commit/2e7c3703f3faa8239e4475d696f340347e5d3b75))
+* <bot> update requirements-gcp.txt ([`b2a26f4`](https://github.com/icecube/skymap_scanner/commit/b2a26f4822178497acc4f1dc30082797d6042ca0))
+* <bot> update requirements-client-starter.txt ([`4737c5e`](https://github.com/icecube/skymap_scanner/commit/4737c5e98f115bc560b39747477c54b4c092b193))
+* <bot> update requirements-all.txt ([`5cc60a8`](https://github.com/icecube/skymap_scanner/commit/5cc60a8c131aea1cfbe4b20ea63aa6847321bb0c))
+
 ## v3.8.0 (2023-04-05)
 ### Other
 * Hot fix CI ([`9002b76`](https://github.com/icecube/skymap_scanner/commit/9002b7638cbfddef8eb3c2fbfb5bc88435b2ab25))
