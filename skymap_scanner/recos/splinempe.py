@@ -128,15 +128,6 @@ class Splinempe(RecoInterface):
         )
 
         return steps
-
-    @staticmethod
-    def checkPulsesName(frame, pulsesName) -> None:
-        if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
-        if pulsesName + "TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
-        if pulsesName + "TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
     
     @staticmethod
     def checkNames(frame, names) -> None:
@@ -158,7 +149,7 @@ class Splinempe(RecoInterface):
 
         base_pulseseries = "SplitUncleanedInIcePulses"
 
-        tray.Add(Splinempe.checkPulsesName, pulsesName = base_pulseseries)
+        tray.Add(Splinempe.checkNames, names = [base_pulseseries])
         tray.Add(Splinempe.checkNames, names = Splinempe.get_energy_estimators())
 
         # PULSE CLEANING: from "SplitUncleanedInIcePulses" to "OnlineL2_CleanedMuonPulses".
@@ -199,7 +190,7 @@ class Splinempe(RecoInterface):
             If=which_split(split_name="InIceSplit"),
         )
 
-        tray.Add(Splinempe.checkPulsesName, pulsesName = cleaned_muon_pulseseries)
+        tray.Add(Splinempe.checkNames, names = [cleaned_muon_pulseseries])
 
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
