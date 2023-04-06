@@ -30,7 +30,6 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 # Class bindings directly accessed by the python code are imported explicitly.
 from icecube.icetray import I3Frame, traysegment  # type: ignore[import]
 from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
-from icecube.phys_services.which_split import which_split  # type: ignore[import]
 from icecube.photonics_service import I3PhotoSplineService  # type: ignore[import]
 from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTConfigurationService  # type: ignore[import]
 
@@ -187,8 +186,7 @@ class Splinempe(RecoInterface):
             SeedProcedure="HLCCoreHits",
             NHitsThreshold=2,
             MaxNIterations=3,
-            Streams=[I3Frame.Physics],
-            If=which_split(split_name="InIceSplit"),
+            Streams=[I3Frame.Physics]
         )
 
         tray.Add(checkName, name = rt_cleaned_pulseseries)
@@ -200,7 +198,6 @@ class Splinempe(RecoInterface):
             InputResponse=rt_cleaned_pulseseries,
             OutputResponse=cleaned_muon_pulseseries,
             TimeWindow=6000 * I3Units.ns,
-            If=which_split(split_name="InIceSplit"),
         )
 
         tray.Add(checkName, name = cleaned_muon_pulseseries)
@@ -232,7 +229,6 @@ class Splinempe(RecoInterface):
                 lcspan = 0,
                 If = lambda f : True
         )
-        icetray.set_log_level_for_unit('mue', icetray.I3LogLevel.LOG_TRACE)
         tray.Add(log_frame, "logframe")
         #==============================================================================
         # MAIN RECONSTRUCTION
