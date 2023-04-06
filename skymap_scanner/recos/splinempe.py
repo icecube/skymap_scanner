@@ -126,18 +126,6 @@ class Splinempe(RecoInterface):
         )
 
         return steps
-    
-    @staticmethod
-    def checkName(frame: I3Frame, name: str) -> None:
-        if name not in frame:
-            raise RuntimeError(f"{name} not in frame.")
-        else:
-            logger.debug(f"Check that {name} is in frame: -> success.")
-        
-    @staticmethod
-    def checkNames(frame: I3Frame, names: List[str]) -> None:
-        for name in names:
-            Splinempe.checkName(frame, name)
 
 
     @staticmethod
@@ -152,6 +140,16 @@ class Splinempe(RecoInterface):
         energy_reco_seed = "OnlineL2_BestFit"
         energy_estimator = "OnlineL2_BestFit_MuEx"
 
+        def checkName(frame: I3Frame, name: str) -> None:
+            if name not in frame:
+                raise RuntimeError(f"{name} not in frame.")
+            else:
+                logger.debug(f"Check that {name} is in frame: -> success.")
+            
+        def checkNames(frame: I3Frame, names: List[str]) -> None:
+            for name in names:
+                checkName(frame, name)
+
         # Notify start.
         def notify0(frame):
             logger.debug(
@@ -160,7 +158,7 @@ class Splinempe(RecoInterface):
         tray.Add(notify0, "notify0")
 
         # Check that the base pulses are in the input frame.
-        tray.Add(Splinempe.checkName, name = base_pulseseries)
+        tray.Add(checkName, name = base_pulseseries)
 
         #=========================================================
         # PULSE CLEANING
@@ -207,7 +205,7 @@ class Splinempe(RecoInterface):
         # Provide SplineMPE with energy estimation from MuEx
         # This should improve the following SplineMPE track reco.
         #=========================================================
-        tray.AddModule(Splinempe.checkName, name = energy_reco_seed)
+        tray.AddModule(checkName, name = energy_reco_seed)
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule("muex", energy_estimator,
                 pulses = cleaned_muon_pulseseries,
@@ -225,7 +223,7 @@ class Splinempe(RecoInterface):
         # Multiple energy estimators can be provided but they should be run beforehand.
         #=============================================================================
 
-        tray.AddModule(Splinempe.checkName, name = energy_estimator)
+        tray.AddModule(checkName, name = energy_estimator)
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
