@@ -205,6 +205,8 @@ class Splinempe(RecoInterface):
         # Provide SplineMPE with energy estimation from MuEx
         # This should improve the following SplineMPE track reco.
         #=========================================================
+        icetray.logging.console() # can we log?
+
         tray.AddModule(checkName, name = energy_reco_seed)
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule("muex", energy_estimator,
