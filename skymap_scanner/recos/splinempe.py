@@ -18,7 +18,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     gulliver_modules,
     icetray,
     lilliput,
-    muex,
+    mue,
     spline_reco,
     photonics_service,
     recclasses,
@@ -82,10 +82,6 @@ class Splinempe(RecoInterface):
         return "SRT" if config == "max" else "none"
 
     @staticmethod
-    def get_energy_estimators():
-        return ["OnlineL2_BestFit_MuEx"]
-
-    @staticmethod
     def get_postjitter(config="max"):
         return 2 if config == "max" else 0
 
@@ -131,28 +127,43 @@ class Splinempe(RecoInterface):
         return steps
     
     @staticmethod
-    def checkNames(frame, names) -> None:
+    def checkName(frame: I3Frame, name: str) -> None:
+        if name not in frame:
+            raise RuntimeError(f"{name} not in frame")
+        
+    @staticmethod
+    def checkNames(frame: I3Frame, names: List[str]) -> None:
         for name in names:
-            if name not in frame:
-                raise RuntimeError(f"{name} not in frame")
+            Splinempe.checkName(frame, name)
+
 
     @staticmethod
     @traysegment
     def traysegment(tray, name, logger, **kwargs):
         """SplineMPE reco"""
 
+        # Names used in the segment.
+        base_pulseseries = cfg.INPUT_PULSES_NAME
+        rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
+        cleaned_muon_pulseseries = "CleanedMuonPulses"
+        energy_reco_seed = "OnlineL2_BestFit"
+        energy_estimator = "OnlineL2_BestFit_MuEx"
+
+        # Notify start.
         def notify0(frame):
             logger.debug(
                 f"starting a new SplineMPE fit ({name})! {datetime.datetime.now()}"
             )
-
         tray.Add(notify0, "notify0")
 
-        base_pulseseries = "SplitUncleanedInIcePulses"
+        # Check that the base pulses are in the input frame.
+        tray.Add(Splinempe.checkName, name = base_pulseseries)
 
-        tray.Add(Splinempe.checkNames, names = [base_pulseseries])
-
-        # PULSE CLEANING: from "SplitUncleanedInIcePulses" to "OnlineL2_CleanedMuonPulses".
+        #=========================================================
+        # PULSE CLEANING
+        # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
+        # Same as "OnlineL2_CleanedMuonPulses".
+        #=========================================================
 
         # from icetray/filterscripts/python/all_filters.py
         # RT = Radius and Time
@@ -165,7 +176,6 @@ class Splinempe(RecoInterface):
         )
 
         # from icetray/filterscripts/python/baseproc.py
-        rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
         tray.AddModule(
             "I3SeededRTCleaning_RecoPulseMask_Module",
             "BaseProc_RTCleaning",
@@ -180,7 +190,6 @@ class Splinempe(RecoInterface):
         )
 
         # from icetray/filterscripts/python/baseproc.py
-        cleaned_muon_pulseseries = "CleanedMuonPulses"
         tray.AddModule(
             "I3TimeWindowCleaning<I3RecoPulse>",
             "BaseProc_TimeWindowCleaning",
@@ -190,23 +199,30 @@ class Splinempe(RecoInterface):
             If=which_split(split_name="InIceSplit"),
         )
 
-        energy_reco_seed = "OnlineL2_BestFit"
+        #=========================================================
+        # ENERGY ESTIMATOR SEEDING
+        # Provide SplineMPE with energy estimation from MuEx
+        # This should improve the following SplineMPE track reco.
+        #=========================================================
 
-        tray.Add(Splinempe.checkNames, names = [cleaned_muon_pulseseries, energy_reco_seed])
-
-        # from icetray/filterscript/python/onlinel2filter.py
-        tray.AddModule("muex", 'OnlineL2_BestFit_MuEx',
+        # From icetray/filterscript/python/onlinel2filter.py
+        tray.AddModule("muex", energy_estimator,
                 pulses = cleaned_muon_pulseseries,
                 rectrk = energy_reco_seed,
-                result = energy_reco_seed + '_MuEx',
+                result = energy_estimator,
                 energy = True,
                 detail = True,
                 compat = False,
                 lcspan = 0,
         )
-        
-        tray.Add(Splinempe.checkNames, names = Splinempe.get_energy_estimators())
 
+        #==============================================================================
+        # MAIN RECONSTRUCTION
+        # Default configuration takes from SplineMPE "max"
+        # Multiple energy estimators can be provided but they should be run beforehand.
+        #=============================================================================
+
+        tray.AddModule(Splinempe.checkNames, names = [energy_estimator])
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
@@ -217,7 +233,7 @@ class Splinempe(RecoInterface):
             ModelStochastics=False,
             NoiseModel=Splinempe.get_noise_model(),
             Pulses=cleaned_muon_pulseseries,
-            E_Estimators=Splinempe.get_energy_estimators(),
+            E_Estimators=[energy_estimator],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
@@ -247,8 +263,8 @@ class Splinempe(RecoInterface):
             MinuitPrintLevel=0,
         )
 
+        # parametrization for minimization
         steps = Splinempe.get_steps()
-
         tray.Add(
             "I3SimpleParametrizationFactory",
             "splinempe-param",
@@ -256,6 +272,7 @@ class Splinempe(RecoInterface):
         )
 
         # the original splineMPE scan used OnlineL2_SplineMPE as a seed
+        # NOTE: CHECK THIS!!!!
         tray.Add(
             "I3BasicSeedServiceFactory",
             "splinempe-seed",
