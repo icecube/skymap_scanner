@@ -140,7 +140,7 @@ class Splinempe(RecoInterface):
     def checkNames(frame, names) -> None:
         for name in names:
             if name not in frame:
-                raise RuntimeError("{0} not in frame".format(pulsesName))
+                raise RuntimeError(f"{name} not in frame")
 
     @staticmethod
     @traysegment
