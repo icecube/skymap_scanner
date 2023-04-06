@@ -38,8 +38,7 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-
-icetray.logging.console()
+# icetray.logging.console()
 
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
@@ -192,6 +191,8 @@ class Splinempe(RecoInterface):
             If=which_split(split_name="InIceSplit"),
         )
 
+        tray.Add(checkName, name = rt_cleaned_pulseseries)
+
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
             "I3TimeWindowCleaning<I3RecoPulse>",
@@ -201,6 +202,8 @@ class Splinempe(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
             If=which_split(split_name="InIceSplit"),
         )
+
+        tray.Add(checkName, name = cleaned_muon_pulseseries)
 
         #=========================================================
         # ENERGY ESTIMATOR SEEDING
