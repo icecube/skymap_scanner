@@ -221,7 +221,7 @@ class Splinempe(RecoInterface):
                 detail = True,
                 compat = False,
                 lcspan = 0,
-                If = True
+                If = lambda f : True
         )
 
         #==============================================================================
