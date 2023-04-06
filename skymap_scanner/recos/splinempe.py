@@ -206,6 +206,11 @@ class Splinempe(RecoInterface):
         # This should improve the following SplineMPE track reco.
         #=========================================================
 
+        def notify_muex(frame):
+            logger.debug(f"Pulse cleaning done! Now running MuEX - {datetime.datetime.now()}")
+
+        tray.Add(notify_muex, "notify_muex")
+
         tray.AddModule(checkName, name = energy_reco_seed)
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule("muex", energy_estimator,
