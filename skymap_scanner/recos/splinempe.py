@@ -39,6 +39,8 @@ from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
 
+icetray.logging.console()
+
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
 
