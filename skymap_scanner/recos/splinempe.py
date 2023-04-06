@@ -129,6 +129,7 @@ class Splinempe(RecoInterface):
 
         return steps
 
+    @staticmethod
     def checkPulsesName(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -136,7 +137,8 @@ class Splinempe(RecoInterface):
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
         if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
-        
+    
+    @staticmethod
     def checkNames(frame, names) -> None:
         for name in names:
             if name not in frame:
