@@ -18,6 +18,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     gulliver_modules,
     icetray,
     lilliput,
+    muex,
     spline_reco,
     photonics_service,
     recclasses,
@@ -150,7 +151,6 @@ class Splinempe(RecoInterface):
         base_pulseseries = "SplitUncleanedInIcePulses"
 
         tray.Add(Splinempe.checkNames, names = [base_pulseseries])
-        tray.Add(Splinempe.checkNames, names = Splinempe.get_energy_estimators())
 
         # PULSE CLEANING: from "SplitUncleanedInIcePulses" to "OnlineL2_CleanedMuonPulses".
 
@@ -190,7 +190,22 @@ class Splinempe(RecoInterface):
             If=which_split(split_name="InIceSplit"),
         )
 
-        tray.Add(Splinempe.checkNames, names = [cleaned_muon_pulseseries])
+        energy_reco_seed = "OnlineL2_BestFit"
+
+        tray.Add(Splinempe.checkNames, names = [cleaned_muon_pulseseries, energy_reco_seed])
+
+        # from icetray/filterscript/python/onlinel2filter.py
+        tray.AddModule("muex", 'OnlineL2_BestFit_MuEx',
+                pulses = cleaned_muon_pulseseries,
+                rectrk = energy_reco_seed,
+                result = energy_reco_seed + '_MuEx',
+                energy = True,
+                detail = True,
+                compat = False,
+                lcspan = 0,
+        )
+        
+        tray.Add(Splinempe.checkNames, names = Splinempe.get_energy_estimators())
 
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
