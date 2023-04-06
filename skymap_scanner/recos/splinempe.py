@@ -8,6 +8,8 @@ from pathlib import Path
 
 
 from I3Tray import I3Units  # type: ignore[import]
+# icecube imports are needed to make IceTray modules available
+# they may not be directly accessed by python
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
     DomTools,
@@ -23,9 +25,10 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     STTools
 )
 
-from icecube.icetray import I3Frame  # type: ignore[import]
+from icecube.icetray import I3Frame, traysegment  # type: ignore[import]
 from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
 from icecube.phys_services.which_split import which_split  # type: ignore[import]
+from icecube.photonics_service import I3PhotoSplineService  # type: ignore[import]
 from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTConfigurationService  # type: ignore[import]
 
 from .. import config as cfg
@@ -50,22 +53,22 @@ class Splinempe(RecoInterface):
     @staticmethod
     def get_splines() -> (
         tuple[
-            photonics_service.I3PhotoSplineService,
-            photonics_service.I3PhotoSplineService,
-            photonics_service.I3PhotoSplineService,
+            I3PhotoSplineService,
+            I3PhotoSplineService,
+            I3PhotoSplineService,
         ]
     ):
-        bare_mu_spline = photonics_service.I3PhotoSplineService(
+        bare_mu_spline = I3PhotoSplineService(
             Splinempe.BareMuAmplitudeSpline,
             Splinempe.BareMuTimingSpline,
             timingSigma=Splinempe.get_prejitter(),
         )
-        stoch_spline = photonics_service.I3PhotoSplineService(
+        stoch_spline = I3PhotoSplineService(
             Splinempe.StochAmplitudeSpline,
             Splinempe.StochTimingSpline,
             timingSigma=Splinempe.get_prejitter(),
         )
-        noise_spline = photonics_service.I3PhotoSplineService(
+        noise_spline = I3PhotoSplineService(
             Splinempe.BareMuAmplitudeSpline,
             Splinempe.BareMuTimingSpline,
             timingSigma=1000,
@@ -126,7 +129,7 @@ class Splinempe(RecoInterface):
         return steps
 
     @staticmethod
-    @icetray.traysegment
+    @traysegment
     def traysegment(tray, name, logger, **kwargs):
         """SplineMPE reco"""
 
@@ -161,7 +164,7 @@ class Splinempe(RecoInterface):
             SeedProcedure="HLCCoreHits",
             NHitsThreshold=2,
             MaxNIterations=3,
-            Streams=[icetray.I3Frame.Physics],
+            Streams=[I3Frame.Physics],
             If=which_split(split_name="InIceSplit"),
         )
 
