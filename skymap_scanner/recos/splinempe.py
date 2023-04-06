@@ -5,6 +5,7 @@ import datetime
 import numpy as np
 import os
 from pathlib import Path
+from typing import List
 
 
 from I3Tray import I3Units  # type: ignore[import]
