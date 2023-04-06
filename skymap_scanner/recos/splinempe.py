@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 from I3Tray import I3Units  # type: ignore[import]
-# icecube imports are needed to make IceTray modules available
-# they may not be directly accessed by python
+
+# icecube module imports are required to make IceTray modules and services available.
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
     DomTools,
@@ -25,6 +25,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     STTools
 )
 
+# Class bindings directly accessed by the python code are imported explicitly.
 from icecube.icetray import I3Frame, traysegment  # type: ignore[import]
 from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
 from icecube.phys_services.which_split import which_split  # type: ignore[import]
@@ -128,6 +129,19 @@ class Splinempe(RecoInterface):
 
         return steps
 
+    def checkPulsesName(frame, pulsesName) -> None:
+        if pulsesName not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName))
+        if pulsesName + "TimeWindows" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
+        if pulsesName + "TimeRange" not in frame:
+            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
+        
+    def checkNames(frame, names) -> None:
+        for name in names:
+            if name not in frame:
+                raise RuntimeError("{0} not in frame".format(pulsesName))
+
     @staticmethod
     @traysegment
     def traysegment(tray, name, logger, **kwargs):
@@ -141,6 +155,10 @@ class Splinempe(RecoInterface):
         tray.Add(notify0, "notify0")
 
         base_pulseseries = "SplitUncleanedInIcePulses"
+
+        tray.Add(Splinempe.checkPulsesName, pulsesName = base_pulseseries)
+        tray.Add(Splinempe.checkNames, names = Splinempe.get_energy_estimators())
+
         # PULSE CLEANING: from "SplitUncleanedInIcePulses" to "OnlineL2_CleanedMuonPulses".
 
         # from icetray/filterscripts/python/all_filters.py
@@ -178,6 +196,8 @@ class Splinempe(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
             If=which_split(split_name="InIceSplit"),
         )
+
+        tray.Add(Splinempe.checkPulsesName, pulsesName = cleaned_muon_pulseseries)
 
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
