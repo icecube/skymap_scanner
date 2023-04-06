@@ -205,7 +205,6 @@ class Splinempe(RecoInterface):
         # Provide SplineMPE with energy estimation from MuEx
         # This should improve the following SplineMPE track reco.
         #=========================================================
-        icetray.logging.console() # can we log?
 
         tray.AddModule(checkName, name = energy_reco_seed)
         # From icetray/filterscript/python/onlinel2filter.py
@@ -216,8 +215,7 @@ class Splinempe(RecoInterface):
                 energy = True,
                 detail = True,
                 compat = False,
-                lcspan = 0,
-                If = lambda f: If(f)
+                lcspan = 0
         )
 
         #==============================================================================
@@ -227,6 +225,7 @@ class Splinempe(RecoInterface):
         #=============================================================================
 
         tray.AddModule(checkName, name = energy_estimator)
+
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
