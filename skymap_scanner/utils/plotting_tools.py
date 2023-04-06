@@ -80,7 +80,6 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
 
         lons = np.array(lon_set)
         lats = np.array(lat_set)
-        lat_offset = rot[1]+latra[1] + 0.05*(latra[1]-latra[0])
     else:
         lon_offset = -180
         lat_offset = 0
@@ -89,14 +88,11 @@ def hp_ticklabels(zoom=False, lonra=None, latra=None, rot=None, bounds=None):
         lons = np.arange(-150, 181, 30)
         lats = np.arange(-90, 91, 30)
 
-    # actual text at those coordinates
-    llats = -lats
-
     # white outline around text
     pe = [path_effects.Stroke(linewidth=1.5, foreground='white'),
           path_effects.Normal()]
-    for _ in zip(lats, llats):
-        healpy.projtext(lon_offset, _[0], "{:.0f}$^\circ$".format(_[1]),
+    for _ in lats:
+        healpy.projtext(lon_offset, _, "{:.0f}$^\circ$".format(_),
                     lonlat=True, path_effects=pe, fontsize=10)
     if zoom:
         for _ in lons:
@@ -124,7 +120,7 @@ def plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec,
     fdec_i = np.array(fgl.data['DEJ2000'])*np.pi/180.
     fgl_mask = np.logical_and(np.logical_and(fra_i > lower_ra, fra_i < upper_ra), np.logical_and(fdec_i > lower_dec, fdec_i < upper_dec))
     flon_i = fra_i
-    flat_i = -fdec_i
+    flat_i = fdec_i
 
     def color_filter(lon, lat):
         vals = healpy.get_interp_val(master_map, lon, lat, lonlat=True)

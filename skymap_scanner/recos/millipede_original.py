@@ -34,7 +34,7 @@ class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
     # Constants ########################################################
 
-    pulsesName = "SplitUncleanedInIcePulses"
+    pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
     SPEScale = 0.99
 

@@ -2,6 +2,43 @@
 
 <!--next-version-placeholder-->
 
+## v3.8.1 (2023-04-05)
+### Other
+* <bot> update requirements.txt ([`12bfcc6`](https://github.com/icecube/skymap_scanner/commit/12bfcc6bf90923d47c89a4b81e166f90c0dc568e))
+* <bot> update requirements-rabbitmq.txt ([`5e77607`](https://github.com/icecube/skymap_scanner/commit/5e776071336c87c742706d41f4326e547c9bd71f))
+* <bot> update requirements-pulsar.txt ([`d348a87`](https://github.com/icecube/skymap_scanner/commit/d348a87391e2b3ee91be81db17b6528d27b4fe5d))
+* <bot> update requirements-nats.txt ([`2e7c370`](https://github.com/icecube/skymap_scanner/commit/2e7c3703f3faa8239e4475d696f340347e5d3b75))
+* <bot> update requirements-gcp.txt ([`b2a26f4`](https://github.com/icecube/skymap_scanner/commit/b2a26f4822178497acc4f1dc30082797d6042ca0))
+* <bot> update requirements-client-starter.txt ([`4737c5e`](https://github.com/icecube/skymap_scanner/commit/4737c5e98f115bc560b39747477c54b4c092b193))
+* <bot> update requirements-all.txt ([`5cc60a8`](https://github.com/icecube/skymap_scanner/commit/5cc60a8c131aea1cfbe4b20ea63aa6847321bb0c))
+
+## v3.8.0 (2023-04-05)
+### Other
+* Hot fix CI ([`9002b76`](https://github.com/icecube/skymap_scanner/commit/9002b7638cbfddef8eb3c2fbfb5bc88435b2ab25))
+* Configuration parameter for pulse series name ([#168](https://github.com/icecube/skymap_scanner/issues/168)) ([`5329f6b`](https://github.com/icecube/skymap_scanner/commit/5329f6b6ede7836bd5d9d849ab2966b02a0a2d67))
+* <bot> update requirements.txt ([`9f8a3f7`](https://github.com/icecube/skymap_scanner/commit/9f8a3f73a16811697623def7ee3dc352b8c44720))
+* <bot> update requirements-rabbitmq.txt ([`d9e0719`](https://github.com/icecube/skymap_scanner/commit/d9e071906f2b0879355bccd58a7ad0c55524c17e))
+* <bot> update requirements-pulsar.txt ([`8fddc4e`](https://github.com/icecube/skymap_scanner/commit/8fddc4e22b61682ae18855336cbcb7af1c557bc6))
+* <bot> update requirements-nats.txt ([`42f4a3f`](https://github.com/icecube/skymap_scanner/commit/42f4a3fbc5a4c1045ad26b7775c3a330c8b31ca6))
+* <bot> update requirements-gcp.txt ([`8d15390`](https://github.com/icecube/skymap_scanner/commit/8d1539014b0448dd3e769454884243fdd5362958))
+* <bot> update requirements-client-starter.txt ([`dfd6def`](https://github.com/icecube/skymap_scanner/commit/dfd6def6566671677dcb10a7f4e93ba9aa9208aa))
+* <bot> update requirements-all.txt ([`a0fe9ac`](https://github.com/icecube/skymap_scanner/commit/a0fe9ac217ab1fc16cbd695f30c73c7a855a325c))
+* Reconstruction-specific test files ([#170](https://github.com/icecube/skymap_scanner/issues/170)) ([`124bd75`](https://github.com/icecube/skymap_scanner/commit/124bd75d7223504ba4f4687e242fcf0d1cafa182))
+
+## v3.7.0 (2023-04-03)
+
+
+## v3.6.1 (2023-04-03)
+### Other
+* <bot> update requirements.txt ([`1566a44`](https://github.com/icecube/skymap_scanner/commit/1566a448c98121efbed7dfb3cb68a08293ce99d1))
+* <bot> update requirements-rabbitmq.txt ([`cda5e97`](https://github.com/icecube/skymap_scanner/commit/cda5e97fee992196fb1f61c3d5d1931f6b2fea7b))
+* <bot> update requirements-pulsar.txt ([`f8773a8`](https://github.com/icecube/skymap_scanner/commit/f8773a83296026dc01bce55460c29b9268c32cea))
+* <bot> update requirements-nats.txt ([`14340ad`](https://github.com/icecube/skymap_scanner/commit/14340ad86b6d39dc42d7f0c4040ca8118e100d26))
+* <bot> update requirements-gcp.txt ([`b97255e`](https://github.com/icecube/skymap_scanner/commit/b97255ecb2d1f6c072123120108af073a82ee37e))
+* <bot> update requirements-client-starter.txt ([`0477af1`](https://github.com/icecube/skymap_scanner/commit/0477af11bf1c917676568150cf1b5ba5b7a71b64))
+* <bot> update requirements-all.txt ([`549fddb`](https://github.com/icecube/skymap_scanner/commit/549fddbc1e30218357d718ea8124b801fb4949f7))
+* Substitute bfr-v2 to ftp-v1 in Dockerfiles and other scripts ([#167](https://github.com/icecube/skymap_scanner/issues/167)) ([`bd9ec16`](https://github.com/icecube/skymap_scanner/commit/bd9ec160378ea435d9b569d087095fc17e40e223))
+
 ## v3.6.0 (2023-04-01)
 ### Other
 * Update job names ([#165](https://github.com/icecube/skymap_scanner/issues/165)) ([`41c814b`](https://github.com/icecube/skymap_scanner/commit/41c814bd2e54dabc7ddc79a0725782cba510b163))

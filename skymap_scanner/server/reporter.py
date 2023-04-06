@@ -151,6 +151,13 @@ class WorkerStatsCollection:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
 
+    def ct_by_nside(self, nside: int) -> int:
+        """Get length per given nside."""
+        try:
+            return len(self._worker_stats_by_nside[nside].worker_runtimes)
+        except KeyError:
+            return 0
+
     @property
     def total_ct(self) -> int:
         """O(n) b/c len is O(1), n < 10."""
@@ -448,26 +455,37 @@ class Reporter:
 
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
-        pixels_by_nside = {}
-        if self.nsides_dict:
-            for nside in sorted(self.nsides_dict):  # sorted by nside
-                n_done = len(self.nsides_dict[nside])
-                pixels_by_nside[nside] = {
-                    "done": n_done,
-                    "est. percent": (
-                        f"{n_done}/{self._n_sent_by_nside[nside]} "
-                        f"({n_done / self._n_sent_by_nside[nside]:.4f})"
-                    ),
-                }
-        # add estimates for future nsides
-        lowerbounds = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
-        for nside, n in lowerbounds.items():
-            if nside not in self.nsides_dict:
-                pixels_by_nside[nside] = {
-                    "done": 0,
-                    "est. percent": "N/A",
-                    "est. future recos": n,
-                }
+
+        reco_lowerbounds = self.nside_progression.n_recos_by_nside_lowerbound(
+            self.n_posvar
+        )
+
+        def recos_percent_string(nside: int) -> str:
+            if nside not in self._n_sent_by_nside:  # hasn't been sent
+                return f"N/A ({reco_lowerbounds[nside]} predicted)"
+            return (
+                f"{self.worker_stats_collection.ct_by_nside(nside)}/{self._n_sent_by_nside[nside]} "
+                f"({self.worker_stats_collection.ct_by_nside(nside) / self._n_sent_by_nside[nside]:.4f})"
+            )
+
+        def pixels_done(nside: int) -> int:
+            return len(self.nsides_dict.get(nside, []))
+
+        def pixels_percent_string(nside: int) -> str:
+            if nside not in self._n_sent_by_nside:  # hasn't been sent
+                return f"N/A ({int(reco_lowerbounds[nside]/self.n_posvar)} predicted)"
+            # only finished pixels
+            done = int(self._n_sent_by_nside[nside] / self.n_posvar)
+            return f"{pixels_done(nside)}/{done} ({pixels_done(nside) / done:.4f})"
+
+        by_nside = {}
+        # get done counts & percentages (estimates for future nsides)
+        for nside in self.nside_progression:  # sorted by nside
+            by_nside[nside] = {
+                "done": pixels_done(nside),  # only finished pixels
+                "est. percent": pixels_percent_string(nside),
+                "est. percent (recos)": recos_percent_string(nside),
+            }
 
         # see when we reached X% done
         predicted_total = self.predicted_total_recos()
@@ -482,15 +500,15 @@ class Reporter:
                 pass
 
         return {
-            "by_nside": pixels_by_nside,
+            "nsides": by_nside,
             # total completed pixels
-            "total_pixels": sum(v["done"] for v in pixels_by_nside.values()),
-            "total_recos": self.worker_stats_collection.total_ct,
-            "est. percent": (
+            "total pixels": sum(v["done"] for v in by_nside.values()),
+            "total recos": self.worker_stats_collection.total_ct,
+            "est. scan percent": (
                 f"{self.worker_stats_collection.total_ct}/{predicted_total} "
                 f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
             ),
-            "est. timeline": timeline,
+            "est. scan timeline": timeline,
         }
 
     async def after_computing_report(self) -> SkyScanResult:

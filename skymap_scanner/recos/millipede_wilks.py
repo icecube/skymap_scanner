@@ -37,8 +37,8 @@ class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
     # Constants ########################################################
 
-    pulsesName_orig = "SplitUncleanedInIcePulses"
-    pulsesName = "SplitUncleanedInIcePulsesIC"
+    pulsesName_orig = cfg.INPUT_PULSES_NAME
+    pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     # Load Data ########################################################
@@ -185,6 +185,7 @@ class MillipedeWilks(RecoInterface):
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
         def mask_dc(frame, origpulses, maskedpulses):
+            # Masks DeepCore pulses by selecting string numbers < 79.
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
                 frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
         tray.Add(mask_dc, origpulses=MillipedeWilks.pulsesName_orig, maskedpulses=MillipedeWilks.pulsesName)

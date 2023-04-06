@@ -17,6 +17,7 @@ DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
 
 # physics strings
+INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
 INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
 INPUT_POS_NAME: Final = "HESE_VHESelfVetoVertexPos"
 

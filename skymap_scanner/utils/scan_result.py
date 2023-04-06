@@ -433,7 +433,7 @@ class SkyScanResult:
                            for k in self.result],
                          dtype=metadata_dtype)
             np.savez(filename, header=h, **self.result)
-        except TypeError:
+        except (TypeError, AttributeError):
             np.savez(filename, **self.result)
         return Path(filename)
 
@@ -553,7 +553,7 @@ class SkyScanResult:
 
     def llh(self, ra, dec):
         for nside in self.nsides[::-1]:
-            grid_pix = healpy.ang2pix(nside, dec + np.pi/2., ra)
+            grid_pix = healpy.ang2pix(nside, np.pi/2 - dec, ra)
             _res = self.result[self.format_nside(nside)]
             llh = _res[_res['index']==grid_pix]['llh']
             if llh.size > 0:
@@ -576,8 +576,8 @@ class SkyScanResult:
 
     @property
     def best_dir(self):
-        minDec, minRA = healpy.pix2ang(self.best_fit.dtype.metadata['nside'], self.best_fit['index'])
-        minDec = minDec - np.pi/2.
+        minCoDec, minRA = healpy.pix2ang(self.best_fit.dtype.metadata['nside'], self.best_fit['index'])
+        minDec = np.pi/2 - minCoDec
         return minRA, minDec
 
     """
@@ -648,7 +648,7 @@ class SkyScanResult:
         for nside in nsides:
             print(("constructing map for nside {0}...".format(nside)))
             # grid_pix = healpy.ang2pix(nside, THETA, PHI)
-            grid_pix = healpy.ang2pix(nside, DEC + np.pi/2., RA)
+            grid_pix = healpy.ang2pix(nside, np.pi/2. - DEC, RA)
             this_map = np.ones(healpy.nside2npix(nside))*np.inf
 
             for pixel_data in self.result[f'nside-{nside}']:
@@ -657,8 +657,8 @@ class SkyScanResult:
                 value = 2*pixel_data['llh']
                 if np.isfinite(value):
                     if np.isnan(min_value) or value < min_value:
-                        minDec, minRA = healpy.pix2ang(nside, pixel)
-                        minDec = minDec - np.pi/2.
+                        minCoDec, minRA = healpy.pix2ang(nside, pixel)
+                        minDec = np.pi/2 - minCoDec
                         min_value = value
                     if np.isnan(max_value) or value > max_value:
                         max_value = value
@@ -679,7 +679,7 @@ class SkyScanResult:
 
         if grid_map is None:
             # create an "empty" map if there are no pixels at all
-            grid_pix = healpy.ang2pix(8, DEC + np.pi/2., RA)
+            grid_pix = healpy.ang2pix(8, np.pi/2 - DEC, RA)
             this_map = np.ones(healpy.nside2npix(8))*np.inf
             grid_map = this_map[grid_pix]
             del this_map
@@ -865,8 +865,8 @@ class SkyScanResult:
 
             ra_plus = np.max((np.degrees(phi)-shift)%360) - 180
             ra_minus = np.min((np.degrees(phi)-shift)%360) - 180
-            dec_plus = (np.max(theta)-np.pi/2.)*180./np.pi - dec
-            dec_minus = (np.min(theta)-np.pi/2.)*180./np.pi - dec
+            dec_plus = (np.pi/2-np.max(theta))*180./np.pi - dec
+            dec_minus = (np.pi/2-np.min(theta))*180./np.pi - dec
             return ra_plus, ra_minus, dec_plus, dec_minus
 
         y_inches = 3.85
@@ -900,7 +900,7 @@ class SkyScanResult:
 
         grid_map = dict()
         max_nside = max(nsides)
-        master_map = np.full(healpy.nside2npix(max_nside), np.nan)
+        equatorial_map = np.full(healpy.nside2npix(max_nside), np.nan)
 
         for nside in nsides:
             print("constructing map for nside {0}...".format(nside))
@@ -914,14 +914,14 @@ class SkyScanResult:
             if nside < max_nside:
                 this_map = healpy.ud_grade(this_map, max_nside)
             mask = np.logical_and(~np.isnan(this_map), np.isfinite(this_map))
-            master_map[mask] = this_map[mask]
+            equatorial_map[mask] = this_map[mask]
 
             for pixel_data in self.result[f"nside-{nside}"]:
                 pixel = pixel_data['index']
                 value = pixel_data['llh']
                 if np.isfinite(value) and not np.isnan(value):
                     tmp_theta, tmp_phi = healpy.pix2ang(nside, pixel)
-                    tmp_dec = tmp_theta - np.pi/2.
+                    tmp_dec = np.pi/2 - tmp_theta
                     tmp_ra = tmp_phi
                     grid_map[(tmp_dec, tmp_ra)] = value
             print("done with map for nside {0}...".format(nside))
@@ -955,9 +955,9 @@ class SkyScanResult:
         grid_value = grid_value * 2.
 
         # Do same for the healpy map
-        master_map[np.isinf(master_map)] = np.nan
-        master_map -= np.nanmin(master_map)
-        master_map *= 2.
+        equatorial_map[np.isinf(equatorial_map)] = np.nan
+        equatorial_map -= np.nanmin(equatorial_map)
+        equatorial_map *= 2.
 
         print("preparing plot: {0}...".format(plot_filename))
 
@@ -977,7 +977,7 @@ class SkyScanResult:
             contour_labels = [r'50%', r'90%', r'3$\sigma$', r'5$\sigma$'][:3]
             contour_colors=['k', 'r', 'g', 'b'][:3]
 
-        sample_points = np.array([grid_dec + np.pi/2., grid_ra]).T
+        sample_points = np.array([np.pi/2 - grid_dec, grid_ra]).T
         # Call meander module to find contours
         contours_by_level = meander.spherical_contours(sample_points,
             grid_value, contour_levels
@@ -1004,15 +1004,14 @@ class SkyScanResult:
         #Begin the figure
         plt.clf()
         # Rotate into healpy coordinates
-        lon, lat = np.degrees(minRA), -np.degrees(minDec)
-        healpy.cartview(map=master_map, title=plot_title,
+        lon, lat = np.degrees(minRA), np.degrees(minDec)
+        healpy.cartview(map=equatorial_map, title=plot_title,
             min=0., #min 2DeltaLLH value for colorscale
             max=40., #max 2DeltaLLH value for colorscale
             rot=(lon,lat,0.), cmap=cmap, hold=True,
             cbar=None, lonra=lonra, latra=latra,
             unit=r"$-2 \Delta \ln (L)$",
             )
-        plt.gca().invert_yaxis()
 
         fig = plt.gcf()
         ax = plt.gca()
@@ -1023,7 +1022,7 @@ class SkyScanResult:
 
         # Plot the best-fit location
         # This requires some more coordinate transformations
-        healpy.projplot(minDec + np.pi/2., minRA,
+        healpy.projplot(np.pi/2 - minDec, minRA,
             '*', ms=5, label=r'scan best fit', color='black', zorder=2)
 
         # Use Green's theorem to compute the area
@@ -1075,8 +1074,8 @@ class SkyScanResult:
 
         lower_lon = np.degrees(lower_ra)
         upper_lon = np.degrees(upper_ra)
-        tmp_lower_lat = -1.*np.degrees(lower_dec)
-        tmp_upper_lat = -1.*np.degrees(upper_dec)
+        tmp_lower_lat = np.degrees(lower_dec)
+        tmp_upper_lat = np.degrees(upper_dec)
         lower_lat = min(tmp_lower_lat, tmp_upper_lat)
         upper_lat = max(tmp_lower_lat, tmp_upper_lat)
 
@@ -1087,7 +1086,7 @@ class SkyScanResult:
 
         if plot_4fgl:
             # Overlay 4FGL sources
-            plot_catalog(master_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec)
+            plot_catalog(equatorial_map, cmap, lower_ra, upper_ra, lower_dec, upper_dec)
 
         # Approximate contours as rectangles
         ra = minRA * 180./np.pi
@@ -1126,7 +1125,7 @@ class SkyScanResult:
             bounding_ras = np.asarray(bounding_ras)
             bounding_decs = np.asarray(bounding_decs)
             bounding_phi = np.radians(bounding_ras)
-            bounding_theta = np.radians(bounding_decs) + np.pi/2.
+            bounding_theta = np.pi/2 - np.radians(bounding_decs)
             bounding_contour = np.array([bounding_theta, bounding_phi])
             bounding_contour_area = 0.
             bounding_contour_area = area(bounding_contour.T)
@@ -1144,7 +1143,7 @@ class SkyScanResult:
                 saving_contours[-1].append([])
                 theta, phi = contour.T
                 ras = phi
-                decs = theta - np.pi/2.
+                decs = np.pi/2 - theta
                 for tmp_ra, tmp_dec in zip(ras, decs):
                     saving_contours[-1][-1].append([tmp_ra, tmp_dec])
 
@@ -1177,21 +1176,7 @@ class SkyScanResult:
             np.degrees(minDec),
             uncertainty,
         )
-        mmap_nside = healpy.get_nside(master_map)
-
-        # Pixel numbers as is gives a map that is reflected
-        # about the equator. This is all deal with self-consistently
-        # here but we need to correct before outputting a fits file
-        def fixpixnumber(nside,pixels):
-            th_o, phi_o = healpy.pix2ang(nside, pixels)
-            dec_o = th_o - np.pi/2
-            th_fixed = np.pi/2 - dec_o
-            pix_fixed = healpy.ang2pix(nside, th_fixed, phi_o)
-            return pix_fixed
-        pixels = np.arange(len(master_map))
-        nside = healpy.get_nside(master_map)
-        new_pixels = fixpixnumber(nside, pixels)
-        equatorial_map = master_map[new_pixels]
+        mmap_nside = healpy.get_nside(equatorial_map)
 
         # Plot the original online reconstruction location
         if np.sum(np.isnan([extra_ra, extra_dec, extra_radius])) == 0:
@@ -1229,16 +1214,16 @@ class SkyScanResult:
             extra_dec_rad = np.radians(extra_dec)
             extra_radius_rad = np.radians(extra_radius)
             extra_lon = extra_ra_rad
-            extra_lat = -extra_dec_rad
+            extra_lat = extra_dec_rad
 
             healpy.projscatter(np.degrees(extra_lon), np.degrees(extra_lat),
                 lonlat=True, c='m', marker='x', s=20, label=r'Reported online (50%, 90%)')
             for cont_lev, cont_scale, cont_col, cont_sty in zip(['50', '90.'], 
                     [1., 2.1459/1.177], ['m', 'm'], ['-', '--']):
                 spline_contour = circular_contour(extra_ra_rad, extra_dec_rad,
-                    extra_radius_rad*cont_scale, healpy.get_nside(master_map))
+                    extra_radius_rad*cont_scale, healpy.get_nside(equatorial_map))
                 spline_lon = spline_contour[1]
-                spline_lat = -1.*(np.pi/2. - spline_contour[0])
+                spline_lat = np.pi/2. - spline_contour[0]
                 healpy.projplot(np.degrees(spline_lon), np.degrees(spline_lat), 
                     lonlat=True, linewidth=2., color=cont_col, 
                     linestyle=cont_sty)
@@ -1248,8 +1233,8 @@ class SkyScanResult:
         # For vertical events, calculate the area with the number of pixels
         # In the healpy map   
         for lev in contour_levels[1:2]:
-            area_per_pix = healpy.nside2pixarea(healpy.get_nside(master_map))
-            num_pixs = np.count_nonzero(master_map[~np.isnan(master_map)] < lev)
+            area_per_pix = healpy.nside2pixarea(healpy.get_nside(equatorial_map))
+            num_pixs = np.count_nonzero(equatorial_map[~np.isnan(equatorial_map)] < lev)
             healpy_area = num_pixs * area_per_pix * (180./np.pi)**2.
         print("Contour Area (90%):", contour_areas[1], "degrees (cartesian)",
             healpy_area, "degrees (scaled)")

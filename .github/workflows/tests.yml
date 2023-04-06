@@ -18,8 +18,8 @@ env:
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
-  # auth env vars in job
-  RABBITMQ_HEARTBEAT: 600
+  # note: auth env vars are in job(s)
+  EWMS_PILOT_SUBPROC_TIMEOUT: 600
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -129,7 +129,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
@@ -227,7 +227,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./resources/launch_scripts/docker/launch_client.sh \
               --client-startup-json ./startup.json \
@@ -271,7 +271,8 @@ jobs:
           run00136662-evt000035405932-BRONZE.pkl
         ]
         reco_algo: [
-          #millipede_original,
+          # millipede_original,
+          # millipede_wilks,
           splinempe
         ]
     env:
@@ -331,7 +332,7 @@ jobs:
           nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-          export PULSAR_UNACKED_MESSAGES_TIMEOUT_SEC=1800  # 30 mins
+          export EWMS_PILOT_SUBPROC_TIMEOUT=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             ./resources/launch_scripts/docker/launch_client.sh \
               --client-startup-json ./startup.json \
@@ -375,7 +376,8 @@ jobs:
         ]
         reco_algo:
             [
-              #"millipede_original",
+              # "millipede_original",
+              # "millipede_wilks",
               "splinempe"
             ]
     steps:

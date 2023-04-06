@@ -131,7 +131,9 @@ class PixelsToReco:
                 f"({self.event_header.run_id=}, {self.event_header.event_id=})"
             )
 
-        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,'SplitUncleanedInIcePulsesHLC')
+        # The HLC pulse mask has been created in prepare_frames().
+        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
+        
         self.omgeo = g_frame["I3Geometry"].omgeo
 
     @staticmethod
@@ -215,8 +217,8 @@ class PixelsToReco:
     ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd for a given `nside` and `pixel`."""
 
-        dec, ra = healpy.pix2ang(nside, pixel)
-        dec = dec - numpy.pi/2.
+        codec, ra = healpy.pix2ang(nside, pixel)
+        dec = numpy.pi/2 - codec
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_metadata.mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)
@@ -230,7 +232,7 @@ class PixelsToReco:
             coarser_nside = nside
             while True:
                 coarser_nside = coarser_nside/2
-                coarser_pixel = healpy.ang2pix(int(coarser_nside), dec+numpy.pi/2., ra)
+                coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
 
                 if coarser_nside < self.min_nside:
                     break # no coarser pixel is available (probably we are just scanning finely around MC truth)
@@ -689,6 +691,7 @@ def main() -> None:
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
+        pulsesName=cfg.INPUT_PULSES_NAME
     )
 
     # write startup files for client-spawning
