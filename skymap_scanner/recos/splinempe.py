@@ -217,9 +217,6 @@ class Splinempe(RecoInterface):
 
         def log_frame(frame):
             logger.debug(f"{repr(frame)}/{frame}")
-        
-
-        tray.Add(log_frame, "logframe")
 
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule("muex", energy_estimator,
@@ -232,7 +229,8 @@ class Splinempe(RecoInterface):
                 lcspan = 0,
                 If = lambda f : True
         )
-
+        icetray.set_log_level_for_unit('muex', icetray.I3LogLevel.LOG_DEBUG)
+        tray.Add(log_frame, "logframe")
         #==============================================================================
         # MAIN RECONSTRUCTION
         # Default configuration takes from SplineMPE "max"
