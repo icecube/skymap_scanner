@@ -229,7 +229,7 @@ class Splinempe(RecoInterface):
                 lcspan = 0,
                 If = lambda f : True
         )
-        icetray.set_log_level_for_unit('muex', icetray.I3LogLevel.LOG_TRACE)
+        icetray.set_log_level_for_unit('mue', icetray.I3LogLevel.LOG_TRACE)
         tray.Add(log_frame, "logframe")
         #==============================================================================
         # MAIN RECONSTRUCTION
