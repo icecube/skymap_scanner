@@ -30,8 +30,6 @@ from ..utils.utils import save_GCD_frame_packet_to_file
 
 LOGGER = logging.getLogger("skyscan.client.reco")
 
-icetray.logging.console()
-
 def frame_for_logging(frame: icetray.I3Frame) -> str:
     return f"{repr(frame)}/{frame}"
 
@@ -183,6 +181,7 @@ def reco_pixel(
     # Start Tray #######################################################
 
     LOGGER.info("Staring IceTray...")
+    icetray.logging.console()
     tray.Execute()
     tray.Finish()
     del tray
