@@ -10,6 +10,7 @@ from pathlib import Path
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
+    DomTools,
     frame_object_diff,
     gulliver,
     gulliver_modules,
@@ -19,6 +20,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     photonics_service,
     recclasses,
     simclasses,
+    STTools
 )
 
 from icecube.icetray import I3Frame  # type: ignore[import]
