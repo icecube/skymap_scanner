@@ -45,12 +45,14 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
     # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
+    filestager = dataio.get_stagers()
+
     _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
     # for fname in [_base % "abs", _base % "prob"]:
     #     if not os.path.exists(fname):
     #        raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0
+        filestager.GetReadablePath(_base % "abs"), filestager.GetReadablePath(_base % "prob"), timingSigma=0.0
     )
     cascade_service.SetEfficiencies(SPEScale)
     muon_service = None
@@ -157,9 +159,6 @@ class MillipedeOriginal(RecoInterface):
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
-
-        # Add stagers to get splines from remote.
-        tray.context['I3FileStager'] = dataio.get_stagers()
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
