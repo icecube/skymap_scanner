@@ -14,6 +14,7 @@ from I3Tray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
+    dataio,
     frame_object_diff,
     gulliver,
     gulliver_modules,
