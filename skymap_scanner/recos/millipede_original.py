@@ -10,6 +10,9 @@ import os
 from typing import Tuple
 
 import numpy
+
+from pathlib import Path
+
 from I3Tray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
