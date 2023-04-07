@@ -46,7 +46,8 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
     # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    filestager = dataio.get_stagers(staging_directory='/opt/i3-staging')
+    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
+    filestager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
 
     _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
     # for fname in [_base % "abs", _base % "prob"]:
