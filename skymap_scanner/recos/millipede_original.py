@@ -44,8 +44,8 @@ class MillipedeOriginal(RecoInterface):
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "ems_mie_z20_a10.%s.fits")
+    # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
+    _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
     for fname in [_base % "abs", _base % "prob"]:
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
@@ -157,6 +157,9 @@ class MillipedeOriginal(RecoInterface):
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
+
+        # Add stagers to get splines from remote.
+        tray.context['I3FileStager'] = dataio.get_stagers()
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")

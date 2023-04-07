@@ -15,6 +15,7 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
+SPLINE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/spline-tables"
 
 # physics strings
 INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
