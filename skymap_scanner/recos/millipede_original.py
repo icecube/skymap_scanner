@@ -46,9 +46,9 @@ class MillipedeOriginal(RecoInterface):
     # This is why we can use cascade tables
     # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
     _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
-    for fname in [_base % "abs", _base % "prob"]:
-        if not os.path.exists(fname):
-            raise FileNotFoundError(fname)
+    # for fname in [_base % "abs", _base % "prob"]:
+    #     if not os.path.exists(fname):
+    #        raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(
         _base % "abs", _base % "prob", timingSigma=0.0
     )
