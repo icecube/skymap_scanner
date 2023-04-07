@@ -53,7 +53,7 @@ class MillipedeOriginal(RecoInterface):
     #     if not os.path.exists(fname):
     #        raise FileNotFoundError(fname)
     cascade_service = photonics_service.I3PhotoSplineService(
-        filestager.GetReadablePath(_base % "abs"), filestager.GetReadablePath(_base % "prob"), timingSigma=0.0
+        str(filestager.GetReadablePath(_base % "abs")), str(filestager.GetReadablePath(_base % "prob")), timingSigma=0.0
     )
     cascade_service.SetEfficiencies(SPEScale)
     muon_service = None
