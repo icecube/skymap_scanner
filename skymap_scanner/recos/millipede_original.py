@@ -58,12 +58,7 @@ class MillipedeOriginal(RecoInterface):
     #        raise FileNotFoundError(fname)
     abs_spline = str(filestager.GetReadablePath(_base % "abs"))
     prob_spline = str(filestager.GetReadablePath(_base % "prob"))
-    if not Path(abs_spline).is_file():
-        raise RuntimeError(f"{abs_spline} is not a file.")
-    else:
-        print(f"{abs_spline} is a valid file.")
-    if not Path(prob_spline).is_file():
-        raise RuntimeError(f"{prob_spline} is not a file.")
+    
     cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
     cascade_service.SetEfficiencies(SPEScale)
     muon_service = None
