@@ -865,8 +865,8 @@ class SkyScanResult:
 
             ra_plus = np.max((np.degrees(phi)-shift)%360) - 180
             ra_minus = np.min((np.degrees(phi)-shift)%360) - 180
-            dec_plus = (np.pi/2-np.max(theta))*180./np.pi - dec
-            dec_minus = (np.pi/2-np.min(theta))*180./np.pi - dec
+            dec_plus = (np.pi/2-np.min(theta))*180./np.pi - dec
+            dec_minus = (np.pi/2-np.max(theta))*180./np.pi - dec
             return ra_plus, ra_minus, dec_plus, dec_minus
 
         y_inches = 3.85
