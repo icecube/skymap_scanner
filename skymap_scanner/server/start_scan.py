@@ -106,8 +106,6 @@ class PixelsToReco:
                     dataclasses.I3Position(0.,0.,-variation_distance),
                     dataclasses.I3Position(0.,0., variation_distance)
                 ]
-        elif self.reco_algo == 'splinempe':
-            self.pos_variations = None # generation is direction-dependent
         else:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
@@ -265,7 +263,7 @@ class PixelsToReco:
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         if self.reco_algo == "splinempe":
-            self.pos_variations = get_splinempe_position_variations(zenith, azimuth)
+            self.pos_variations += get_splinempe_position_variations(zenith, azimuth)
 
         for i in range(0,len(self.pos_variations)):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
