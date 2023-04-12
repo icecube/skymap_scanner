@@ -146,8 +146,7 @@ def reco_pixel(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        filestager= dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
-    filestager = 
+        filestager= dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR)),
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 
