@@ -36,6 +36,7 @@ from . import RecoInterface
 
 
 class MillipedeOriginal(RecoInterface):
+    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
     filestager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
     """Reco logic for millipede."""
     # Constants ########################################################
@@ -50,8 +51,7 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
     # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
-
+    
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
