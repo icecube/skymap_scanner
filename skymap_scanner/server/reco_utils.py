@@ -1,13 +1,13 @@
 import numpy as np
-from typing import List, Tuple
-from I3Tray import I3Units
-from icecube import dataclasses
+from typing import List
+from I3Tray import I3Units # type: ignore[import]
+from icecube import dataclasses # type: ignore[import]
 
 
 def get_splinempe_position_variations(
     zenith : float, azimuth : float,
-    v_ax: List[int] = [-40.0, 40.0],
-    r_ax: List[int] = [150.0],
+    v_ax: List[float] = [-40.0, 40.0],
+    r_ax: List[float] = [150.0],
     ang_steps=3,
 ):
     """[Given a vertex and a direction it returns some vertex seeds to perform a SplineMPE fit
