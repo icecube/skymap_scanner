@@ -63,7 +63,7 @@ oms-mqclient==1.2.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-packaging==23.0
+packaging==23.1
     # via
     #   astropy
     #   matplotlib
