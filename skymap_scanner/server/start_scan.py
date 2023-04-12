@@ -39,8 +39,10 @@ from ..utils.pixel_classes import (
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
+from .reco_utils import get_splinempe_position_variations
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
+
 
 StrDict = Dict[str, Any]
 
@@ -104,6 +106,8 @@ class PixelsToReco:
                     dataclasses.I3Position(0.,0.,-variation_distance),
                     dataclasses.I3Position(0.,0., variation_distance)
                 ]
+        elif self.reco_algo == 'splinempe':
+            self.pos_variations = None # generation is direction-dependent
         else:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
@@ -135,6 +139,7 @@ class PixelsToReco:
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
         
         self.omgeo = g_frame["I3Geometry"].omgeo
+
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
@@ -258,6 +263,9 @@ class PixelsToReco:
                     position = self.nsides_dict[coarser_nside][coarser_pixel].position
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
+
+        if self.reco_algo == "splinempe":
+            self.pos_variations = get_splinempe_position_variations(zenith, azimuth)
 
         for i in range(0,len(self.pos_variations)):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
