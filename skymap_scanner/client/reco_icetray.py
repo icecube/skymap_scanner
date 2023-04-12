@@ -282,6 +282,7 @@ def main() -> None:
     icetray.logging.console()
     cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
     stager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
+    os.system(f"ls -laR {cfg.LOCAL_STAGING_DIR}")
 
     reco_pixel(
         reco_algo,
