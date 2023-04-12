@@ -139,6 +139,7 @@ class Splinempe(RecoInterface):
         cleaned_muon_pulseseries = "CleanedMuonPulses"
         energy_reco_seed = "OnlineL2_BestFit"
         energy_estimator = "OnlineL2_BestFit_MuEx"
+        vertex_seed = "OnlineL2_SplineMPE"
 
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
@@ -286,12 +287,12 @@ class Splinempe(RecoInterface):
             **steps,
         )
 
-        # the original splineMPE scan used OnlineL2_SplineMPE as a seed
-        # NOTE: CHECK THIS!!!!
+        tray.Add(checkName, name = vertex_seed)
         tray.Add(
             "I3BasicSeedServiceFactory",
             "splinempe-seed",
-            FirstGuess=cfg.OUTPUT_PARTICLE_NAME,
+            # FirstGuess=cfg.OUTPUT_PARTICLE_NAME,
+            FirstGuess=vertex_seed,
             # multiple can be provided as FirstGuesses=[,]
             TimeShiftType="TNone",
             PositionShiftType="None",
