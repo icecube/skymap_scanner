@@ -104,6 +104,7 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     out_pkl: Path,
+    filestager
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -139,14 +140,12 @@ def reco_pixel(
             base_filename=baseline_GCD_file,
         )
 
-    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
-
     # perform fit
     tray.AddSegment(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        filestager= dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR)),
+        filestager=filestager,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 
@@ -280,12 +279,16 @@ def main() -> None:
         )
 
     # go!
+    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
+    stager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
+
     reco_pixel(
         reco_algo,
         pframe,
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.out_pkl,
+        filestager = stager,
     )
     LOGGER.info("Done reco'ing pixel.")
 
