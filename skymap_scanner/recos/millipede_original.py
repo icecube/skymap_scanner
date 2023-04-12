@@ -148,7 +148,7 @@ class MillipedeOriginal(RecoInterface):
 
 
     @icetray.traysegment
-    def traysegment(tray, name, logger, seed=None):
+    def traysegment(tray, name, logger, filestager, seed=None):
         """Perform MillipedeOriginal reco."""
         filestager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
         _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
@@ -157,6 +157,8 @@ class MillipedeOriginal(RecoInterface):
         #        raise FileNotFoundError(fname)
         abs_spline = str(filestager.GetReadablePath(_base % "abs"))
         prob_spline = str(filestager.GetReadablePath(_base % "prob"))
+        
+        os.cmd("ls", "-l", "-a", cfg.LOCAL_STAGING_DIR)
         
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         cascade_service.SetEfficiencies(SPEScale)
