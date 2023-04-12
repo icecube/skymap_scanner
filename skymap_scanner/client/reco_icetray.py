@@ -139,11 +139,15 @@ def reco_pixel(
             base_filename=baseline_GCD_file,
         )
 
+    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
+
     # perform fit
     tray.AddSegment(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
+        filestager= dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
+    filestager = 
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 

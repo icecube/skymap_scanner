@@ -36,8 +36,6 @@ from . import RecoInterface
 
 
 class MillipedeOriginal(RecoInterface):
-    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
-    filestager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
     """Reco logic for millipede."""
     # Constants ########################################################
 
@@ -150,7 +148,7 @@ class MillipedeOriginal(RecoInterface):
 
 
     @icetray.traysegment
-    def traysegment(tray, name, logger, seed=None):
+    def traysegment(tray, name, logger, filestager, seed=None):
         """Perform MillipedeOriginal reco."""
         _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
         # for fname in [_base % "abs", _base % "prob"]:
@@ -158,8 +156,8 @@ class MillipedeOriginal(RecoInterface):
         #        raise FileNotFoundError(fname)
         print(_base % "abs")
         print(_base % "prob")
-        abs_spline = str(MillipedeOriginal.filestager.GetReadablePath(_base % "abs"))
-        prob_spline = str(MillipedeOriginal.filestager.GetReadablePath(_base % "prob"))
+        abs_spline = str(filestager.GetReadablePath(_base % "abs"))
+        prob_spline = str(filestager.GetReadablePath(_base % "prob"))
         
         os.system(f"ls -laR {cfg.LOCAL_STAGING_DIR}")
 
