@@ -279,6 +279,7 @@ def main() -> None:
         )
 
     # go!
+    icetray.logging.console()
     cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
     stager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
 
