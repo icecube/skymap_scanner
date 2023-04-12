@@ -227,7 +227,7 @@ class PixelsToReco:
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_metadata.mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)
-        direction = dataclasses.I3Direction(zenith,azimuth)
+        direction = dataclasses.I3Direction(zenith, azimuth)
 
         if nside == self.min_nside:
             position = self.fallback_position

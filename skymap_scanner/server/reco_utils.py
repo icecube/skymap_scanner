@@ -1,10 +1,11 @@
 import numpy as np
 from typing import List, Tuple
+from I3Tray import I3Units
 from icecube import dataclasses
 
 
 def get_splinempe_position_variations(
-    direction: Tuple[float, float],
+    zenith : float, azimuth : float,
     v_ax: List[int] = [-40.0, 40.0],
     r_ax: List[int] = [150.0],
     ang_steps=3,
@@ -27,8 +28,6 @@ def get_splinempe_position_variations(
     """
 
     vert_u = I3Units.m
-
-    theta, phi = direc
     
     # define angular steps
     ang_ax = np.linspace(0, 2.0 * np.pi, ang_steps + 1)[:-1]
@@ -36,7 +35,7 @@ def get_splinempe_position_variations(
     # angular separation between seeds
     dang = (ang_ax[1] - ang_ax[0]) / 2.0
 
-    v_dir, dir1, dir2 = get_orthonormal_basis(theta, phi)
+    v_dir, dir1, dir2 = get_orthonormal_basis(zenith, azimuth)
 
     pos_seeds = [] # empty list, the starting vertix is implicit
 
