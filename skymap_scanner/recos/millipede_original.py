@@ -52,17 +52,6 @@ class MillipedeOriginal(RecoInterface):
     cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
     filestager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
 
-    _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
-    # for fname in [_base % "abs", _base % "prob"]:
-    #     if not os.path.exists(fname):
-    #        raise FileNotFoundError(fname)
-    abs_spline = str(filestager.GetReadablePath(_base % "abs"))
-    prob_spline = str(filestager.GetReadablePath(_base % "prob"))
-    
-    cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
-    cascade_service.SetEfficiencies(SPEScale)
-    muon_service = None
-
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -162,6 +151,18 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
+        _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
+        # for fname in [_base % "abs", _base % "prob"]:
+        #     if not os.path.exists(fname):
+        #        raise FileNotFoundError(fname)
+        abs_spline = str(filestager.GetReadablePath(_base % "abs"))
+        prob_spline = str(filestager.GetReadablePath(_base % "prob"))
+        
+        cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
+        cascade_service.SetEfficiencies(SPEScale)
+        muon_service = None
+
+
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
@@ -172,8 +173,8 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeOriginal.muon_service,
-            CascadePhotonicsService=MillipedeOriginal.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
             # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
