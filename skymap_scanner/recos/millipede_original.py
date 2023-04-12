@@ -158,7 +158,7 @@ class MillipedeOriginal(RecoInterface):
         abs_spline = str(filestager.GetReadablePath(_base % "abs"))
         prob_spline = str(filestager.GetReadablePath(_base % "prob"))
         
-        os.system("ls", "-l", "-a", cfg.LOCAL_STAGING_DIR)
+        os.system(["ls", "-l", "-a", cfg.LOCAL_STAGING_DIR])
 
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         cascade_service.SetEfficiencies(SPEScale)
