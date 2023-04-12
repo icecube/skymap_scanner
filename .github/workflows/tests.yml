@@ -265,16 +265,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        reco_algo: [
+          millipede_original,
+          # millipede_wilks,
+          splinempe
+        ]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
-        reco_algo: [
-          # millipede_original,
-          # millipede_wilks,
-          splinempe
-        ]
+        exclude:
+        # splinempe should not run on HESE
+        - reco_algo: splinempe
+          eventfile: hese_event_01.json
+
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
