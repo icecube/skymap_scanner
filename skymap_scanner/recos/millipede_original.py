@@ -155,6 +155,8 @@ class MillipedeOriginal(RecoInterface):
         # for fname in [_base % "abs", _base % "prob"]:
         #     if not os.path.exists(fname):
         #        raise FileNotFoundError(fname)
+        print(_base % "abs")
+        print(_base % "prob")
         abs_spline = str(filestager.GetReadablePath(_base % "abs"))
         prob_spline = str(filestager.GetReadablePath(_base % "prob"))
         
