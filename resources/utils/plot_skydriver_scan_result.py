@@ -11,7 +11,7 @@ parser.add_argument("--scan-id", help="skydriver scan id", required=True)
 args = parser.parse_args()
 
 rc = RestClient("https://skydriver.icecube.aq", token=args.token, retries=0)
-serialzed = rc.request_seq("GET", f"/scan/result/{args.scan_id}")["skyscan_result"]
+serialzed = rc.request_seq("GET", f"/scan/{args.scan_id}/result")["skyscan_result"]
 
 result = SkyScanResult.deserialize(serialzed)
 result.create_plot(dosave=True)
