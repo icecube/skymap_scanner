@@ -551,7 +551,7 @@ class Reporter:
             "event_metadata": dc.asdict(self.event_metadata),
             "scan_metadata": scan_metadata,
         }
-        await self.skydriver_rc.request("PATCH", f"/scan/manifest/{self.scan_id}", body)
+        await self.skydriver_rc.request("PATCH", f"/scan/{self.scan_id}/manifest", body)
 
     async def _send_result(self) -> SkyScanResult:
         """Send result to SkyDriver (if the connection is established)."""
@@ -563,6 +563,6 @@ class Reporter:
             return result
 
         body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
-        await self.skydriver_rc.request("PUT", f"/scan/result/{self.scan_id}", body)
+        await self.skydriver_rc.request("PUT", f"/scan/{self.scan_id}/result", body)
 
         return result

@@ -21,7 +21,7 @@ def fetch_event_contents(
     # request from skydriver
     if skydriver_rc:
         manifest = skydriver_rc.request_seq(
-            "GET", f"/scan/manifest/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}"
+            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
         )
         LOGGER.info("Fetched event contents from SkyDriver")
         return manifest["event_i3live_json_dict"]

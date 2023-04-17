@@ -26,7 +26,7 @@ coloredlogs==15.0.1
     # via wipac-dev-tools
 contourpy==1.0.7
     # via matplotlib
-cryptography==40.0.1
+cryptography==40.0.2
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
@@ -40,7 +40,7 @@ google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
     #   oms-mqclient
-google-auth==2.17.2
+google-auth==2.17.3
     # via
     #   google-api-core
     #   oms-mqclient
@@ -100,7 +100,7 @@ oms-mqclient[all]==1.2.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
-packaging==23.0
+packaging==23.1
     # via
     #   astropy
     #   matplotlib
@@ -112,7 +112,7 @@ pillow==9.5.0
     # via matplotlib
 proto-plus==1.22.2
     # via google-cloud-pubsub
-protobuf==4.22.1
+protobuf==4.22.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
