@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.8.3 (2023-04-17)
+### Other
+* Fix SkyDriver URLs ([#177](https://github.com/icecube/skymap_scanner/issues/177)) ([`eddd509`](https://github.com/icecube/skymap_scanner/commit/eddd5099a9085e5ead74e69ce00a63eff566f5fd))
+
 ## v3.8.2 (2023-04-10)
 ### Other
 * <bot> update requirements-gcp.txt ([`1889eee`](https://github.com/icecube/skymap_scanner/commit/1889eee70344df205e9e9362c86a4c7c5f08abf9))
