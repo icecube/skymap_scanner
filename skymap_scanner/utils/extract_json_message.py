@@ -8,10 +8,10 @@ import os
 from typing import Tuple
 
 from icecube import full_event_followup, icetray  # type: ignore[import]
+from skyreader import EventMetadata
 
 from .. import config as cfg
 from . import LOGGER
-from .event_tools import EventMetadata
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
 from .utils import (

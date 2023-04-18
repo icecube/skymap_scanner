@@ -5,8 +5,9 @@ import logging
 import pickle
 from pathlib import Path
 
+from skymap_scanner.utils import to_skyscan_result
 from skymap_scanner.utils.pixel_classes import RecoPixelFinal
-from skymap_scanner.utils.scan_result import SkyScanResult
+from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 from compare_scan_results import compare_then_exit
@@ -65,7 +66,9 @@ def main():
             msg = pickle.load(f)
 
         pixfin = RecoPixelFinal.from_recopixelvariation(msg["reco_pixel_variation"])
-        return SkyScanResult.from_nsides_dict({pixfin.nside: {pixfin.pixel_id: pixfin}})
+        return to_skyscan_result.from_nsides_dict(
+            {pixfin.nside: {pixfin.pixel_id: pixfin}}
+        )
 
     actual = load_from_out_pkl(args.actual)
     expected = load_from_out_pkl(args.expected)
