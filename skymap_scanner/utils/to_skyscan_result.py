@@ -23,7 +23,7 @@ def from_nsides_dict(
 
     result = {}
     for nside, pixel_dict in nsides_dict.items():
-        _dtype = np.dtype(
+        _dtype = np.dtype(  # type: ignore[call-overload]
             SkyScanResult.PIXEL_TYPE,
             metadata=dict(nside=nside, **event_metadata_dict),
         )
