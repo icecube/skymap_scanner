@@ -8,9 +8,6 @@ astropy==5.2.2
     # via
     #   healpy
     #   icecube-skyreader
-    #   skymap-scanner (setup.py)
-asyncstdlib==3.10.6
-    # via skymap-scanner (setup.py)
 cachetools==5.3.0
     # via wipac-rest-tools
 certifi==2022.12.7
@@ -51,11 +48,8 @@ matplotlib==3.7.1
     # via
     #   healpy
     #   icecube-skyreader
-    #   skymap-scanner (setup.py)
 meander==0.0.3
-    # via
-    #   icecube-skyreader
-    #   skymap-scanner (setup.py)
+    # via icecube-skyreader
 numpy==1.24.2
     # via
     #   astropy
@@ -77,9 +71,7 @@ packaging==23.1
     #   astropy
     #   matplotlib
 pandas==2.0.0
-    # via
-    #   icecube-skyreader
-    #   skymap-scanner (setup.py)
+    # via icecube-skyreader
 pillow==9.5.0
     # via matplotlib
 pycparser==2.21
