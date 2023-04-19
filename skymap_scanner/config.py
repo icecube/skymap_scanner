@@ -3,7 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-from typing import Final
+from typing import List, Final
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -15,8 +15,24 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
-SPLINE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/spline-tables"
-LOCAL_STAGING_DIR: Final[Path] = Path("/opt/i3-staging")
+# Default $I3_DATA points to /opt/i3-data, and follows the CVMFS directory stracture.
+# WIP!
+# In the `client_starter.py` usage pattern, when CVFMS is mounted, $I3_DATA is assigned as '/cvmfs/icecube.opensciencegrid.org/data'.
+# Ultimately, CVFMS will be mounted in a transparent way in the container under /cvmfs.
+
+# Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
+LOCAL_DATA_SOURCES: List[Final[Path]] = [
+    Path("/opt/i3-data"),
+    Path("/cvmfs/icecube.opensciencegrid.org/data"),
+]
+# Directory path under a local data source to fetch spline data from.
+LOCAL_SPLINE_SUBDIR: Final[str] = "photon-table/splines"
+
+# HTTP source to download data from.
+REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
+REMOTE_SPLINE_SUBDIR: Final[str] = "spline-data"
+
+LOCAL_DATA_CACHE: Final[Path] = Path("/opt/data-cache")
 
 # physics strings
 INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
