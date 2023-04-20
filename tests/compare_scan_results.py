@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from skymap_scanner.utils.scan_result import SkyScanResult
+from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 

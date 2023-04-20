@@ -8,10 +8,10 @@ import os
 from typing import List
 
 from icecube import icetray
+from skyreader import EventMetadata
 
 from .. import config as cfg
 from . import LOGGER
-from .event_tools import EventMetadata
 from .pixel_classes import RecoPixelFinal, RecoPixelVariation
 from .utils import hash_frame_packet, load_framepacket_from_file
 
