@@ -65,7 +65,7 @@ healpy==1.16.2
     #   skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
-icecube-skyreader==0.1.1
+icecube-skyreader==0.2.0
     # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
@@ -113,11 +113,11 @@ protobuf==4.22.3
     #   grpc-google-iam-v1
     #   grpcio-status
     #   proto-plus
-pyasn1==0.4.8
+pyasn1==0.5.0
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.2.8
+pyasn1-modules==0.3.0
     # via google-auth
 pycparser==2.21
     # via cffi
