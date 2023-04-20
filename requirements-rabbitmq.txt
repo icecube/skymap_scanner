@@ -34,7 +34,7 @@ healpy==1.16.2
     #   skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
-icecube-skyreader==0.1.1
+icecube-skyreader==0.2.0
     # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
