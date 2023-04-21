@@ -21,7 +21,7 @@ DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 # Ultimately, CVFMS will be mounted in a transparent way in the container under /cvmfs.
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
-LOCAL_DATA_SOURCES: List[Final[Path]] = [
+LOCAL_DATA_SOURCES: Final[List[Path]] = [
     Path("/opt/i3-data"),
     Path("/cvmfs/icecube.opensciencegrid.org/data"),
 ]

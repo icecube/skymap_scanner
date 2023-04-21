@@ -24,6 +24,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
+from ..utils.data_handling import DataStager
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -104,7 +105,7 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     out_pkl: Path,
-    filestager
+    filestager,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -113,6 +114,13 @@ def reco_pixel(
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{baseline_GCD_file=}")
+
+    stager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+    )
+    stager.stage_files(recos.get_reco_spline_requirements(reco_algo))
 
     # Build Tray #######################################################
     tray = I3Tray()
@@ -145,7 +153,7 @@ def reco_pixel(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        filestager=filestager,
+        datastager=stager,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 
@@ -278,11 +286,7 @@ def main() -> None:
             f.read(), pnf_framing=False
         )
 
-    # go!
-    icetray.logging.console()
-    cfg.LOCAL_STAGING_DIR.mkdir(exist_ok=True)
-    stager = dataio.get_stagers(staging_directory=str(cfg.LOCAL_STAGING_DIR))
-    os.system(f"ls -laR {cfg.LOCAL_STAGING_DIR}")
+    stager = DataStager()
 
     reco_pixel(
         reco_algo,
@@ -290,7 +294,7 @@ def main() -> None:
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.out_pkl,
-        filestager = stager,
+        filestager=stager,
     )
     LOGGER.info("Done reco'ing pixel.")
 

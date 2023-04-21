@@ -48,8 +48,21 @@ def get_all_reco_algos() -> List[str]:
 def get_reco_interface_object(name: str) -> RecoInterface:
     """Dynamically import the reco sub-module's class."""
     try:
+        # Fetch module
         module = importlib.import_module(f"{__name__}.{name.lower()}")
+        # Build the class name (i.e. reco_algo -> RecoAlgo).
         return getattr(module, "".join(x.capitalize() for x in name.split("_")))
+    except ModuleNotFoundError as e:
+        if name not in get_all_reco_algos():
+            # checking this in 'except' allows us to use 'from e'
+            raise UnsupportedRecoAlgoException(name) from e
+        raise  # something when wrong AFTER accessing sub-module
+
+
+def get_reco_spline_requirements(name: str) -> List[str]:
+    try:
+        module = importlib.import_module(f"{__name__}.{name.lower()}")
+        return getattr(module, "spline_requirements")
     except ModuleNotFoundError as e:
         if name not in get_all_reco_algos():
             # checking this in 'except' allows us to use 'from e'

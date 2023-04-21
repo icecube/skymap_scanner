@@ -34,6 +34,7 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
+spline_requirements = [ "ems_mie_z20_a10.abs.fits", "ems_mie_z20_a10.prob.fits" ]
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
@@ -148,18 +149,13 @@ class MillipedeOriginal(RecoInterface):
 
 
     @icetray.traysegment
-    def traysegment(tray, name, logger, filestager, seed=None):
+    def traysegment(tray, name, logger, datastager, seed=None):
         """Perform MillipedeOriginal reco."""
-        _base = os.path.join(cfg.SPLINE_DATA_SOURCE, "ems_mie_z20_a10.%s.fits")
-        # for fname in [_base % "abs", _base % "prob"]:
-        #     if not os.path.exists(fname):
-        #        raise FileNotFoundError(fname)
-        print(_base % "abs")
-        print(_base % "prob")
-        abs_spline = str(filestager.GetReadablePath(_base % "abs"))
-        prob_spline = str(filestager.GetReadablePath(_base % "prob"))
-        
-        os.system(f"ls -laR {cfg.LOCAL_STAGING_DIR}")
+        abs_spline = datastager.get_filepath("ems_mie_z20_a10.abs.fits")
+        prob_spline = datastager.get_filepath("ems_mie_z20_a10p.prob.fits")
+        for fname in [_base % "abs", _base % "prob"]:
+            if not os.path.exists(fname):
+                raise FileNotFoundError(fname)
 
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         cascade_service.SetEfficiencies(SPEScale)
