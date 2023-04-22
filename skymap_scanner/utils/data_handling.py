@@ -22,7 +22,7 @@ class DataStager:
 
     def stage_files(self, file_list: List[str]):
         for source in self.local_paths:
-            dir_content = source.glob("*")
+            dir_content = list(source.glob("*"))
             LOGGER.debug(f"{source} contains the following files:\n{dir_content}")
         for basename in file_list:
             LOGGER.info(f"Staging file {basename}.")
