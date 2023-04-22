@@ -153,9 +153,6 @@ class MillipedeOriginal(RecoInterface):
         """Perform MillipedeOriginal reco."""
         abs_spline = datastager.get_filepath("ems_mie_z20_a10.abs.fits")
         prob_spline = datastager.get_filepath("ems_mie_z20_a10p.prob.fits")
-        for fname in [_base % "abs", _base % "prob"]:
-            if not os.path.exists(fname):
-                raise FileNotFoundError(fname)
 
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         cascade_service.SetEfficiencies(SPEScale)
