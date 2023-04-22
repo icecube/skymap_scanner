@@ -30,7 +30,7 @@ LOCAL_SPLINE_SUBDIR: Final[str] = "photon-table/splines"
 
 # HTTP source to download data from.
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
-REMOTE_SPLINE_SUBDIR: Final[str] = "spline-data"
+REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
 
 LOCAL_DATA_CACHE: Final[Path] = Path("/opt/data-cache")
 
