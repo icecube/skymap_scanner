@@ -34,7 +34,10 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-spline_requirements = [ "ems_mie_z20_a10.abs.fits", "ems_mie_z20_a10.prob.fits" ]
+MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
+MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
+
+spline_requirements = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
@@ -151,8 +154,8 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, datastager, seed=None):
         """Perform MillipedeOriginal reco."""
-        abs_spline : str = datastager.get_filepath("ems_mie_z20_a10.abs.fits")
-        prob_spline : str = datastager.get_filepath("ems_mie_z20_a10p.prob.fits")
+        abs_spline : str = datastager.get_filepath(MIE_ABS_SPLINE)
+        prob_spline : str = datastager.get_filepath(MIE_PROB_SPLINE)
 
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         cascade_service.SetEfficiencies(SPEScale)
