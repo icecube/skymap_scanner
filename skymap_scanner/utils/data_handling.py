@@ -38,6 +38,7 @@ class DataStager:
         filesystem_destination_path = self.staging_path / basename
 
         if filesystem_destination_path.is_file():
+            # File is already present in staging directory.
             return filesystem_destination_path
 
         http_source_path = f"{self.remote_path}/{basename}"
@@ -47,7 +48,7 @@ class DataStager:
         if return_value != 0:
             raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
         else:
-            return filesystem_destination_path
+            return str(filesystem_destination_path)
 
     def get_filepath(self, basename):
         return self.map.get(basename)

@@ -151,8 +151,8 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, datastager, seed=None):
         """Perform MillipedeOriginal reco."""
-        abs_spline = datastager.get_filepath("ems_mie_z20_a10.abs.fits")
-        prob_spline = datastager.get_filepath("ems_mie_z20_a10p.prob.fits")
+        abs_spline : str = datastager.get_filepath("ems_mie_z20_a10.abs.fits")
+        prob_spline : str = datastager.get_filepath("ems_mie_z20_a10p.prob.fits")
 
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         cascade_service.SetEfficiencies(SPEScale)
