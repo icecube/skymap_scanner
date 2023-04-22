@@ -1,4 +1,4 @@
-import config as cfg  # type: ignore[import]
+from .. import config as cfg  # type: ignore[import]
 import os
 from pathlib import Path
 from typing import Dict, List
