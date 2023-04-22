@@ -57,4 +57,8 @@ class DataStager:
             return str(filesystem_destination_path)
 
     def get_filepath(self, basename):
-        return self.map.get(basename)
+        filepath = self.map.get(basename)
+        if filepath is not None:
+            return self.map.get(basename)
+        else:
+            raise RuntimeError(f"File {basename} is not registered in data stager.")
