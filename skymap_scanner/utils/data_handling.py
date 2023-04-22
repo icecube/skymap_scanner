@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 from typing import Dict, List
 
+from . import LOGGER
+
 
 class DataStager:
     """
@@ -23,9 +25,13 @@ class DataStager:
             for source in self.local_paths:
                 subdir = source / self.local_subdir
                 filename = subdir / basename
+                LOGGER.debug(f"Trying f{filename}.")
                 if filename.is_file():
+                    LOGGER.debug(f"SUCCESS.")
                     self.map[basename] = str(filename)
-                else:
+                    break
+                if self.map.get(basename) is None:
+                    LOGGER.debug(f"Staging from HTTP source.")
                     self.map[basename] = self.stage_file(basename)
 
     def stage_file(self, basename) -> str:
