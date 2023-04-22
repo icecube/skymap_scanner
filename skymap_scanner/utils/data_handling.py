@@ -38,7 +38,7 @@ class DataStager:
         cmd = f"wget -nv -t 5 -O {filesystem_destination_path} {http_source_path}"
         return_value = os.system(cmd)
         if return_value != 0:
-            raise RuntimeError("Failed to retrieve data from remote source:\n-> {cmd}")
+            raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
         else:
             return filesystem_destination_path
 
