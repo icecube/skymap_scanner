@@ -15,6 +15,7 @@ class DataStager:
         self.local_subdir = local_subdir
         self.remote_path = remote_path
         self.staging_path = cfg.LOCAL_DATA_CACHE
+        self.staging_path.mkdir(exist_ok=True)
         self.map: Dict[str, str] = dict()
 
     def stage_files(self, file_list: List[str]):
