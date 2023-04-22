@@ -22,7 +22,7 @@ class DataStager:
 
     def stage_files(self, file_list: List[str]):
         for basename in file_list:
-            LOGGER.info(f"Staging file f{filename}.")
+            LOGGER.info(f"Staging file f{basename}.")
             for source in self.local_paths:
                 subdir = source / self.local_subdir
                 filename = subdir / basename
