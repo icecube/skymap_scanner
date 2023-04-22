@@ -21,18 +21,23 @@ class DataStager:
         self.map: Dict[str, str] = dict()
 
     def stage_files(self, file_list: List[str]):
+        for source in self.local_paths:
+            dir_content = source.glob()
+            LOGGER.debug(f"{source} contains the following files:\n{dir_content}")
         for basename in file_list:
-            LOGGER.info(f"Staging file f{basename}.")
+            LOGGER.info(f"Staging file {basename}.")
             for source in self.local_paths:
                 subdir = source / self.local_subdir
                 filename = subdir / basename
-                LOGGER.debug(f"Trying f{filename}.")
+                LOGGER.debug(f"Trying {filename}.")
                 if filename.is_file():
                     LOGGER.debug(f"SUCCESS.")
                     self.map[basename] = str(filename)
                     break
                 if self.map.get(basename) is None:
-                    LOGGER.debug(f"Staging from HTTP source.")
+                    LOGGER.debug(
+                        f"File is not available on local filesystem. Staging from HTTP source."
+                    )
                     self.map[basename] = self.stage_file(basename)
 
     def stage_file(self, basename) -> str:
@@ -46,7 +51,7 @@ class DataStager:
         # not sure why we use the -O pattern here
         cmd = f"wget -nv -t 5 -O {filesystem_destination_path} {http_source_path}"
         return_value = os.system(cmd)
-        if return_value != 0:
+        if return_value != 0 or not filesystem_destination_path.is_file():
             raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
         else:
             return str(filesystem_destination_path)
