@@ -105,7 +105,7 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     out_pkl: Path,
-    filestager,
+    datastager: DataStager,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -114,13 +114,6 @@ def reco_pixel(
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
     LOGGER.info(f"{baseline_GCD_file=}")
-
-    stager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
-    stager.stage_files(recos.get_reco_spline_requirements(reco_algo))
 
     # Build Tray #######################################################
     tray = I3Tray()
@@ -153,7 +146,7 @@ def reco_pixel(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        datastager=stager,
+        datastager=datastager,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 
@@ -286,7 +279,12 @@ def main() -> None:
             f.read(), pnf_framing=False
         )
 
-    stager = DataStager()
+    stager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+    )
+    stager.stage_files(recos.get_reco_spline_requirements(reco_algo))
 
     reco_pixel(
         reco_algo,
@@ -294,7 +292,7 @@ def main() -> None:
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.out_pkl,
-        filestager=stager,
+        datastager=stager,
     )
     LOGGER.info("Done reco'ing pixel.")
 

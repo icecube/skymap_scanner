@@ -1,6 +1,7 @@
-import config as cfg
+import config as cfg  # type: ignore[import]
 import os
 from pathlib import Path
+from typing import Dict, List
 
 
 class DataStager:
@@ -14,7 +15,7 @@ class DataStager:
         self.local_subdir = local_subdir
         self.remote_path = remote_path
         self.staging_path = cfg.LOCAL_DATA_CACHE
-        self.map = dict()
+        self.map: Dict[str, str] = dict()
 
     def stage_files(self, file_list: List[str]):
         for basename in file_list:
@@ -22,7 +23,7 @@ class DataStager:
                 subdir = source / self.local_subdir
                 filename = subdir / basename
                 if filename.is_file():
-                    self.map[basename] = filename
+                    self.map[basename] = str(filename)
                 else:
                     self.map[basename] = self.stage_file(basename)
 
@@ -41,5 +42,5 @@ class DataStager:
         else:
             return filesystem_destination_path
 
-    def get_filepath(self, basename) -> str:
+    def get_filepath(self, basename):
         return self.map.get(basename)
