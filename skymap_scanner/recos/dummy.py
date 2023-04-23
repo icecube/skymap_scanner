@@ -4,6 +4,7 @@
 import datetime
 import random
 import time
+from typing import List
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -23,7 +24,7 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-spline_requirements = []
+spline_requirements: List[str] = []
 
 
 class Dummy(RecoInterface):
