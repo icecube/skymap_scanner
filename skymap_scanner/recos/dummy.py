@@ -23,6 +23,8 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
+spline_requirements = []
+
 
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""

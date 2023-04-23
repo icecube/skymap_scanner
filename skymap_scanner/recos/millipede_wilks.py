@@ -30,6 +30,11 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
+FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
+FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
+FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+
+spline_requirements = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -38,26 +43,6 @@ class MillipedeWilks(RecoInterface):
     pulsesName_orig = cfg.INPUT_PULSES_NAME
     pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-
-    # Load Data ########################################################
-
-    # At HESE energies, deposited light is dominated by the stochastic losses
-    # (muon part emits so little light in comparison)
-    # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "cascade_single_spice_ftp-v1_flat_z20_a5.%s.fits")
-    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits")
-    for fname in [_base % "abs", _base % "prob", _effd]:
-        if not os.path.exists(fname):
-            raise FileNotFoundError(fname)
-
-    cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0,
-        effectivedistancetable = _effd,
-        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
-        quantileEpsilon=1
-        )
-    muon_service = None
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -182,6 +167,23 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
+        # Load Data ########################################################
+
+        # At HESE energies, deposited light is dominated by the stochastic losses
+        # (muon part emits so little light in comparison)
+        # This is why we can use cascade tables
+        abs_spline = datastager.get_filepath(FTP_ABS_SPLINE)
+        prob_spline = datastager.get_filepath(FTP_PROB_SPLINE)
+        effd_spline = datastager.get_filepath(FTP_EFFD_SPLINE)
+
+        cascade_service = photonics_service.I3PhotoSplineService(
+            abs_spline, prob_spline, timingSigma=0.0,
+            effectivedistancetable = effd_spline,
+            tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
+            quantileEpsilon=1
+            )
+        muon_service = None
+
         def mask_dc(frame, origpulses, maskedpulses):
             # Masks DeepCore pulses by selecting string numbers < 79.
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
@@ -198,8 +200,8 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeWilks.muon_service,
-            CascadePhotonicsService=MillipedeWilks.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
