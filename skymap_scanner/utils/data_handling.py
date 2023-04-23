@@ -16,6 +16,7 @@ class DataStager:
         self.local_paths = local_paths
         self.local_subdir = local_subdir
         self.remote_path = remote_path
+        os.system("ls -lrt /")
         self.staging_path: Path = cfg.LOCAL_DATA_CACHE
         self.staging_path.mkdir(exist_ok=True)
         self.map: Dict[str, str] = dict()
