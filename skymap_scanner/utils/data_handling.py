@@ -41,7 +41,7 @@ class DataStager:
                 LOGGER.debug(
                     f"File is not available on local filesystem. Staging from HTTP source."
                 )
-                self.map[basename] = self.stage_file(basename)
+                self.map[basename] = str(self.stage_file(basename))
 
     def stage_file(self, basename) -> str:
         filesystem_destination_path = self.staging_path / basename
@@ -57,7 +57,7 @@ class DataStager:
         if return_value != 0 or not filesystem_destination_path.is_file():
             raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
         else:
-            return str(filesystem_destination_path)
+            return filesystem_destination_path
 
     def get_filepath(self, basename):
         filepath = self.map.get(basename)
