@@ -32,7 +32,7 @@ LOCAL_SPLINE_SUBDIR: Final[str] = "photon-table/splines"
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
 REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
 
-LOCAL_DATA_CACHE: Final[Path] = Path("/opt/data-cache")
+LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
 # physics strings
 INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"

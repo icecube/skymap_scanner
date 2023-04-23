@@ -48,14 +48,6 @@ class MillipedeOriginal(RecoInterface):
     SPEScale = 0.99
 
     # Load Data ########################################################
-    abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
-    prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
-
-    cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
-    cascade_service.SetEfficiencies(SPEScale)
-    
-    muon_service = None
-
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
@@ -161,6 +153,13 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, datastager, seed=None):
         """Perform MillipedeOriginal reco."""
+        abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
+        prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
+
+        cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
+        cascade_service.SetEfficiencies(MillipedeOriginal.SPEScale)
+    
+        muon_service = None
 
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
