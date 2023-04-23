@@ -30,16 +30,18 @@ class DataStager:
             for source in self.local_paths:
                 subdir = source / self.local_subdir
                 filename = subdir / basename
-                LOGGER.debug(f"Trying {filename}.")
+                LOGGER.debug(f"Trying to read {filename}...")
                 if filename.is_file():
-                    LOGGER.debug(f"SUCCESS.")
+                    LOGGER.debug(f"-> success.")
                     self.map[basename] = str(filename)
                     break
-                if self.map.get(basename) is None:
-                    LOGGER.debug(
-                        f"File is not available on local filesystem. Staging from HTTP source."
-                    )
-                    self.map[basename] = self.stage_file(basename)
+                else:
+                    LOGGER.debug(f"-> fail.")
+            if self.map.get(basename) is None:
+                LOGGER.debug(
+                    f"File is not available on local filesystem. Staging from HTTP source."
+                )
+                self.map[basename] = self.stage_file(basename)
 
     def stage_file(self, basename) -> str:
         filesystem_destination_path = self.staging_path / basename
