@@ -172,8 +172,8 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=muon_service,
-            CascadePhotonicsService=cascade_service,
+            MuonPhotonicsService=MillipedeOriginal.muon_service,
+            CascadePhotonicsService=MillipedeOriginal.cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
             # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
