@@ -44,6 +44,25 @@ class MillipedeWilks(RecoInterface):
     pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
+    # Load Data ########################################################
+    datastager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+    )
+
+    abs_spline = datastager.get_filepath(FTP_ABS_SPLINE)
+    prob_spline = datastager.get_filepath(FTP_PROB_SPLINE)
+    effd_spline = datastager.get_filepath(FTP_EFFD_SPLINE)
+
+    cascade_service = photonics_service.I3PhotoSplineService(
+        abs_spline, prob_spline, timingSigma=0.0,
+        effectivedistancetable = effd_spline,
+        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
+        quantileEpsilon=1
+        )
+    muon_service = None
+
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -172,18 +191,6 @@ class MillipedeWilks(RecoInterface):
         # At HESE energies, deposited light is dominated by the stochastic losses
         # (muon part emits so little light in comparison)
         # This is why we can use cascade tables
-        abs_spline = datastager.get_filepath(FTP_ABS_SPLINE)
-        prob_spline = datastager.get_filepath(FTP_PROB_SPLINE)
-        effd_spline = datastager.get_filepath(FTP_EFFD_SPLINE)
-
-        cascade_service = photonics_service.I3PhotoSplineService(
-            abs_spline, prob_spline, timingSigma=0.0,
-            effectivedistancetable = effd_spline,
-            tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
-            quantileEpsilon=1
-            )
-        muon_service = None
-
         def mask_dc(frame, origpulses, maskedpulses):
             # Masks DeepCore pulses by selecting string numbers < 79.
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(

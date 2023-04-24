@@ -105,7 +105,6 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     out_pkl: Path,
-    datastager: DataStager,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -146,7 +145,6 @@ def reco_pixel(
         recos.get_reco_interface_object(reco_algo).traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
-        datastager=datastager,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
     )
 
@@ -292,7 +290,6 @@ def main() -> None:
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.out_pkl,
-        datastager=stager,
     )
     LOGGER.info("Done reco'ing pixel.")
 
