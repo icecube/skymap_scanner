@@ -45,6 +45,10 @@ class MillipedeWilks(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     # Load Data ########################################################
+
+    # At HESE energies, deposited light is dominated by the stochastic losses
+    # (muon part emits so little light in comparison)
+    # This is why we can use cascade tables
     datastager = DataStager(
         local_paths=cfg.LOCAL_DATA_SOURCES,
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
@@ -188,11 +192,6 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
-        # Load Data ########################################################
-
-        # At HESE energies, deposited light is dominated by the stochastic losses
-        # (muon part emits so little light in comparison)
-        # This is why we can use cascade tables
         def mask_dc(frame, origpulses, maskedpulses):
             # Masks DeepCore pulses by selecting string numbers < 79.
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(

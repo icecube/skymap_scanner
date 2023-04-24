@@ -276,6 +276,7 @@ def main() -> None:
             f.read(), pnf_framing=False
         )
 
+    # go!
     reco_pixel(
         reco_algo,
         pframe,
