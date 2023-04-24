@@ -34,7 +34,7 @@ class DataStager:
                 )
                 self.stage_file(basename)
             else:
-                LOGGER.debug(f"File {basename} is available at {filename}."
+                LOGGER.debug(f"File {basename} is available at {filename}.")
 
     def stage_file(self, basename: str):
         """Retrieves a file from the HTTP source.
