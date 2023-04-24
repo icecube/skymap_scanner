@@ -55,7 +55,7 @@ class MillipedeOriginal(RecoInterface):
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
-    datastager.stage_files()
+    datastager.stage_files(spline_requirements)
     abs_spline: str = datastager.get_filename(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filename(MIE_PROB_SPLINE)
 
