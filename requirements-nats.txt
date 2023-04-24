@@ -71,7 +71,7 @@ packaging==23.1
     # via
     #   astropy
     #   matplotlib
-pandas==2.0.0
+pandas==2.0.1
     # via skymap-scanner (setup.py)
 pillow==9.5.0
     # via matplotlib
