@@ -11,8 +11,6 @@ from typing import Tuple
 
 import numpy
 
-from pathlib import Path
-
 from I3Tray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
@@ -31,6 +29,7 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
+from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
@@ -52,6 +51,20 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
     # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
+    stager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+    )
+    abs_spline: str = datastager.get_filename(MIE_ABS_SPLINE)
+    prob_spline: str = datastager.get_filename(MIE_PROB_SPLINE)
+
+    logger.debug(f"Creating I3PhotoSplineService with splines:\n- {abs_spline}\n- {prob_spline}")
+
+    cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
+    cascade_service.SetEfficiencies(SPEScale)
+
+    muon_service = None
     
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -151,17 +164,8 @@ class MillipedeOriginal(RecoInterface):
 
 
     @icetray.traysegment
-    def traysegment(tray, name, logger, datastager, seed=None):
+    def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
-        abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
-        prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
-
-        logger.debug(f"Creating I3PhotoSplineService with inputs:\n- {abs_spline}\n- {prob_spline}")
-
-        cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
-        cascade_service.SetEfficiencies(MillipedeOriginal.SPEScale)
-    
-        muon_service = None
 
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
@@ -173,8 +177,8 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=muon_service,
-            CascadePhotonicsService=cascade_service,
+            MuonPhotonicsService=MillipedeOriginal.muon_service,
+            CascadePhotonicsService=MillipedeOriginal.cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
             # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)

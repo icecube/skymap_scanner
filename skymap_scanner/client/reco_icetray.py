@@ -277,12 +277,12 @@ def main() -> None:
             f.read(), pnf_framing=False
         )
 
-    stager = DataStager(
+    datastager = DataStager(
         local_paths=cfg.LOCAL_DATA_SOURCES,
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
-    stager.stage_files(recos.get_reco_spline_requirements(reco_algo))
+    datastager.stage_files(recos.get_reco_spline_requirements(reco_algo))
 
     reco_pixel(
         reco_algo,
