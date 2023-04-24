@@ -35,6 +35,7 @@ from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTCon
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
+from ..utils.data_handling import DataStager
 from . import RecoInterface
 
 MIE_BAREMU_PROB = "InfBareMu_mie_prob_z20a10_V2.fits"
@@ -45,7 +46,7 @@ MIE_STOCH_ABS = "InfHighEStoch_mie_abs_z20a10.fits"
 spline_requirements = [MIE_BAREMU_PROB, MIE_BAREMU_ABS, MIE_STOCH_PROB, MIE_STOCH_ABS]
 
 
-class SplinempeSeeded(RecoInterface):
+class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
 
     spline_path = Path(os.path.expandvars("$I3_DATA")) / "photon-tables/splines"
