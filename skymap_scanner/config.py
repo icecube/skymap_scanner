@@ -21,7 +21,7 @@ LOCAL_DATA_SOURCES: Final[List[Path]] = [
     Path("/cvmfs/icecube.opensciencegrid.org/data"),
 ]
 # Directory path under a local data source to fetch spline data from.
-LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
+LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tablex/splines"
 
 # HTTP source to download data from.
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
