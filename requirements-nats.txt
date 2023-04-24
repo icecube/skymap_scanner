@@ -54,7 +54,7 @@ nats-py[nkeys]==2.2.0
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
-numpy==1.24.2
+numpy==1.24.3
     # via
     #   astropy
     #   contourpy
@@ -66,7 +66,7 @@ numpy==1.24.2
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[nats]==1.2.0
+oms-mqclient[nats]==2.0.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
@@ -109,7 +109,7 @@ scipy==1.10.1
     # via healpy
 six==1.16.0
     # via python-dateutil
-tornado==6.3
+tornado==6.3.1
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
