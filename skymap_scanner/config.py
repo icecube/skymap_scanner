@@ -3,11 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-<<<<<<< HEAD
 from typing import Final, List
-=======
-from typing import List, Final
->>>>>>> spline-staging
 
 from wipac_dev_tools import from_environment_as_dataclass
 
