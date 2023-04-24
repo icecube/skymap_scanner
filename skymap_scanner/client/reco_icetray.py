@@ -24,7 +24,6 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..utils.data_handling import DataStager
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -276,13 +275,6 @@ def main() -> None:
         GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
             f.read(), pnf_framing=False
         )
-
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
-    datastager.stage_files(recos.get_reco_spline_requirements(reco_algo))
 
     reco_pixel(
         reco_algo,

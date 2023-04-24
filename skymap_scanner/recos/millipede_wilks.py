@@ -51,6 +51,8 @@ class MillipedeWilks(RecoInterface):
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
 
+    datastager.stage_files(spline_requirements)
+
     abs_spline = datastager.get_filepath(FTP_ABS_SPLINE)
     prob_spline = datastager.get_filepath(FTP_PROB_SPLINE)
     effd_spline = datastager.get_filepath(FTP_EFFD_SPLINE)

@@ -30,9 +30,14 @@ class DataStager:
             filename = self.get_local_filename(basename)
             if filename is None:
                 LOGGER.debug(
-                    f"File {basename} is not available on local filesystem. Staging from HTTP source."
+                    f"File {basename} is not available on default local paths."
                 )
-                self.stage_file(basename)
+                if (self.staging_path / basename).is_file():
+                    LOGGER.debug("File is available on staging path.")
+                else:
+                    LOGGER.debug("Staging from HTTP source.")
+                    self.stage_file(basename)
+
             else:
                 LOGGER.debug(f"File {basename} is available at {filename}.")
 
