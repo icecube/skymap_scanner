@@ -59,8 +59,6 @@ class MillipedeOriginal(RecoInterface):
     abs_spline: str = datastager.get_filename(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filename(MIE_PROB_SPLINE)
 
-    logger.debug(f"Creating I3PhotoSplineService with splines:\n- {abs_spline}\n- {prob_spline}")
-
     cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
     cascade_service.SetEfficiencies(SPEScale)
 
