@@ -50,7 +50,6 @@ class MillipedeOriginal(RecoInterface):
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    # _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
     datastager = DataStager(
         local_paths=cfg.LOCAL_DATA_SOURCES,
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
@@ -61,7 +60,6 @@ class MillipedeOriginal(RecoInterface):
 
     cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
     cascade_service.SetEfficiencies(SPEScale)
-
     muon_service = None
     
     def makeSurePulsesExist(frame, pulsesName) -> None:
@@ -160,11 +158,9 @@ class MillipedeOriginal(RecoInterface):
         return ExcludedDOMs + [MillipedeOriginal.pulsesName_cleaned+'TimeWindows']
 
 
-
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
-
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
