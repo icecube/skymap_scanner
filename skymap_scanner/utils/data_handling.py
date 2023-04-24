@@ -25,12 +25,16 @@ class DataStager:
         Args:
             file_list (List[str]): list of file basenames to look up / retrieve.
         """
+        LOGGER.debug("Staging files in filelist: {file_list}")
         for basename in file_list:
-            if self.get_local_filename(basename) is None:
+            filename = self.get_local_filename(basename)
+            if filename is None:
                 LOGGER.debug(
-                    f"File is not available on local filesystem. Staging from HTTP source."
+                    f"File {basename} is not available on local filesystem. Staging from HTTP source."
                 )
                 self.stage_file(basename)
+            else:
+                LOGGER.debug(f"File {basename} is available at {filename}."
 
     def stage_file(self, basename: str):
         """Retrieves a file from the HTTP source.
