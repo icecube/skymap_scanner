@@ -23,12 +23,12 @@ from icecube import (  # type: ignore[import]
     icetray,
 )
 from rest_tools.client import RestClient
+from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
 from ..utils import extract_json_message
-from ..utils.event_tools import EventMetadata
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
     NSidesDict,
@@ -697,7 +697,7 @@ def main() -> None:
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
-        pulsesName=cfg.INPUT_PULSES_NAME
+        pulsesName=cfg.INPUT_PULSES_NAME,
     )
 
     # write startup files for client-spawning

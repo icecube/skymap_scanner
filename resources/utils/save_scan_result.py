@@ -8,8 +8,8 @@ import argparse
 import logging
 
 import skymap_scanner.config as cfg
+from skymap_scanner.utils import to_skyscan_result
 from skymap_scanner.utils.load_scan_state import load_cache_state
-from skymap_scanner.utils.scan_result import SkyScanResult
 
 
 def main():
@@ -34,15 +34,15 @@ def main():
 
     state_dict = load_cache_state(
         args.event,
-        cfg.RecoAlgo[args.reco_algo.upper()],
+        args.reco_algo,
         cache_dir=args.cache,
     )
 
     """
     The output filename is partially built inside the SkyScanResult class.
     """
-    result = SkyScanResult.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
-    output_file = result.to_npz(eventID, output_path=args.output_path)
+    result = to_skyscan_result.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
+    output_file = result.to_npz(args.event_id, output_dir=args.output_path)
 
     print(f"Saved to {output_file}")
 
