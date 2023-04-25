@@ -27,6 +27,8 @@ class UnsupportedRecoAlgoException(Exception):
 class RecoInterface:
     """An abstract class encapsulating reco-specific logic."""
 
+    SPLINE_REQUIREMENTS: List[str] = list()
+
     @staticmethod
     def traysegment(tray, name, logger, **kwargs: Any) -> None:
         raise NotImplementedError()
@@ -36,6 +38,10 @@ class RecoInterface:
         frame: I3Frame, geometry: I3Frame
     ) -> "RecoPixelVariation":
         raise NotImplementedError()
+
+    @classmethod
+    def get_spline_requirements(cls):
+        return cls.SPLINE_REQUIREMENTS
 
 
 def get_all_reco_algos() -> List[str]:

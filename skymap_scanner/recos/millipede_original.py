@@ -33,15 +33,15 @@ from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
-MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
-
-spline_requirements = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
-
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    # Constants ########################################################
+    # Spline requirements
+    MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
+    MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
+    SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
+
+    # Constants ########################################################
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
     SPEScale = 0.99
@@ -55,7 +55,7 @@ class MillipedeOriginal(RecoInterface):
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
-    datastager.stage_files(spline_requirements)
+    datastager.stage_files(get_spline_requirements())
     abs_spline: str = datastager.get_filename(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filename(MIE_PROB_SPLINE)
 
