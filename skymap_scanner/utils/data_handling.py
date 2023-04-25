@@ -1,6 +1,6 @@
 from .. import config as cfg  # type: ignore[import]
-import os
 from pathlib import Path
+import subprocess
 from typing import Dict, List, Union
 
 from . import LOGGER
@@ -54,8 +54,20 @@ class DataStager:
         http_source_path = f"{self.remote_path}/{basename}"
         # not sure why we use the -O pattern here
         cmd = f"wget -nv -t 5 -O {local_destination_path} {http_source_path}"
-        return_value = os.system(cmd)
-        if return_value != 0 or not local_destination_path.is_file():
+        return_value = subprocess.run(
+            [
+                "wget",
+                "-nv",
+                "-t",
+                "5",
+                "-O",
+                str(local_destination_path),
+                http_source_path,
+            ],
+            check=True,
+        )
+
+        if not local_destination_path.is_file():
             raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
 
     def get_filename(self, basename: str) -> str:
