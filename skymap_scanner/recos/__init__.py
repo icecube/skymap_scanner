@@ -27,6 +27,8 @@ class UnsupportedRecoAlgoException(Exception):
 class RecoInterface:
     """An abstract class encapsulating reco-specific logic."""
 
+    # List of spline file basenames required by the class.
+    # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
     @staticmethod
@@ -38,10 +40,6 @@ class RecoInterface:
         frame: I3Frame, geometry: I3Frame
     ) -> "RecoPixelVariation":
         raise NotImplementedError()
-
-    @classmethod
-    def get_spline_requirements(cls):
-        return cls.SPLINE_REQUIREMENTS
 
 
 def get_all_reco_algos() -> List[str]:
