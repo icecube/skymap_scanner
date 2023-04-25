@@ -27,8 +27,9 @@ class DataStager:
         """
         LOGGER.debug("Staging files in filelist: {file_list}")
         for basename in file_list:
-            filename = self.get_local_filename(basename)
-            if filename is None:
+            try:
+                filename = self.get_local_filename(basename)
+            except FileNotFoundError:
                 LOGGER.debug(
                     f"File {basename} is not available on default local paths."
                 )
@@ -54,21 +55,28 @@ class DataStager:
         http_source_path = f"{self.remote_path}/{basename}"
         # not sure why we use the -O pattern here
         cmd = f"wget -nv -t 5 -O {local_destination_path} {http_source_path}"
-        return_value = subprocess.run(
-            [
-                "wget",
-                "-nv",
-                "-t",
-                "5",
-                "-O",
-                str(local_destination_path),
-                http_source_path,
-            ],
-            check=True,
-        )
+        try:
+            status = subprocess.run(
+                [
+                    "wget",
+                    "-nv",
+                    "-t",
+                    "5",
+                    "-O",
+                    str(local_destination_path),
+                    http_source_path,
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            raise RuntimeError(
+                f"Subprocess `wget` exited with status {status.returncode}:\n-> {cmd}"
+            )
 
         if not local_destination_path.is_file():
-            raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
+            raise RuntimeError(
+                f"Subprocess `wget` succeeded but the resulting file is invalid:\n-> {cmd}"
+            )
 
     def get_filename(self, basename: str) -> str:
         """Look up basename under the local paths and the staging path and returns the first valid filename.
@@ -79,28 +87,27 @@ class DataStager:
         Returns:
             str: valid filename.
         """
-        local_filename = self.get_local_filename(basename)
-        if local_filename is not None:
+        try:
+            local_filename = self.get_local_filename(basename)
             return local_filename
-        else:
+        except FileNotFoundError:
             filepath = self.staging_path / basename
             if filepath.is_file():
                 return str(filepath)
             else:
                 raise FileNotFoundError(
-                    f"File {basename} is not available in any local or staging directory."
+                    f"File {basename} is not available in any local or staging path."
                 )
 
-    def get_local_filename(self, basename: str) -> Union[str, None]:
+    def get_local_filename(self, basename: str) -> str:
         """Look up basename on local paths and return the first matching filename.
 
         Args:
             basename (str): the basename of the file to look up.
 
         Returns:
-            Union[str, None]: the full filename of the file if available, otherwise None.
+            str: the full filename of the file if available, otherwise None.
         """
-        filename = None
         LOGGER.info(f"Look up file {basename}.")
         for source in self.local_paths:
             subdir = source / self.local_subdir
@@ -112,4 +119,5 @@ class DataStager:
                 break
             else:
                 LOGGER.debug(f"-> fail.")
-        return filename
+        # File was not found in local paths.
+        raise FileNotFoundError(f"File {basename} is not available on any local path.")
