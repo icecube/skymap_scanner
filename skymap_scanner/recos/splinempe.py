@@ -153,7 +153,9 @@ class Splinempe(RecoInterface):
         cleaned_muon_pulseseries = "CleanedMuonPulses"
         energy_reco_seed = "OnlineL2_BestFit"
         energy_estimator = "OnlineL2_BestFit_MuEx"
-        vertex_seed = "OnlineL2_SplineMPE"
+
+        vertex_seed = cfg.OUTPUT_PARTICLE_NAME
+        # this was "OnlineL2_SplineMPE"
 
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
@@ -289,14 +291,14 @@ class Splinempe(RecoInterface):
             max_iterations=Splinempe.get_simplex_max_iterations(),
         )
 
-        # iminuit can be disabled if not necessary
-        tray.context["iminuit"] = i3minuit.IMinuitMinimizer(
-            name="iminuit",
-            Tolerance=10,
-            MaxIterations=1000,
-            MinuitStrategy=2,
-            MinuitPrintLevel=0,
-        )
+        # Alternative minimizer.
+        # tray.context["iminuit"] = i3minuit.IMinuitMinimizer(
+        #     name="iminuit",
+        #     Tolerance=10,
+        #     MaxIterations=1000,
+        #     MinuitStrategy=2,
+        #     MinuitPrintLevel=0,
+        # )
 
         # parametrization for minimization
         steps = Splinempe.get_steps()
@@ -310,8 +312,8 @@ class Splinempe(RecoInterface):
         tray.Add(
             "I3BasicSeedServiceFactory",
             "splinempe-seed",
-            # FirstGuess=cfg.OUTPUT_PARTICLE_NAME,
             FirstGuess=vertex_seed,
+            # FirstGuess=vertex_seed,
             # multiple can be provided as FirstGuesses=[,]
             TimeShiftType="TNone",
             PositionShiftType="None",
