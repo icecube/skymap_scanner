@@ -106,7 +106,7 @@ class DataStager:
             basename (str): the basename of the file to look up.
 
         Returns:
-            str: the full filename of the file if available, otherwise None.
+            str: the full filename of the file if available
         """
         LOGGER.info(f"Look up file {basename}.")
         for source in self.local_paths:
