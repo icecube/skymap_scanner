@@ -25,7 +25,7 @@ class DataStager:
         Args:
             file_list (List[str]): list of file basenames to look up / retrieve.
         """
-        LOGGER.debug("Staging files in filelist: {file_list}")
+        LOGGER.debug(f"Staging files in filelist: {file_list}")
         for basename in file_list:
             try:
                 filename = self.get_local_filename(basename)
@@ -54,24 +54,19 @@ class DataStager:
         local_destination_path = self.staging_path / basename
         http_source_path = f"{self.remote_path}/{basename}"
         # not sure why we use the -O pattern here
-        cmd = f"wget -nv -t 5 -O {local_destination_path} {http_source_path}"
+        cmd = [
+            "wget",
+            "-nv",
+            "-t",
+            "5",
+            "-O",
+            str(local_destination_path),
+            http_source_path,
+        ]
         try:
-            status = subprocess.run(
-                [
-                    "wget",
-                    "-nv",
-                    "-t",
-                    "5",
-                    "-O",
-                    str(local_destination_path),
-                    http_source_path,
-                ],
-                check=True,
-            )
-        except subprocess.CalledProcessError:
-            raise RuntimeError(
-                f"Subprocess `wget` exited with status {status.returncode}:\n-> {cmd}"
-            )
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Subprocess `wget` exited with status:\n -> {e}")
 
         if not local_destination_path.is_file():
             raise RuntimeError(
