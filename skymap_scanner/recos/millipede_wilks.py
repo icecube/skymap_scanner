@@ -27,6 +27,7 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
+from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
@@ -59,9 +60,9 @@ class MillipedeWilks(RecoInterface):
 
     datastager.stage_files(SPLINE_REQUIREMENTS)
 
-    abs_spline = datastager.get_filepath(FTP_ABS_SPLINE)
-    prob_spline = datastager.get_filepath(FTP_PROB_SPLINE)
-    effd_spline = datastager.get_filepath(FTP_EFFD_SPLINE)
+    abs_spline: str = datastager.get_filepath(FTP_ABS_SPLINE)
+    prob_spline: str = datastager.get_filepath(FTP_PROB_SPLINE)
+    effd_spline: str = datastager.get_filepath(FTP_EFFD_SPLINE)
 
     cascade_service = photonics_service.I3PhotoSplineService(
         abs_spline, prob_spline, timingSigma=0.0,

@@ -71,7 +71,7 @@ class DataStager:
                 f"Subprocess `wget` succeeded but the resulting file is invalid:\n-> {cmd}"
             )
 
-    def get_filename(self, filename: str) -> str:
+    def get_filepath(self, filename: str) -> str:
         """Look up basename under the local paths and the staging path and returns the first valid filename.
 
         Args:

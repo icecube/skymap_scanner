@@ -56,8 +56,8 @@ class MillipedeOriginal(RecoInterface):
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
     datastager.stage_files(SPLINE_REQUIREMENTS)
-    abs_spline: str = datastager.get_filename(MIE_ABS_SPLINE)
-    prob_spline: str = datastager.get_filename(MIE_PROB_SPLINE)
+    abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
+    prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
 
     cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
     cascade_service.SetEfficiencies(SPEScale)
