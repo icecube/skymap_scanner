@@ -490,9 +490,12 @@ class Reporter:
         # see when we reached X% done
         predicted_total = self.predicted_total_recos()
         timeline = {}
-        for i in cfg.REPORTER_TIMELINE_PERCENTAGES:
+        for i in ["first"] + cfg.REPORTER_TIMELINE_PERCENTAGES:
             # round up b/c it's when it reached X
-            index = math.ceil(predicted_total * i) - 1
+            if i == "first":
+                index = 0
+            else:
+                index = math.ceil(predicted_total * i) - 1
             try:
                 when = self.worker_stats_collection.aggregate.ends[index]
                 timeline[i] = str(dt.timedelta(seconds=int(when - self.global_start)))
