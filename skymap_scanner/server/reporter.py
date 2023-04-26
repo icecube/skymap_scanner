@@ -164,7 +164,7 @@ class WorkerStatsCollection:
         return sum(len(w.worker_runtimes) for w in self._worker_stats_by_nside.values())
 
     @property
-    def first_reco_start(self) -> float:
+    def first_roundtrip_start(self) -> float:
         """O(n), n < 10."""
         return min(w.roundtrip_start for w in self._worker_stats_by_nside.values())
 
@@ -269,6 +269,7 @@ class Reporter:
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
+        self.time_of_first_reco_start_on_client = 0.0
         self.worker_stats_collection: WorkerStatsCollection = WorkerStatsCollection()
 
         self._call_order = {
@@ -310,6 +311,11 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_reco)
+
+        if not self.time_of_first_reco_start_on_client:
+            # timeline: roundtrip_start -> pre-reco queue time -> (runtime) -> post-reco queue time -> roundtrip_end
+            # if we assume "post-reco queue time" ~= 0.0, then the reco started here:
+            self.time_of_first_reco_start_on_client = roundtrip_end - (runtime + 0.0)
 
         # update stats
         nside_ct = self.worker_stats_collection.update(
@@ -397,27 +403,39 @@ class Reporter:
             return proc_stats
 
         # stats now that we have reco(s)
-        elapsed_reco_walltime = (
-            time.time() - self.worker_stats_collection.first_reco_start
-        )
         startup_runtime = (
-            self.worker_stats_collection.first_reco_start - self.global_start
+            self.worker_stats_collection.first_roundtrip_start - self.global_start
         )
         proc_stats["start"].update(
             {
-                "reco start": str(
+                "reco start (on server)": str(
                     dt.datetime.fromtimestamp(
-                        int(self.worker_stats_collection.first_reco_start)
+                        int(self.worker_stats_collection.first_roundtrip_start)
                     )
+                ),
+                "reco start (on first worker)": dt.datetime.fromtimestamp(
+                    int(self.time_of_first_reco_start_on_client)
                 ),
             }
         )
         proc_stats["runtime"].update(
             {
                 "startup runtime": str(dt.timedelta(seconds=int(startup_runtime))),
-                "reco runtime": str(dt.timedelta(seconds=int(elapsed_reco_walltime))),
-                "reco runtime + startup runtime": str(
-                    dt.timedelta(seconds=int(elapsed_reco_walltime + startup_runtime))
+                "reco runtime (on server)": str(
+                    dt.timedelta(
+                        seconds=int(
+                            time.time()
+                            - self.worker_stats_collection.first_roundtrip_start
+                        )
+                    )
+                ),
+                "reco start delay (on first worker)": str(
+                    dt.timedelta(
+                        seconds=int(
+                            self.time_of_first_reco_start_on_client
+                            - self.worker_stats_collection.first_roundtrip_start
+                        )
+                    )
                 ),
             }
         )
