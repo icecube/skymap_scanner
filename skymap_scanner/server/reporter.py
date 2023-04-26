@@ -418,8 +418,10 @@ class Reporter:
                         int(self.worker_stats_collection.first_roundtrip_start)
                     )
                 ),
-                "reco start (on first worker)": dt.datetime.fromtimestamp(
-                    int(self.time_of_first_reco_start_on_client)
+                "reco start (on first worker)": str(
+                    dt.datetime.fromtimestamp(
+                        int(self.time_of_first_reco_start_on_client)
+                    )
                 ),
             }
         )
