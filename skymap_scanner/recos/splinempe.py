@@ -59,10 +59,10 @@ class Splinempe(RecoInterface):
 
     datastager.stage_files(spline_requirements)
 
-    BareMuTimingSpline: str = datastager.get_filename(MIE_BAREMU_PROB)
-    BareMuAmplitudeSpline: str = datastager.get_filename(MIE_BAREMU_ABS)
-    StochTimingSpline: str = datastager.get_filename(MIE_STOCH_PROB)
-    StochAmplitudeSpline: str = datastager.get_filename(MIE_STOCH_ABS)
+    BareMuTimingSpline: str = datastager.get_filepath(MIE_BAREMU_PROB)
+    BareMuAmplitudeSpline: str = datastager.get_filepath(MIE_BAREMU_ABS)
+    StochTimingSpline: str = datastager.get_filepath(MIE_STOCH_PROB)
+    StochAmplitudeSpline: str = datastager.get_filepath(MIE_STOCH_ABS)
 
     @staticmethod
     def get_prejitter(config="max") -> int:
