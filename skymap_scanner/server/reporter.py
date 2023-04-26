@@ -515,15 +515,17 @@ class Reporter:
         # see when we reached X% done
         predicted_total = self.predicted_total_recos()
         timeline = {}
-        for i in ["first"] + cfg.REPORTER_TIMELINE_PERCENTAGES:
-            # round up b/c it's when it reached X
-            if i == "first":
-                index = 0
+        for i in [1 / predicted_total] + cfg.REPORTER_TIMELINE_PERCENTAGES:
+            if i == 1 / predicted_total:
+                index = 0  # make sure it's the first despite any floating point error
             else:
+                # round up b/c it's when scan *reached* X%
                 index = math.ceil(predicted_total * i) - 1
             try:
                 when = self.worker_stats_collection.aggregate.ends[index]
-                timeline[i] = str(dt.timedelta(seconds=int(when - self.global_start)))
+                timeline[str(i)] = str(
+                    dt.timedelta(seconds=int(when - self.global_start))
+                )
             except IndexError:  # have not reached that point yet
                 pass
 
