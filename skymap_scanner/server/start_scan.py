@@ -265,7 +265,11 @@ class PixelsToReco:
         if self.reco_algo == "splinempe":
             self.pos_variations = get_splinempe_position_variations(zenith, azimuth)
 
-        for i in range(0, n_pos_variatons):
+        n_pos_variations = len(self.pos_variations)
+
+        LOGGER.debug(f"Generating {n_pos_variations} position variations.")
+
+        for i in range(0, n_pos_variations):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
