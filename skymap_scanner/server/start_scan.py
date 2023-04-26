@@ -263,9 +263,9 @@ class PixelsToReco:
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
         if self.reco_algo == "splinempe":
-            self.pos_variations += get_splinempe_position_variations(zenith, azimuth)
+            self.pos_variations = get_splinempe_position_variations(zenith, azimuth)
 
-        for i in range(0,len(self.pos_variations)):
+        for i in range(0, n_pos_variatons):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
@@ -463,12 +463,12 @@ async def _serve_and_collect(
             LOGGER.info("Receiving recos from clients...")
             collected_all_sent = False
             async for msg in sub:
-                if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
+                if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
                     raise ValueError(
                         f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
                     )
                 try:
-                    await collector.collect(msg['reco_pixel_variation'], msg['runtime'])
+                    await collector.collect(msg["reco_pixel_variation"], msg["runtime"])
                 except ExtraRecoPixelVariationException as e:
                     logging.error(e)
 
@@ -620,7 +620,7 @@ def main() -> None:
             f"The first nside's pixel extension must be {NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION}. "
             f"Example: --nsides 8:{NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
         ),
-        nargs='*',
+        nargs="*",
         type=_nside_and_pixelextension,
     )
     # --real-event XOR --simulated-event
@@ -628,12 +628,12 @@ def main() -> None:
     group.add_argument(
         "--real-event",
         action="store_true",
-        help='include this flag if the event is real',
+        help="include this flag if the event is real",
     )
     group.add_argument(
         "--simulated-event",
         action="store_true",
-        help='include this flag if the event was simulated',
+        help="include this flag if the event was simulated",
     )
 
     # predictive_scanning_threshold

@@ -1,11 +1,12 @@
 import numpy as np
 from typing import List
-from I3Tray import I3Units # type: ignore[import]
-from icecube import dataclasses # type: ignore[import]
+from I3Tray import I3Units  # type: ignore[import]
+from icecube import dataclasses  # type: ignore[import]
 
 
 def get_splinempe_position_variations(
-    zenith : float, azimuth : float,
+    zenith: float,
+    azimuth: float,
     v_ax: List[float] = [-40.0, 40.0],
     r_ax: List[float] = [150.0],
     ang_steps=3,
@@ -28,7 +29,7 @@ def get_splinempe_position_variations(
     """
 
     vert_u = I3Units.m
-    
+
     # define angular steps
     ang_ax = np.linspace(0, 2.0 * np.pi, ang_steps + 1)[:-1]
 
@@ -37,16 +38,13 @@ def get_splinempe_position_variations(
 
     v_dir, dir1, dir2 = get_orthonormal_basis(zenith, azimuth)
 
-    pos_seeds = [] # empty list, the starting vertix is implicit
+    pos_seeds = [dataclasses.I3Position(0.0, 0.0, 0.0)]
 
-    for i, vi in enumerate(v_ax): # step along axis
+    for i, vi in enumerate(v_ax):  # step along axis
+        v = vi * v_dir
 
-        v = vi * v_dir 
-
-        for j, r in enumerate(r_ax): # step along radius
-
-            for ang in ang_ax: #  step around anlge
-
+        for j, r in enumerate(r_ax):  # step along radius
+            for ang in ang_ax:  #  step around anlge
                 d1 = r * np.cos(ang + (i + j) * dang) * dir1
                 d2 = r * np.sin(ang + (i + j) * dang) * dir2
 
@@ -64,32 +62,35 @@ def get_splinempe_position_variations(
 
     return pos_seeds
 
+
 def get_orthonormal_basis(theta, phi):
-        """Given a direction in the sky it returns a 3D orthonormal basis 
+    """Given a direction in the sky it returns a 3D orthonormal basis
 
-        Args:
-            theta ([float]): Theta angle
-            phi ([float]): Phi angle
+    Args:
+        theta ([float]): Theta angle
+        phi ([float]): Phi angle
 
-        Returns:
-            v_dir ([numpy array of floats]): the vector along the direction
-            dir1 ([numpy array of floats]): one of the two vectors orthogonal to the direction
-            dir2 ([numpy array of floats]): the other vector orthogonal to the direction
-        """
+    Returns:
+        v_dir ([numpy array of floats]): the vector along the direction
+        dir1 ([numpy array of floats]): one of the two vectors orthogonal to the direction
+        dir2 ([numpy array of floats]): the other vector orthogonal to the direction
+    """
 
-        # unit vector along direction defined by theta, phi
-        v_dir = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
+    # unit vector along direction defined by theta, phi
+    v_dir = np.array(
+        [np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)]
+    )
 
-        # first orthonormal vector, from theta => theta - pi/2
-        dir1 = np.array(
-            [
-                np.cos(phi) * np.sin(theta - np.pi / 2.0),
-                np.sin(phi) * np.sin(theta - np.pi / 2.0),
-                np.cos(theta - np.pi / 2.0),
-            ]
-        )
+    # first orthonormal vector, from theta => theta - pi/2
+    dir1 = np.array(
+        [
+            np.cos(phi) * np.sin(theta - np.pi / 2.0),
+            np.sin(phi) * np.sin(theta - np.pi / 2.0),
+            np.cos(theta - np.pi / 2.0),
+        ]
+    )
 
-        # second orthonormal vector
-        dir2 = np.cross(v_dir, dir1)
+    # second orthonormal vector
+    dir2 = np.cross(v_dir, dir1)
 
-        return v_dir, dir1, dir2
+    return v_dir, dir1, dir2
