@@ -106,6 +106,8 @@ class PixelsToReco:
                     dataclasses.I3Position(0.,0.,-variation_distance),
                     dataclasses.I3Position(0.,0., variation_distance)
                 ]
+        elif self.reco_algo == 'splinempe':
+            self.pos_variations = get_splinempe_position_variations(zenith=0.0, azimuth=0.0)
         else:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
@@ -262,9 +264,6 @@ class PixelsToReco:
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
-        if self.reco_algo == "splinempe":
-            self.pos_variations = get_splinempe_position_variations(zenith, azimuth)
-
         n_pos_variations = len(self.pos_variations)
 
         LOGGER.debug(f"Generating {n_pos_variations} position variations.")
@@ -273,17 +272,18 @@ class PixelsToReco:
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
-            if self.reco_algo == 'millipede_wilks':
+            if self.reco_algo in ['millipede_wilks', 'splinempe']:
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
-                if position != self.fallback_position:
-                    # add fallback pos as an extra first guess
-                    p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
-                        self.fallback_position+posVariation,
-                        direction,
-                        self.fallback_energy,
-                        self.fallback_time)
+                if self.reco_algo == 'millipede_wilks':
+                    if position != self.fallback_position:
+                        # add fallback pos as an extra first guess
+                        p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
+                            self.fallback_position+posVariation,
+                            direction,
+                            self.fallback_energy,
+                            self.fallback_time)
 
             p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
                                                                       direction,
