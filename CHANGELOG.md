@@ -2,6 +2,19 @@
 
 <!--next-version-placeholder-->
 
+## v3.9.0 (2023-04-20)
+
+
+## v3.8.3 (2023-04-17)
+### Other
+* Fix SkyDriver URLs ([#177](https://github.com/icecube/skymap_scanner/issues/177)) ([`eddd509`](https://github.com/icecube/skymap_scanner/commit/eddd5099a9085e5ead74e69ce00a63eff566f5fd))
+
+## v3.8.2 (2023-04-10)
+### Other
+* <bot> update requirements-gcp.txt ([`1889eee`](https://github.com/icecube/skymap_scanner/commit/1889eee70344df205e9e9362c86a4c7c5f08abf9))
+* <bot> update requirements-all.txt ([`b4b1000`](https://github.com/icecube/skymap_scanner/commit/b4b1000e4e1de785039b9d1fda2628f419bef9e2))
+* Flip bounding box calculation of +/- dec error for Equatorial scan ([#176](https://github.com/icecube/skymap_scanner/issues/176)) ([`c40c21d`](https://github.com/icecube/skymap_scanner/commit/c40c21de08b7317e043c1b8217247f9895e6a1ee))
+
 ## v3.8.1 (2023-04-05)
 ### Other
 * <bot> update requirements.txt ([`12bfcc6`](https://github.com/icecube/skymap_scanner/commit/12bfcc6bf90923d47c89a4b81e166f90c0dc568e))

@@ -7,11 +7,11 @@
 astropy==5.2.2
     # via
     #   healpy
-    #   skymap-scanner (setup.py)
-asyncstdlib==3.10.6
-    # via skymap-scanner (setup.py)
+    #   icecube-skyreader
 cachetools==5.3.0
-    # via wipac-rest-tools
+    # via
+    #   google-auth
+    #   wipac-rest-tools
 certifi==2022.12.7
     # via requests
 cffi==1.15.1
@@ -30,10 +30,43 @@ ewms-pilot==0.6.0
     # via skymap-scanner (setup.py)
 fonttools==4.39.3
     # via matplotlib
+google-api-core[grpc]==2.11.0
+    # via
+    #   google-cloud-pubsub
+    #   oms-mqclient
+google-auth==2.17.3
+    # via
+    #   google-api-core
+    #   oms-mqclient
+google-cloud-pubsub==2.16.0
+    # via oms-mqclient
+googleapis-common-protos[grpc]==1.59.0
+    # via
+    #   google-api-core
+    #   grpc-google-iam-v1
+    #   grpcio-status
+    #   oms-mqclient
+grpc-google-iam-v1==0.12.6
+    # via google-cloud-pubsub
+grpcio==1.54.0
+    # via
+    #   google-api-core
+    #   google-cloud-pubsub
+    #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
+grpcio-status==1.54.0
+    # via
+    #   google-api-core
+    #   google-cloud-pubsub
 healpy==1.16.2
-    # via skymap-scanner (setup.py)
+    # via
+    #   icecube-skyreader
+    #   skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
+icecube-skyreader==1.0.1
+    # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
 iminuit==2.21.3
@@ -43,21 +76,22 @@ kiwisolver==1.4.4
 matplotlib==3.7.1
     # via
     #   healpy
-    #   skymap-scanner (setup.py)
+    #   icecube-skyreader
 meander==0.0.3
-    # via skymap-scanner (setup.py)
-numpy==1.24.3
+    # via icecube-skyreader
+numpy==1.24.2
     # via
     #   astropy
     #   contourpy
     #   healpy
+    #   icecube-skyreader
     #   iminuit
     #   matplotlib
     #   pandas
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[gcp]==2.1.0
+oms-mqclient[gcp]==1.2.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
@@ -65,10 +99,26 @@ packaging==23.1
     # via
     #   astropy
     #   matplotlib
-pandas==2.0.1
-    # via skymap-scanner (setup.py)
+pandas==2.0.0
+    # via icecube-skyreader
 pillow==9.5.0
     # via matplotlib
+proto-plus==1.22.2
+    # via google-cloud-pubsub
+protobuf==4.22.3
+    # via
+    #   google-api-core
+    #   google-cloud-pubsub
+    #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
+    #   proto-plus
+pyasn1==0.5.0
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.3.0
+    # via google-auth
 pycparser==2.21
     # via cffi
 pyerfa==2.0.0.3
@@ -89,18 +139,23 @@ pyyaml==6.0
     # via astropy
 qrcode==7.4.2
     # via wipac-rest-tools
-requests==2.29.0
+requests==2.28.2
     # via
+    #   google-api-core
     #   requests-futures
     #   wipac-dev-tools
     #   wipac-rest-tools
 requests-futures==1.0.0
     # via wipac-rest-tools
+rsa==4.9
+    # via google-auth
 scipy==1.10.1
     # via healpy
 six==1.16.0
-    # via python-dateutil
-tornado==6.3.1
+    # via
+    #   google-auth
+    #   python-dateutil
+tornado==6.3
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
@@ -114,6 +169,7 @@ urllib3==1.26.15
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.15
     # via
+    #   icecube-skyreader
     #   oms-mqclient
     #   skymap-scanner (setup.py)
     #   wipac-rest-tools
