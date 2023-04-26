@@ -381,7 +381,7 @@ jobs:
         run: |
           docker run --rm -i \
             icecube/skymap_scanner:local \
-            python tests/file_staging.py
+            python -u tests/file_staging.py
 
   test-run-single-pixel:
     needs: test-build-docker
