@@ -63,10 +63,8 @@ class DataStager:
             str(local_destination_path),
             http_source_path,
         ]
-        try:
-            subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Subprocess `wget` exited with status:\n -> {e}")
+
+        subprocess.run(cmd, check=True)
 
         if not local_destination_path.is_file():
             raise RuntimeError(
