@@ -9,15 +9,14 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-# Build a list of all local files.
+# Build list of all local files.
 local_file_list = []
 for path in cfg.LOCAL_DATA_SOURCES:
     subpath = path / cfg.LOCAL_SPLINE_SUBDIR
     directory_content = subpath.glob("*")
     for path in directory_content:
-        if path.is_file():
-            # skip directories
-            local_file_list.append(path.name)  # store name (basename)
+        if path.is_file():  # skip directories
+            local_file_list.append(path.name)  # store filename without path
 
 # Declare at least one filename only expected to be available remotely.
 remote_file_list = ["README"]
@@ -33,6 +32,7 @@ datastager = DataStager(
 
 datastager.stage_files(local_file_list)
 datastager.stage_files(remote_file_list)
+datastager.stage_files(invalid_file_list)
 
 # ensure that filepaths can be retrieved for all local files
 local_filepaths: Dict[str, str] = dict()
