@@ -405,6 +405,9 @@ class Reporter:
             return proc_stats
 
         # stats now that we have reco(s)
+        elapsed_reco_server_walltime = (
+            time.time() - self.worker_stats_collection.first_roundtrip_start
+        )
         startup_runtime = (
             self.worker_stats_collection.first_roundtrip_start - self.global_start
         )
@@ -424,12 +427,7 @@ class Reporter:
             {
                 "startup runtime": str(dt.timedelta(seconds=int(startup_runtime))),
                 "reco runtime (on server)": str(
-                    dt.timedelta(
-                        seconds=int(
-                            time.time()
-                            - self.worker_stats_collection.first_roundtrip_start
-                        )
-                    )
+                    dt.timedelta(seconds=int(elapsed_reco_server_walltime))
                 ),
                 "reco start delay (on first worker)": str(
                     dt.timedelta(
@@ -453,12 +451,14 @@ class Reporter:
         else:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
-            secs_predicted = elapsed_reco_walltime / (
+            secs_predicted = elapsed_reco_server_walltime / (
                 self.worker_stats_collection.total_ct / self.predicted_total_recos()
             )
             proc_stats["predictions"] = {
                 "time left": str(
-                    dt.timedelta(seconds=int(secs_predicted - elapsed_reco_walltime))
+                    dt.timedelta(
+                        seconds=int(secs_predicted - elapsed_reco_server_walltime)
+                    )
                 ),
                 "total runtime at finish": str(
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
@@ -466,7 +466,10 @@ class Reporter:
                 "total # of reconstructions": self.predicted_total_recos(),
                 "end": str(
                     dt.datetime.fromtimestamp(
-                        int(time.time() + (secs_predicted - elapsed_reco_walltime))
+                        int(
+                            time.time()
+                            + (secs_predicted - elapsed_reco_server_walltime)
+                        )
                     )
                 ),
             }
