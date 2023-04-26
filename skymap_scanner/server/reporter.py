@@ -314,6 +314,8 @@ class Reporter:
 
         if not self.time_of_first_reco_start_on_client:
             # timeline: roundtrip_start -> pre-reco queue time -> (runtime) -> post-reco queue time -> roundtrip_end
+            # since worker nodes need to startup & a pixel may fail several times before being reco'd,
+            # we know "pre-reco queue time" >>> "post-reco queue time"
             # if we assume "post-reco queue time" ~= 0.0, then the reco started here:
             self.time_of_first_reco_start_on_client = roundtrip_end - (runtime + 0.0)
 
