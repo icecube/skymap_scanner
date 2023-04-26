@@ -27,6 +27,10 @@ class UnsupportedRecoAlgoException(Exception):
 class RecoInterface:
     """An abstract class encapsulating reco-specific logic."""
 
+    # List of spline file basenames required by the class.
+    # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
+    SPLINE_REQUIREMENTS: List[str] = list()
+
     @staticmethod
     def traysegment(tray, name, logger, **kwargs: Any) -> None:
         raise NotImplementedError()

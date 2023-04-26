@@ -1,6 +1,6 @@
 from .. import config as cfg  # type: ignore[import]
-import os
 from pathlib import Path
+import subprocess
 from typing import Dict, List, Union
 
 from . import LOGGER
@@ -20,15 +20,16 @@ class DataStager:
         self.staging_path.mkdir(exist_ok=True)
 
     def stage_files(self, file_list: List[str]):
-        """Checks local availability for file (basenames) in a list, and retrieves the missing ones from the HTTP source.
+        """Checks local availability for filenames in a list, and retrieves the missing ones from the HTTP source.
 
         Args:
-            file_list (List[str]): list of file basenames to look up / retrieve.
+            file_list (List[str]): list of file filenames to look up / retrieve.
         """
-        LOGGER.debug("Staging files in filelist: {file_list}")
+        LOGGER.debug(f"Staging files in filelist: {file_list}")
         for basename in file_list:
-            filename = self.get_local_filename(basename)
-            if filename is None:
+            try:
+                filepath: str = self.get_local_filepath(basename)
+            except FileNotFoundError:
                 LOGGER.debug(
                     f"File {basename} is not available on default local paths."
                 )
@@ -39,7 +40,7 @@ class DataStager:
                     self.stage_file(basename)
 
             else:
-                LOGGER.debug(f"File {basename} is available at {filename}.")
+                LOGGER.debug(f"File {basename} is available at {filepath}.")
 
     def stage_file(self, basename: str):
         """Retrieves a file from the HTTP source.
@@ -53,12 +54,24 @@ class DataStager:
         local_destination_path = self.staging_path / basename
         http_source_path = f"{self.remote_path}/{basename}"
         # not sure why we use the -O pattern here
-        cmd = f"wget -nv -t 5 -O {local_destination_path} {http_source_path}"
-        return_value = os.system(cmd)
-        if return_value != 0 or not local_destination_path.is_file():
-            raise RuntimeError(f"Failed to retrieve data from remote source:\n-> {cmd}")
+        cmd = [
+            "wget",
+            "-nv",
+            "-t",
+            "5",
+            "-O",
+            str(local_destination_path),
+            http_source_path,
+        ]
 
-    def get_filename(self, basename: str) -> str:
+        subprocess.run(cmd, check=True)
+
+        if not local_destination_path.is_file():
+            raise RuntimeError(
+                f"Subprocess `wget` succeeded but the resulting file is invalid:\n-> {cmd}"
+            )
+
+    def get_filepath(self, filename: str) -> str:
         """Look up basename under the local paths and the staging path and returns the first valid filename.
 
         Args:
@@ -67,37 +80,37 @@ class DataStager:
         Returns:
             str: valid filename.
         """
-        local_filename = self.get_local_filename(basename)
-        if local_filename is not None:
-            return local_filename
-        else:
-            filepath = self.staging_path / basename
+        try:
+            local_filepath = self.get_local_filepath(filename)
+            return local_filepath
+        except FileNotFoundError:
+            filepath = self.staging_path / filename
             if filepath.is_file():
                 return str(filepath)
             else:
                 raise FileNotFoundError(
-                    f"File {basename} is not available in any local or staging directory."
+                    f"File {filename} is not available in any local or staging path."
                 )
 
-    def get_local_filename(self, basename: str) -> Union[str, None]:
-        """Look up basename on local paths and return the first matching filename.
+    def get_local_filepath(self, filename: str) -> str:
+        """Look up filename on local paths and return the first matching filename.
 
         Args:
-            basename (str): the basename of the file to look up.
+            filename (str): the filename of the file to look up.
 
         Returns:
-            Union[str, None]: the full filename of the file if available, otherwise None.
+            str: the file path of the file if available
         """
-        filename = None
-        LOGGER.info(f"Look up file {basename}.")
+        LOGGER.info(f"Look up file {filename}.")
         for source in self.local_paths:
             subdir = source / self.local_subdir
-            filepath = subdir / basename
+            filepath = subdir / filename
             LOGGER.debug(f"Trying to read {filepath}...")
             if filepath.is_file():
                 LOGGER.debug(f"-> success.")
                 filename = str(filepath)
-                break
+                return filename
             else:
                 LOGGER.debug(f"-> fail.")
-        return filename
+                # File was not found in local paths.
+        raise FileNotFoundError(f"File {filename} is not available on any local path.")

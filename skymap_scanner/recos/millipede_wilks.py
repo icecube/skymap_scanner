@@ -27,19 +27,22 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
+from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
-FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
-FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
 
-spline_requirements = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
 
 
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
+    # Spline requirements ##############################################
+    FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
+    FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
+    FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+
+    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
     # Constants ########################################################
 
     pulsesName_orig = cfg.INPUT_PULSES_NAME
@@ -57,11 +60,11 @@ class MillipedeWilks(RecoInterface):
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
 
-    datastager.stage_files(spline_requirements)
+    datastager.stage_files(SPLINE_REQUIREMENTS)
 
-    abs_spline = datastager.get_filepath(FTP_ABS_SPLINE)
-    prob_spline = datastager.get_filepath(FTP_PROB_SPLINE)
-    effd_spline = datastager.get_filepath(FTP_EFFD_SPLINE)
+    abs_spline: str = datastager.get_filepath(FTP_ABS_SPLINE)
+    prob_spline: str = datastager.get_filepath(FTP_PROB_SPLINE)
+    effd_spline: str = datastager.get_filepath(FTP_EFFD_SPLINE)
 
     cascade_service = photonics_service.I3PhotoSplineService(
         abs_spline, prob_spline, timingSigma=0.0,

@@ -368,6 +368,26 @@ jobs:
         run: |
           docker logs rabbitmq
 
+  test-file-staging:
+    needs: test-build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: icecube/skymap_scanner:local
+          load: true
+      - name: run
+        run: |
+          docker run --rm -i \
+            icecube/skymap_scanner:local \
+            python tests/file_staging.py
+
   test-run-single-pixel:
     needs: test-build-docker
     runs-on: ubuntu-latest
