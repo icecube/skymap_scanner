@@ -30,9 +30,8 @@ datastager = DataStager(
     remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
 )
 
-datastager.stage_files(local_file_list)
-datastager.stage_files(remote_file_list)
-datastager.stage_files(invalid_file_list)
+for file_list in [local_file_list, remote_file_list, invalid_file_list]:
+    datastager.stage_files(file_list)
 
 # ensure that filepaths can be retrieved for all local files
 local_filepaths: Dict[str, str] = dict()
@@ -49,5 +48,5 @@ for filename in remote_file_list:
 
 for filename in invalid_file_list:
     logger.debug(f"Testing staging of remote file: {filename}")
-    filepath: str = datastager.get_filepath(filename)
+    filepath = datastager.get_filepath(filename)
     logger.debug(f"File available at {filepath}.")
