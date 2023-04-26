@@ -7,6 +7,10 @@ datastager = DataStager(
     remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
 )
 
+for path in cfg.LOCAL_DATA_SOURCES:
+    content = list(path.glob("*"))
+    print(f"Local path {path} contains the following elements:\n:{content}")
+
 FILE_LIST = ["README", "ems_mie_z20_a10.abs.fits"]
 
 datastager.stage_files(FILE_LIST)
