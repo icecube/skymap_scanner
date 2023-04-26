@@ -1,6 +1,7 @@
 import logging
-from pathlib import Path
+import subprocess
 from typing import Dict
+
 
 from skymap_scanner.utils.data_handling import DataStager
 from skymap_scanner import config as cfg
@@ -46,7 +47,10 @@ for filename in remote_file_list:
     filepath: str = datastager.get_filepath(filename)
     logger.debug(f"File available at {filepath}.")
 
+#
 for filename in invalid_file_list:
     logger.debug(f"Testing staging of remote file: {filename}")
-    filepath = datastager.get_filepath(filename)
-    logger.debug(f"File available at {filepath}.")
+    try:
+        filepath = datastager.get_filepath(filename)
+    except subprocess.CalledProcessError:
+        logger.debug(f"Staging failed as expected for invalid file.")
