@@ -8,6 +8,7 @@ datastager = DataStager(
 )
 
 for path in cfg.LOCAL_DATA_SOURCES:
+    subpath = path / cfg.LOCAL_SPLINE_SUBDIR
     content = list(path.glob("*"))
     print(f"Local path {path} contains the following elements:\n:{content}")
 
