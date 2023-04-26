@@ -32,7 +32,11 @@ datastager = DataStager(
 )
 
 for file_list in [local_file_list, remote_file_list, invalid_file_list]:
-    datastager.stage_files(file_list)
+    try:
+        datastager.stage_files(file_list)
+    except subprocess.CalledProcessError:
+        logger.debug(f"Staging failed as expected for invalid file.")
+
 
 # ensure that filepaths can be retrieved for all local files
 local_filepaths: Dict[str, str] = dict()
@@ -47,10 +51,10 @@ for filename in remote_file_list:
     filepath: str = datastager.get_filepath(filename)
     logger.debug(f"File available at {filepath}.")
 
-#
+
 for filename in invalid_file_list:
     logger.debug(f"Testing staging of remote file: {filename}")
     try:
         filepath = datastager.get_filepath(filename)
-    except subprocess.CalledProcessError:
-        logger.debug(f"Staging failed as expected for invalid file.")
+    except FileNotFoundError:
+        logger.debug(f"File not available as expected.")
