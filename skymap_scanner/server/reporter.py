@@ -164,7 +164,7 @@ class WorkerStatsCollection:
         return sum(len(w.worker_runtimes) for w in self._worker_stats_by_nside.values())
 
     @property
-    def first_reco_start(self) -> float:
+    def first_roundtrip_start(self) -> float:
         """O(n), n < 10."""
         return min(w.roundtrip_start for w in self._worker_stats_by_nside.values())
 
@@ -269,6 +269,7 @@ class Reporter:
         # all set by calling initial_report()
         self.last_time_reported = 0.0
         self.last_time_reported_skymap = 0.0
+        self.time_of_first_reco_start_on_client = 0.0
         self.worker_stats_collection: WorkerStatsCollection = WorkerStatsCollection()
 
         self._call_order = {
@@ -310,6 +311,13 @@ class Reporter:
     ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_reco)
+
+        if not self.time_of_first_reco_start_on_client:
+            # timeline: roundtrip_start -> pre-reco queue time -> (runtime) -> post-reco queue time -> roundtrip_end
+            # since worker nodes need to startup & a pixel may fail several times before being reco'd,
+            # we know "pre-reco queue time" >>> "post-reco queue time"
+            # if we assume "post-reco queue time" ~= 0.0, then the reco started here:
+            self.time_of_first_reco_start_on_client = roundtrip_end - (runtime + 0.0)
 
         # update stats
         nside_ct = self.worker_stats_collection.update(
@@ -397,17 +405,22 @@ class Reporter:
             return proc_stats
 
         # stats now that we have reco(s)
-        elapsed_reco_walltime = (
-            time.time() - self.worker_stats_collection.first_reco_start
+        elapsed_reco_server_walltime = (
+            time.time() - self.worker_stats_collection.first_roundtrip_start
         )
         startup_runtime = (
-            self.worker_stats_collection.first_reco_start - self.global_start
+            self.worker_stats_collection.first_roundtrip_start - self.global_start
         )
         proc_stats["start"].update(
             {
-                "reco start": str(
+                "reco start (on server)": str(
                     dt.datetime.fromtimestamp(
-                        int(self.worker_stats_collection.first_reco_start)
+                        int(self.worker_stats_collection.first_roundtrip_start)
+                    )
+                ),
+                "reco start (on first worker)": str(
+                    dt.datetime.fromtimestamp(
+                        int(self.time_of_first_reco_start_on_client)
                     )
                 ),
             }
@@ -415,9 +428,16 @@ class Reporter:
         proc_stats["runtime"].update(
             {
                 "startup runtime": str(dt.timedelta(seconds=int(startup_runtime))),
-                "reco runtime": str(dt.timedelta(seconds=int(elapsed_reco_walltime))),
-                "reco runtime + startup runtime": str(
-                    dt.timedelta(seconds=int(elapsed_reco_walltime + startup_runtime))
+                "reco runtime (on server)": str(
+                    dt.timedelta(seconds=int(elapsed_reco_server_walltime))
+                ),
+                "reco start delay (on first worker)": str(
+                    dt.timedelta(
+                        seconds=int(
+                            self.time_of_first_reco_start_on_client
+                            - self.worker_stats_collection.first_roundtrip_start
+                        )
+                    )
                 ),
             }
         )
@@ -433,12 +453,14 @@ class Reporter:
         else:
             # MAKE PREDICTIONS
             # NOTE: this is a simple mean, may want to visit more sophisticated methods
-            secs_predicted = elapsed_reco_walltime / (
+            secs_predicted = elapsed_reco_server_walltime / (
                 self.worker_stats_collection.total_ct / self.predicted_total_recos()
             )
             proc_stats["predictions"] = {
                 "time left": str(
-                    dt.timedelta(seconds=int(secs_predicted - elapsed_reco_walltime))
+                    dt.timedelta(
+                        seconds=int(secs_predicted - elapsed_reco_server_walltime)
+                    )
                 ),
                 "total runtime at finish": str(
                     dt.timedelta(seconds=int(secs_predicted + startup_runtime))
@@ -446,7 +468,10 @@ class Reporter:
                 "total # of reconstructions": self.predicted_total_recos(),
                 "end": str(
                     dt.datetime.fromtimestamp(
-                        int(time.time() + (secs_predicted - elapsed_reco_walltime))
+                        int(
+                            time.time()
+                            + (secs_predicted - elapsed_reco_server_walltime)
+                        )
                     )
                 ),
             }
@@ -490,12 +515,27 @@ class Reporter:
         # see when we reached X% done
         predicted_total = self.predicted_total_recos()
         timeline = {}
-        for i in cfg.REPORTER_TIMELINE_PERCENTAGES:
-            # round up b/c it's when it reached X
-            index = math.ceil(predicted_total * i) - 1
+        for i in [-1.0] + cfg.REPORTER_TIMELINE_PERCENTAGES:
+            if i == -1.0:
+                index = 0  # make sure it's the first to avoid any floating point error
+                # now use the amount of decimal places used by most precise % (or 4)
+                decimal_places = max(
+                    [
+                        str(num)[::-1].find(".")
+                        for num in cfg.REPORTER_TIMELINE_PERCENTAGES
+                    ]
+                    + [4],
+                )
+                name = f"{1 / predicted_total:.{decimal_places}f}"
+            else:
+                # round up b/c it's when scan *reached* X%
+                index = math.ceil(predicted_total * i) - 1
+                name = str(i)
             try:
                 when = self.worker_stats_collection.aggregate.ends[index]
-                timeline[i] = str(dt.timedelta(seconds=int(when - self.global_start)))
+                timeline[name] = str(
+                    dt.timedelta(seconds=int(when - self.global_start))
+                )
             except IndexError:  # have not reached that point yet
                 pass
 
