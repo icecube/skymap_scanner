@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v3.9.1 (2023-04-26)
+### Other
+* Report First Reco Time Stats ([#180](https://github.com/icecube/skymap_scanner/issues/180)) ([`d49c694`](https://github.com/icecube/skymap_scanner/commit/d49c69465e6a86d991d9f16c4ad6e1873e51db80))
+* Remove GCP Intall Extra ([#181](https://github.com/icecube/skymap_scanner/issues/181)) ([`11a7318`](https://github.com/icecube/skymap_scanner/commit/11a7318a74eebb73fc90e363abe097b8136591d8))
+
 ## v3.9.0 (2023-04-20)
 
 
