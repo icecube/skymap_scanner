@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.9.2 (2023-04-28)
+### Other
+* EWMS Pilot Updates ([#182](https://github.com/icecube/skymap_scanner/issues/182)) ([`0ffca3d`](https://github.com/icecube/skymap_scanner/commit/0ffca3de62df21ab8ec28c371c4d8dbd868cf233))
+
 ## v3.9.1 (2023-04-26)
 ### Other
 * Report First Reco Time Stats ([#180](https://github.com/icecube/skymap_scanner/issues/180)) ([`d49c694`](https://github.com/icecube/skymap_scanner/commit/d49c69465e6a86d991d9f16c4ad6e1873e51db80))
