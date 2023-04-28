@@ -69,10 +69,10 @@ def main() -> None:
         raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
 
     cmd = (
-        f"python -m skymap_scanner.client.reco_icetray "
-        f" --in-pkl in.pkl"
-        f" --out-pkl out.pkl"
-        f" --gcdqp-packet-json GCDQp_packet.json"
+        "python -m skymap_scanner.client.reco_icetray "
+        " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
+        " --out-pkl {{OUTFILE}}"  # ^^^
+        " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
     )
 
