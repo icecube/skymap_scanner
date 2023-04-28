@@ -88,6 +88,8 @@ def main() -> None:
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
+            ftype_to_subproc=".pkl",
+            ftype_from_subproc=".pkl",
             timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
             timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
             timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
