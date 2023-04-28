@@ -22,10 +22,10 @@ Env variables
 export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
 export SKYSCAN_BROKER_AUTH=<token>
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
-export EWMS_PILOT_SUBPROC_TIMEOUT=1200
+export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
 
-Currently, RabbitMQ uses URL parameters for the hostname, virtual host, and port (`[https://]HOST[:PORT][/VIRTUAL_HOST]`). The heartbeat is configured by `EWMS_PILOT_SUBPROC_TIMEOUT`. This may change in future updates.
+Currently, RabbitMQ uses URL parameters for the hostname, virtual host, and port (`[https://]HOST[:PORT][/VIRTUAL_HOST]`). The heartbeat is configured by `EWMS_PILOT_TASK_TIMEOUT`. This may change in future updates.
 
 Python install:
 ```
@@ -40,7 +40,7 @@ export SKYSCAN_BROKER_CLIENT=pulsar
 export SKYSCAN_BROKER_ADDRESS=<ip address>
 export SKYSCAN_BROKER_AUTH=<token>
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
-export EWMS_PILOT_SUBPROC_TIMEOUT=1200
+export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
 
 Python install:
@@ -63,7 +63,7 @@ The server can be launched from anywhere with a stable network connection. You c
 export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 # export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
-export EWMS_PILOT_SUBPROC_TIMEOUT=1200
+export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
 ###### Command-Line Arguments
 ```
@@ -94,7 +94,7 @@ _NOTE: By default the launch script will pull, build, and run the latest image f
 ```
 export SKYSCAN_DOCKER_IMAGE_TAG='x.y.z'  # defaults to 'latest'
 export SKYSCAN_DOCKER_PULL_ALWAYS=0  # defaults to 1 which maps to '--pull=always'
-export EWMS_PILOT_SUBPROC_TIMEOUT=1200
+export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
 
 #### 2. Launch Each Client
@@ -107,7 +107,7 @@ export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
 # export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
 export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
-export EWMS_PILOT_SUBPROC_TIMEOUT=1200
+export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
 ###### Command-Line Arguments
 _See notes about `--client-startup-json` below. See `client.py` for additional optional args._
@@ -171,7 +171,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --client-startup-json ./client-startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS EWMS_PILOT_SUBPROC_TIMEOUT=1200 EWMS_PILOT_QUARANTINE_TIME=1200"
+environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS EWMS_PILOT_TASK_TIMEOUT=1200 EWMS_PILOT_QUARANTINE_TIME=1200"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err
@@ -214,7 +214,7 @@ The Skymap Scanner is designed to have realistic timeouts for HTCondor. That sai
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 ```
-Relatedly, the environment variable `EWMS_PILOT_SUBPROC_TIMEOUT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [1. Launch the Server](#1-launch-the-server) and [2. Launch Each Client](#2-launch-each-client)).
+Relatedly, the environment variable `EWMS_PILOT_TASK_TIMEOUT` & `EWMS_PILOT_QUARANTINE_TIME` can also be configured (see [1. Launch the Server](#1-launch-the-server) and [2. Launch Each Client](#2-launch-each-client)).
 
 #### Command-Line Arguments
 There are more command-line arguments than those shown in [Example Startup](#example-startup). See `skymap_scanner.server.start_scan.main()` and `skymap_scanner.client.client.main()` for more detail.
