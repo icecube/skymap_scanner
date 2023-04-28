@@ -82,7 +82,7 @@ spec:
           value: "/cvmfs/icecube.opensciencegrid.org/data/i3-test-data-svn/trunk"
         - name: I3_DATA
           value: "/cvmfs/icecube.opensciencegrid.org/data"
-        - name: EWMS_PILOT_SUBPROC_TIMEOUT
+        - name: EWMS_PILOT_TASK_TIMEOUT
           value: "300"
         image: icecube/skymap_scanner:3.2.1
         imagePullPolicy: Always

@@ -74,7 +74,7 @@ docker run --network="host" $pull_policy --rm -i \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
     $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-    --env "EWMS_PILOT_SUBPROC_TIMEOUT=${EWMS_PILOT_SUBPROC_TIMEOUT:-900}" \
+    --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
     icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
     python -m skymap_scanner.client \
     $PY_ARGS
