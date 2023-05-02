@@ -24,7 +24,7 @@ cryptography==40.0.2
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.9.1
+ewms-pilot==0.10.0
     # via skymap-scanner (setup.py)
 fonttools==4.39.3
     # via matplotlib
@@ -32,6 +32,8 @@ healpy==1.16.2
     # via
     #   icecube-skyreader
     #   skymap-scanner (setup.py)
+htchirp==2.0
+    # via ewms-pilot
 humanfriendly==10.0
     # via coloredlogs
 icecube-skyreader==1.0.1
