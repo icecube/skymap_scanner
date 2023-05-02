@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v3.10.0 (2023-05-02)
+
+
 ## v3.9.2 (2023-04-28)
 ### Other
 * EWMS Pilot Updates ([#182](https://github.com/icecube/skymap_scanner/issues/182)) ([`0ffca3d`](https://github.com/icecube/skymap_scanner/commit/0ffca3de62df21ab8ec28c371c4d8dbd868cf233))
