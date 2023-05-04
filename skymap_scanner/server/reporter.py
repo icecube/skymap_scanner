@@ -599,7 +599,7 @@ class Reporter:
         serialized = result.serialize()
 
         LOGGER.debug(  # don't log HUGE string
-            f"Result info (# pixels per nside): {(k, len(v)) for k, v in result.result.items()}"
+            f"Result info (# pixels per nside): {[(k, len(v)) for k, v in result.result.items()]}"
         )
         if not self.skydriver_rc:
             return result
