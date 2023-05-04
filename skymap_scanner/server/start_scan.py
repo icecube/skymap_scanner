@@ -456,7 +456,7 @@ async def _serve_and_collect(
             #
             LOGGER.info("Receiving recos from clients...")
             collected_all_sent = False
-            with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
+            async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
                     if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
                         raise ValueError(
