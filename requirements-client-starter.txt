@@ -38,7 +38,7 @@ htcondor==10.3.0
     # via skymap-scanner (setup.py)
 humanfriendly==10.0
     # via coloredlogs
-icecube-skyreader==1.0.1
+icecube-skyreader==1.0.2
     # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
