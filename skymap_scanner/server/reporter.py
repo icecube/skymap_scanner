@@ -598,9 +598,9 @@ class Reporter:
         result = self._get_result()
         serialized = result.serialize()
 
-        LOGGER.debug(pyobj_to_string_repr(serialized))
-        lens = {k: len(v) for k, v in result.result.items()}
-        LOGGER.debug(f"Result info (# pixels per nside): {lens}")
+        LOGGER.debug(  # don't log HUGE string
+            f"Result info (# pixels per nside): {(k, len(v)) for k, v in result.result.items()}"
+        )
         if not self.skydriver_rc:
             return result
 
