@@ -36,7 +36,7 @@ htchirp==2.0
     # via ewms-pilot
 humanfriendly==10.0
     # via coloredlogs
-icecube-skyreader==1.0.1
+icecube-skyreader==1.0.2
     # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
@@ -94,7 +94,7 @@ pyyaml==6.0
     # via astropy
 qrcode==7.4.2
     # via wipac-rest-tools
-requests==2.29.0
+requests==2.30.0
     # via
     #   requests-futures
     #   wipac-dev-tools
@@ -115,7 +115,7 @@ typing-extensions==4.5.0
     #   wipac-dev-tools
 tzdata==2023.3
     # via pandas
-urllib3==1.26.15
+urllib3==2.0.2
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.15
     # via

@@ -221,7 +221,9 @@ class Collector:
         reco (RecoPixelFinal)."""
         if not self._in_finder_context:
             raise RuntimeError("Must be in `Collector.finder_context()` context.")
-        LOGGER.debug(f"{self.nsides_dict=}")
+        LOGGER.debug(  # don't log HUGE string
+            f"self.nsides_dict info (# pixels per nside): {[(k,len(v)) for k, v in self.nsides_dict.items()]}"
+        )
 
         if reco_pixel_variation.id_tuple in self._pixfinid_received_quick_lookup:
             raise ExtraRecoPixelVariationException(
