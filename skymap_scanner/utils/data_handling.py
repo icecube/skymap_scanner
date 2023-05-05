@@ -86,6 +86,7 @@ class DataStager:
         except FileNotFoundError:
             filepath = self.staging_path / filename
             if filepath.is_file():
+                LOGGER.info("File {filename} available at {filepath}.")
                 return str(filepath)
             else:
                 raise FileNotFoundError(
@@ -101,7 +102,7 @@ class DataStager:
         Returns:
             str: the file path of the file if available
         """
-        LOGGER.info(f"Look up file {filename}.")
+        LOGGER.debug(f"Look up file {filename}.")
         for source in self.local_paths:
             subdir = source / self.local_subdir
             filepath = subdir / filename

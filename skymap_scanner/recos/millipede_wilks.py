@@ -33,8 +33,6 @@ from . import RecoInterface
 
 
 
-
-
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
     # Spline requirements ##############################################
