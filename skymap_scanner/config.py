@@ -3,7 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-from typing import Final
+from typing import List, Final
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -15,6 +15,19 @@ from wipac_dev_tools import from_environment_as_dataclass
 
 DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
+# Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
+LOCAL_DATA_SOURCES: Final[List[Path]] = [
+    Path("/opt/i3-data"),
+    Path("/cvmfs/icecube.opensciencegrid.org/data"),
+]
+# Directory path under a local data source to fetch spline data from.
+LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
+
+# HTTP source to download data from.
+REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
+REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
+
+LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
 # physics strings
 INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"

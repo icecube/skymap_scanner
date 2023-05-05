@@ -27,12 +27,20 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
+from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
 
+
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
+    # Spline requirements ##############################################
+    FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
+    FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
+    FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+
+    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
     # Constants ########################################################
 
     pulsesName_orig = cfg.INPUT_PULSES_NAME
@@ -44,16 +52,21 @@ class MillipedeWilks(RecoInterface):
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    _splinedir = os.path.expandvars("$I3_DATA/photon-tables/splines")
-    _base = os.path.join(_splinedir, "cascade_single_spice_ftp-v1_flat_z20_a5.%s.fits")
-    _effd = os.path.join(_splinedir, "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits")
-    for fname in [_base % "abs", _base % "prob", _effd]:
-        if not os.path.exists(fname):
-            raise FileNotFoundError(fname)
+    datastager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+    )
+
+    datastager.stage_files(SPLINE_REQUIREMENTS)
+
+    abs_spline: str = datastager.get_filepath(FTP_ABS_SPLINE)
+    prob_spline: str = datastager.get_filepath(FTP_PROB_SPLINE)
+    effd_spline: str = datastager.get_filepath(FTP_EFFD_SPLINE)
 
     cascade_service = photonics_service.I3PhotoSplineService(
-        _base % "abs", _base % "prob", timingSigma=0.0,
-        effectivedistancetable = _effd,
+        abs_spline, prob_spline, timingSigma=0.0,
+        effectivedistancetable = effd_spline,
         tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
         quantileEpsilon=1
         )

@@ -4,6 +4,7 @@
 import datetime
 import random
 import time
+from typing import List
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
