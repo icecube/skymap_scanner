@@ -2,6 +2,24 @@
 
 <!--next-version-placeholder-->
 
+## v3.10.1 (2023-05-04)
+### Other
+* Avoid Inactivty Timeout ([#185](https://github.com/icecube/skymap_scanner/issues/185)) ([`f05a82f`](https://github.com/icecube/skymap_scanner/commit/f05a82fd40f3beea47f7b13000a488a9ee025d6a))
+* <bot> update requirements.txt ([`f068de1`](https://github.com/icecube/skymap_scanner/commit/f068de19810c0794b3bf47170722dc9360756274))
+* <bot> update requirements-rabbitmq.txt ([`2b977de`](https://github.com/icecube/skymap_scanner/commit/2b977dec964da60a8b65797a145348db76caa816))
+* <bot> update requirements-pulsar.txt ([`2d96e7d`](https://github.com/icecube/skymap_scanner/commit/2d96e7dd45c55882d9843552622c8a5ed1f0f044))
+* <bot> update requirements-nats.txt ([`89b8f57`](https://github.com/icecube/skymap_scanner/commit/89b8f57de3e3d694c0a026c6ba28b4f0bc442131))
+* <bot> update requirements-client-starter.txt ([`e5f9917`](https://github.com/icecube/skymap_scanner/commit/e5f99178a7f94c173dbdd0c45db993b88f35160b))
+* <bot> update requirements-all.txt ([`043c7f7`](https://github.com/icecube/skymap_scanner/commit/043c7f70db10ea0a1e2c0f8ee495088a9a8fca77))
+* Trim Logging of Large Objects ([#184](https://github.com/icecube/skymap_scanner/issues/184)) ([`3243ee7`](https://github.com/icecube/skymap_scanner/commit/3243ee7ede348bc5d4c1cf3477c5dd7b31879e42))
+
+## v3.10.0 (2023-05-02)
+
+
+## v3.9.2 (2023-04-28)
+### Other
+* EWMS Pilot Updates ([#182](https://github.com/icecube/skymap_scanner/issues/182)) ([`0ffca3d`](https://github.com/icecube/skymap_scanner/commit/0ffca3de62df21ab8ec28c371c4d8dbd868cf233))
+
 ## v3.9.1 (2023-04-26)
 ### Other
 * Report First Reco Time Stats ([#180](https://github.com/icecube/skymap_scanner/issues/180)) ([`d49c694`](https://github.com/icecube/skymap_scanner/commit/d49c69465e6a86d991d9f16c4ad6e1873e51db80))

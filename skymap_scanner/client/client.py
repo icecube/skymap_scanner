@@ -69,10 +69,10 @@ def main() -> None:
         raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
 
     cmd = (
-        f"python -m skymap_scanner.client.reco_icetray "
-        f" --in-pkl in.pkl"
-        f" --out-pkl out.pkl"
-        f" --gcdqp-packet-json GCDQp_packet.json"
+        "python -m skymap_scanner.client.reco_icetray "
+        " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
+        " --out-pkl {{OUTFILE}}"  # ^^^
+        " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
     )
 
@@ -88,6 +88,8 @@ def main() -> None:
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
+            ftype_to_subproc=".pkl",
+            ftype_from_subproc=".pkl",
             timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
             timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
             timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
