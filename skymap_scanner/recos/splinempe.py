@@ -48,6 +48,7 @@ spline_requirements = [MIE_BAREMU_PROB, MIE_BAREMU_ABS, MIE_STOCH_PROB, MIE_STOC
 
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
+
     base_pulseseries = cfg.INPUT_PULSES_NAME
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
     cleaned_muon_pulseseries = "CleanedMuonPulses"
@@ -143,6 +144,17 @@ class Splinempe(RecoInterface):
 
         return steps
 
+    @staticmethod
+    def checkName(frame: I3Frame, name: str) -> None:
+        if name not in frame:
+            raise RuntimeError(f"{name} not in frame.")
+        else:
+            logger.debug(f"Check that {name} is in frame: -> success.")
+
+    # Temporarily unused but may be useful in the future.
+    # def checkNames(frame: I3Frame, names: List[str]) -> None:
+    #     for name in names:
+    #         checkName(frame, name)
 
     @staticmethod
     @traysegment
@@ -153,7 +165,6 @@ class Splinempe(RecoInterface):
         # "CleanedMuonPulses" is equivalent to "OnlineL2_CleanedMuonPulses".
         # =========================================================
 
-        
         # from icetray/filterscripts/python/all_filters.py
         seededRTConfig = I3DOMLinkSeededRTConfigurationService(
             # RT = Radius and Time
@@ -177,7 +188,7 @@ class Splinempe(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(checkName, name=Splinempe.rt_cleaned_pulseseries)
+        tray.Add(Splinempe.checkName, name=Splinempe.rt_cleaned_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
@@ -188,9 +199,7 @@ class Splinempe(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(checkName, name=Splinempe.cleaned_muon_pulseseries)
-
-
+        tray.Add(Splinempe.checkName, name=Splinempe.cleaned_muon_pulseseries)
 
     @staticmethod
     @traysegment
@@ -204,17 +213,6 @@ class Splinempe(RecoInterface):
         vertex_seed = cfg.OUTPUT_PARTICLE_NAME
         # Here, "OnlineL2_SplineMPE" was used for the offline SplineMPE scan implementation.
 
-        def checkName(frame: I3Frame, name: str) -> None:
-            if name not in frame:
-                raise RuntimeError(f"{name} not in frame.")
-            else:
-                logger.debug(f"Check that {name} is in frame: -> success.")
-
-        # Temporarily unused but may be useful in the future.
-        # def checkNames(frame: I3Frame, names: List[str]) -> None:
-        #     for name in names:
-        #         checkName(frame, name)
-
         # Notify start.
         def notify0(frame):
             logger.debug(
@@ -224,16 +222,15 @@ class Splinempe(RecoInterface):
         tray.Add(notify0, "notify0")
 
         # Check that the base pulses are in the input frame.
-        tray.Add(checkName, name=base_pulseseries)
+        tray.Add(Splinempe.checkName, name=base_pulseseries)
 
-        
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
         # Provide SplineMPE with energy estimation from MuEx
         # This should improve the following SplineMPE track reco.
         # =========================================================
 
-        tray.AddModule(checkName, name=energy_reco_seed)
+        tray.AddModule(Splinempe.checkName, name=energy_reco_seed)
 
         def notify_muex(frame):
             logger.debug(
@@ -265,7 +262,7 @@ class Splinempe(RecoInterface):
         # Multiple energy estimators can be provided but they should be run beforehand.
         # =============================================================================
 
-        tray.AddModule(checkName, name=energy_estimator)
+        tray.AddModule(Splinempe.checkName, name=energy_estimator)
 
         bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
@@ -315,7 +312,7 @@ class Splinempe(RecoInterface):
             **steps,
         )
 
-        tray.Add(checkName, name=vertex_seed)
+        tray.Add(Splinempe.checkName, name=vertex_seed)
 
         tray.Add(
             "I3BasicSeedServiceFactory",
@@ -335,7 +332,7 @@ class Splinempe(RecoInterface):
             Minimizer="simplex",
         )
 
-        tray.Add(checkName, name="splinempe-reco" + "FitParams")
+        tray.Add(Splinempe.checkName, name="splinempe-reco" + "FitParams")
 
         def notify1(frame):
             logger.debug(f"SplineMPE pass done! {datetime.datetime.now()}")
@@ -347,7 +344,9 @@ class Splinempe(RecoInterface):
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel_id=frame[cfg.I3FRAME_PIXEL].value,
-            llh=frame["splinempe-reco" + "FitParams"].logl,  # FitParams is hardcoded (where?)
+            llh=frame[
+                "splinempe-reco" + "FitParams"
+            ].logl,  # FitParams is hardcoded (where?)
             reco_losses_inside=np.NaN,
             reco_losses_total=np.NaN,
             posvar_id=frame[cfg.I3FRAME_POSVAR].value,
