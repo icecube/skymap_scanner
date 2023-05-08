@@ -226,7 +226,7 @@ class Splinempe(RecoInterface):
         tray.Add(notify0, "notify0")
 
         # Check that the base pulses are in the input frame.
-        tray.Add(checkName, name=base_pulseseries)
+        tray.Add(checkName, name=Splinempe.base_pulseseries)
 
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
