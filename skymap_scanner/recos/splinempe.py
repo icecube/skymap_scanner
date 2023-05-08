@@ -250,7 +250,7 @@ class Splinempe(RecoInterface):
         tray.AddModule(
             "muex",
             energy_estimator,
-            pulses=cleaned_muon_pulseseries,
+            pulses=Splinempe.cleaned_muon_pulseseries,
             rectrk=energy_reco_seed,
             result=energy_estimator,
             energy=True,
@@ -277,7 +277,7 @@ class Splinempe(RecoInterface):
             PhotonicsServiceRandomNoise=noise_spline,
             ModelStochastics=False,
             NoiseModel=Splinempe.get_noise_model(),
-            Pulses=cleaned_muon_pulseseries,
+            Pulses=Splinempe.cleaned_muon_pulseseries,
             E_Estimators=[energy_estimator],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
