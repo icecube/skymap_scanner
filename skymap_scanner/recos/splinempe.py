@@ -144,8 +144,6 @@ class Splinempe(RecoInterface):
 
         return steps
 
-    @staticmethod
-
     # Temporarily unused but may be useful in the future.
     # def checkNames(frame: I3Frame, names: List[str]) -> None:
     #     for name in names:
