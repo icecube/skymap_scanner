@@ -10,7 +10,7 @@ from typing import List
 
 from I3Tray import I3Units  # type: ignore[import]
 
-# icecube module imports are required to make IceTray modules and services available.
+# NOTE: icecube module imports are required to make IceTray modules and services available.
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
     DomTools,
@@ -48,8 +48,9 @@ spline_requirements = [MIE_BAREMU_PROB, MIE_BAREMU_ABS, MIE_STOCH_PROB, MIE_STOC
 
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
-
-    spline_path = Path(os.path.expandvars("$I3_DATA")) / "photon-tables/splines"
+    base_pulseseries = cfg.INPUT_PULSES_NAME
+    rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
+    cleaned_muon_pulseseries = "CleanedMuonPulses"
 
     datastager = DataStager(
         local_paths=cfg.LOCAL_DATA_SOURCES,
@@ -142,20 +143,66 @@ class Splinempe(RecoInterface):
 
         return steps
 
+
+    @staticmethod
+    @traysegment
+    def prepare_frames(tray, name, logger, **kwargs):
+        # =========================================================
+        # PULSE CLEANING
+        # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
+        # "CleanedMuonPulses" is equivalent to "OnlineL2_CleanedMuonPulses".
+        # =========================================================
+
+        
+        # from icetray/filterscripts/python/all_filters.py
+        seededRTConfig = I3DOMLinkSeededRTConfigurationService(
+            # RT = Radius and Time
+            ic_ic_RTRadius=150.0 * I3Units.m,
+            ic_ic_RTTime=1000.0 * I3Units.ns,
+            treat_string_36_as_deepcore=False,
+            useDustlayerCorrection=False,
+            allowSelfCoincidence=True,
+        )
+
+        # from icetray/filterscripts/python/baseproc.py
+        tray.AddModule(
+            "I3SeededRTCleaning_RecoPulseMask_Module",
+            "BaseProc_RTCleaning",
+            InputHitSeriesMapName=Splinempe.base_pulseseries,
+            OutputHitSeriesMapName=Splinempe.rt_cleaned_pulseseries,
+            STConfigService=seededRTConfig,
+            SeedProcedure="HLCCoreHits",
+            NHitsThreshold=2,
+            MaxNIterations=3,
+            Streams=[I3Frame.Physics],
+        )
+
+        tray.Add(checkName, name=Splinempe.rt_cleaned_pulseseries)
+
+        # from icetray/filterscripts/python/baseproc.py
+        tray.AddModule(
+            "I3TimeWindowCleaning<I3RecoPulse>",
+            "BaseProc_TimeWindowCleaning",
+            InputResponse=Splinempe.rt_cleaned_pulseseries,
+            OutputResponse=Splinempe.cleaned_muon_pulseseries,
+            TimeWindow=6000 * I3Units.ns,
+        )
+
+        tray.Add(checkName, name=Splinempe.cleaned_muon_pulseseries)
+
+
+
     @staticmethod
     @traysegment
     def traysegment(tray, name, logger, **kwargs):
         """SplineMPE reco"""
 
         # Names used in the segment.
-        base_pulseseries = cfg.INPUT_PULSES_NAME
-        rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
-        cleaned_muon_pulseseries = "CleanedMuonPulses"
         energy_reco_seed = "OnlineL2_BestFit"
         energy_estimator = "OnlineL2_BestFit_MuEx"
 
         vertex_seed = cfg.OUTPUT_PARTICLE_NAME
-        # this was "OnlineL2_SplineMPE"
+        # Here, "OnlineL2_SplineMPE" was used for the offline SplineMPE scan implementation.
 
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
@@ -163,9 +210,10 @@ class Splinempe(RecoInterface):
             else:
                 logger.debug(f"Check that {name} is in frame: -> success.")
 
-        def checkNames(frame: I3Frame, names: List[str]) -> None:
-            for name in names:
-                checkName(frame, name)
+        # Temporarily unused but may be useful in the future.
+        # def checkNames(frame: I3Frame, names: List[str]) -> None:
+        #     for name in names:
+        #         checkName(frame, name)
 
         # Notify start.
         def notify0(frame):
@@ -178,48 +226,7 @@ class Splinempe(RecoInterface):
         # Check that the base pulses are in the input frame.
         tray.Add(checkName, name=base_pulseseries)
 
-        # =========================================================
-        # PULSE CLEANING
-        # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
-        # Same as "OnlineL2_CleanedMuonPulses".
-        # =========================================================
-
-        # from icetray/filterscripts/python/all_filters.py
-        # RT = Radius and Time
-        seededRTConfig = I3DOMLinkSeededRTConfigurationService(
-            ic_ic_RTRadius=150.0 * I3Units.m,
-            ic_ic_RTTime=1000.0 * I3Units.ns,
-            treat_string_36_as_deepcore=False,
-            useDustlayerCorrection=False,
-            allowSelfCoincidence=True,
-        )
-
-        # from icetray/filterscripts/python/baseproc.py
-        tray.AddModule(
-            "I3SeededRTCleaning_RecoPulseMask_Module",
-            "BaseProc_RTCleaning",
-            InputHitSeriesMapName=base_pulseseries,
-            OutputHitSeriesMapName=rt_cleaned_pulseseries,
-            STConfigService=seededRTConfig,
-            SeedProcedure="HLCCoreHits",
-            NHitsThreshold=2,
-            MaxNIterations=3,
-            Streams=[I3Frame.Physics],
-        )
-
-        tray.Add(checkName, name=rt_cleaned_pulseseries)
-
-        # from icetray/filterscripts/python/baseproc.py
-        tray.AddModule(
-            "I3TimeWindowCleaning<I3RecoPulse>",
-            "BaseProc_TimeWindowCleaning",
-            InputResponse=rt_cleaned_pulseseries,
-            OutputResponse=cleaned_muon_pulseseries,
-            TimeWindow=6000 * I3Units.ns,
-        )
-
-        tray.Add(checkName, name=cleaned_muon_pulseseries)
-
+        
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
         # Provide SplineMPE with energy estimation from MuEx
@@ -309,11 +316,11 @@ class Splinempe(RecoInterface):
         )
 
         tray.Add(checkName, name=vertex_seed)
+
         tray.Add(
             "I3BasicSeedServiceFactory",
             "splinempe-seed",
             FirstGuess=vertex_seed,
-            # FirstGuess=vertex_seed,
             # multiple can be provided as FirstGuesses=[,]
             TimeShiftType="TNone",
             PositionShiftType="None",
@@ -328,6 +335,8 @@ class Splinempe(RecoInterface):
             Minimizer="simplex",
         )
 
+        tray.Add(checkName, name="splinempe-reco" + "FitParams")
+
         def notify1(frame):
             logger.debug(f"SplineMPE pass done! {datetime.datetime.now()}")
 
@@ -338,7 +347,7 @@ class Splinempe(RecoInterface):
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel_id=frame[cfg.I3FRAME_PIXEL].value,
-            llh=frame["splinempe-reco" + "FitParams"].logl,  # FitParams is hardcoded
+            llh=frame["splinempe-reco" + "FitParams"].logl,  # FitParams is hardcoded (where?)
             reco_losses_inside=np.NaN,
             reco_losses_total=np.NaN,
             posvar_id=frame[cfg.I3FRAME_POSVAR].value,
