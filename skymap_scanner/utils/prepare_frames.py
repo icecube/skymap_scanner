@@ -136,7 +136,7 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
         # perform fit
         tray.AddSegment(
             recos.get_reco_interface_object(reco_algo).prepare_frames,
-            name=f"{reco_algo}_prepareframes",
+            f"{reco_algo}_prepareframes",
             logger=LOGGER
         )
 
