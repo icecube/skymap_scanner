@@ -32,6 +32,10 @@ class RecoInterface:
     SPLINE_REQUIREMENTS: List[str] = list()
 
     @staticmethod
+    def prepare_frames(tray, name, logger, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    @staticmethod
     def traysegment(tray, name, logger, **kwargs: Any) -> None:
         raise NotImplementedError()
 
