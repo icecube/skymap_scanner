@@ -32,7 +32,7 @@ class Dummy(RecoInterface):
 
     @staticmethod
     @icetray.traysegment
-    def prepare_frames(tray, name, **kwargs) -> None:
+    def prepare_frames(tray, name, logger, **kwargs) -> None:
         def gen_dummy_vertex(frame):
             frame[cfg.INPUT_TIME_NAME] = 0.0
             frame[cfg.INPUT_POS_NAME] = I3Position(0.0, 0.0, 0.0)
