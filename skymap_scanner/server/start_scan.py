@@ -90,31 +90,6 @@ class PixelsToReco:
 
         self.pos_variations  = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
 
-        # Get Position Variations
-        variation_distance = 20.*I3Units.m
-        if self.reco_algo == 'millipede_original':
-            if cfg.ENV.SKYSCAN_MINI_TEST:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    dataclasses.I3Position(-variation_distance,0.,0.)
-                ]
-            else:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    dataclasses.I3Position(-variation_distance,0.,0.),
-                    dataclasses.I3Position(variation_distance,0.,0.),
-                    dataclasses.I3Position(0.,-variation_distance,0.),
-                    dataclasses.I3Position(0., variation_distance,0.),
-                    dataclasses.I3Position(0.,0.,-variation_distance),
-                    dataclasses.I3Position(0.,0., variation_distance)
-                ]
-        # elif self.reco_algo == 'splinempe':
-        #    self.pos_variations = get_splinempe_position_variations(zenith=0.0, azimuth=0.0)
-        else:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-            ]
-
         # Set min nside
         self.min_nside = min_nside
 
