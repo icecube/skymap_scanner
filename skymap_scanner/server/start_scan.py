@@ -88,7 +88,7 @@ class PixelsToReco:
         self.output_particle_name = output_particle_name
         self.reco_algo = reco_algo.lower()
 
-        self.pos_variations  = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
+        self.pos_variations = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
 
         # Set min nside
         self.min_nside = min_nside
