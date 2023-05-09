@@ -36,7 +36,7 @@ from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTCon
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from ..utils.data_handling import DataStager
-from . import RecoInterface
+from . import RecoInterface, VertexGenerator
 
 MIE_BAREMU_PROB = "InfBareMu_mie_prob_z20a10_V2.fits"
 MIE_BAREMU_ABS = "InfBareMu_mie_abs_z20a10_V2.fits"
@@ -48,6 +48,8 @@ spline_requirements = [MIE_BAREMU_PROB, MIE_BAREMU_ABS, MIE_STOCH_PROB, MIE_STOC
 
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
+
+    VERTEX_VARIATIONS = VertexGenerator.point()
 
     base_pulseseries = cfg.INPUT_PULSES_NAME
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"

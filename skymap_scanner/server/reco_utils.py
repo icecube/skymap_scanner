@@ -76,11 +76,13 @@ def get_orthonormal_basis(theta, phi):
         dir2 ([numpy array of floats]): the other vector orthogonal to the direction
     """
 
+    # (0,0,1)
     # unit vector along direction defined by theta, phi
     v_dir = np.array(
         [np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)]
     )
 
+    # (1,0,0)
     # first orthonormal vector, from theta => theta - pi/2
     dir1 = np.array(
         [
@@ -90,6 +92,7 @@ def get_orthonormal_basis(theta, phi):
         ]
     )
 
+    # (0, 1, 0)
     # second orthonormal vector
     dir2 = np.cross(v_dir, dir1)
 

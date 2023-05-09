@@ -88,6 +88,8 @@ class PixelsToReco:
         self.output_particle_name = output_particle_name
         self.reco_algo = reco_algo.lower()
 
+        self.pos_variations  = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
+
         # Get Position Variations
         variation_distance = 20.*I3Units.m
         if self.reco_algo == 'millipede_original':

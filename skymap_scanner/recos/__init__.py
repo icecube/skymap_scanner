@@ -5,6 +5,8 @@ import importlib
 import pkgutil
 from typing import TYPE_CHECKING, Any, List
 
+from .vertex_gen import VertexGenerator
+
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
 
@@ -31,6 +33,9 @@ class RecoInterface:
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
+    # List of vectors referenced to the origin that will be used to generate the vertex position variation.
+    VERTEX_VARIATIONS: List[I3Position] = VertexGenerator.point()
+
     @staticmethod
     def prepare_frames(tray, name, logger, **kwargs: Any) -> None:
         raise NotImplementedError()
@@ -55,7 +60,7 @@ def get_all_reco_algos() -> List[str]:
 
 def get_reco_interface_object(name: str) -> RecoInterface:
     """Dynamically import the reco sub-module's class.
-        Implicitly assumes that name `foo_bar` corresponds to class `FooBar`.
+    Implicitly assumes that name `foo_bar` corresponds to class `FooBar`.
     """
     try:
         # Fetch module
