@@ -34,7 +34,7 @@ class Dummy(RecoInterface):
     @icetray.traysegment
     def prepare_frames(tray, name, logger, **kwargs) -> None:
         def gen_dummy_vertex(frame):
-            frame[cfg.INPUT_TIME_NAME] = 0.0 * I3Units.s
+            frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(0.0)
             frame[cfg.INPUT_POS_NAME] = dataclasses.I3Position(0.0 * I3Units.m, 0.0 * I3Units.m, 0.0 * I3Units.m)
 
         def notify(frame):
