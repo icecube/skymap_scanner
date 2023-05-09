@@ -30,7 +30,7 @@ class Dummy(RecoInterface):
 
     @staticmethod
     @icetray.traysegment
-    def prepare_frames(tray, name) -> None:
+    def prepare_frames(tray, name, **kwargs) -> None:
         def notify0(frame):
             logger.debug(f"Preparing frames! {datetime.datetime.now()}")
 
