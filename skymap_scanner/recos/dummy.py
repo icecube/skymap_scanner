@@ -18,6 +18,8 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     recclasses,
     simclasses,
 )
+
+from icecube.dataclasses import I3Position  # type: ignore[import]
 from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
@@ -31,10 +33,15 @@ class Dummy(RecoInterface):
     @staticmethod
     @icetray.traysegment
     def prepare_frames(tray, name, **kwargs) -> None:
-        def notify0(frame):
-            logger.debug(f"Preparing frames! {datetime.datetime.now()}")
+        def gen_dummy_vertex(frame):
+            frame[cfg.INPUT_TIME_NAME] = 0.0
+            frame[cfg.INPUT_POS_NAME] = I3Position(0.0, 0.0, 0.0)
 
-        tray.AddModule(notify0, "notify0")
+        def notify(frame):
+            logger.debug(f"Preparing frames (dummy). {datetime.datetime.now()}")
+
+        tray.Add(notify, "notify")
+        tray.Add(gen_dummy_vertex, "gen_dummy_vertex")
 
     @staticmethod
     @icetray.traysegment
