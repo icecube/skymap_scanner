@@ -66,10 +66,6 @@ class MillipedeOriginal(RecoInterface):
     datastager.stage_files(SPLINE_REQUIREMENTS)
     abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
-
-    cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
-    cascade_service.SetEfficiencies(SPEScale)
-    muon_service = None
     
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -169,6 +165,10 @@ class MillipedeOriginal(RecoInterface):
 
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
+        cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
+        cascade_service.SetEfficiencies(SPEScale)
+        muon_service = None
+
         """Perform MillipedeOriginal reco."""
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
@@ -180,8 +180,8 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeOriginal.muon_service,
-            CascadePhotonicsService=MillipedeOriginal.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
             # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
