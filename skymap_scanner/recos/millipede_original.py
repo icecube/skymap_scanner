@@ -166,7 +166,7 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
-        cascade_service.SetEfficiencies(SPEScale)
+        cascade_service.SetEfficiencies(MillipedeOriginal.SPEScale)
         muon_service = None
 
         """Perform MillipedeOriginal reco."""
