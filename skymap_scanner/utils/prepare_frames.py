@@ -108,7 +108,6 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
     tray.AddSegment(
         recos.get_reco_interface_object(reco_algo).prepare_frames,
         f"{reco_algo}_prepareframes",
-        logger=LOGGER
     )
 
     # If the event has a GCD diff (compressed GCD), only keep the diffs.
