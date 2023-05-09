@@ -37,7 +37,7 @@ class RecoInterface:
     VERTEX_VARIATIONS: List[I3Position] = VertexGenerator.point()
 
     @staticmethod
-    def prepare_frames(tray, name, logger, **kwargs: Any) -> None:
+    def prepare_frames(tray, name) -> None:
         raise NotImplementedError()
 
     @staticmethod
