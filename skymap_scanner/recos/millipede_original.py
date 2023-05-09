@@ -32,8 +32,17 @@ from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
+from .vertex_gen import VertexGenerator
+
 
 class MillipedeOriginal(RecoInterface):
+    variation_distance = 20.*I3Units.m
+
+    if cfg.ENV.SKYSCAN_MINI_TEST:
+        VERTEX_VARIATIONS = VertexGenerator.mini_test(variation_distance=variation_distance)
+    else:    
+        VERTEX_VARIATIONS = VertexGenerator.octahedron(variation_distance=variation_distance)
+
     """Reco logic for millipede."""
     # Spline requirements
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"

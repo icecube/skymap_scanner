@@ -16,6 +16,7 @@ from typing import Union, List
 
 
 from .. import config as cfg
+from .. import recos
 from . import LOGGER
 
 
@@ -130,10 +131,20 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+        
+    if reco_algo.lower() == "splinempe":
+        # perform fit
+        tray.AddSegment(
+            recos.get_reco_interface_object(reco_algo).prepare_frames,
+            f"{reco_algo}_prepareframes",
+            logger=LOGGER
+        )
 
     # If the event has a GCD diff (compressed GCD), only keep the diffs.
     # The GCD will be reassembled from baseline + diff by the client.
     if baseline_GCD is not None:
+        # The input event carries a compressed GCD.
+        # Only the GCD diff is propagated, the full GCD will be rebuilt downstream.
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
             for key in list(frame.keys()):

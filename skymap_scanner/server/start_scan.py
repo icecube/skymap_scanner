@@ -42,6 +42,7 @@ from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
 
+
 StrDict = Dict[str, Any]
 
 
@@ -86,28 +87,7 @@ class PixelsToReco:
         self.output_particle_name = output_particle_name
         self.reco_algo = reco_algo.lower()
 
-        # Get Position Variations
-        variation_distance = 20.*I3Units.m
-        if self.reco_algo == 'millipede_original':
-            if cfg.ENV.SKYSCAN_MINI_TEST:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    dataclasses.I3Position(-variation_distance,0.,0.)
-                ]
-            else:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    dataclasses.I3Position(-variation_distance,0.,0.),
-                    dataclasses.I3Position(variation_distance,0.,0.),
-                    dataclasses.I3Position(0.,-variation_distance,0.),
-                    dataclasses.I3Position(0., variation_distance,0.),
-                    dataclasses.I3Position(0.,0.,-variation_distance),
-                    dataclasses.I3Position(0.,0., variation_distance)
-                ]
-        else:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-            ]
+        self.pos_variations = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
 
         # Set min nside
         self.min_nside = min_nside
@@ -135,6 +115,7 @@ class PixelsToReco:
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
         
         self.omgeo = g_frame["I3Geometry"].omgeo
+
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
@@ -222,7 +203,7 @@ class PixelsToReco:
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_metadata.mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)
-        direction = dataclasses.I3Direction(zenith,azimuth)
+        direction = dataclasses.I3Direction(zenith, azimuth)
 
         if nside == self.min_nside:
             position = self.fallback_position
@@ -259,21 +240,26 @@ class PixelsToReco:
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
-        for i in range(0,len(self.pos_variations)):
+        n_pos_variations = len(self.pos_variations)
+
+        LOGGER.debug(f"Generating {n_pos_variations} position variations.")
+
+        for i in range(0, n_pos_variations):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
-            if self.reco_algo == 'millipede_wilks':
+            if self.reco_algo in ['millipede_wilks', 'splinempe']:
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
-                if position != self.fallback_position:
-                    # add fallback pos as an extra first guess
-                    p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
-                        self.fallback_position+posVariation,
-                        direction,
-                        self.fallback_energy,
-                        self.fallback_time)
+                if self.reco_algo == 'millipede_wilks':
+                    if position != self.fallback_position:
+                        # add fallback pos as an extra first guess
+                        p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
+                            self.fallback_position+posVariation,
+                            direction,
+                            self.fallback_energy,
+                            self.fallback_time)
 
             p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
                                                                       direction,
@@ -458,13 +444,13 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
+                    if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
                         raise ValueError(
                             f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
                         )
                     try:
                         await collector.collect(
-                            msg['reco_pixel_variation'], msg['runtime']
+                            msg["reco_pixel_variation"], msg["runtime"]
                         )
                     except ExtraRecoPixelVariationException as e:
                         logging.error(e)
@@ -617,7 +603,7 @@ def main() -> None:
             f"The first nside's pixel extension must be {NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION}. "
             f"Example: --nsides 8:{NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
         ),
-        nargs='*',
+        nargs="*",
         type=_nside_and_pixelextension,
     )
     # --real-event XOR --simulated-event
@@ -625,12 +611,12 @@ def main() -> None:
     group.add_argument(
         "--real-event",
         action="store_true",
-        help='include this flag if the event is real',
+        help="include this flag if the event is real",
     )
     group.add_argument(
         "--simulated-event",
         action="store_true",
-        help='include this flag if the event was simulated',
+        help="include this flag if the event was simulated",
     )
 
     # predictive_scanning_threshold

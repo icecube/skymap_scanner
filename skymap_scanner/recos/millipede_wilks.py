@@ -29,12 +29,15 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
+from .vertex_gen import VertexGenerator
 from . import RecoInterface
 
 
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
+    VERTEX_VARIATIONS = VertexGenerator.point()
+
     # Spline requirements ##############################################
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
     FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
