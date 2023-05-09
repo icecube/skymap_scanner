@@ -29,9 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from .vertex_gen import VertexGenerator
-from . import RecoInterface
-
+from . import RecoInterface, VertexGenerator
 
 
 class MillipedeWilks(RecoInterface):
