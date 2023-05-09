@@ -16,6 +16,7 @@ from typing import Union, List
 
 
 from .. import config as cfg
+from .. import recos
 # from .. import recos
 from . import LOGGER
 
@@ -104,44 +105,11 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
         OutputSLC=pulsesName+'SLC',
         If=lambda frame: pulsesName+'HLC' not in frame)
 
-    # Generates the vertex seed for the initial scan. 
-    # Only run if HESE_VHESelfVeto is not present in the frame.
-    # VertexThreshold is 250 in the original HESE analysis (Tianlu)
-    # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
-    if reco_algo.lower() == 'millipede_original':
-        # TODO: documentation for this conditional statement
-        tray.AddModule('VHESelfVeto', 'selfveto',
-                       VertexThreshold=2,
-                       Pulses=pulsesName+'HLC',
-                       OutputBool='HESE_VHESelfVeto',
-                       OutputVertexTime=cfg.INPUT_TIME_NAME,
-                       OutputVertexPos=cfg.INPUT_POS_NAME,
-                       If=lambda frame: "HESE_VHESelfVeto" not in frame)
-    else:
-        tray.AddModule('VHESelfVeto', 'selfveto',
-            VertexThreshold=250,
-            Pulses=pulsesName+'HLC',
-            OutputBool='HESE_VHESelfVeto',
-            OutputVertexTime=cfg.INPUT_TIME_NAME,
-            OutputVertexPos=cfg.INPUT_POS_NAME,
-            If=lambda frame: "HESE_VHESelfVeto" not in frame)
-
-        # this only runs if the previous module did not return anything
-        tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
-                       VertexThreshold=5,
-                       Pulses=pulsesName+'HLC',
-                       OutputBool='VHESelfVeto_meaningless_lowen',
-                       OutputVertexTime=cfg.INPUT_TIME_NAME,
-                       OutputVertexPos=cfg.INPUT_POS_NAME,
-                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
-        
-    # if reco_algo.lower() == "splinempe":
-    #     # perform fit
-    #     tray.AddSegment(
-    #         recos.get_reco_interface_object(reco_algo).prepare_frames,
-    #         f"{reco_algo}_prepareframes",
-    #         logger=LOGGER
-    #     )
+    tray.AddSegment(
+        recos.get_reco_interface_object(reco_algo).prepare_frames,
+        f"{reco_algo}_prepareframes",
+        logger=LOGGER
+    )
 
     # If the event has a GCD diff (compressed GCD), only keep the diffs.
     # The GCD will be reassembled from baseline + diff by the client.

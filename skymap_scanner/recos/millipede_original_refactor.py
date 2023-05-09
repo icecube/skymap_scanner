@@ -10,10 +10,12 @@ import os
 from typing import Tuple
 
 import numpy
+
 from I3Tray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
+    dataio,
     frame_object_diff,
     gulliver,
     gulliver_modules,
@@ -32,70 +34,45 @@ from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 
 
-class MillipedeWilks(RecoInterface):
+class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    VERTEX_VARIATIONS = VertexGenerator.point()
 
     # Spline requirements ##############################################
-    FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
-    FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
-    FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+    MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
+    MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
-    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
+    SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
+
     # Constants ########################################################
-
-    pulsesName_orig = cfg.INPUT_PULSES_NAME
-    pulsesName = cfg.INPUT_PULSES_NAME + "IC"
+    pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+    SPEScale = 0.99
 
-    # Load Data ########################################################
+    @staticmethod
+    def get_vertex_variations():
+        variation_distance = 20.*I3Units.m
 
-    # At HESE energies, deposited light is dominated by the stochastic losses
-    # (muon part emits so little light in comparison)
-    # This is why we can use cascade tables
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
-
-    datastager.stage_files(SPLINE_REQUIREMENTS)
-
-    abs_spline: str = datastager.get_filepath(FTP_ABS_SPLINE)
-    prob_spline: str = datastager.get_filepath(FTP_PROB_SPLINE)
-    effd_spline: str = datastager.get_filepath(FTP_EFFD_SPLINE)
-
-    cascade_service = photonics_service.I3PhotoSplineService(
-        abs_spline, prob_spline, timingSigma=0.0,
-        effectivedistancetable = effd_spline,
-        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
-        quantileEpsilon=1
+        if cfg.ENV.SKYSCAN_MINI_TEST:
+            return VertexGenerator.mini_test(variation_distance=variation_distance)
+        else:    
+            return VertexGenerator.octahedron(radius=variation_distance)
+        
+    
+    def __init__(self):
+        # Load Data ########################################################
+        # At HESE energies, deposited light is dominated by the stochastic losses
+        # (muon part emits so little light in comparison)
+        # This is why we can use cascade tables
+        datastager = DataStager(
+            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
         )
-    muon_service = None
-
-    @icetray.traysegment
-    def prepare_frames(tray, name):
-        # Generates the vertex seed for the initial scan. 
-        # Only run if HESE_VHESelfVeto is not present in the frame.
-        # VertexThreshold is 250 in the original HESE analysis (Tianlu)
-        # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
-        tray.AddModule('VHESelfVeto', 'selfveto',
-            VertexThreshold=250,
-            Pulses=pulsesName+'HLC',
-            OutputBool='HESE_VHESelfVeto',
-            OutputVertexTime=cfg.INPUT_TIME_NAME,
-            OutputVertexPos=cfg.INPUT_POS_NAME,
-            If=lambda frame: "HESE_VHESelfVeto" not in frame)
-
-        # this only runs if the previous module did not return anything
-        tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
-                       VertexThreshold=5,
-                       Pulses=pulsesName+'HLC',
-                       OutputBool='VHESelfVeto_meaningless_lowen',
-                       OutputVertexTime=cfg.INPUT_TIME_NAME,
-                       OutputVertexPos=cfg.INPUT_POS_NAME,
-                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
-
+        datastager.stage_files(SPLINE_REQUIREMENTS)
+        self.abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
+        self.prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
+    
+    @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -109,17 +86,16 @@ class MillipedeWilks(RecoInterface):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 MillipedeWilks.pulsesName_cleaned,
-                                 MillipedeWilks.pulsesName_cleaned+'TimeWindows',
-                                 MillipedeWilks.pulsesName_cleaned+'TimeRange'])
+                                 MillipedeOriginal.pulsesName_cleaned,
+                                 MillipedeOriginal.pulsesName_cleaned+'TimeWindows',
+                                 MillipedeOriginal.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = MillipedeWilks.pulsesName,
+            Pulses = MillipedeOriginal.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
-            BrightDOMThreshold=2,
             BadDomsList='BadDomsList',
             CalibrationErrata='CalibrationErrata',
             SaturationWindows='SaturationWindows'
@@ -135,29 +111,6 @@ class MillipedeWilks(RecoInterface):
                        ListNames = ["BrightDOMs"])
         # exclude bright DOMs
         ExcludedDOMs = exclusionList
-
-        def skipunhits(frame, output, pulses):
-            keepstrings = [1,3,5,14,16,18,20,31,33,35,37,39,51,53,55,57,59,68,70,72,74]
-            keepoms = list(range(1,60,5))
-            all_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(
-                frame, pulses)
-            omgeo = frame['I3Geometry']
-            geo = omgeo.omgeo
-            unhits = dataclasses.I3VectorOMKey()
-            for k, v in geo.iteritems():
-                if v.omtype != dataclasses.I3OMGeo.OMType.IceCube:
-                    continue
-                if k.string not in keepstrings:
-                    if k not in all_pulses.keys():
-                        unhits.append(k)
-                else:
-                    if k not in all_pulses.keys() and k.om not in keepoms:
-                        unhits.append(k)
-
-            frame[output] = unhits
-
-        tray.Add(skipunhits, output='OtherUnhits', pulses=MillipedeWilks.pulsesName)
-        ExcludedDOMs.append('OtherUnhits')
 
         ##################
 
@@ -182,7 +135,7 @@ class MillipedeWilks(RecoInterface):
         def weighted_median(values, weights):
             return weighted_quantile(values, weights, q=0.5)
 
-        def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
+        def LatePulseCleaning(frame, Pulses, Residual=3e3*I3Units.ns):
             pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
             mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
             counter, charge = 0, 0
@@ -206,28 +159,26 @@ class MillipedeWilks(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[MillipedeWilks.pulsesName_cleaned] = mask
-            frame[MillipedeWilks.pulsesName_cleaned+"TimeWindows"] = times
-            frame[MillipedeWilks.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[MillipedeWilks.pulsesName_orig+"TimeRange"])
+            frame[MillipedeOriginal.pulsesName_cleaned] = mask
+            frame[MillipedeOriginal.pulsesName_cleaned+"TimeWindows"] = times
+            frame[MillipedeOriginal.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=MillipedeWilks.pulsesName,
+                       Pulses=MillipedeOriginal.pulsesName,
                        )
-        return ExcludedDOMs + [MillipedeWilks.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [MillipedeOriginal.pulsesName_cleaned+'TimeWindows']
 
 
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
-        """Perform MillipedeWilks reco."""
-        def mask_dc(frame, origpulses, maskedpulses):
-            # Masks DeepCore pulses by selecting string numbers < 79.
-            frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
-                frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
-        tray.Add(mask_dc, origpulses=MillipedeWilks.pulsesName_orig, maskedpulses=MillipedeWilks.pulsesName)
+        cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
+        cascade_service.SetEfficiencies(SPEScale)
+        muon_service = None
 
-        ExcludedDOMs = tray.Add(MillipedeWilks.exclusions)
+        """Perform MillipedeOriginal reco."""
+        ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
-        tray.Add(MillipedeWilks.makeSurePulsesExist, pulsesName=MillipedeWilks.pulsesName_cleaned)
+        tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
@@ -235,47 +186,31 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeWilks.muon_service,
-            CascadePhotonicsService=MillipedeWilks.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
+            PhotonsPerBin=15,
+            # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
-            ReadoutWindow=MillipedeWilks.pulsesName_cleaned+'TimeRange',
-            Pulses=MillipedeWilks.pulsesName_cleaned,
-            BinSigma=2,
-            MinTimeWidth=25,
-            RelUncertainty=0.3)
+            ReadoutWindow=MillipedeOriginal.pulsesName_cleaned+'TimeRange',
+            Pulses=MillipedeOriginal.pulsesName_cleaned,
+            BinSigma=3)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 
-        tray.context['isimplex'] = lilliput.IMinuitMinimizer(
-            MaxIterations=2000,
-            Tolerance=0.01,
-            Algorithm="SIMPLEX",
-            MinuitPrintLevel=2,
-            MinuitPrecision=numpy.finfo('float32').eps
-        )
-        tray.context['imigrad'] = lilliput.IMinuitMinimizer(
-            MaxIterations=1000,
-            Tolerance=0.01,
-            Algorithm="MIGRAD",
-            WithGradients=True,
-            FlatnessCheck=False,
-            IgnoreEDM=True, # Don't report convergence failures
-            CheckGradient=False, # Don't die on gradient errors
-            MinuitStrategy=0, # Don't try to check local curvature
-            MinuitPrintLevel=2
-            )
+        tray.AddService('I3GSLSimplexFactory', 'simplex',
+            MaxIterations=20000)
 
-        coars_steps = dict(StepX=100.*I3Units.m,
-                           StepY=100.*I3Units.m,
-                           StepZ=100.*I3Units.m,
+        coars_steps = dict(StepX=10.*I3Units.m,
+                           StepY=10.*I3Units.m,
+                           StepZ=10.*I3Units.m,
                            StepZenith=0.,
                            StepAzimuth=0.,
-                           StepT=250.*I3Units.ns,
+                           StepT=0.*I3Units.ns,
                            ShowerSpacing=5.*I3Units.m,
-                           MuonSpacing=0,
-                           Boundary=650*I3Units.m)
+                           MuonSpacing=0)
+
         finer_steps = dict(StepX=2.*I3Units.m,
                            StepY=2.*I3Units.m,
                            StepZ=2.*I3Units.m,
@@ -283,16 +218,12 @@ class MillipedeWilks(RecoInterface):
                            StepAzimuth=0.,
                            StepT=5.*I3Units.ns,
                            ShowerSpacing=2.5*I3Units.m,
-                           MuonSpacing=0,
-                           Boundary=650*I3Units.m)
-        if seed is not None:
-            logger.debug('Updating StepXYZ')
-            MillipedeWilks.UpdateStepXYZ(coars_steps, seed.dir, 150*I3Units.m)
-            MillipedeWilks.UpdateStepXYZ(finer_steps, seed.dir, 3*I3Units.m)
+                           MuonSpacing=0)
+
         tray.AddService('MuMillipedeParametrizationFactory', 'coarseSteps', **coars_steps)
 
         tray.AddService('I3BasicSeedServiceFactory', 'vetoseed',
-            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}', f'{cfg.OUTPUT_PARTICLE_NAME}_fallback'],
+            FirstGuesses=[f'{cfg.OUTPUT_PARTICLE_NAME}'],
             TimeShiftType='TNone',
             PositionShiftType='None')
 
@@ -301,7 +232,7 @@ class MillipedeWilks(RecoInterface):
             SeedService='vetoseed',
             Parametrization='coarseSteps',
             LogLikelihood='millipedellh',
-            Minimizer='isimplex')
+            Minimizer='simplex')
 
         def notify1(frame):
             logger.debug(f"1st pass done! {datetime.datetime.now()}")
@@ -318,23 +249,11 @@ class MillipedeWilks(RecoInterface):
             PositionShiftType='None')
 
         tray.Add('I3SimpleFitter',
-                 SeedService='firstFitSeed',
-                 OutputName='MillipedeStarting2ndPass_simplex',
-                 Parametrization='fineSteps',
-                 LogLikelihood='millipedellh',
-                 Minimizer='isimplex')
-
-        tray.AddService('I3BasicSeedServiceFactory', 'secondsimplexseed',
-            FirstGuesses=['MillipedeStarting2ndPass_simplex'],
-            TimeShiftType='TNone',
-            PositionShiftType='None')
-
-        tray.Add('I3SimpleFitter',
-             SeedService='secondsimplexseed',
+             SeedService='firstFitSeed',
              OutputName='MillipedeStarting2ndPass',
              Parametrization='fineSteps',
              LogLikelihood='millipedellh',
-             Minimizer='imigrad')
+             Minimizer='simplex')
 
         def notify2(frame):
             logger.debug(f"2nd pass done! {datetime.datetime.now()}")
@@ -343,15 +262,9 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(notify2, "notify2")
 
     @staticmethod
-    def UpdateStepXYZ(the_steps, direction, uniform_step=15*I3Units.m):
-        the_steps['StepX'] = numpy.sqrt(1-direction.x**2)*uniform_step
-        the_steps['StepY'] = numpy.sqrt(1-direction.y**2)*uniform_step
-        the_steps['StepZ'] = numpy.sqrt(1-direction.z**2)*uniform_step
-
-    @staticmethod
     def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
         # Calculate reco losses, based on load_scan_state()
-        reco_losses_inside, reco_losses_total = MillipedeWilks.get_reco_losses_inside(
+        reco_losses_inside, reco_losses_total = MillipedeOriginal.get_reco_losses_inside(
             p_frame=frame, g_frame=geometry,
         )
 
