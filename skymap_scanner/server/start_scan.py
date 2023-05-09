@@ -106,8 +106,8 @@ class PixelsToReco:
                     dataclasses.I3Position(0.,0.,-variation_distance),
                     dataclasses.I3Position(0.,0., variation_distance)
                 ]
-        elif self.reco_algo == 'splinempe':
-            self.pos_variations = get_splinempe_position_variations(zenith=0.0, azimuth=0.0)
+        # elif self.reco_algo == 'splinempe':
+        #    self.pos_variations = get_splinempe_position_variations(zenith=0.0, azimuth=0.0)
         else:
             self.pos_variations = [
                 dataclasses.I3Position(0.,0.,0.),
@@ -468,13 +468,13 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
+                    if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
                         raise ValueError(
                             f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
                         )
                     try:
                         await collector.collect(
-                            msg['reco_pixel_variation'], msg['runtime']
+                            msg["reco_pixel_variation"], msg["runtime"]
                         )
                     except ExtraRecoPixelVariationException as e:
                         logging.error(e)
