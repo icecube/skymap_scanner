@@ -81,6 +81,9 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
         simclasses,
     )
 
+    # ACTIVATE FOR DEBUG
+    icetray.logging.console()
+
     output_frames: list[icetray.I3Frame] = []
 
     tray = I3Tray()
