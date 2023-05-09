@@ -30,6 +30,14 @@ class Dummy(RecoInterface):
 
     @staticmethod
     @icetray.traysegment
+    def prepare_frames(tray, name) -> None:
+        def notify0(frame):
+            logger.debug(f"Preparing frames! {datetime.datetime.now()}")
+
+        tray.AddModule(notify0, "notify0")
+
+    @staticmethod
+    @icetray.traysegment
     def traysegment(tray, name, logger, **kwargs):
         """Perform dummy reco."""
 
