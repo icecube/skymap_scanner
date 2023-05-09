@@ -41,7 +41,7 @@ class Dummy(RecoInterface):
             logger.debug(f"Preparing frames (dummy). {datetime.datetime.now()}")
 
         tray.Add(notify, "notify")
-        tray.Add(gen_dummy_vertex, "gen_dummy_vertex")
+        tray.Add(gen_dummy_vertex, "gen_dummy_vertex", If=lambda frame: cfg.INPUT_TIME_NAME not in frame and cfg.INPUT_POS_NAME not in frame)
 
     @staticmethod
     @icetray.traysegment
