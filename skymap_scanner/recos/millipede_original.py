@@ -40,7 +40,7 @@ class MillipedeOriginal(RecoInterface):
     if cfg.ENV.SKYSCAN_MINI_TEST:
         VERTEX_VARIATIONS = VertexGenerator.mini_test(variation_distance=variation_distance)
     else:    
-        VERTEX_VARIATIONS = VertexGenerator.octahedron(variation_distance=variation_distance)
+        VERTEX_VARIATIONS = VertexGenerator.octahedron(radius=variation_distance)
 
     """Reco logic for millipede."""
     # Spline requirements
