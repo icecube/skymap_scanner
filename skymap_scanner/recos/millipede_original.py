@@ -50,10 +50,6 @@ class MillipedeOriginal(RecoInterface):
 
     SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
 
-    # Constants ########################################################
-    pulsesName = cfg.INPUT_PULSES_NAME
-    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
@@ -180,6 +176,11 @@ class MillipedeOriginal(RecoInterface):
 
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
+        # Constants ########################################################
+        pulsesName = cfg.INPUT_PULSES_NAME
+        pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+
+        # Services ########################################################
         cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
 
         SPEScale = 0.99
