@@ -44,6 +44,9 @@ class MillipedeOriginal(RecoInterface):
         VERTEX_VARIATIONS = VertexGenerator.octahedron(radius=variation_distance)
 
     
+    pulsesName = cfg.INPUT_PULSES_NAME
+    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+
     # Spline requirements
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
@@ -65,7 +68,7 @@ class MillipedeOriginal(RecoInterface):
 
 
     @icetray.traysegment
-    def prepare_frames(tray, name):
+    def prepare_frames(tray, name, pulsesName):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
@@ -176,9 +179,10 @@ class MillipedeOriginal(RecoInterface):
 
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
+        """Perform MillipedeOriginal reco."""
+
         # Constants ########################################################
-        pulsesName = cfg.INPUT_PULSES_NAME
-        pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+
 
         # Services ########################################################
         cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
@@ -187,7 +191,6 @@ class MillipedeOriginal(RecoInterface):
         cascade_service.SetEfficiencies(SPEScale)
         muon_service = None
 
-        """Perform MillipedeOriginal reco."""
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
