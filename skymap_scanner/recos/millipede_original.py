@@ -35,6 +35,7 @@ from . import RecoInterface, VertexGenerator
 
 
 class MillipedeOriginal(RecoInterface):
+    """Reco logic for millipede."""
     variation_distance = 20.*I3Units.m
 
     if cfg.ENV.SKYSCAN_MINI_TEST:
@@ -42,7 +43,7 @@ class MillipedeOriginal(RecoInterface):
     else:    
         VERTEX_VARIATIONS = VertexGenerator.octahedron(radius=variation_distance)
 
-    """Reco logic for millipede."""
+    
     # Spline requirements
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
@@ -52,7 +53,6 @@ class MillipedeOriginal(RecoInterface):
     # Constants ########################################################
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-    SPEScale = 0.99
 
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
@@ -66,6 +66,21 @@ class MillipedeOriginal(RecoInterface):
     datastager.stage_files(SPLINE_REQUIREMENTS)
     abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
+
+
+    @icetray.traysegment
+    def prepare_frames(tray, name):
+        # Generates the vertex seed for the initial scan. 
+        # Only run if HESE_VHESelfVeto is not present in the frame.
+        # VertexThreshold is 250 in the original HESE analysis (Tianlu)
+        # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
+        tray.AddModule('VHESelfVeto', 'selfveto',
+                    VertexThreshold=2,
+                    Pulses=pulsesName+'HLC',
+                    OutputBool='HESE_VHESelfVeto',
+                    OutputVertexTime=cfg.INPUT_TIME_NAME,
+                    OutputVertexPos=cfg.INPUT_POS_NAME,
+                    If=lambda frame: "HESE_VHESelfVeto" not in frame)
     
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -166,7 +181,9 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
-        cascade_service.SetEfficiencies(MillipedeOriginal.SPEScale)
+
+        SPEScale = 0.99
+        cascade_service.SetEfficiencies(SPEScale)
         muon_service = None
 
         """Perform MillipedeOriginal reco."""
