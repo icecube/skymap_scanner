@@ -328,7 +328,7 @@ class Splinempe(RecoInterface):
             **steps,
         )
 
-        def frame_for_logging(frame: icetray.I3Frame) -> str:
+        def frame_for_logging(frame: icetray.I3Frame) -> None:
             logger.debug(f"{repr(frame)}/{frame}")
 
         tray.Add(frame_for_logging, "logframe")
