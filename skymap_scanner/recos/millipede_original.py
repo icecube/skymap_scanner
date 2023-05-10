@@ -72,8 +72,8 @@ class MillipedeOriginal(RecoInterface):
         # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
         def extract_seed(frame):
             seed_prefix = "HESE_VHESelfVeto"
-            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexTime"]
-            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexPos"]
+            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexPos"]
+            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexTime"]
 
         tray.Add(extract_seed, "ExtractSeed",
                  If = lambda frame: frame.Has("HESE_VHESelfVeto"))
