@@ -31,29 +31,27 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
-from .vertex_gen import VertexGenerator
+from . import RecoInterface, VertexGenerator
 
 
 class MillipedeOriginal(RecoInterface):
+    """Reco logic for millipede."""
     variation_distance = 20.*I3Units.m
 
     if cfg.ENV.SKYSCAN_MINI_TEST:
         VERTEX_VARIATIONS = VertexGenerator.mini_test(variation_distance=variation_distance)
     else:    
-        VERTEX_VARIATIONS = VertexGenerator.octahedron(variation_distance=variation_distance)
+        VERTEX_VARIATIONS = VertexGenerator.octahedron(radius=variation_distance)
 
-    """Reco logic for millipede."""
+    
+    pulsesName = cfg.INPUT_PULSES_NAME
+    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+
     # Spline requirements
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
     SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
-
-    # Constants ########################################################
-    pulsesName = cfg.INPUT_PULSES_NAME
-    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-    SPEScale = 0.99
 
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
@@ -68,9 +66,20 @@ class MillipedeOriginal(RecoInterface):
     abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
 
-    cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
-    cascade_service.SetEfficiencies(SPEScale)
-    muon_service = None
+
+    @icetray.traysegment
+    def prepare_frames(tray, name, logger, pulsesName):
+        # Generates the vertex seed for the initial scan. 
+        # Only run if HESE_VHESelfVeto is not present in the frame.
+        # VertexThreshold is 250 in the original HESE analysis (Tianlu)
+        # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
+        tray.AddModule('VHESelfVeto', 'selfveto',
+                    VertexThreshold=2,
+                    Pulses=pulsesName+'HLC',
+                    OutputBool='HESE_VHESelfVeto',
+                    OutputVertexTime=cfg.INPUT_TIME_NAME,
+                    OutputVertexPos=cfg.INPUT_POS_NAME,
+                    If=lambda frame: "HESE_VHESelfVeto" not in frame)
     
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -171,6 +180,17 @@ class MillipedeOriginal(RecoInterface):
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
+
+        # Constants ########################################################
+
+
+        # Services ########################################################
+        cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
+
+        SPEScale = 0.99
+        cascade_service.SetEfficiencies(SPEScale)
+        muon_service = None
+
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
@@ -181,8 +201,8 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeOriginal.muon_service,
-            CascadePhotonicsService=MillipedeOriginal.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
             # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)

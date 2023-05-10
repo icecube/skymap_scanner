@@ -225,6 +225,7 @@ def __extract_frame_packet(
             frame_packet[i] = baseline_GCD_framepacket[i]
         del baseline_GCD_framepacket
 
+    LOGGER.info("Preprocessing event frames!")
     if baseline_GCD is not None:
         # frame_packet has GCD diff, provide baseline
         frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulsesName=pulsesName)

@@ -29,9 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from .vertex_gen import VertexGenerator
-from . import RecoInterface
-
+from . import RecoInterface, VertexGenerator
 
 
 class MillipedeWilks(RecoInterface):
@@ -74,6 +72,29 @@ class MillipedeWilks(RecoInterface):
         quantileEpsilon=1
         )
     muon_service = None
+
+    @icetray.traysegment
+    def prepare_frames(tray, name):
+        # Generates the vertex seed for the initial scan. 
+        # Only run if HESE_VHESelfVeto is not present in the frame.
+        # VertexThreshold is 250 in the original HESE analysis (Tianlu)
+        # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
+        tray.AddModule('VHESelfVeto', 'selfveto',
+            VertexThreshold=250,
+            Pulses=pulsesName+'HLC',
+            OutputBool='HESE_VHESelfVeto',
+            OutputVertexTime=cfg.INPUT_TIME_NAME,
+            OutputVertexPos=cfg.INPUT_POS_NAME,
+            If=lambda frame: "HESE_VHESelfVeto" not in frame)
+
+        # this only runs if the previous module did not return anything
+        tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
+                       VertexThreshold=5,
+                       Pulses=pulsesName+'HLC',
+                       OutputBool='VHESelfVeto_meaningless_lowen',
+                       OutputVertexTime=cfg.INPUT_TIME_NAME,
+                       OutputVertexPos=cfg.INPUT_POS_NAME,
+                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
