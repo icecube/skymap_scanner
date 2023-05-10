@@ -206,7 +206,7 @@ class Splinempe(RecoInterface):
             frame[cfg.INPUT_POS_NAME] = frame[seed_source].pos
             frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(frame[seed_source].time)
             logger.debug(
-                f"pos {frame[cfg.INPUT_POS_NAME]} time {frame[cfg.INPUT_TIME_NAME]}"
+                f"Seed => pos {frame[cfg.INPUT_POS_NAME]} time {frame[cfg.INPUT_TIME_NAME]}"
             )
 
         tray.Add(extract_seed, "ExtractSeedInformation")
@@ -249,9 +249,7 @@ class Splinempe(RecoInterface):
         tray.AddModule(checkName, name=energy_reco_seed)
 
         def notify_muex(frame):
-            logger.debug(
-                f"Pulse cleaning done! Now running MuEX - {datetime.datetime.now()}"
-            )
+            logger.debug(f"Running MuEX - {datetime.datetime.now()}")
 
         tray.Add(notify_muex, "notify_muex")
 
@@ -295,7 +293,7 @@ class Splinempe(RecoInterface):
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
             PostJitter=Splinempe.get_postjitter(),
-            KSConfidenceLevel=Splinempe.get_KS_confidence_level(),
+            KSConfidenceLevel=Splinempe.get_KS_confidence_level(do_KS=False),
             ChargeCalcStep=0,
             CutMode="late",
             EnergyDependentJitter=Splinempe.get_energy_dependent_jitter(),
@@ -327,6 +325,12 @@ class Splinempe(RecoInterface):
             "splinempe-param",
             **steps,
         )
+
+        def log_param(frame):
+            logger.debug("PARAM FACTORY")
+            logger.debug(frame["I3SimpleParametrizationFactory"])
+
+        tray.Add(log_param, "logger")
 
         tray.Add(checkName, name=vertex_seed)
 
