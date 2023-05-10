@@ -204,7 +204,7 @@ class Splinempe(RecoInterface):
         def extract_seed(frame):
             seed_source = "OnlineL2_SplineMPE"
             frame[cfg.INPUT_TIME_NAME] = frame[seed_source].pos
-            frame[cfg.INPUT_PULSES_NAME] = frame[seed_source].vertextime
+            frame[cfg.INPUT_PULSES_NAME] = frame[seed_source].time
 
         tray.Add(extract_seed, "ExtractSeedInformation")
 
