@@ -136,12 +136,12 @@ class Splinempe(RecoInterface):
             BoundsX=vertex_bounds,
             BoundsY=vertex_bounds,
             BoundsZ=vertex_bounds,
-            StepZenith=0.1 * I3Units.radian,
-            StepAzimuth=0.2 * I3Units.radian,
-            BoundsZenith=[0.0, 0.0],
-            BoundsAzimuth=[0.0, 0.0],
-            StepT=1.0 * I3Units.ns,
-            BoundsT=time_bounds,
+            # StepZenith=0.1 * I3Units.radian,
+            # StepAzimuth=0.2 * I3Units.radian,
+            # BoundsZenith=[0.0, 0.0],
+            # BoundsAzimuth=[0.0, 0.0],
+            # StepT=1.0 * I3Units.ns,
+            # BoundsT=time_bounds,
         )
 
         return steps
