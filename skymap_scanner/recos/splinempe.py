@@ -216,6 +216,8 @@ class Splinempe(RecoInterface):
     def traysegment(tray, name, logger, **kwargs):
         """SplineMPE reco"""
 
+        icetray.logging.console()
+
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
                 raise RuntimeError(f"{name} not in frame.")
@@ -326,11 +328,11 @@ class Splinempe(RecoInterface):
             **steps,
         )
 
-        def log_param(frame):
-            logger.debug("PARAM FACTORY")
-            logger.debug(frame["splinempe-param"])
-
-        tray.Add(log_param, "logger")
+        # def log_param(frame):
+        #    logger.debug("PARAM FACTORY")
+        #    logger.debug(frame["splinempe-param"])
+        #
+        # tray.Add(log_param, "logger")
 
         tray.Add(checkName, name=vertex_seed)
 
