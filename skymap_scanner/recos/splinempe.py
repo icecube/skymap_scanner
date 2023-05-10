@@ -328,7 +328,7 @@ class Splinempe(RecoInterface):
 
         def log_param(frame):
             logger.debug("PARAM FACTORY")
-            logger.debug(frame["I3SimpleParametrizationFactory"])
+            logger.debug(frame["splinempe-param"])
 
         tray.Add(log_param, "logger")
 
