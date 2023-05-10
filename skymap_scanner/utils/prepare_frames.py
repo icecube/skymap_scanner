@@ -14,14 +14,7 @@ from icecube import icetray  # type: ignore[import]
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 
 from icecube import (
-    DomTools,
-    VHESelfVeto,
-    dataclasses,
-    gulliver,
-    millipede,
-    photonics_service,
-    recclasses,
-    simclasses,
+    DomTools, # for I3LCPulseCleaning
 ) # type: ignore[import]
 
 from .. import config as cfg
