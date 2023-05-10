@@ -17,7 +17,6 @@ from typing import Union, List
 
 from .. import config as cfg
 from .. import recos
-# from .. import recos
 from . import LOGGER
 
 
@@ -83,7 +82,10 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
     )
 
     # ACTIVATE FOR DEBUG
-    icetray.logging.console()
+    # icetray.logging.console()
+
+    # Reconstruction algorithm provider class
+    RecoAlgo = recos.get_reco_interface_object(reco_algo)
 
     output_frames: list[icetray.I3Frame] = []
 
@@ -106,7 +108,7 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
         If=lambda frame: pulsesName+'HLC' not in frame)
 
     tray.AddSegment(
-        recos.get_reco_interface_object(reco_algo).prepare_frames,
+        RecoAlgo.prepare_frames,
         f"{reco_algo}_prepareframes",
         logger=LOGGER,
         pulsesName=pulsesName
