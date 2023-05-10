@@ -7,13 +7,22 @@ prepare the GCDQp packet by adding frame objects that might be missing
 
 import copy
 import os
-
-import numpy
-from I3Tray import I3Tray, I3Units  # type: ignore[import]
-from icecube import icetray  # type: ignore[import]
-from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 from typing import Union, List
 
+from I3Tray import I3Tray  # type: ignore[import]
+from icecube import icetray  # type: ignore[import]
+from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+
+from icecube import (
+    DomTools,
+    VHESelfVeto,
+    dataclasses,
+    gulliver,
+    millipede,
+    photonics_service,
+    recclasses,
+    simclasses,
+) # type: ignore[import]
 
 from .. import config as cfg
 from .. import recos
@@ -68,18 +77,7 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]:
-    # type hint using list available from python 3.11
-    from icecube import (
-        DomTools,
-        VHESelfVeto,
-        dataclasses,
-        gulliver,
-        millipede,
-        photonics_service,
-        recclasses,
-        simclasses,
-    )
+def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
     # ACTIVATE FOR DEBUG
     # icetray.logging.console()
@@ -107,6 +105,7 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
         OutputSLC=pulsesName+'SLC',
         If=lambda frame: pulsesName+'HLC' not in frame)
 
+    # Run reco-specific preprocessing.
     tray.AddSegment(
         RecoAlgo.prepare_frames,
         f"{reco_algo}_prepareframes",
