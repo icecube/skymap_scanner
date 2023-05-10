@@ -328,6 +328,11 @@ class Splinempe(RecoInterface):
             **steps,
         )
 
+        def frame_for_logging(frame: icetray.I3Frame) -> str:
+            logger.debug(f"{repr(frame)}/{frame}")
+
+        tray.Add(frame_for_logging, "logframe")
+
         # def log_param(frame):
         #    logger.debug("PARAM FACTORY")
         #    logger.debug(frame["splinempe-param"])
