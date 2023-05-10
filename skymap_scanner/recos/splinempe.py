@@ -216,8 +216,6 @@ class Splinempe(RecoInterface):
     def traysegment(tray, name, logger, **kwargs):
         """SplineMPE reco"""
 
-        icetray.logging.console()
-
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
                 raise RuntimeError(f"{name} not in frame.")
@@ -229,7 +227,6 @@ class Splinempe(RecoInterface):
         energy_estimator = "OnlineL2_BestFit_MuEx"
 
         vertex_seed = cfg.OUTPUT_PARTICLE_NAME
-        # Here, "OnlineL2_SplineMPE" was used for the offline SplineMPE scan implementation.
 
         # Notify start.
         def notify0(frame):
