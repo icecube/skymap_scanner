@@ -69,6 +69,15 @@ class MillipedeOriginal(RecoInterface):
 
     @icetray.traysegment
     def prepare_frames(tray, name, logger, pulsesName):
+        # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
+        def extract_seed(frame):
+            seed_prefix = "HESE_VHESelfVeto"
+            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexTime"]
+            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexPos"]
+
+        tray.Add(extract_seed, "ExtractSeed",
+                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
+        
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
@@ -81,14 +90,7 @@ class MillipedeOriginal(RecoInterface):
                     OutputVertexPos=cfg.INPUT_POS_NAME,
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
         
-        # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
-        def extract_seed(frame):
-            seed_prefix = "HESE_VHESelfVeto"
-            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexTime"]
-            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexPos"]
 
-        tray.Add(extract_seed, "ExtractSeed",
-                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
     
         
         
