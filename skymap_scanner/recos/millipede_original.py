@@ -66,6 +66,8 @@ class MillipedeOriginal(RecoInterface):
     abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
     prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
 
+    def stage_splines():
+        pass
 
     @icetray.traysegment
     def prepare_frames(tray, name, logger, pulsesName):

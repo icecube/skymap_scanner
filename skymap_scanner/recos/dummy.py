@@ -30,18 +30,28 @@ from . import RecoInterface
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
+    def stage_splines():
+        pass
+
     @staticmethod
     @icetray.traysegment
     def prepare_frames(tray, name, logger, **kwargs) -> None:
         def gen_dummy_vertex(frame):
             frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(0.0)
-            frame[cfg.INPUT_POS_NAME] = dataclasses.I3Position(0.0 * I3Units.m, 0.0 * I3Units.m, 0.0 * I3Units.m)
+            frame[cfg.INPUT_POS_NAME] = dataclasses.I3Position(
+                0.0 * I3Units.m, 0.0 * I3Units.m, 0.0 * I3Units.m
+            )
 
         def notify(frame):
             logger.debug(f"Preparing frames (dummy). {datetime.datetime.now()}")
 
         tray.Add(notify, "notify")
-        tray.Add(gen_dummy_vertex, "gen_dummy_vertex", If=lambda frame: cfg.INPUT_TIME_NAME not in frame and cfg.INPUT_POS_NAME not in frame)
+        tray.Add(
+            gen_dummy_vertex,
+            "gen_dummy_vertex",
+            If=lambda frame: cfg.INPUT_TIME_NAME not in frame
+            and cfg.INPUT_POS_NAME not in frame,
+        )
 
     @staticmethod
     @icetray.traysegment
