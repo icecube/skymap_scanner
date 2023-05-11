@@ -53,6 +53,9 @@ class MillipedeOriginal(RecoInterface):
 
     SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
 
+    def stage_splines():
+        pass
+
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
