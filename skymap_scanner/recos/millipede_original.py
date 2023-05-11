@@ -35,7 +35,7 @@ from . import RecoInterface
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    # Spline requirements
+    # Spline requirements ##############################################
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
@@ -44,24 +44,28 @@ class MillipedeOriginal(RecoInterface):
     # Constants ########################################################
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-    SPEScale = 0.99
 
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
-    datastager.stage_files(SPLINE_REQUIREMENTS)
-    abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
-    prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
 
-    cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
-    cascade_service.SetEfficiencies(SPEScale)
-    muon_service = None
+    @staticmethod
+    def init_datastager() -> DataStager:
+        """Create datastager, stage spline data and return datastager.
+
+        Returns:
+            DataStager: datastager for spline data.
+        """
+        datastager = DataStager(
+            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+        )
+
+        datastager.stage_files(MillipedeOriginal.SPLINE_REQUIREMENTS)
+
+        return datastager
     
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -159,9 +163,20 @@ class MillipedeOriginal(RecoInterface):
         return ExcludedDOMs + [MillipedeOriginal.pulsesName_cleaned+'TimeWindows']
 
 
+    @staticmethod
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
+        datastager = MillipedeOriginal.init_datastager()
+
+        abs_spline = datastager.get_filepath(MIE_ABS_SPLINE)
+        prob_spline = datastager.get_filepath(MIE_PROB_SPLINE)   
+
+        cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
+        SPEScale = 0.99 # moved from MillipedeLikelihoodFactory parameter DOMEfficiency=SPEScale
+        cascade_service.SetEfficiencies(SPEScale)
+        muon_service = None
+
         ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
 
         tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
@@ -172,11 +187,10 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeOriginal.muon_service,
-            CascadePhotonicsService=MillipedeOriginal.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
-            # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
             ReadoutWindow=MillipedeOriginal.pulsesName_cleaned+'TimeRange',
