@@ -30,9 +30,6 @@ from . import RecoInterface
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
-    def stage_splines():
-        pass
-
     @staticmethod
     @icetray.traysegment
     def prepare_frames(tray, name, logger, **kwargs) -> None:
