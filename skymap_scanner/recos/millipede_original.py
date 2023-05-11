@@ -169,8 +169,8 @@ class MillipedeOriginal(RecoInterface):
         """Perform MillipedeOriginal reco."""
         datastager = MillipedeOriginal.init_datastager()
 
-        abs_spline = datastager.get_filepath(MIE_ABS_SPLINE)
-        prob_spline = datastager.get_filepath(MIE_PROB_SPLINE)   
+        abs_spline = datastager.get_filepath(MillipedeOriginal.MIE_ABS_SPLINE)
+        prob_spline = datastager.get_filepath(MillipedeOriginal.MIE_PROB_SPLINE)   
 
         cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
         SPEScale = 0.99 # moved from MillipedeLikelihoodFactory parameter DOMEfficiency=SPEScale
