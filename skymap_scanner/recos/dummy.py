@@ -30,6 +30,7 @@ from . import RecoInterface
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
+    @staticmethod
     def stage_splines():
         pass
 
