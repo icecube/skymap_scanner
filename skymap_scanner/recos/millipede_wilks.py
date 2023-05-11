@@ -47,30 +47,22 @@ class MillipedeWilks(RecoInterface):
     pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
-    # Load Data ########################################################
+    @staticmethod
+    def init_datastager() -> DataStager:
+        """Create datastager, stage spline data and return datastager.
 
-    # At HESE energies, deposited light is dominated by the stochastic losses
-    # (muon part emits so little light in comparison)
-    # This is why we can use cascade tables
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
-
-    datastager.stage_files(SPLINE_REQUIREMENTS)
-
-    abs_spline: str = datastager.get_filepath(FTP_ABS_SPLINE)
-    prob_spline: str = datastager.get_filepath(FTP_PROB_SPLINE)
-    effd_spline: str = datastager.get_filepath(FTP_EFFD_SPLINE)
-
-    cascade_service = photonics_service.I3PhotoSplineService(
-        abs_spline, prob_spline, timingSigma=0.0,
-        effectivedistancetable = effd_spline,
-        tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
-        quantileEpsilon=1
+        Returns:
+            DataStager: datastager for spline data.
+        """
+        datastager = DataStager(
+            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
         )
-    muon_service = None
+
+        datastager.stage_files(MillipedeWilks.SPLINE_REQUIREMENTS)
+
+        return datastager
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -191,10 +183,24 @@ class MillipedeWilks(RecoInterface):
                        )
         return ExcludedDOMs + [MillipedeWilks.pulsesName_cleaned+'TimeWindows']
 
-
+    @staticmethod
     @icetray.traysegment
     def traysegment(tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
+        datastager = MillipedeWilks.init_datastager()
+
+        abs_spline: str = datastager.get_filepath(FTP_ABS_SPLINE)
+        prob_spline: str = datastager.get_filepath(FTP_PROB_SPLINE)
+        effd_spline: str = datastager.get_filepath(FTP_EFFD_SPLINE)
+
+        cascade_service = photonics_service.I3PhotoSplineService(
+            abs_spline, prob_spline, timingSigma=0.0,
+            effectivedistancetable = effd_spline,
+            tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
+            quantileEpsilon=1
+            )
+        muon_service = None
+
         def mask_dc(frame, origpulses, maskedpulses):
             # Masks DeepCore pulses by selecting string numbers < 79.
             frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
@@ -211,8 +217,8 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=MillipedeWilks.muon_service,
-            CascadePhotonicsService=MillipedeWilks.cascade_service,
+            MuonPhotonicsService=muon_service,
+            CascadePhotonicsService=cascade_service,
             ShowerRegularization=0,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
