@@ -269,6 +269,11 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    LOGGER.debug("This is a debug statement.")
+    LOGGER.info(
+        f"This is an info statement. Skyscan log is set to: {cfg.ENV.SKYSCAN_LOG}"
+    )
+
     # get PFrame
     with open(args.in_pkl, "rb") as f:
         msg = pickle.load(f)
