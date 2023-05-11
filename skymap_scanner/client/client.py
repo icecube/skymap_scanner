@@ -68,6 +68,10 @@ def main() -> None:
     if not Path(startup_json_dict["baseline_GCD_file"]).exists():
         raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
 
+    RecoAlgo = recos.get_reco_interface_object(reco_algo)
+
+    RecoAlgo.stage_splines()
+
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
         " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'

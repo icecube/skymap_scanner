@@ -30,6 +30,7 @@ from ..utils.utils import save_GCD_frame_packet_to_file
 
 LOGGER = logging.getLogger("skyscan.client.reco")
 
+
 def frame_for_logging(frame: icetray.I3Frame) -> str:
     return f"{repr(frame)}/{frame}"
 
@@ -138,9 +139,11 @@ def reco_pixel(
             base_filename=baseline_GCD_file,
         )
 
+    RecoAlgo = recos.get_reco_interface_object(reco_algo)
+
     # perform fit
     tray.AddSegment(
-        recos.get_reco_interface_object(reco_algo).traysegment,
+        RecoAlgo.traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],

@@ -38,13 +38,6 @@ from ..utils.pixel_classes import RecoPixelVariation
 from ..utils.data_handling import DataStager
 from . import RecoInterface, VertexGenerator
 
-MIE_BAREMU_PROB = "InfBareMu_mie_prob_z20a10_V2.fits"
-MIE_BAREMU_ABS = "InfBareMu_mie_abs_z20a10_V2.fits"
-MIE_STOCH_PROB = "InfHighEStoch_mie_prob_z20a10.fits"
-MIE_STOCH_ABS = "InfHighEStoch_mie_abs_z20a10.fits"
-
-spline_requirements = [MIE_BAREMU_PROB, MIE_BAREMU_ABS, MIE_STOCH_PROB, MIE_STOCH_ABS]
-
 
 class Splinempe(RecoInterface):
     """Logic for SplineMPE reco."""
@@ -55,47 +48,27 @@ class Splinempe(RecoInterface):
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
     cleaned_muon_pulseseries = "CleanedMuonPulses"
 
+    MIE_BAREMU_PROB = "InfBareMu_mie_prob_z20a10_V2.fits"
+    MIE_BAREMU_ABS = "InfBareMu_mie_abs_z20a10_V2.fits"
+    MIE_STOCH_PROB = "InfHighEStoch_mie_prob_z20a10.fits"
+    MIE_STOCH_ABS = "InfHighEStoch_mie_abs_z20a10.fits"
+
+    spline_requirements = [
+        MIE_BAREMU_PROB,
+        MIE_BAREMU_ABS,
+        MIE_STOCH_PROB,
+        MIE_STOCH_ABS,
+    ]
+
     datastager = DataStager(
         local_paths=cfg.LOCAL_DATA_SOURCES,
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
         remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
 
-    datastager.stage_files(spline_requirements)
-
-    BareMuTimingSpline: str = datastager.get_filepath(MIE_BAREMU_PROB)
-    BareMuAmplitudeSpline: str = datastager.get_filepath(MIE_BAREMU_ABS)
-    StochTimingSpline: str = datastager.get_filepath(MIE_STOCH_PROB)
-    StochAmplitudeSpline: str = datastager.get_filepath(MIE_STOCH_ABS)
-
     @staticmethod
     def get_prejitter(config="max") -> int:
         return 2 if config == "max" else 4
-
-    @staticmethod
-    def get_splines() -> (
-        tuple[
-            I3PhotoSplineService,
-            I3PhotoSplineService,
-            I3PhotoSplineService,
-        ]
-    ):
-        bare_mu_spline = I3PhotoSplineService(
-            Splinempe.BareMuAmplitudeSpline,
-            Splinempe.BareMuTimingSpline,
-            timingSigma=Splinempe.get_prejitter(),
-        )
-        stoch_spline = I3PhotoSplineService(
-            Splinempe.StochAmplitudeSpline,
-            Splinempe.StochTimingSpline,
-            timingSigma=Splinempe.get_prejitter(),
-        )
-        noise_spline = I3PhotoSplineService(
-            Splinempe.BareMuAmplitudeSpline,
-            Splinempe.BareMuTimingSpline,
-            timingSigma=1000,
-        )
-        return bare_mu_spline, stoch_spline, noise_spline
 
     @staticmethod
     def get_noise_model(config="max"):
@@ -212,9 +185,35 @@ class Splinempe(RecoInterface):
         tray.Add(extract_seed, "ExtractSeedInformation")
 
     @staticmethod
+    def stage_splines():
+        Splinempe.datastager.stage_files(Splinempe.spline_requirements)
+
+    @staticmethod
     @traysegment
     def traysegment(tray, name, logger, **kwargs):
         """SplineMPE reco"""
+        datastager = Splinempe.datastager
+
+        BareMuTimingSpline: str = datastager.get_filepath(Splinempe.MIE_BAREMU_PROB)
+        BareMuAmplitudeSpline: str = datastager.get_filepath(Splinempe.MIE_BAREMU_ABS)
+        StochTimingSpline: str = datastager.get_filepath(Splinempe.MIE_STOCH_PROB)
+        StochAmplitudeSpline: str = datastager.get_filepath(Splinempe.MIE_STOCH_ABS)
+
+        bare_mu_spline = I3PhotoSplineService(
+            BareMuAmplitudeSpline,
+            BareMuTimingSpline,
+            timingSigma=Splinempe.get_prejitter(),
+        )
+        stoch_spline = I3PhotoSplineService(
+            StochAmplitudeSpline,
+            StochTimingSpline,
+            timingSigma=Splinempe.get_prejitter(),
+        )
+        noise_spline = I3PhotoSplineService(
+            BareMuAmplitudeSpline,
+            BareMuTimingSpline,
+            timingSigma=1000,
+        )
 
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
@@ -277,7 +276,6 @@ class Splinempe(RecoInterface):
 
         tray.AddModule(checkName, name=energy_estimator)
 
-        bare_mu_spline, stoch_spline, noise_spline = Splinempe.get_splines()
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
             "splinempe-llh",
