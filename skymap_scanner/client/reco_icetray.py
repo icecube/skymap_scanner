@@ -141,6 +141,8 @@ def reco_pixel(
 
     RecoAlgo = recos.get_reco_interface_object(reco_algo)
 
+    RecoAlgo.stage_splines()
+
     # perform fit
     tray.AddSegment(
         RecoAlgo.traysegment,
