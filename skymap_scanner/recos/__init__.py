@@ -41,6 +41,10 @@ class RecoInterface:
         raise NotImplementedError()
 
     @staticmethod
+    def stage_splines() -> None:
+        raise NotImplementedError()
+
+    @staticmethod
     def traysegment(tray, name, logger, **kwargs: Any) -> None:
         raise NotImplementedError()
 

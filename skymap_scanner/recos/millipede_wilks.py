@@ -74,7 +74,7 @@ class MillipedeWilks(RecoInterface):
     muon_service = None
 
     @icetray.traysegment
-    def prepare_frames(tray, name):
+    def prepare_frames(tray, name, **kwargs):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
