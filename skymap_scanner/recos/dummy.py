@@ -22,6 +22,7 @@ from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
+from ..utils.data_handling import DataStager
 from . import RecoInterface
 
 
