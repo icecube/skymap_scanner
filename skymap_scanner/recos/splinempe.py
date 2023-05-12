@@ -3,9 +3,7 @@
 
 import datetime
 import numpy as np
-import os
-from pathlib import Path
-from typing import List
+from typing import Final, List
 
 
 from I3Tray import I3Units  # type: ignore[import]
@@ -39,7 +37,7 @@ from ..utils.data_handling import DataStager
 from . import RecoInterface, VertexGenerator
 
 
-class Splinempe(RecoInterface):
+class SplineMPE(RecoInterface):
     """Logic for SplineMPE reco."""
 
     VERTEX_VARIATIONS = VertexGenerator.point()
@@ -53,18 +51,12 @@ class Splinempe(RecoInterface):
     MIE_STOCH_PROB = "InfHighEStoch_mie_prob_z20a10.fits"
     MIE_STOCH_ABS = "InfHighEStoch_mie_abs_z20a10.fits"
 
-    spline_requirements = [
+    SPLINE_REQUIREMENTS = [
         MIE_BAREMU_PROB,
         MIE_BAREMU_ABS,
         MIE_STOCH_PROB,
         MIE_STOCH_ABS,
     ]
-
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -124,9 +116,9 @@ class Splinempe(RecoInterface):
     #     for name in names:
     #         checkName(frame, name)
 
-    @staticmethod
+    @classmethod
     @traysegment
-    def prepare_frames(tray, name, logger, **kwargs):
+    def prepare_frames(cls, tray, name, logger, **kwargs):
         # =========================================================
         # PULSE CLEANING
         # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
@@ -152,8 +144,8 @@ class Splinempe(RecoInterface):
         tray.AddModule(
             "I3SeededRTCleaning_RecoPulseMask_Module",
             "BaseProc_RTCleaning",
-            InputHitSeriesMapName=Splinempe.base_pulseseries,
-            OutputHitSeriesMapName=Splinempe.rt_cleaned_pulseseries,
+            InputHitSeriesMapName=cls.base_pulseseries,
+            OutputHitSeriesMapName=cls.rt_cleaned_pulseseries,
             STConfigService=seededRTConfig,
             SeedProcedure="HLCCoreHits",
             NHitsThreshold=2,
@@ -161,18 +153,18 @@ class Splinempe(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(checkName, name=Splinempe.rt_cleaned_pulseseries)
+        tray.Add(checkName, name=cls.rt_cleaned_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
             "I3TimeWindowCleaning<I3RecoPulse>",
             "BaseProc_TimeWindowCleaning",
-            InputResponse=Splinempe.rt_cleaned_pulseseries,
-            OutputResponse=Splinempe.cleaned_muon_pulseseries,
+            InputResponse=cls.rt_cleaned_pulseseries,
+            OutputResponse=cls.cleaned_muon_pulseseries,
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(checkName, name=Splinempe.cleaned_muon_pulseseries)
+        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
 
         def extract_seed(frame):
             seed_source = "OnlineL2_SplineMPE"
@@ -184,36 +176,33 @@ class Splinempe(RecoInterface):
 
         tray.Add(extract_seed, "ExtractSeedInformation")
 
-    @staticmethod
-    def stage_splines():
-        Splinempe.datastager.stage_files(Splinempe.spline_requirements)
+    def setup_reco(self):
+        datastager = self.get_datastager()
 
-    @staticmethod
-    @traysegment
-    def traysegment(tray, name, logger, **kwargs):
-        """SplineMPE reco"""
-        datastager = Splinempe.datastager
+        BareMuTimingSpline: str = datastager.get_filepath(self.MIE_BAREMU_PROB)
+        BareMuAmplitudeSpline: str = datastager.get_filepath(self.MIE_BAREMU_ABS)
+        StochTimingSpline: str = datastager.get_filepath(self.MIE_STOCH_PROB)
+        StochAmplitudeSpline: str = datastager.get_filepath(self.MIE_STOCH_ABS)
 
-        BareMuTimingSpline: str = datastager.get_filepath(Splinempe.MIE_BAREMU_PROB)
-        BareMuAmplitudeSpline: str = datastager.get_filepath(Splinempe.MIE_BAREMU_ABS)
-        StochTimingSpline: str = datastager.get_filepath(Splinempe.MIE_STOCH_PROB)
-        StochAmplitudeSpline: str = datastager.get_filepath(Splinempe.MIE_STOCH_ABS)
-
-        bare_mu_spline = I3PhotoSplineService(
+        self.bare_mu_spline = I3PhotoSplineService(
             BareMuAmplitudeSpline,
             BareMuTimingSpline,
-            timingSigma=Splinempe.get_prejitter(),
+            timingSigma=self.get_prejitter(),
         )
-        stoch_spline = I3PhotoSplineService(
+        self.stoch_spline = I3PhotoSplineService(
             StochAmplitudeSpline,
             StochTimingSpline,
-            timingSigma=Splinempe.get_prejitter(),
+            timingSigma=self.get_prejitter(),
         )
-        noise_spline = I3PhotoSplineService(
+        self.noise_spline = I3PhotoSplineService(
             BareMuAmplitudeSpline,
             BareMuTimingSpline,
             timingSigma=1000,
         )
+
+    @traysegment
+    def traysegment(self, tray, name, logger, **kwargs):
+        """SplineMPE reco"""
 
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
@@ -236,7 +225,7 @@ class Splinempe(RecoInterface):
         tray.Add(notify0, "notify0")
 
         # Check that the base pulses are in the input frame.
-        tray.Add(checkName, name=Splinempe.base_pulseseries)
+        tray.Add(checkName, name=self.base_pulseseries)
 
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
@@ -258,7 +247,7 @@ class Splinempe(RecoInterface):
         tray.AddModule(
             "muex",
             energy_estimator,
-            pulses=Splinempe.cleaned_muon_pulseseries,
+            pulses=self.cleaned_muon_pulseseries,
             rectrk=energy_reco_seed,
             result=energy_estimator,
             energy=True,
@@ -279,22 +268,22 @@ class Splinempe(RecoInterface):
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
             "splinempe-llh",
-            PhotonicsService=bare_mu_spline,
-            PhotonicsServiceStochastics=stoch_spline,
-            PhotonicsServiceRandomNoise=noise_spline,
+            PhotonicsService=self.bare_mu_spline,
+            PhotonicsServiceStochastics=self.stoch_spline,
+            PhotonicsServiceRandomNoise=self.noise_spline,
             ModelStochastics=False,
-            NoiseModel=Splinempe.get_noise_model(),
-            Pulses=Splinempe.cleaned_muon_pulseseries,
+            NoiseModel=self.get_noise_model(),
+            Pulses=self.cleaned_muon_pulseseries,
             E_Estimators=[energy_estimator],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
-            PostJitter=Splinempe.get_postjitter(),
-            KSConfidenceLevel=Splinempe.get_KS_confidence_level(do_KS=False),
+            PostJitter=self.get_postjitter(),
+            KSConfidenceLevel=self.get_KS_confidence_level(do_KS=False),
             ChargeCalcStep=0,
             CutMode="late",
-            EnergyDependentJitter=Splinempe.get_energy_dependent_jitter(),
-            EnergyDependentMPE=Splinempe.get_energy_dependent_MPE(),
+            EnergyDependentJitter=self.get_energy_dependent_jitter(),
+            EnergyDependentMPE=self.get_energy_dependent_MPE(),
         )
 
         # simplex should be the default
@@ -303,7 +292,7 @@ class Splinempe(RecoInterface):
             name="scipy_simplex_f",
             method="Nelder-Mead",
             tolerance=0.1,  # this was parameterized in the original code
-            max_iterations=Splinempe.get_simplex_max_iterations(),
+            max_iterations=self.get_simplex_max_iterations(),
         )
 
         # Alternative minimizer.
@@ -316,7 +305,7 @@ class Splinempe(RecoInterface):
         # )
 
         # parametrization for minimization
-        steps = Splinempe.get_steps()
+        steps = self.get_steps()
         tray.Add(
             "I3SimpleParametrizationFactory",
             "splinempe-param",
@@ -358,8 +347,10 @@ class Splinempe(RecoInterface):
 
         tray.Add(notify1, "notify1")
 
-    @staticmethod
-    def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
+    @classmethod
+    def to_recopixelvariation(
+        cls, frame: I3Frame, geometry: I3Frame
+    ) -> RecoPixelVariation:
         return RecoPixelVariation(
             nside=frame[cfg.I3FRAME_NSIDE].value,
             pixel_id=frame[cfg.I3FRAME_PIXEL].value,
@@ -373,3 +364,6 @@ class Splinempe(RecoInterface):
             time=frame["splinempe-reco"].time,
             energy=frame["splinempe-reco"].energy,
         )
+
+
+RECO_CLASS: Final[type[RecoInterface]] = SplineMPE
