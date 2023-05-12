@@ -10,6 +10,9 @@ from .common.vertex_gen import VertexGenerator
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
 
+from .. import config as cfg
+from ..utils.data_handling import DataStager
+
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
@@ -36,9 +39,24 @@ class RecoInterface:
     # List of vectors referenced to the origin that will be used to generate the vertex position variation.
     VERTEX_VARIATIONS: List[I3Position] = VertexGenerator.point()
 
+    def init(self):
+        raise NotImplementedError()
+
     @staticmethod
     def prepare_frames(tray, name, **kwargs) -> None:
         raise NotImplementedError()
+
+    def setup_reco(self):
+        """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
+        raise NotImplementedError()
+
+    def get_datastager(self):
+        datastager = DataStager(
+            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+        )
+        return datastager
 
     @staticmethod
     def traysegment(tray, name, logger, **kwargs: Any) -> None:
@@ -58,15 +76,12 @@ def get_all_reco_algos() -> List[str]:
     ]
 
 
-def get_reco_interface_object(name: str) -> RecoInterface:
-    """Dynamically import the reco sub-module's class.
-    Implicitly assumes that name `foo_bar` corresponds to class `FooBar`.
-    """
+def get_reco_interface_object(name: str) -> type[RecoInterface]:
+    """Dynamically import the reco sub-module's class."""
     try:
         # Fetch module
         module = importlib.import_module(f"{__name__}.{name.lower()}")
-        # Build the class name (i.e. reco_algo -> RecoAlgo).
-        return getattr(module, "".join(x.capitalize() for x in name.split("_")))
+        return module.RECO_CLASS
     except ModuleNotFoundError as e:
         if name not in get_all_reco_algos():
             # checking this in 'except' allows us to use 'from e'

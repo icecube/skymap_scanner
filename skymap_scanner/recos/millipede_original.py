@@ -6,8 +6,7 @@
 
 import copy
 import datetime
-import os
-from typing import Tuple
+from typing import Final, Tuple
 
 import numpy
 
@@ -53,18 +52,16 @@ class MillipedeOriginal(RecoInterface):
 
     SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
 
+    # Constants ########################################################
+    pulsesName = cfg.INPUT_PULSES_NAME
+    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+
+    SPEScale = 0.99 # DOM efficiency
+
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
-    )
-    datastager.stage_files(SPLINE_REQUIREMENTS)
-    abs_spline: str = datastager.get_filepath(MIE_ABS_SPLINE)
-    prob_spline: str = datastager.get_filepath(MIE_PROB_SPLINE)
 
     @icetray.traysegment
     def prepare_frames(tray, name, logger, pulsesName):
@@ -88,12 +85,25 @@ class MillipedeOriginal(RecoInterface):
                     OutputVertexTime=cfg.INPUT_TIME_NAME,
                     OutputVertexPos=cfg.INPUT_POS_NAME,
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
-        
 
-    
+    def __init__(self):
+        pass
+
+    def setup_reco(self):
+        datastager = self.get_datastager()
+
+        datastager.stage_files(self.SPLINE_REQUIREMENTS)
         
-        
-    
+        abs_spline = datastager.get_filepath(self.MIE_ABS_SPLINE)
+        prob_spline = datastager.get_filepath(self.MIE_PROB_SPLINE)
+
+        self.cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
+
+        self.cascade_service.SetEfficiencies(self.SPEScale)
+
+        self.muon_service = None
+
+    @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
@@ -102,6 +112,7 @@ class MillipedeOriginal(RecoInterface):
         if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
+    @staticmethod
     @icetray.traysegment
     def exclusions(tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
@@ -191,22 +202,12 @@ class MillipedeOriginal(RecoInterface):
 
 
     @icetray.traysegment
-    def traysegment(tray, name, logger, seed=None):
+    def traysegment(self, tray, name, logger, seed=None):
         """Perform MillipedeOriginal reco."""
 
-        # Constants ########################################################
+        ExcludedDOMs = tray.Add(self.exclusions)
 
-
-        # Services ########################################################
-        cascade_service = photonics_service.I3PhotoSplineService(MillipedeOriginal.abs_spline, MillipedeOriginal.prob_spline, timingSigma=0.0)
-
-        SPEScale = 0.99
-        cascade_service.SetEfficiencies(SPEScale)
-        muon_service = None
-
-        ExcludedDOMs = tray.Add(MillipedeOriginal.exclusions)
-
-        tray.Add(MillipedeOriginal.makeSurePulsesExist, pulsesName=MillipedeOriginal.pulsesName_cleaned)
+        tray.Add(self.makeSurePulsesExist, pulsesName=self.pulsesName_cleaned)
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
@@ -214,15 +215,14 @@ class MillipedeOriginal(RecoInterface):
         tray.AddModule(notify0, "notify0")
 
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
-            MuonPhotonicsService=muon_service,
-            CascadePhotonicsService=cascade_service,
+            MuonPhotonicsService=self.muon_service,
+            CascadePhotonicsService=self.cascade_service,
             ShowerRegularization=0,
             PhotonsPerBin=15,
-            # DOMEfficiency=SPEScale, # moved to cascade_service.SetEfficiencies(SPEScale)
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
-            ReadoutWindow=MillipedeOriginal.pulsesName_cleaned+'TimeRange',
-            Pulses=MillipedeOriginal.pulsesName_cleaned,
+            ReadoutWindow=self.pulsesName_cleaned+'TimeRange',
+            Pulses=self.pulsesName_cleaned,
             BinSigma=3)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
@@ -289,10 +289,10 @@ class MillipedeOriginal(RecoInterface):
 
         tray.AddModule(notify2, "notify2")
 
-    @staticmethod
-    def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
+    @classmethod
+    def to_recopixelvariation(cls, frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
         # Calculate reco losses, based on load_scan_state()
-        reco_losses_inside, reco_losses_total = MillipedeOriginal.get_reco_losses_inside(
+        reco_losses_inside, reco_losses_total = cls.get_reco_losses_inside(
             p_frame=frame, g_frame=geometry,
         )
 
@@ -369,3 +369,6 @@ class MillipedeOriginal(RecoInterface):
             totalRecoLossesInside += entry[1]
 
         return totalRecoLossesInside, totalRecoLosses
+
+# Provide a standard alias for the reconstruction class provided by this module.
+RECO_CLASS: Final[type[RecoInterface]] = MillipedeOriginal
