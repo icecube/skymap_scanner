@@ -28,6 +28,12 @@ from . import RecoInterface
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
+    def __init__(self):
+        pass
+
+    def setup_reco(self):
+        pass
+
     @staticmethod
     @icetray.traysegment
     def traysegment(tray, name, logger, **kwargs):

@@ -31,6 +31,21 @@ class RecoInterface:
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
+    def init(self):
+        raise NotImplementedError()
+
+    def setup_reco(self):
+        """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
+        raise NotImplementedError()
+
+    def get_datastager(self):
+        datastager = DataStager(
+            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
+            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+        )
+        return datastager
+
     @staticmethod
     def traysegment(tray, name, logger, **kwargs: Any) -> None:
         raise NotImplementedError()
@@ -49,7 +64,7 @@ def get_all_reco_algos() -> List[str]:
     ]
 
 
-def get_reco_interface_object(name: str) -> RecoInterface:
+def get_reco_interface_object(name: str) -> type[RecoInterface]:
     """Dynamically import the reco sub-module's class."""
     try:
         # Fetch module

@@ -139,9 +139,13 @@ def reco_pixel(
             base_filename=baseline_GCD_file,
         )
 
+    # create instance of reco_algo object
+    RecoAlgo = recos.get_reco_interface_object(reco_algo)
+    reco = RecoAlgo()
+
     # perform fit
     tray.AddSegment(
-        recos.get_reco_interface_object(reco_algo).traysegment,
+        reco.traysegment,
         f"{reco_algo}_traysegment",
         logger=LOGGER,
         seed=pframe[f"{cfg.OUTPUT_PARTICLE_NAME}"],
