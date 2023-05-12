@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, List
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
 
+import ..config as cfg
 from ..utils.data_handling import DataStager
 
 try:  # these are only used for typehints, so mock imports are fine
