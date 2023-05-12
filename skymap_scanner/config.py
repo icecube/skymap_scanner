@@ -31,10 +31,8 @@ LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
 # physics strings
 INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
-INPUT_TIME_NAME: Final = "HESE_VHESelfVetoVertexTime"
-INPUT_POS_NAME: Final = "HESE_VHESelfVetoVertexPos"
-
-# Changing this breaks CI, is this defined upstream?
+INPUT_TIME_NAME: Final = "SeedVertexTime"
+INPUT_POS_NAME: Final = "SeedVertexPos"
 OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
 
 # For commonly used keys
