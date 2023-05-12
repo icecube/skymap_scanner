@@ -31,8 +31,6 @@ from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface
 
-
-
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
     # Spline requirements ##############################################
@@ -410,3 +408,5 @@ class MillipedeWilks(RecoInterface):
             totalRecoLossesInside += entry[1]
 
         return totalRecoLossesInside, totalRecoLosses
+
+RECO_CLASS: Final[type[RecoInterface]] = MillipedeWilks

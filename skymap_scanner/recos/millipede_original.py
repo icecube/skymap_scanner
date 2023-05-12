@@ -341,3 +341,6 @@ class MillipedeOriginal(RecoInterface):
             totalRecoLossesInside += entry[1]
 
         return totalRecoLossesInside, totalRecoLosses
+
+# Provide a standard alias for the reconstruction class provided by this module.
+RECO_CLASS: Final[type[RecoInterface]] = MillipedeOriginal

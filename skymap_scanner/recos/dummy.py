@@ -4,7 +4,7 @@
 import datetime
 import random
 import time
-from typing import List
+from typing import List, Final
 
 from I3Tray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
@@ -69,3 +69,7 @@ class Dummy(RecoInterface):
             time=frame["Dummy_time"].value,
             energy=frame["Dummy_time"].value,
         )
+
+
+# Provide a standard alias for the reconstruction class provided by this module.
+RECO_CLASS: Final[type[RecoInterface]] = Dummy
