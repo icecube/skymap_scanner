@@ -52,16 +52,11 @@ class MillipedeOriginal(RecoInterface):
 
     SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
 
-<<<<<<< HEAD
-    def stage_splines():
-        pass
-=======
     # Constants ########################################################
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     SPEScale = 0.99 # DOM efficiency
->>>>>>> reco-refactor
 
     # Load Data ########################################################
     # At HESE energies, deposited light is dominated by the stochastic losses
