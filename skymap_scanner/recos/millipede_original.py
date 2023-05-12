@@ -7,7 +7,7 @@
 import copy
 import datetime
 import os
-from typing import Tuple
+from typing import Final, Tuple
 
 import numpy
 
