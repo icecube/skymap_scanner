@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, List
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
 
+from ..utils.data_handling import DataStager
+
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
