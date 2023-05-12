@@ -179,6 +179,8 @@ class SplineMPE(RecoInterface):
     def setup_reco(self):
         datastager = self.get_datastager()
 
+        datastager.stage_files(self.SPLINE_REQUIREMENTS)
+
         BareMuTimingSpline: str = datastager.get_filepath(self.MIE_BAREMU_PROB)
         BareMuAmplitudeSpline: str = datastager.get_filepath(self.MIE_BAREMU_ABS)
         StochTimingSpline: str = datastager.get_filepath(self.MIE_STOCH_PROB)
