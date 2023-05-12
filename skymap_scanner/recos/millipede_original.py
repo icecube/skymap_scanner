@@ -254,8 +254,7 @@ class MillipedeOriginal(RecoInterface):
 
         tray.AddModule(notify2, "notify2")
 
-    @staticmethod
-    def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
+    def to_recopixelvariation(self, frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
         # Calculate reco losses, based on load_scan_state()
         reco_losses_inside, reco_losses_total = self.get_reco_losses_inside(
             p_frame=frame, g_frame=geometry,
