@@ -60,7 +60,7 @@ class MillipedeWilks(RecoInterface):
         self.cascade_service = photonics_service.I3PhotoSplineService(
             abs_spline, prob_spline, timingSigma=0.0,
             effectivedistancetable = effd_spline,
-            tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/')
+            tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
             quantileEpsilon=1
         )
 
