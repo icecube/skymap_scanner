@@ -10,7 +10,7 @@ import logging
 import random
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -89,9 +89,9 @@ class PixelsToReco:
         
         self.reco_algo: str = reco_algo
         
-        RecoAlgo: Type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
+        RecoAlgo: type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
         
-        self.reco = RecoAlgo()
+        self.reco: RecoInterface = RecoAlgo()
 
         self.pos_variations = self.reco.get_vertex_variations()
 
