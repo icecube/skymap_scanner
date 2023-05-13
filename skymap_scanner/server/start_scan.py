@@ -182,10 +182,8 @@ class PixelsToReco:
         particle.fit_status = dataclasses.I3Particle.FitStatus.OK
         particle.pos = position
         particle.dir = direction
-        if self.reco_algo == 'millipede_original':
-            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
-            particle.time = time
-        else:
+        
+        if self.reco.do_refine_time():
             LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
             # given direction and vertex position, calculate time from CAD
             particle.time = self.refine_vertex_time(
@@ -194,7 +192,12 @@ class PixelsToReco:
                 direction,
                 self.pulseseries_hlc,
                 self.omgeo)
+        else:
+            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
+            particle.time = time
+
         particle.energy = energy
+
         return particle
 
     def _gen_pframes(

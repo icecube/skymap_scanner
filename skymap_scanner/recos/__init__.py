@@ -48,7 +48,12 @@ class RecoInterface:
     @staticmethod
     def do_rotate_vertex() -> bool:
         """Defines whether each generated vertex variation should be rotated along the axis of the scan direction. With the exception for legacy algorithms (MillipedeOriginal) this should typycally return True."""
-        raise NotImplementedError()
+        return True
+
+    @staticmethod
+    def do_refine_time() -> bool:
+        """Defines whether to refine seed time."""
+        return True
 
     @staticmethod
     def prepare_frames(tray, name, **kwargs) -> None:

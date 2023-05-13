@@ -52,6 +52,11 @@ class MillipedeOriginal(RecoInterface):
         # In the legacy Millipede implementation, the generated vertex seeds were not rotated along the scan direction. Such "feature" is here preserved.
         return False
     
+    @staticmethod
+    def do_refine_time() -> bool:
+        # Millipede original did not apply a refinement of the vertex time.
+        return False
+    
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 

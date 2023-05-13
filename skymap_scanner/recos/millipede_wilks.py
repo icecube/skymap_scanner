@@ -53,10 +53,6 @@ class MillipedeWilks(RecoInterface):
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
         """
         return VertexGenerator.point()
-    
-    @staticmethod
-    def do_rotate_vertex() -> bool:
-        return True
 
     def setup_reco(self):
         datastager = self.get_datastager()

@@ -41,10 +41,6 @@ class Dummy(RecoInterface):
         return VertexGenerator.point()
 
     @staticmethod
-    def do_rotate_vertex() -> bool:
-        return True
-
-    @staticmethod
     @icetray.traysegment
     def prepare_frames(tray, name, logger, **kwargs) -> None:
         def gen_dummy_vertex(frame):
