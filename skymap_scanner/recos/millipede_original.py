@@ -35,13 +35,23 @@ from . import RecoInterface, VertexGenerator
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    variation_distance = 20.*I3Units.m
+    
 
-    if cfg.ENV.SKYSCAN_MINI_TEST:
-        VERTEX_VARIATIONS = VertexGenerator.mini_test(variation_distance=variation_distance)
-    else:    
-        VERTEX_VARIATIONS = VertexGenerator.octahedron(radius=variation_distance)
+    @staticmethod
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
+        """
+        variation_distance = 20.*I3Units.m
 
+        if cfg.ENV.SKYSCAN_MINI_TEST:
+            return VertexGenerator.mini_test(variation_distance=variation_distance)
+        else:    
+            return VertexGenerator.octahedron(radius=variation_distance)
+        
+    @staticmethod
+    def do_rotate_vertex() -> bool:
+        # In the legacy Millipede implementation, the generated vertex seeds were not rotated along the scan direction. Such "feature" is here preserved.
+        return False
     
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'

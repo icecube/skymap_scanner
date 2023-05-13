@@ -36,10 +36,17 @@ class RecoInterface:
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
-    # List of vectors referenced to the origin that will be used to generate the vertex position variation.
-    VERTEX_VARIATIONS: List[I3Position] = VertexGenerator.point()
-
     def init(self):
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
+        raise NotImplementedError()
+
+    @staticmethod
+    def do_rotate_vertex() -> bool:
+        """Defines whether each generated vertex variation should be rotated along the axis of the scan direction. With the exception for legacy algorithms (MillipedeOriginal) this should typycally return True."""
         raise NotImplementedError()
 
     @staticmethod

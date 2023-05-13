@@ -10,7 +10,7 @@ import logging
 import random
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type
 
 import healpy  # type: ignore[import]
 import mqclient as mq
@@ -36,6 +36,7 @@ from ..utils.pixel_classes import (
     SentPixelVariation,
     pframe_tuple,
 )
+from ..recos import RecoInterface
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
@@ -85,9 +86,14 @@ class PixelsToReco:
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
-        self.reco_algo = reco_algo.lower()
+        
+        self.reco_algo: str = reco_algo
+        
+        RecoAlgo: Type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
+        
+        self.reco = RecoAlgo()
 
-        self.pos_variations = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
+        self.pos_variations = self.reco.get_vertex_variations()
 
         # Set min nside
         self.min_nside = min_nside
@@ -248,18 +254,18 @@ class PixelsToReco:
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
-            if self.reco_algo in ['millipede_wilks', 'splinempe']:
+            if self.reco.do_rotate_vertex():
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
-                if self.reco_algo == 'millipede_wilks':
-                    if position != self.fallback_position:
-                        # add fallback pos as an extra first guess
-                        p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
-                            self.fallback_position+posVariation,
-                            direction,
-                            self.fallback_energy,
-                            self.fallback_time)
+            if self.reco_algo == 'millipede_wilks':
+                if position != self.fallback_position:
+                    # add fallback pos as an extra first guess
+                    p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
+                        self.fallback_position+posVariation,
+                        direction,
+                        self.fallback_energy,
+                        self.fallback_time)
 
             p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
                                                                       direction,

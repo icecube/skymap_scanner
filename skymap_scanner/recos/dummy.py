@@ -24,7 +24,7 @@ from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
+from . import RecoInterface, VertexGenerator
 
 
 class Dummy(RecoInterface):
@@ -35,6 +35,15 @@ class Dummy(RecoInterface):
 
     def setup_reco(self):
         pass
+
+    @staticmethod
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
+        return VertexGenerator.point()
+
+    @staticmethod
+    def do_rotate_vertex() -> bool:
+        return True
 
     @staticmethod
     @icetray.traysegment

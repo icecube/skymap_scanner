@@ -34,7 +34,6 @@ from . import RecoInterface, VertexGenerator
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
-    VERTEX_VARIATIONS = VertexGenerator.point()
 
     # Spline requirements ##############################################
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
@@ -50,6 +49,16 @@ class MillipedeWilks(RecoInterface):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
+        """
+        return VertexGenerator.point()
+    
+    @staticmethod
+    def do_rotate_vertex() -> bool:
+        return True
 
     def setup_reco(self):
         datastager = self.get_datastager()
