@@ -7,7 +7,7 @@
 import copy
 import datetime
 import os
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 import numpy
 from I3Tray import I3Units

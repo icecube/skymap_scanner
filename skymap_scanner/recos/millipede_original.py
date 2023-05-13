@@ -6,7 +6,7 @@
 
 import copy
 import datetime
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 import numpy
 

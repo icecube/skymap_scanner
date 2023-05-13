@@ -5,8 +5,6 @@ import importlib
 import pkgutil
 from typing import TYPE_CHECKING, Any, List
 
-from .common.vertex_gen import VertexGenerator
-
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
 
