@@ -18,6 +18,9 @@ except ImportError:
     I3Position = Any
     I3Frame = Any
 
+# Redundant import(s) to declare exported symbol(s).
+from .common.vertex_gen import VertexGenerator as VertexGenerator
+
 
 class UnsupportedRecoAlgoException(Exception):
     """Raise when a reconstruction algorithm is not supported for a given

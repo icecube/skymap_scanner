@@ -27,10 +27,8 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
-from .common.vertex_gen import VertexGenerator
+from . import RecoInterface, VertexGenerator
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""

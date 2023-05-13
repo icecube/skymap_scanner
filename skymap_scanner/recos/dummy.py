@@ -23,8 +23,7 @@ from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
-from .common.vertex_gen import VertexGenerator
+from . import RecoInterface, VertexGenerator
 
 
 class Dummy(RecoInterface):
