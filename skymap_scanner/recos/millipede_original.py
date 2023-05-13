@@ -30,15 +30,15 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface, VertexGenerator
-
+from . import RecoInterface
+from .common.vertex_gen import VertexGenerator
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
     
 
     @staticmethod
-    def get_vertex_variations() -> List[I3Position]:
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
         """
         variation_distance = 20.*I3Units.m

@@ -19,12 +19,12 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     simclasses,
 )
 
-from icecube.dataclasses import I3Position  # type: ignore[import]
 from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface, VertexGenerator
+from . import RecoInterface
+from .common.vertex_gen import VertexGenerator
 
 
 class Dummy(RecoInterface):
@@ -37,7 +37,7 @@ class Dummy(RecoInterface):
         pass
 
     @staticmethod
-    def get_vertex_variations() -> List[I3Position]:
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
         return VertexGenerator.point()
 
