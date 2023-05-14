@@ -37,7 +37,7 @@ class RecoInterface:
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
-    def init(self):
+    def __init__(self):
         raise NotImplementedError()
 
     @staticmethod

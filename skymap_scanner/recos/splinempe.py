@@ -58,6 +58,9 @@ class SplineMPE(RecoInterface):
         MIE_STOCH_ABS,
     ]
 
+    def __init__(self):
+        pass
+
     @staticmethod
     def get_prejitter(config="max") -> int:
         return 2 if config == "max" else 4
@@ -175,6 +178,9 @@ class SplineMPE(RecoInterface):
             )
 
         tray.Add(extract_seed, "ExtractSeedInformation")
+
+    def get_vertex_variations(self):
+        return VertexGenerator.cylinder()
 
     def setup_reco(self):
         datastager = self.get_datastager()
