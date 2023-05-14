@@ -117,7 +117,7 @@ scipy==1.10.1
     # via healpy
 six==1.16.0
     # via python-dateutil
-tornado==6.3.1
+tornado==6.3.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt

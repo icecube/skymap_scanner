@@ -126,19 +126,19 @@ class MillipedeOriginal(RecoInterface):
         if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
-    @staticmethod
+    @classmethod
     @icetray.traysegment
-    def exclusions(tray, name):
+    def exclusions(cls, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 MillipedeOriginal.pulsesName_cleaned,
-                                 MillipedeOriginal.pulsesName_cleaned+'TimeWindows',
-                                 MillipedeOriginal.pulsesName_cleaned+'TimeRange'])
+                                 cls.pulsesName_cleaned,
+                                 cls.pulsesName_cleaned+'TimeWindows',
+                                 cls.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = MillipedeOriginal.pulsesName,
+            Pulses = cls.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -205,14 +205,14 @@ class MillipedeOriginal(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[MillipedeOriginal.pulsesName_cleaned] = mask
-            frame[MillipedeOriginal.pulsesName_cleaned+"TimeWindows"] = times
-            frame[MillipedeOriginal.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
+            frame[cls.pulsesName_cleaned] = mask
+            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
+            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=MillipedeOriginal.pulsesName,
+                       Pulses=cls.pulsesName,
                        )
-        return ExcludedDOMs + [MillipedeOriginal.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
 
     @icetray.traysegment

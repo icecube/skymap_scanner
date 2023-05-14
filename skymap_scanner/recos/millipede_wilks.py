@@ -103,19 +103,19 @@ class MillipedeWilks(RecoInterface):
         if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
-    @staticmethod
+    @classmethod
     @icetray.traysegment
-    def exclusions(tray, name):
+    def exclusions(cls, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 MillipedeWilks.pulsesName_cleaned,
-                                 MillipedeWilks.pulsesName_cleaned+'TimeWindows',
-                                 MillipedeWilks.pulsesName_cleaned+'TimeRange'])
+                                 cls.pulsesName_cleaned,
+                                 cls.pulsesName_cleaned+'TimeWindows',
+                                 cls.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = MillipedeWilks.pulsesName,
+            Pulses = cls.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -156,7 +156,7 @@ class MillipedeWilks(RecoInterface):
 
             frame[output] = unhits
 
-        tray.Add(skipunhits, output='OtherUnhits', pulses=MillipedeWilks.pulsesName)
+        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName)
         ExcludedDOMs.append('OtherUnhits')
 
         ##################
@@ -206,14 +206,14 @@ class MillipedeWilks(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[MillipedeWilks.pulsesName_cleaned] = mask
-            frame[MillipedeWilks.pulsesName_cleaned+"TimeWindows"] = times
-            frame[MillipedeWilks.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[MillipedeWilks.pulsesName_orig+"TimeRange"])
+            frame[cls.pulsesName_cleaned] = mask
+            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
+            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[cls.pulsesName_orig+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=MillipedeWilks.pulsesName,
+                       Pulses=cls.pulsesName,
                        )
-        return ExcludedDOMs + [MillipedeWilks.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
