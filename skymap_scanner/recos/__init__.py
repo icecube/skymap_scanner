@@ -5,8 +5,6 @@ import importlib
 import pkgutil
 from typing import TYPE_CHECKING, Any, List
 
-from .common.vertex_gen import VertexGenerator
-
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
 
@@ -19,6 +17,9 @@ try:  # these are only used for typehints, so mock imports are fine
 except ImportError:
     I3Position = Any
     I3Frame = Any
+
+# Redundant import(s) to declare exported symbol(s).
+from .common.vertex_gen import VertexGenerator as VertexGenerator
 
 
 class UnsupportedRecoAlgoException(Exception):
@@ -36,11 +37,23 @@ class RecoInterface:
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
-    # List of vectors referenced to the origin that will be used to generate the vertex position variation.
-    VERTEX_VARIATIONS: List[I3Position] = VertexGenerator.point()
-
     def init(self):
         raise NotImplementedError()
+
+    @staticmethod
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
+        raise NotImplementedError()
+
+    @staticmethod
+    def do_rotate_vertex() -> bool:
+        """Defines whether each generated vertex variation should be rotated along the axis of the scan direction. With the exception for legacy algorithms (MillipedeOriginal) this should typycally return True."""
+        return True
+
+    @staticmethod
+    def do_refine_time() -> bool:
+        """Defines whether to refine seed time."""
+        return True
 
     @staticmethod
     def prepare_frames(tray, name, **kwargs) -> None:

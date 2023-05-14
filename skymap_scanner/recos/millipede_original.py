@@ -6,7 +6,7 @@
 
 import copy
 import datetime
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 import numpy
 
@@ -32,16 +32,30 @@ from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 
-
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    variation_distance = 20.*I3Units.m
+    
 
-    if cfg.ENV.SKYSCAN_MINI_TEST:
-        VERTEX_VARIATIONS = VertexGenerator.mini_test(variation_distance=variation_distance)
-    else:    
-        VERTEX_VARIATIONS = VertexGenerator.octahedron(radius=variation_distance)
+    @staticmethod
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
+        """
+        variation_distance = 20.*I3Units.m
 
+        if cfg.ENV.SKYSCAN_MINI_TEST:
+            return VertexGenerator.mini_test(variation_distance=variation_distance)
+        else:    
+            return VertexGenerator.octahedron(radius=variation_distance)
+        
+    @staticmethod
+    def do_rotate_vertex() -> bool:
+        # In the legacy Millipede implementation, the generated vertex seeds were not rotated along the scan direction. Such "feature" is here preserved.
+        return False
+    
+    @staticmethod
+    def do_refine_time() -> bool:
+        # Millipede original did not apply a refinement of the vertex time.
+        return False
     
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
@@ -112,19 +126,19 @@ class MillipedeOriginal(RecoInterface):
         if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
-    @staticmethod
+    @classmethod
     @icetray.traysegment
-    def exclusions(tray, name):
+    def exclusions(cls, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 MillipedeOriginal.pulsesName_cleaned,
-                                 MillipedeOriginal.pulsesName_cleaned+'TimeWindows',
-                                 MillipedeOriginal.pulsesName_cleaned+'TimeRange'])
+                                 cls.pulsesName_cleaned,
+                                 cls.pulsesName_cleaned+'TimeWindows',
+                                 cls.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = MillipedeOriginal.pulsesName,
+            Pulses = cls.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -191,14 +205,14 @@ class MillipedeOriginal(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[MillipedeOriginal.pulsesName_cleaned] = mask
-            frame[MillipedeOriginal.pulsesName_cleaned+"TimeWindows"] = times
-            frame[MillipedeOriginal.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
+            frame[cls.pulsesName_cleaned] = mask
+            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
+            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=MillipedeOriginal.pulsesName,
+                       Pulses=cls.pulsesName,
                        )
-        return ExcludedDOMs + [MillipedeOriginal.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
 
     @icetray.traysegment

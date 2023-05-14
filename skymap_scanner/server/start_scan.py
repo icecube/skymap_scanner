@@ -36,6 +36,7 @@ from ..utils.pixel_classes import (
     SentPixelVariation,
     pframe_tuple,
 )
+from ..recos import RecoInterface
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
@@ -86,9 +87,14 @@ class PixelsToReco:
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
-        self.reco_algo = reco_algo.lower()
+        
+        self.reco_algo: str = reco_algo
+        
+        RecoAlgo: type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
+        
+        self.reco: RecoInterface = RecoAlgo()
 
-        self.pos_variations = recos.get_reco_interface_object(reco_algo).VERTEX_VARIATIONS
+        self.pos_variations = self.reco.get_vertex_variations()
 
         # Set min nside
         self.min_nside = min_nside
@@ -177,10 +183,8 @@ class PixelsToReco:
         particle.fit_status = dataclasses.I3Particle.FitStatus.OK
         particle.pos = position
         particle.dir = direction
-        if self.reco_algo == 'millipede_original':
-            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
-            particle.time = time
-        else:
+        
+        if self.reco.do_refine_time():
             LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
             # given direction and vertex position, calculate time from CAD
             particle.time = self.refine_vertex_time(
@@ -189,7 +193,12 @@ class PixelsToReco:
                 direction,
                 self.pulseseries_hlc,
                 self.omgeo)
+        else:
+            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
+            particle.time = time
+
         particle.energy = energy
+
         return particle
 
     def _gen_pframes(
@@ -249,18 +258,18 @@ class PixelsToReco:
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
-            if self.reco_algo in ['millipede_wilks', 'splinempe']:
+            if self.reco.do_rotate_vertex():
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
-                if self.reco_algo == 'millipede_wilks':
-                    if position != self.fallback_position:
-                        # add fallback pos as an extra first guess
-                        p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
-                            self.fallback_position+posVariation,
-                            direction,
-                            self.fallback_energy,
-                            self.fallback_time)
+            if self.reco_algo == 'millipede_wilks':
+                if position != self.fallback_position:
+                    # add fallback pos as an extra first guess
+                    p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
+                        self.fallback_position+posVariation,
+                        direction,
+                        self.fallback_energy,
+                        self.fallback_time)
 
             p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
                                                                       direction,

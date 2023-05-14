@@ -7,7 +7,7 @@
 import copy
 import datetime
 import os
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 import numpy
 from I3Tray import I3Units
@@ -27,14 +27,11 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 
-
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
-    VERTEX_VARIATIONS = VertexGenerator.point()
 
     # Spline requirements ##############################################
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
@@ -50,6 +47,12 @@ class MillipedeWilks(RecoInterface):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
+        """
+        return VertexGenerator.point()
 
     def setup_reco(self):
         datastager = self.get_datastager()
@@ -100,19 +103,19 @@ class MillipedeWilks(RecoInterface):
         if pulsesName + "TimeRange" not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
 
-    @staticmethod
+    @classmethod
     @icetray.traysegment
-    def exclusions(tray, name):
+    def exclusions(cls, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 MillipedeWilks.pulsesName_cleaned,
-                                 MillipedeWilks.pulsesName_cleaned+'TimeWindows',
-                                 MillipedeWilks.pulsesName_cleaned+'TimeRange'])
+                                 cls.pulsesName_cleaned,
+                                 cls.pulsesName_cleaned+'TimeWindows',
+                                 cls.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = MillipedeWilks.pulsesName,
+            Pulses = cls.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -153,7 +156,7 @@ class MillipedeWilks(RecoInterface):
 
             frame[output] = unhits
 
-        tray.Add(skipunhits, output='OtherUnhits', pulses=MillipedeWilks.pulsesName)
+        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName)
         ExcludedDOMs.append('OtherUnhits')
 
         ##################
@@ -203,14 +206,14 @@ class MillipedeWilks(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[MillipedeWilks.pulsesName_cleaned] = mask
-            frame[MillipedeWilks.pulsesName_cleaned+"TimeWindows"] = times
-            frame[MillipedeWilks.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[MillipedeWilks.pulsesName_orig+"TimeRange"])
+            frame[cls.pulsesName_cleaned] = mask
+            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
+            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[cls.pulsesName_orig+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=MillipedeWilks.pulsesName,
+                       Pulses=cls.pulsesName,
                        )
-        return ExcludedDOMs + [MillipedeWilks.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
