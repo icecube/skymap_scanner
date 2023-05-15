@@ -34,6 +34,7 @@ from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTCon
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
+from .common.pulse_proc import mask_deepcore
 
 
 class SplineMPE(RecoInterface):
@@ -42,6 +43,7 @@ class SplineMPE(RecoInterface):
     base_pulseseries = cfg.INPUT_PULSES_NAME
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
     cleaned_muon_pulseseries = "CleanedMuonPulses"
+    cleaned_muon_pulseseries_ic = "CleanedMuonPulsesIC"
 
     MIE_BAREMU_PROB = "InfBareMu_mie_prob_z20a10_V2.fits"
     MIE_BAREMU_ABS = "InfBareMu_mie_abs_z20a10_V2.fits"
@@ -166,6 +168,11 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
 
+        # =========================================================
+        # ENERGY ESTIMATOR SEEDING
+        # Provide SplineMPE with energy estimation from MuEx
+        # This should improve the following SplineMPE track reco.
+        # =========================================================
         def notify_muex(frame):
             logger.debug(f"Running MuEX - {datetime.datetime.now()}")
 
@@ -188,6 +195,12 @@ class SplineMPE(RecoInterface):
             If=lambda f: True,
         )
         tray.Add(log_frame, "logframe")
+
+        tray.Add(
+            mask_deepcore,
+            origpulses=cls.cleaned_muon_pulseseries,
+            maskedpulses=cls.cleaned_muon_pulseseries_ic,
+        )
 
         # First vertex seed is extracted from OnlineL2 reco.
         def extract_seed(frame):
@@ -252,13 +265,7 @@ class SplineMPE(RecoInterface):
         # Check that the base pulses are in the input frame.
         tray.Add(checkName, name=self.base_pulseseries)
 
-        # =========================================================
-        # ENERGY ESTIMATOR SEEDING
-        # Provide SplineMPE with energy estimation from MuEx
-        # This should improve the following SplineMPE track reco.
-        # =========================================================
-
-        tray.AddModule(checkName, name=energy_reco_seed)
+        tray.AddModule(checkName, name=self.energy_reco_seed)
 
         # ==============================================================================
         # MAIN RECONSTRUCTION
@@ -266,7 +273,7 @@ class SplineMPE(RecoInterface):
         # Multiple energy estimators can be provided but they should be run beforehand.
         # =============================================================================
 
-        tray.AddModule(checkName, name=energy_estimator)
+        tray.AddModule(checkName, name=self.energy_estimator)
 
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
@@ -276,7 +283,7 @@ class SplineMPE(RecoInterface):
             PhotonicsServiceRandomNoise=self.noise_spline,
             ModelStochastics=False,
             NoiseModel=self.get_noise_model(),
-            Pulses=self.cleaned_muon_pulseseries,
+            Pulses=self.cleaned_muon_pulseseries_ic,
             E_Estimators=[self.energy_estimator],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
