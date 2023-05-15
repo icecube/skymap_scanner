@@ -55,6 +55,10 @@ class SplineMPE(RecoInterface):
         MIE_STOCH_ABS,
     ]
 
+    # Names used in the reco.
+    energy_reco_seed = "OnlineL2_BestFit"
+    energy_estimator = "OnlineL2_BestFit_MuEx"
+
     def __init__(self):
         pass
 
@@ -162,6 +166,30 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
 
+        def notify_muex(frame):
+            logger.debug(f"Running MuEX - {datetime.datetime.now()}")
+
+        tray.Add(notify_muex, "notify_muex")
+
+        def log_frame(frame):
+            logger.debug(f"{repr(frame)}/{frame}")
+
+        # From icetray/filterscript/python/onlinel2filter.py
+        tray.AddModule(
+            "muex",
+            self.energy_estimator,
+            pulses=self.cleaned_muon_pulseseries,
+            rectrk=self.energy_reco_seed,
+            result=self.energy_estimator,
+            energy=True,
+            detail=True,
+            compat=False,
+            lcspan=0,
+            If=lambda f: True,
+        )
+        tray.Add(log_frame, "logframe")
+
+        # First vertex seed is extracted from OnlineL2 reco.
         def extract_seed(frame):
             seed_source = "OnlineL2_SplineMPE"
             frame[cfg.INPUT_POS_NAME] = frame[seed_source].pos
@@ -211,10 +239,6 @@ class SplineMPE(RecoInterface):
             else:
                 logger.debug(f"Check that {name} is in frame: -> success.")
 
-        # Names used in the segment.
-        energy_reco_seed = "OnlineL2_BestFit"
-        energy_estimator = "OnlineL2_BestFit_MuEx"
-
         vertex_seed = cfg.OUTPUT_PARTICLE_NAME
 
         # Notify start.
@@ -236,28 +260,6 @@ class SplineMPE(RecoInterface):
 
         tray.AddModule(checkName, name=energy_reco_seed)
 
-        def notify_muex(frame):
-            logger.debug(f"Running MuEX - {datetime.datetime.now()}")
-
-        tray.Add(notify_muex, "notify_muex")
-
-        def log_frame(frame):
-            logger.debug(f"{repr(frame)}/{frame}")
-
-        # From icetray/filterscript/python/onlinel2filter.py
-        tray.AddModule(
-            "muex",
-            energy_estimator,
-            pulses=self.cleaned_muon_pulseseries,
-            rectrk=energy_reco_seed,
-            result=energy_estimator,
-            energy=True,
-            detail=True,
-            compat=False,
-            lcspan=0,
-            If=lambda f: True,
-        )
-        tray.Add(log_frame, "logframe")
         # ==============================================================================
         # MAIN RECONSTRUCTION
         # Default configuration takes from SplineMPE "max"
@@ -275,7 +277,7 @@ class SplineMPE(RecoInterface):
             ModelStochastics=False,
             NoiseModel=self.get_noise_model(),
             Pulses=self.cleaned_muon_pulseseries,
-            E_Estimators=[energy_estimator],
+            E_Estimators=[self.energy_estimator],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
