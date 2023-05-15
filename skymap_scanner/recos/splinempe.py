@@ -33,14 +33,11 @@ from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTCon
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from ..utils.data_handling import DataStager
 from . import RecoInterface, VertexGenerator
 
 
 class SplineMPE(RecoInterface):
     """Logic for SplineMPE reco."""
-
-    VERTEX_VARIATIONS = VertexGenerator.point()
 
     base_pulseseries = cfg.INPUT_PULSES_NAME
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
@@ -94,8 +91,11 @@ class SplineMPE(RecoInterface):
         vertex_step = 20 * I3Units.m
         vertex_bound = 2000 * I3Units.m
         vertex_bounds = [-vertex_bound, +vertex_bound]
-        time_bound = 500 * I3Units.ns
-        time_bounds = [-time_bound, +time_bound]
+
+        ## Time an vertex are degenerate.
+        ## No minimization over time.
+        # time_bound = 500 * I3Units.ns
+        # time_bounds = [-time_bound, +time_bound]
 
         steps = dict(
             StepX=vertex_step,
@@ -104,20 +104,13 @@ class SplineMPE(RecoInterface):
             BoundsX=vertex_bounds,
             BoundsY=vertex_bounds,
             BoundsZ=vertex_bounds,
-            # StepZenith=0.0 * I3Units.radian,
-            # StepAzimuth=0.0 * I3Units.radian,
-            # BoundsZenith=[0.0, 0.0],
-            # BoundsAzimuth=[0.0, 0.0],
+            ## Time an vertex are degenerate.
+            ## No minimization over time.
             # StepT=1.0 * I3Units.ns,
             # BoundsT=time_bounds,
         )
 
         return steps
-
-    # Temporarily unused but may be useful in the future.
-    # def checkNames(frame: I3Frame, names: List[str]) -> None:
-    #     for name in names:
-    #         checkName(frame, name)
 
     @classmethod
     @traysegment
@@ -319,14 +312,6 @@ class SplineMPE(RecoInterface):
             "splinempe-param",
             **steps,
         )
-
-        tray.Add(log_frame, "logframe_param")
-
-        # def log_param(frame):
-        #    logger.debug("PARAM FACTORY")
-        #    logger.debug(frame["splinempe-param"])
-        #
-        # tray.Add(log_param, "logger")
 
         tray.Add(checkName, name=vertex_seed)
 
