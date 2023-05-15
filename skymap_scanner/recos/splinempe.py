@@ -180,7 +180,7 @@ class SplineMPE(RecoInterface):
             cls.energy_estimator,
             pulses=cls.cleaned_muon_pulseseries,
             rectrk=cls.energy_reco_seed,
-            result=self.energy_estimator,
+            result=cls.energy_estimator,
             energy=True,
             detail=True,
             compat=False,
