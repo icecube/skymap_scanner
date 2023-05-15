@@ -29,6 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
+from .common.pulse_proc import mask_deepcore
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -72,8 +73,9 @@ class MillipedeWilks(RecoInterface):
 
         self.muon_service = None
 
+    @classmethod
     @icetray.traysegment
-    def prepare_frames(tray, name):
+    def prepare_frames(cls, tray, name):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
@@ -94,6 +96,9 @@ class MillipedeWilks(RecoInterface):
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+        
+
+        tray.Add(mask_deepcore, origpulses=cls.pulsesName_orig, maskedpulses=cls.pulsesName)
 
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
@@ -218,12 +223,6 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
-
-        def mask_dc(frame, origpulses, maskedpulses):
-            # Masks DeepCore pulses by selecting string numbers < 79.
-            frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
-                frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
-        tray.Add(mask_dc, origpulses=self.pulsesName_orig, maskedpulses=self.pulsesName)
 
         ExcludedDOMs = tray.Add(self.exclusions)
 
