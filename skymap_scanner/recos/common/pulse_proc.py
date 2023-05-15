@@ -1,6 +1,6 @@
 from typing import Final
 
-from icecube import dataclasses
+from icecube import dataclasses  # type: ignore[import]
 
 
 def mask_deepcore(frame, origpulses: str, maskedpulses: str):
