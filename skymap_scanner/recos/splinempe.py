@@ -177,9 +177,9 @@ class SplineMPE(RecoInterface):
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
             "muex",
-            self.energy_estimator,
-            pulses=self.cleaned_muon_pulseseries,
-            rectrk=self.energy_reco_seed,
+            cls.energy_estimator,
+            pulses=cls.cleaned_muon_pulseseries,
+            rectrk=cls.energy_reco_seed,
             result=self.energy_estimator,
             energy=True,
             detail=True,
