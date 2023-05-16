@@ -61,8 +61,8 @@ class SplineMPE(RecoInterface):
     energy_reco_seed = "OnlineL2_BestFit"
     energy_estimator = "OnlineL2_BestFit_MuEx"
 
-    def __init__(self):
-        pass
+    def __init__(self, config):
+        self.vertex_seed_source = "VHESelfVeto"
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -202,16 +202,45 @@ class SplineMPE(RecoInterface):
             maskedpulses=cls.cleaned_muon_pulseseries_ic,
         )
 
-        # First vertex seed is extracted from OnlineL2 reco.
-        def extract_seed(frame):
-            seed_source = "OnlineL2_SplineMPE"
-            frame[cfg.INPUT_POS_NAME] = frame[seed_source].pos
-            frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(frame[seed_source].time)
-            logger.debug(
-                f"Seed => pos {frame[cfg.INPUT_POS_NAME]} time {frame[cfg.INPUT_TIME_NAME]}"
+        ####
+
+        if self.vertex_seed_source == "VHESelfVeto":
+            tray.AddModule(
+                "VHESelfVeto",
+                "selfveto",
+                VertexThreshold=250,
+                Pulses=pulsesName + "HLC",
+                OutputBool="HESE_VHESelfVeto",
+                OutputVertexTime=cfg.INPUT_TIME_NAME,
+                OutputVertexPos=cfg.INPUT_POS_NAME,
+                If=lambda frame: "HESE_VHESelfVeto" not in frame,
             )
 
-        tray.Add(extract_seed, "ExtractSeedInformation")
+            # this only runs if the previous module did not return anything
+            tray.AddModule(
+                "VHESelfVeto",
+                "selfveto-emergency-lowen-settings",
+                VertexThreshold=5,
+                Pulses=pulsesName + "HLC",
+                OutputBool="VHESelfVeto_meaningless_lowen",
+                OutputVertexTime=cfg.INPUT_TIME_NAME,
+                OutputVertexPos=cfg.INPUT_POS_NAME,
+                If=lambda frame: not frame.Has("HESE_VHESelfVeto"),
+            )
+
+        elif self.vertex_seed_source == "OnlineL2_SplineMPE":
+            # First vertex seed is extracted from OnlineL2 reco.
+            def extract_seed(frame):
+                seed_source = "OnlineL2_SplineMPE"
+                frame[cfg.INPUT_POS_NAME] = frame[seed_source].pos
+                frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(
+                    frame[seed_source].time
+                )
+                logger.debug(
+                    f"Seed => pos {frame[cfg.INPUT_POS_NAME]} time {frame[cfg.INPUT_TIME_NAME]}"
+                )
+
+            tray.Add(extract_seed, "ExtractSeedInformation")
 
     def get_vertex_variations(self):
         return VertexGenerator.cylinder()
