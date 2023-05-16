@@ -35,7 +35,6 @@ class Dummy(RecoInterface):
     def setup_reco(self):
         pass
 
-<<<<<<< HEAD
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
@@ -61,8 +60,6 @@ class Dummy(RecoInterface):
             and cfg.INPUT_POS_NAME not in frame,
         )
 
-=======
->>>>>>> main
     @staticmethod
     @icetray.traysegment
     def traysegment(tray, name, logger, **kwargs):
