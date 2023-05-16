@@ -83,8 +83,8 @@ class RecoInterface(ABC):
         """Performs the reconstruction."""
         pass
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def to_recopixelvariation(
         frame: I3Frame, geometry: I3Frame
     ) -> "RecoPixelVariation":
