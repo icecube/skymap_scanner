@@ -63,8 +63,8 @@ class RecoInterface(ABC):
         )
         return datastager
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def get_vertex_variations() -> List[I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
         pass
