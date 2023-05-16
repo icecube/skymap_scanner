@@ -3,6 +3,8 @@
 
 import importlib
 import pkgutil
+
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
@@ -30,19 +32,20 @@ class UnsupportedRecoAlgoException(Exception):
         super().__init__(f"Requested unsupported reconstruction algorithm: {reco_algo}")
 
 
-class RecoInterface:
+class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
     # List of spline file basenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
+    @abstractmethod
     def init(self):
-        raise NotImplementedError()
+        pass
 
-    @property
+    @abstractmethod
     def conf(self):
-        raise NotImplementedError()
+        pass
 
     @staticmethod
     def get_default_conf():
@@ -53,29 +56,7 @@ class RecoInterface:
         }
 
     @staticmethod
-    def get_vertex_variations() -> List[I3Position]:
-        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
-        raise NotImplementedError()
-
-    @staticmethod
-    def do_rotate_vertex() -> bool:
-        """Defines whether each generated vertex variation should be rotated along the axis of the scan direction. With the exception for legacy algorithms (MillipedeOriginal) this should typycally return True."""
-        return True
-
-    @staticmethod
-    def do_refine_time() -> bool:
-        """Defines whether to refine seed time."""
-        return True
-
-    @staticmethod
-    def prepare_frames(tray, name, **kwargs) -> None:
-        raise NotImplementedError()
-
-    def setup_reco(self):
-        """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
-        raise NotImplementedError()
-
-    def get_datastager(self):
+    def get_datastager():
         datastager = DataStager(
             local_paths=cfg.LOCAL_DATA_SOURCES,
             local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
@@ -83,10 +64,27 @@ class RecoInterface:
         )
         return datastager
 
+    @abstractmethod
     @staticmethod
-    def traysegment(tray, name, logger, **kwargs: Any) -> None:
-        raise NotImplementedError()
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
+        pass
 
+    @abstractmethod
+    def prepare_frames(self, tray, name, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def setup_reco(self):
+        """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
+        pass
+
+    @abstractmethod
+    def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
+        """Performs the reconstruction."""
+        pass
+
+    @abstractmethod
     @staticmethod
     def to_recopixelvariation(
         frame: I3Frame, geometry: I3Frame
