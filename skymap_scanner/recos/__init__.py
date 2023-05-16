@@ -5,7 +5,7 @@ import importlib
 import pkgutil
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -35,16 +35,15 @@ class UnsupportedRecoAlgoException(Exception):
 class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
+    # Dictionary for configuration, to be defined as instance attribute.
+    conf: Dict[str, bool]
+
     # List of spline file basenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
     @abstractmethod
-    def init(self):
-        pass
-
-    @abstractmethod
-    def conf(self):
+    def __init__(self):
         pass
 
     @staticmethod
