@@ -6,7 +6,11 @@
 
 import copy
 import datetime
+<<<<<<< HEAD
 from typing import Final, List, Tuple
+=======
+from typing import Final, Tuple
+>>>>>>> main
 
 import numpy
 
@@ -34,6 +38,7 @@ from . import RecoInterface, VertexGenerator
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
+<<<<<<< HEAD
     
 
     @staticmethod
@@ -61,6 +66,9 @@ class MillipedeOriginal(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     # Spline requirements
+=======
+    # Spline requirements ##############################################
+>>>>>>> main
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
@@ -77,6 +85,7 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
 
+<<<<<<< HEAD
     @icetray.traysegment
     def prepare_frames(tray, name, logger, pulsesName):
         # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
@@ -100,6 +109,8 @@ class MillipedeOriginal(RecoInterface):
                     OutputVertexPos=cfg.INPUT_POS_NAME,
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
+=======
+>>>>>>> main
     def __init__(self):
         pass
 

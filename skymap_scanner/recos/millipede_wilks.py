@@ -100,6 +100,9 @@ class MillipedeWilks(RecoInterface):
 
         tray.Add(mask_deepcore, origpulses=cls.pulsesName_orig, maskedpulses=cls.pulsesName)
 
+        self.muon_service = None
+
+    @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))

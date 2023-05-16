@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v3.10.3 (2023-05-16)
+### Other
+* Decouple spline staging from class declaration ([#192](https://github.com/icecube/skymap_scanner/issues/192)) ([`7a51277`](https://github.com/icecube/skymap_scanner/commit/7a5127789aeafc37e5f8e9943baecafd57acfc19))
+
 ## v3.10.2 (2023-05-05)
 ### Other
 * Staging of (spline) data ([#174](https://github.com/icecube/skymap_scanner/issues/174)) ([`a7ddf92`](https://github.com/icecube/skymap_scanner/commit/a7ddf92c77031cd745fc9d92b43a23da2381fe11))

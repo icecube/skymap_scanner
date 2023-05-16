@@ -40,6 +40,7 @@ class RecoInterface:
     def init(self):
         raise NotImplementedError()
 
+<<<<<<< HEAD
     @staticmethod
     def get_vertex_variations() -> List[I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
@@ -59,6 +60,8 @@ class RecoInterface:
     def prepare_frames(tray, name, **kwargs) -> None:
         raise NotImplementedError()
 
+=======
+>>>>>>> main
     def setup_reco(self):
         """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
         raise NotImplementedError()
