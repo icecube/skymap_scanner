@@ -101,7 +101,9 @@ class MillipedeOriginal(RecoInterface):
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
     def __init__(self):
-        pass
+        self.conf = self.get_default_conf()
+        self.conf["rotate_vertex"] = False
+        self.conf["refine_time"] = False
 
     def setup_reco(self):
         datastager = self.get_datastager()

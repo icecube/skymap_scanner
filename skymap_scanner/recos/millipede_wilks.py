@@ -47,7 +47,8 @@ class MillipedeWilks(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     def __init__(self):
-        pass
+        self.conf = self.get_default_conf()
+        self.conf["use_fallback_position"] = True
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
@@ -100,6 +101,9 @@ class MillipedeWilks(RecoInterface):
 
         tray.Add(mask_deepcore, origpulses=cls.pulsesName_orig, maskedpulses=cls.pulsesName)
 
+        self.muon_service = None
+
+    @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError("{0} not in frame".format(pulsesName))
