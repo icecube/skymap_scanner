@@ -40,6 +40,18 @@ class RecoInterface:
     def init(self):
         raise NotImplementedError()
 
+    @property
+    def conf(self):
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_default_conf():
+        return {
+            "rotate_vertex": True,
+            "refine_time": True,
+            "use_fallback_position": False,
+        }
+
     @staticmethod
     def get_vertex_variations() -> List[I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""

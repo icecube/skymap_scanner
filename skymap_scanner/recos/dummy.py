@@ -30,7 +30,7 @@ class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
     def __init__(self):
-        self.use_fallback_position = False
+        self.conf = self.get_default_conf()
 
     def setup_reco(self):
         pass
