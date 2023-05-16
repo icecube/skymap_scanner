@@ -6,11 +6,7 @@
 
 import copy
 import datetime
-<<<<<<< HEAD
 from typing import Final, List, Tuple
-=======
-from typing import Final, Tuple
->>>>>>> main
 
 import numpy
 
@@ -38,7 +34,6 @@ from . import RecoInterface, VertexGenerator
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-<<<<<<< HEAD
     
 
     @staticmethod
@@ -66,9 +61,6 @@ class MillipedeOriginal(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     # Spline requirements
-=======
-    # Spline requirements ##############################################
->>>>>>> main
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
@@ -109,7 +101,7 @@ class MillipedeOriginal(RecoInterface):
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
     def __init__(self):
-        pass
+        self.use_fallback_position = False
 
     def setup_reco(self):
         datastager = self.get_datastager()

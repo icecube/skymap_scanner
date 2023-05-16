@@ -47,7 +47,7 @@ class MillipedeWilks(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     def __init__(self):
-        pass
+        self.use_fallback_position = True
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
