@@ -47,8 +47,8 @@ class MillipedeWilks(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     def __init__(self):
-        self.rotate_vertex = False
-        self.refine_time = False
+        self.rotate_vertex = True
+        self.refine_time = True
         self.use_fallback_position = True
 
     @staticmethod
