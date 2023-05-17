@@ -64,9 +64,9 @@ class SplineMPE(RecoInterface):
 
     def __init__(self):
         # Mandatory attributes (RecoInterface).
-        self.rotate_vertex = False
-        self.refine_time = False
-        self.use_fallback_position = False
+        self.rotate_vertex = True
+        self.refine_time = True
+        self.use_fallback_position = True
         # Custom attributes.
         self.vertex_seed_source = "VHESelfVeto"
 
@@ -365,14 +365,25 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name=vertex_seed)
 
-        tray.Add(
-            "I3BasicSeedServiceFactory",
-            "splinempe-seed",
-            FirstGuess=vertex_seed,
-            # multiple can be provided as FirstGuesses=[,]
-            TimeShiftType="TNone",
-            PositionShiftType="None",
-        )
+        if self.use_fallback_position:
+            tray.AddService(
+                "I3BasicSeedServiceFactory",
+                "splinempe-seed",
+                FirstGuesses=[
+                    vertex_seed,
+                    f"{vertex_seed}_fallback",
+                ],
+                TimeShiftType="TNone",
+                PositionShiftType="None",
+            )
+        else:
+            tray.Add(
+                "I3BasicSeedServiceFactory",
+                "splinempe-seed",
+                FirstGuess=vertex_seed,
+                TimeShiftType="TNone",
+                PositionShiftType="None",
+            )
 
         tray.Add(
             "I3SimpleFitter",
