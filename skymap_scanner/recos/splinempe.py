@@ -23,6 +23,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     recclasses,
     simclasses,
     STTools,
+    VHESelfVeto,
 )
 
 # Class bindings directly accessed by the python code are imported explicitly.
