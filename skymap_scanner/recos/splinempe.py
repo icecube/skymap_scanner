@@ -233,6 +233,16 @@ class SplineMPE(RecoInterface):
                 If=lambda frame: not frame.Has("HESE_VHESelfVeto"),
             )
 
+            def notify_seed(frame):
+                logger.debug(f"Seed from VHESelfVeto:")
+                logger.debug(frame[cfg.INPUT_POS_NAME])
+                logger.debug(frame[cfg.INPUT_POS_NAME])
+                logger.debug(f"Seed from OnlineL2_SplineMPE:")
+                logger.debug(frame["OnlineL2_SplineMPE"].pos)
+                logger.debug(frame["OnlineL2_SplineMPE"].time)
+
+            tray.add(notify_seed)
+
         elif self.vertex_seed_source == "OnlineL2_SplineMPE":
             # First vertex seed is extracted from OnlineL2 reco.
             def extract_seed(frame):
