@@ -46,16 +46,6 @@ class MillipedeOriginal(RecoInterface):
             return VertexGenerator.mini_test(variation_distance=variation_distance)
         else:    
             return VertexGenerator.octahedron(radius=variation_distance)
-        
-    @staticmethod
-    def do_rotate_vertex() -> bool:
-        # In the legacy Millipede implementation, the generated vertex seeds were not rotated along the scan direction. Such "feature" is here preserved.
-        return False
-    
-    @staticmethod
-    def do_refine_time() -> bool:
-        # Millipede original did not apply a refinement of the vertex time.
-        return False
     
     pulsesName = cfg.INPUT_PULSES_NAME
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
