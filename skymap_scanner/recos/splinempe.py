@@ -63,7 +63,7 @@ class SplineMPE(RecoInterface):
 
     def __init__(self):
         self.conf = self.get_default_conf()
-        self.conf["vertex_seed_source"] = "VHESelfVeto"
+        self.vertex_seed_source = "VHESelfVeto"
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -204,12 +204,12 @@ class SplineMPE(RecoInterface):
 
         ####
 
-        if self.conf["vertex_seed_source"] == "VHESelfVeto":
+        if self.vertex_seed_source == "VHESelfVeto":
             tray.AddModule(
                 "VHESelfVeto",
                 "selfveto",
                 VertexThreshold=250,
-                Pulses=pulsesName + "HLC",
+                Pulses=self.base_pulseseries + "HLC",
                 OutputBool="HESE_VHESelfVeto",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -221,7 +221,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto-emergency-lowen-settings",
                 VertexThreshold=5,
-                Pulses=pulsesName + "HLC",
+                Pulses=self.base_pulseseries + "HLC",
                 OutputBool="VHESelfVeto_meaningless_lowen",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
