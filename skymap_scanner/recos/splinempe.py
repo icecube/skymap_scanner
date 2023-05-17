@@ -241,7 +241,7 @@ class SplineMPE(RecoInterface):
                 logger.debug(frame["OnlineL2_SplineMPE"].pos)
                 logger.debug(frame["OnlineL2_SplineMPE"].time)
 
-            tray.add(notify_seed)
+            tray.Add(notify_seed)
 
         elif self.vertex_seed_source == "OnlineL2_SplineMPE":
             # First vertex seed is extracted from OnlineL2 reco.
