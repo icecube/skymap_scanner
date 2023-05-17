@@ -1,10 +1,8 @@
 """Tools for conducting & representing a pixel reconstruction."""
 
-
+from abc import ABC, abstractmethod
 import importlib
 import pkgutil
-
-from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
@@ -20,7 +18,7 @@ except ImportError:
     I3Position = Any
     I3Frame = Any
 
-# Redundant import(s) to declare exported symbol(s).
+# Redundant imports are used to declare symbols exported by the module.
 from .common.vertex_gen import VertexGenerator as VertexGenerator
 
 
@@ -49,14 +47,6 @@ class RecoInterface(ABC):
         pass
 
     @staticmethod
-    def get_default_conf():
-        return {
-            "rotate_vertex": True,
-            "refine_time": True,
-            "use_fallback_position": False,
-        }
-
-    @staticmethod
     def get_datastager():
         datastager = DataStager(
             local_paths=cfg.LOCAL_DATA_SOURCES,
@@ -77,7 +67,10 @@ class RecoInterface(ABC):
 
     @abstractmethod
     def setup_reco(self):
-        """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
+        """Performs the necessary operations to prepare the execution of the reconstruction traysegment.
+
+        This method is expected to perform "expensive" operations such as fetching spline data and initializing IceTray spline services.
+        """
         pass
 
     @abstractmethod
