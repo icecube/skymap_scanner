@@ -49,14 +49,6 @@ class RecoInterface(ABC):
         pass
 
     @staticmethod
-    def get_default_conf():
-        return {
-            "rotate_vertex": True,
-            "refine_time": True,
-            "use_fallback_position": False,
-        }
-
-    @staticmethod
     def get_datastager():
         datastager = DataStager(
             local_paths=cfg.LOCAL_DATA_SOURCES,
