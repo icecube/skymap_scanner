@@ -83,7 +83,7 @@ class MillipedeWilks(RecoInterface):
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
-            Pulses=pulsesName+'HLC',
+            Pulses=cls.pulsesName_orig+'HLC',
             OutputBool='HESE_VHESelfVeto',
             OutputVertexTime=cfg.INPUT_TIME_NAME,
             OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -92,7 +92,7 @@ class MillipedeWilks(RecoInterface):
         # this only runs if the previous module did not return anything
         tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
                        VertexThreshold=5,
-                       Pulses=pulsesName+'HLC',
+                       Pulses=cls.pulsesName_orig+'HLC',
                        OutputBool='VHESelfVeto_meaningless_lowen',
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
