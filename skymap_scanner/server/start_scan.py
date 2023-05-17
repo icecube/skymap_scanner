@@ -205,7 +205,17 @@ class PixelsToReco:
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
     ) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames to be reco'd for a given `nside` and `pixel`."""
+        """Yield PFrames to be reco'd for a given `nside` and `pixel`.
+        
+        Each PFrame consists of an I3Particle to be used as seed by the reconstruction, plus some metadata.
+        
+        The seed direction (zenith and azimuth) is calculated from the celestial coordinates (RA, dec) of the given HEALPIX pixel.
+        
+        Multiple seed vertices (position variations) are generated according to a reco-specific set of vectors to be added to the base vertex (position).
+
+        The base vertex is taken from the best-fit of the coarser pixel or, in absence of it (for example when scanning pixels of the minimum NSIDE), from a seed defined by the reco algorithm.
+        
+        """
 
         codec, ra = healpy.pix2ang(nside, pixel)
         dec = numpy.pi/2 - codec
@@ -214,25 +224,33 @@ class PixelsToReco:
         azimuth = float(azimuth)
         direction = dataclasses.I3Direction(zenith, azimuth)
 
+
+
         if nside == self.min_nside:
+            # Scanning the minimum NSIDE, the position is taken from a seed provided by reco-specific logic and passed as "fallback position".
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
         else:
             coarser_nside = nside
             while True:
+                # Look up the first available coarser NSIDE by iteratively dividing by two the current nside. 
+                # NOTE (v3): this guesswork could be avoided using the NSIDE progression.
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
 
                 if coarser_nside < self.min_nside:
-                    break # no coarser pixel is available (probably we are just scanning finely around MC truth)
-                    #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
+                    # no coarser pixel is available (probably we are just scanning finely around MC truth)
+                    # NOTE (v3): nside != min_side and nside/2 < min_side should be always false? Given the comment above this could have been introduced to support "pointed" scans but this is not currently possible in v3.
+                    break
 
                 if coarser_nside in self.nsides_dict:
+                    # NOTE: This is the first nside in the divide-by-two progression that is available in the dictionary. By construction, this should be the previous value in the NSIDE progression.
                     if coarser_pixel in self.nsides_dict[coarser_nside]:
                         # coarser pixel found
                         break
 
+            # The following if-else clause decided based on the outcome of the lookup in the previous loop.
             if coarser_nside < self.min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
@@ -248,6 +266,8 @@ class PixelsToReco:
                     position = self.nsides_dict[coarser_nside][coarser_pixel].position
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
+
+        # Now generate the vertex seed position variations according to the reco-specific logic.
 
         n_pos_variations = len(self.pos_variations)
 
