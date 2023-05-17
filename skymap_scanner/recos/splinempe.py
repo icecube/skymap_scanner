@@ -63,6 +63,11 @@ class SplineMPE(RecoInterface):
     energy_estimator = "OnlineL2_BestFit_MuEx"
 
     def __init__(self):
+        # Mandatory attributes (RecoInterface).
+        self.rotate_vertex = False
+        self.refine_time = False
+        self.use_fallback_position = False
+        # Custom attributes.
         self.vertex_seed_source = "VHESelfVeto"
 
     @staticmethod
