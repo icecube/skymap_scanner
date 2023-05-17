@@ -35,10 +35,12 @@ class UnsupportedRecoAlgoException(Exception):
 class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
-    # Dictionary for configuration, to be defined as instance attribute.
-    conf: Dict[str, bool]
+    # Reco-specific behaviors that need to be defined in derived classes.
+    rotate_vertex: bool
+    refine_time: bool
+    use_fallback_position: bool
 
-    # List of spline file basenames required by the class.
+    # List of spline filenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
