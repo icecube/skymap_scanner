@@ -117,7 +117,7 @@ class PixelsToReco:
                 f"({self.event_header.run_id=}, {self.event_header.event_id=})"
             )
 
-        # The HLC pulse mask has been created in prepare_frames().
+        # The HLC pulse mask should have been been created in prepare_frames().
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
         
         self.omgeo = g_frame["I3Geometry"].omgeo
@@ -183,7 +183,7 @@ class PixelsToReco:
         particle.pos = position
         particle.dir = direction
         
-        if self.reco.conf["refine_time"]:
+        if self.reco.refine_time:
             LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
             # given direction and vertex position, calculate time from CAD
             particle.time = self.refine_vertex_time(
@@ -257,12 +257,12 @@ class PixelsToReco:
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
             posVariation = self.pos_variations[i]
 
-            if self.reco.conf["rotate_vertex"]:
+            if self.reco.rotate_vertex:
                 # rotate variation to be applied in transverse plane
                 posVariation.rotate_y(direction.theta)
                 posVariation.rotate_z(direction.phi)
 
-            if self.reco.conf["use_fallback_position"]:
+            if self.reco.use_fallback_position:
                 if position != self.fallback_position:
                     # add fallback pos as an extra first guess
                     p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
