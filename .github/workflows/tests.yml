@@ -396,8 +396,8 @@ jobs:
         ]
         reco_algo:
             [
-              "millipede_original",
-              # "millipede_wilks"
+              millipede_original,
+              millipede_wilks,
               # "splinempe"
             ]
     steps:
