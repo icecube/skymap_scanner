@@ -77,7 +77,7 @@ class MillipedeWilks(RecoInterface):
 
     @classmethod
     @icetray.traysegment
-    def prepare_frames(cls, tray, name):
+    def prepare_frames(cls, tray, name, logger):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
