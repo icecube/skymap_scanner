@@ -107,7 +107,11 @@ def reco_pixel(
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
+
+    LOGGER.debug(f"pixel pframe contains: {list(pframe.keys())}")
+
     LOGGER.info(f"Reco'ing pixel: {pframe_tuple(pframe)}...")
+
     LOGGER.debug(f"PFrame: {frame_for_logging(pframe)}")
     for frame in GCDQp_packet:
         LOGGER.debug(f"GCDQP Frame: {frame_for_logging(frame)}")
