@@ -77,14 +77,14 @@ class MillipedeWilks(RecoInterface):
 
     @classmethod
     @icetray.traysegment
-    def prepare_frames(cls, tray, name, logger):
+    def prepare_frames(cls, tray, name, logger, pulsesName):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
-            Pulses=cls.pulsesName_orig+'HLC',
+            Pulses=pulsesName+'HLC',
             OutputBool='HESE_VHESelfVeto',
             OutputVertexTime=cfg.INPUT_TIME_NAME,
             OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -93,14 +93,14 @@ class MillipedeWilks(RecoInterface):
         # this only runs if the previous module did not return anything
         tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
                        VertexThreshold=5,
-                       Pulses=cls.pulsesName_orig+'HLC',
+                       Pulses=pulsesName+'HLC',
                        OutputBool='VHESelfVeto_meaningless_lowen',
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
         
 
-        tray.Add(mask_deepcore, origpulses=cls.pulsesName_orig, maskedpulses=cls.pulsesName)
+        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName)
 
         self.muon_service = None
 
