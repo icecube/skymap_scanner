@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=nats --output-file=requirements-nats.txt
 #
-astropy==5.2.2
+astropy==5.3
     # via
     #   healpy
     #   icecube-skyreader
