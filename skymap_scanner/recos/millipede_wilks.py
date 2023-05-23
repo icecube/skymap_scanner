@@ -82,6 +82,14 @@ class MillipedeWilks(RecoInterface):
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
+        def extract_seed(frame):
+            seed_prefix = "HESE_VHESelfVeto"
+            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexPos"]
+            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexTime"]
+
+        tray.Add(extract_seed, "ExtractSeed",
+                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
+
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
             Pulses=pulsesName+'HLC',
