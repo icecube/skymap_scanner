@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=nats --output-file=requirements-nats.txt
 #
-astropy==5.2.2
+astropy==5.3
     # via
     #   healpy
     #   icecube-skyreader
@@ -115,7 +115,7 @@ tornado==6.3.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
-typing-extensions==4.5.0
+typing-extensions==4.6.0
     # via
     #   qrcode
     #   wipac-dev-tools
