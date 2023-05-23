@@ -8,10 +8,6 @@ from pathlib import Path
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
-# It seems that differences in LLH are < 2e-4 but differences in reco energies are < 7e-2.
-# For the moment, we cannot separate the two tolerances.
-SkyScanResult.ATOL = 7e-2
-
 
 def read_file(filepath: Path) -> SkyScanResult:
     if filepath.suffix == ".json":
@@ -101,7 +97,10 @@ def compare_then_exit(
         Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json"
     )
 
-    # compare
+    # increase tolerances
+    actual.require_close["E_in"] = 0.07
+    actual.require_close["E_out"] = 0.07
+
     close = actual.is_close(
         expected,
         dump_json_diff=dump_json_diff,
