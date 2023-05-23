@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v3.10.4 (2023-05-23)
+### Other
+* <bot> update requirements.txt ([`da7385c`](https://github.com/icecube/skymap_scanner/commit/da7385c3b0a746e78dc628414cb657773d96c022))
+* <bot> update requirements-rabbitmq.txt ([`e8fe7e6`](https://github.com/icecube/skymap_scanner/commit/e8fe7e6fabb5046c2b0e21eb3ece7c0cf0c77ffd))
+* <bot> update requirements-pulsar.txt ([`8f031fb`](https://github.com/icecube/skymap_scanner/commit/8f031fbbe4ff1de4a6f416ab14ffa75f86270c48))
+* <bot> update requirements-nats.txt ([`c0e29f6`](https://github.com/icecube/skymap_scanner/commit/c0e29f65d2fff2c77c423fc6597a0931ed19ec12))
+* <bot> update requirements-client-starter.txt ([`2a8408b`](https://github.com/icecube/skymap_scanner/commit/2a8408b9e7e34596b86e563bd308a425c113c060))
+* <bot> update requirements-all.txt ([`7f3046e`](https://github.com/icecube/skymap_scanner/commit/7f3046e19d07d021b7122a05fe31860002a43155))
+* Bump requests from 2.30.0 to 2.31.0 ([#195](https://github.com/icecube/skymap_scanner/issues/195)) ([`9985793`](https://github.com/icecube/skymap_scanner/commit/99857932a56444fcfdf6048a2778af59474d483b))
+
 ## v3.10.3 (2023-05-16)
 ### Other
 * Decouple spline staging from class declaration ([#192](https://github.com/icecube/skymap_scanner/issues/192)) ([`7a51277`](https://github.com/icecube/skymap_scanner/commit/7a5127789aeafc37e5f8e9943baecafd57acfc19))
