@@ -109,7 +109,7 @@ tornado==6.3.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
-typing-extensions==4.6.0
+typing-extensions==4.6.1
     # via
     #   qrcode
     #   wipac-dev-tools
