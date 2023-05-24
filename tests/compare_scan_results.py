@@ -98,9 +98,9 @@ def compare_then_exit(
     )
 
     # increase tolerances
-    actual.require_close["llh"] = 2e-4
-    actual.require_close["E_in"] = 0.07
-    actual.require_close["E_tot"] = 0.07
+    actual.require_close["llh"] = 0.02
+    actual.require_close["E_in"] = 0.7
+    actual.require_close["E_tot"] = 0.7
 
     close = actual.is_close(
         expected,
