@@ -20,7 +20,6 @@ env:
   SKYSCAN_BROKER_CLIENT: rabbitmq
   # note: auth env vars are in job(s)
   EWMS_PILOT_TASK_TIMEOUT: 600
-  EWMS_PILOT_CONCURRENT_TASKS: 3
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
@@ -276,6 +275,10 @@ jobs:
           # millipede_wilks,
           # splinempe
         ]
+        ewms_pilot_concurrent_tasks: [
+          0,
+          3,
+        ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
@@ -312,6 +315,8 @@ jobs:
       - name: run
         run: |
           set -x
+
+          export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
