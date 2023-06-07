@@ -40,7 +40,7 @@ htchirp==2.0
     # via ewms-pilot
 humanfriendly==10.0
     # via coloredlogs
-icecube-skyreader==1.1.0
+icecube-skyreader==1.2.0
     # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
