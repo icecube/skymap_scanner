@@ -317,6 +317,7 @@ jobs:
           set -x
 
           export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
+          free  # dump memory stats
 
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
@@ -354,6 +355,8 @@ jobs:
           for i in $( seq 1 $nclients ); do
             wait -n  # for client
           done
+
+          free  # dump memory stats
       - name: test output against known result (.npz/.json)
         run: |
           ls $SKYSCAN_OUTPUT_DIR
