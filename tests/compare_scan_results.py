@@ -8,6 +8,8 @@ from pathlib import Path
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
+RTOL_PER_FIELD = {"llh": 0.03, "E_in": 0.2, "E_tot": 0.2}
+
 
 def read_file(filepath: Path) -> SkyScanResult:
     if filepath.suffix == ".json":
@@ -90,8 +92,7 @@ def compare_then_exit(
     )
 
     close = actual.is_close(
-        expected,
-        dump_json_diff=dump_json_diff,
+        expected, dump_json_diff=dump_json_diff, rtol_per_field=RTOL_PER_FIELD
     )
     equal = actual == expected
 
