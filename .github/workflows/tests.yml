@@ -265,6 +265,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        ewms_pilot_concurrent_tasks: [
+          0,
+          3,
+        ]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
@@ -274,10 +278,6 @@ jobs:
           millipede_original,
           millipede_wilks,
           # splinempe
-        ]
-        ewms_pilot_concurrent_tasks: [
-          0,
-          3,
         ]
     env:
       CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
