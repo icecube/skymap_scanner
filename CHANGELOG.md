@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.10.5 (2023-06-08)
+
+### Other
+
+* Bump `skyreader`'s  `SkyScanResult` Comparison Updates ([#198](https://github.com/icecube/skymap_scanner/issues/198)) ([`45304f1`](https://github.com/icecube/skymap_scanner/commit/45304f1b79e823ad87eafe06608e456c6edb685f))
+
 ## v3.10.4 (2023-05-23)
 ### Other
 * <bot> update requirements.txt ([`da7385c`](https://github.com/icecube/skymap_scanner/commit/da7385c3b0a746e78dc628414cb657773d96c022))
