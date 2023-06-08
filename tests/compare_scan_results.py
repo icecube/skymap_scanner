@@ -89,11 +89,6 @@ def compare_then_exit(
         Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json"
     )
 
-    # increase tolerances
-    actual.require_close["llh"] = 0.02
-    actual.require_close["E_in"] = 0.7
-    actual.require_close["E_tot"] = 0.7
-
     close = actual.is_close(
         expected,
         dump_json_diff=dump_json_diff,
