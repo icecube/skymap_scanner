@@ -28,7 +28,7 @@ cycler==0.11.0
     # via matplotlib
 ed25519==1.5
     # via nkeys
-ewms-pilot==0.10.2
+ewms-pilot==0.10.3
     # via skymap-scanner (setup.py)
 fonttools==4.39.4
     # via matplotlib
