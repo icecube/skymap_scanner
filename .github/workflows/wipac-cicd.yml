@@ -58,10 +58,14 @@ jobs:
           import time
           import sys
           import requests
+          import re
           from pprint import pprint
 
-          JOBS = [j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
-          print(f"Checking jobs: {JOBS}")
+          time.sleep(60)  # wait for jobs to start
+
+          JOB_PATTERNS = [re.compile(j.strip()) for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
+          print(f"Checking job patterns: {JOB_PATTERNS}")
+          JOBS = set()
           OK_CONCLUSION = [s.strip() for s in "${{ env.OK_CONCLUSION }}".split(";")]
           print(f"Jobs must have these conclusions: {OK_CONCLUSION}")
 
@@ -83,8 +87,9 @@ jobs:
                   },
               ).json()
               for crun in sorted(resp["check_runs"], key=lambda d: d["name"]):  # there may be muliple checks (jobs) w/ same name
-                  if crun["name"] not in JOBS:
+                  if not any(p.fullmatch(crun["name"]) for p in JOB_PATTERNS):
                       continue
+                  JOBS.add(crun["name"])  # get actual name
                   print( (crun["name"], crun["id"], crun["conclusion"]) )
                   yield crun["name"], crun["conclusion"]
 
@@ -112,10 +117,10 @@ jobs:
                       bad_jobs.add(job)
 
               # final check
-              if okay_jobs == set(JOBS):
+              if JOBS and okay_jobs == set(JOBS):
                   print("The wait is over!")
                   break
-              # NOTE: it is tempting to see if we have all failed or all ok jobs and quite early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
+              # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print("Pending jobs:")
               for job in sorted(set(JOBS) - okay_jobs):
                   print(job)
