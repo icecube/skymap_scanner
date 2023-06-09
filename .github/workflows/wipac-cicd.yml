@@ -73,17 +73,17 @@ jobs:
           url = "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs"
 
           def get_conclusions():
+              print(f"requesting {url} ...")
+              resp = requests.get(
+                  url,
+                  headers=headers,
+                  params={
+                      "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
+                      "check_name": cname,
+                      # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
+                  },
+              ).json()
               for cname in JOBS:
-                  print(f"requesting {url}...")
-                  resp = requests.get(
-                      url,
-                      headers=headers,
-                      params={
-                          "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
-                          "check_name": cname,
-                          # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
-                      },
-                  ).json()
                   for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
                       print( (crun["name"], crun["id"], crun["conclusion"]) )
                       yield crun["name"], crun["conclusion"]
@@ -113,7 +113,7 @@ jobs:
                   print("The wait is over!")
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quite early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
-              print(f"Pending jobs: {set(JOBS) - okay_jobs}")
+              print(f"Unchecked jobs: {set(JOBS) - okay_jobs}")
           '
 
   py-setup:
