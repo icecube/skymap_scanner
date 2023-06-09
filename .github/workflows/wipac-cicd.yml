@@ -79,7 +79,6 @@ jobs:
                   headers=headers,
                   params={
                       "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
-                      "check_name": cname,
                       # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
                   },
               ).json()
@@ -103,7 +102,7 @@ jobs:
               for job, conclusion in get_conclusions():
                   print(f"Job conclusion: {job} ({conclusion})")
                   if conclusion not in OK_CONCLUSION:
-                      # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion then break
+                      # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion
                       okay_jobs.discard(job)  # in case a name-twin was marked as okay
                   okay_jobs.add(job)
 
