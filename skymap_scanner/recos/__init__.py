@@ -33,6 +33,7 @@ class UnsupportedRecoAlgoException(Exception):
 class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
+    name: str = __name__
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
     refine_time: bool
