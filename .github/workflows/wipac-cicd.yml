@@ -82,10 +82,11 @@ jobs:
                       # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
                   },
               ).json()
-              for cname in JOBS:
-                  for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
-                      print( (crun["name"], crun["id"], crun["conclusion"]) )
-                      yield crun["name"], crun["conclusion"]
+                for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
+                    if crun["name"] not in JOBS:
+                        continue
+                    print( (crun["name"], crun["id"], crun["conclusion"]) )
+                    yield crun["name"], crun["conclusion"]
 
           # MAIN RETRY LOOP
           start = time.time()
