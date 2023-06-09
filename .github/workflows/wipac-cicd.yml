@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.0
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
 
   # flake8:
   #   runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
 
   wait-for-tests:  # pass always when not on main (don't use 'if' b/c downstream)
     runs-on: ubuntu-latest
@@ -122,7 +122,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.12
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.15
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
