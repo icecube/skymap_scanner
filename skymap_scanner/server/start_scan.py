@@ -269,7 +269,7 @@ class PixelsToReco:
 
         LOGGER.debug(f"Generating {len(self.pos_variations)} position variations.")
 
-        for pos_variation in self.pos_variations:
+        for i, pos_variation in enumerate(self.pos_variations):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
 
             if self.reco.rotate_vertex:
