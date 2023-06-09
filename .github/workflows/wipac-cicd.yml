@@ -8,6 +8,15 @@ env:
 
 jobs:
 
+  py-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: versions
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.0
+
   # flake8:
   #   runs-on: ubuntu-latest
   #   steps:
@@ -17,9 +26,15 @@ jobs:
 
   mypy:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
   wait-for-tests:  # pass always when not on main (don't use 'if' b/c downstream)
@@ -112,15 +127,6 @@ jobs:
         with:
           git_committer_name: ${{ env.BOT_NAME }}
           git_committer_email: ${{ env.BOT_EMAIL }}
-
-  py-versions:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.versions.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.0
 
   pip-install:
     # If this fails, the longer tests are sure to fail
