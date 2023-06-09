@@ -100,7 +100,6 @@ jobs:
               # get conclusions
               okay_jobs = set()
               for job, conclusion in get_conclusions():
-                  print(f"Job conclusion: {job} ({conclusion})")
                   if conclusion not in OK_CONCLUSION:
                       # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion
                       okay_jobs.discard(job)  # in case a name-twin was marked as okay
@@ -111,7 +110,7 @@ jobs:
                   print("The wait is over!")
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quite early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
-              print(f"Unchecked jobs: {set(JOBS) - okay_jobs}")
+              print(f"Pending jobs: {set(JOBS) - okay_jobs}")
           '
 
   py-setup:
