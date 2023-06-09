@@ -30,6 +30,7 @@ class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
     def __init__(self):
+        super().__init__
         self.rotate_vertex = True
         self.refine_time = True
         self.use_fallback_position = False
