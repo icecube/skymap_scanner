@@ -25,6 +25,7 @@ jobs:
   #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
+    needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
