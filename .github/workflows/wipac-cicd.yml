@@ -104,11 +104,13 @@ jobs:
               for job, conclusion in get_conclusions():
                   if job in bad_jobs:
                       continue
-                  if conclusion not in OK_CONCLUSION:
+                  if conclusion in OK_CONCLUSION:
+                      okay_jobs.add(job)
+                  else:
                       # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion
                       okay_jobs.discard(job)  # in case a name-twin was marked as okay
                       bad_jobs.add(job)
-                  okay_jobs.add(job)
+
 
               # final check
               if okay_jobs == set(JOBS):
