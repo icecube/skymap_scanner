@@ -136,7 +136,7 @@ jobs:
               if not pending:
                   print("All jobs appear to be done, rechecking in ${{ env.STARTUP_WAIT }} seconds...")
                   time.sleep(${{ env.STARTUP_WAIT }})
-                  if not (pending := get_pending()):
+                  if pending := get_pending():
                       print(f"Not done! More jobs started up: {pending}")
                       continue  # more jobs started up
                   print("The wait is over!")
