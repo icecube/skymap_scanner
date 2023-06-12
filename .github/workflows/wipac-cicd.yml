@@ -47,6 +47,7 @@ jobs:
     env:
       WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-run-nsides-thresholds-dummy (1:12, 1); test-run-nsides-thresholds-dummy (1:12, 0.65); test-run-nsides-thresholds-dummy (1:12 2:12, 1); test-run-nsides-thresholds-dummy (1:12 2:12, 0.65); test-run-nsides-thresholds-dummy (1:12 2:12 4:12, 1); test-run-nsides-thresholds-dummy (1:12 2:12 4:12, 0.65); test-run-realistic (hese_event_01.json, millipede_original); test-run-realistic (run00136766-evt000007637140-GOLD.pkl, millipede_original); test-run-realistic (run00136662-evt000035405932-BRONZE.pkl, millipede_original); test-run-single-pixel (BRONZE, millipede_original); test-run-single-pixel (GOLD, millipede_original); test-run-single-pixel (JSON, millipede_original)"
       OK_CONCLUSION: "success; skipped"  # see https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
+      STARTUP_WAIT: 60  # seconds
       RETRY_TIME: 60  # seconds
       TOTAL_WAIT_TIME: 4500  # seconds
     steps:
@@ -62,7 +63,8 @@ jobs:
           from pprint import pprint
           import itertools as it
 
-          time.sleep(60)  # wait for jobs to start
+          print("Waiting for ${{ env.STARTUP_WAIT }} seconds for jobs to start up")
+          time.sleep(${{ env.STARTUP_WAIT }})  # wait for jobs to start
 
           JOB_PATTERNS = {re.compile(j.strip()):set() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")}
           print(f"Checking job patterns: {JOB_PATTERNS.keys()}")
