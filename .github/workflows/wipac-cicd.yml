@@ -102,7 +102,7 @@ jobs:
                   print( (pat, crun["name"], crun["id"], crun["conclusion"]) )
                   yield crun["name"], crun["conclusion"]
 
-          def get_pending():
+          def get_pending() -> list[str]:
               # get conclusions
               okay_jobs = set()
               bad_jobs = set()
@@ -116,7 +116,10 @@ jobs:
                       okay_jobs.discard(job)  # in case a name-twin was marked as okay
                       bad_jobs.add(job)
               # final check -- get unfinished jobs + unmatched patterns
-              return [j for j in it.chain(*JOB_PATTERNS.values()) if j not in okay_jobs] + [p for p in JOB_PATTERNS if not JOB_PATTERNS[p]]
+              return sorted(
+                  [j for j in it.chain(*JOB_PATTERNS.values()) if j not in okay_jobs]
+                  + [str(p) for p in JOB_PATTERNS if not JOB_PATTERNS[p]]
+              )
 
           # MAIN RETRY LOOP
           start = time.time()
@@ -133,13 +136,14 @@ jobs:
               if not pending:
                   print("All jobs appear to be done, rechecking in ${{ env.STARTUP_WAIT }} seconds...")
                   time.sleep(${{ env.STARTUP_WAIT }})
-                  if not get_pending():
+                  if not (pending := get_pending()):
+                      print(f"Not done! More jobs started up: {pending}")
                       continue  # more jobs started up
                   print("The wait is over!")
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print("Pending jobs:")
-              for p in sorted(str(p) for p in pending):
+              for p in pending:
                   print(p)
           '
 
