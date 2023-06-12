@@ -126,12 +126,12 @@ jobs:
                       bad_jobs.add(job)
 
               # final check -- seen all & all seen are okay
-              if all(JOB_PATTERNS.values()) and all(s in okay_jobs for s in it.chain(*JOB_PATTERNS.values())):
+              if all(JOB_PATTERNS.values()) and all(j in okay_jobs for j in it.chain(*JOB_PATTERNS.values())):
                   print("The wait is over!")
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print("Pending jobs:")
-              for job in sorted(s for s in it.chain(*JOB_PATTERNS.values()) if s not in okay_jobs):
+              for job in sorted([j for j in it.chain(*JOB_PATTERNS.values()) if j not in okay_jobs] + [p for p in JOB_PATTERNS if not JOB_PATTERNS[p]]):
                   print(job)
           '
 
