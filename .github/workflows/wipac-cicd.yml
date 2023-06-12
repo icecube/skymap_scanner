@@ -132,7 +132,7 @@ jobs:
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print("Pending jobs:")
-              for job in sorted(pending):
+              for job in sorted(str(p) for p in pending):
                   print(job)
           '
 
