@@ -102,16 +102,7 @@ jobs:
                   print( (pat, crun["name"], crun["id"], crun["conclusion"]) )
                   yield crun["name"], crun["conclusion"]
 
-          # MAIN RETRY LOOP
-          start = time.time()
-          while True:
-              print("\n###############################################################")
-              print("Waiting for job conclusions (${{ env.RETRY_TIME }} seconds)...")
-              if time.time() - start > ${{ env.TOTAL_WAIT_TIME }}:
-                  print("Timeout.")
-                  sys.exit(1)
-              time.sleep(${{ env.RETRY_TIME }})
-
+          def get_pending():
               # get conclusions
               okay_jobs = set()
               bad_jobs = set()
@@ -124,16 +115,32 @@ jobs:
                       # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion
                       okay_jobs.discard(job)  # in case a name-twin was marked as okay
                       bad_jobs.add(job)
+              # final check -- get unfinished jobs + unmatched patterns
+              return [j for j in it.chain(*JOB_PATTERNS.values()) if j not in okay_jobs] + [p for p in JOB_PATTERNS if not JOB_PATTERNS[p]]
 
-              # final check -- look at unfinished jobs + unmatched patterns
-              pending = [j for j in it.chain(*JOB_PATTERNS.values()) if j not in okay_jobs] + [p for p in JOB_PATTERNS if not JOB_PATTERNS[p]]
+          # MAIN RETRY LOOP
+          start = time.time()
+          while True:
+              print("\n###############################################################")
+              print("Waiting for job conclusions (${{ env.RETRY_TIME }} seconds)...")
+              if time.time() - start > ${{ env.TOTAL_WAIT_TIME }}:
+                  print("Timeout.")
+                  sys.exit(1)
+              time.sleep(${{ env.RETRY_TIME }})
+
+              pending = get_pending()
+
               if not pending:
+                  print("All jobs appear to be done, rechecking in ${{ env.STARTUP_WAIT }} seconds...")
+                  time.sleep(${{ env.STARTUP_WAIT }})
+                  if not get_pending():
+                      continue  # more jobs started up
                   print("The wait is over!")
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print("Pending jobs:")
-              for job in sorted(str(p) for p in pending):
-                  print(job)
+              for p in sorted(str(p) for p in pending):
+                  print(p)
           '
 
   py-setup:
