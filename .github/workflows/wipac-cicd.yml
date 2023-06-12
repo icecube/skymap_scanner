@@ -66,7 +66,7 @@ jobs:
           print("Waiting for ${{ env.STARTUP_WAIT }} seconds for jobs to start up")
           time.sleep(${{ env.STARTUP_WAIT }})  # wait for jobs to start
 
-          JOB_PATTERNS = {re.compile(r"{re.escape(j.strip())}( \(.+\))?"): set() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")}
+          JOB_PATTERNS = {re.compile(fr"{re.escape(j.strip())}( \(.+\))?"): set() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")}
           print(f"Checking job patterns: {JOB_PATTERNS.keys()}")
           OK_CONCLUSION = [s.strip() for s in "${{ env.OK_CONCLUSION }}".split(";")]
           print(f"Jobs must have these conclusions: {OK_CONCLUSION}")
