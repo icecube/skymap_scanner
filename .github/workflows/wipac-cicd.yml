@@ -60,12 +60,12 @@ jobs:
           import requests
           import re
           from pprint import pprint
+          import itertools as it
 
           time.sleep(60)  # wait for jobs to start
 
-          JOB_PATTERNS = [re.compile(j.strip()) for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
-          print(f"Checking job patterns: {JOB_PATTERNS}")
-          JOBS = set()
+          JOB_PATTERNS = {re.compile(j.strip()):set() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")}
+          print(f"Checking job patterns: {JOB_PATTERNS.keys()}")
           OK_CONCLUSION = [s.strip() for s in "${{ env.OK_CONCLUSION }}".split(";")]
           print(f"Jobs must have these conclusions: {OK_CONCLUSION}")
 
@@ -75,6 +75,14 @@ jobs:
               "X-GitHub-Api-Version": "2022-11-28",
           }
           url = "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs"
+
+          def match_to_pattern(name: str):
+              # return matching regex & add name to JOB_PATTERNS entry
+              for p in JOB_PATTERNS:
+                  if p.fullmatch(name):
+                      JOB_PATTERNS[p].add(name)  # record job
+                      return p
+              return None
 
           def get_conclusions():
               print(f"requesting {url} ...")
@@ -87,10 +95,9 @@ jobs:
                   },
               ).json()
               for crun in sorted(resp["check_runs"], key=lambda d: d["name"]):  # there may be muliple checks (jobs) w/ same name
-                  if not any(p.fullmatch(crun["name"]) for p in JOB_PATTERNS):
+                  if not (pat := match_to_pattern(crun["name"])):
                       continue
-                  JOBS.add(crun["name"])  # get actual name
-                  print( (crun["name"], crun["id"], crun["conclusion"]) )
+                  print( (pat, crun["name"], crun["id"], crun["conclusion"]) )
                   yield crun["name"], crun["conclusion"]
 
           # MAIN RETRY LOOP
@@ -116,13 +123,13 @@ jobs:
                       okay_jobs.discard(job)  # in case a name-twin was marked as okay
                       bad_jobs.add(job)
 
-              # final check
-              if JOBS and okay_jobs == set(JOBS):
+              # final check -- seen all & all seen are okay
+              if all(JOB_PATTERNS.values()) and all(s in okay_jobs for s in it.chain(*JOB_PATTERNS.values())):
                   print("The wait is over!")
                   break
               # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
               print("Pending jobs:")
-              for job in sorted(set(JOBS) - okay_jobs):
+              for job in sorted(s for s in it.chain(*JOB_PATTERNS.values()) if s not in okay_jobs):
                   print(job)
           '
 
