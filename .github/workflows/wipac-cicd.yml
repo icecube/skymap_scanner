@@ -45,7 +45,7 @@ jobs:
       # don't cancel on main/master/default
       cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
     env:
-      WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-run-nsides-thresholds-dummy; test-run-realistic; test-run-single-pixel"
+      WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-file-staging; test-run-nsides-thresholds-dummy; test-run-realistic; test-run-single-pixel"
       OK_CONCLUSION: "success; skipped"  # see https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
       STARTUP_WAIT: 60  # seconds
       RETRY_TIME: 60  # seconds
