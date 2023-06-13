@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.10.6 (2023-06-13)
+
+### Other
+
+* Python: Add 3.11 & Remove 3.8 ([#201](https://github.com/icecube/skymap_scanner/issues/201)) ([`a028611`](https://github.com/icecube/skymap_scanner/commit/a02861166978ddea76aeac2cf97b07b245cd7da5))
+
 ## v3.10.5 (2023-06-08)
 
 ### Other
