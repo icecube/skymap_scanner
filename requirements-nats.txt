@@ -28,7 +28,7 @@ ed25519==1.5
     # via nkeys
 ewms-pilot==0.10.3
     # via skymap-scanner (setup.py)
-fonttools==4.39.4
+fonttools==4.40.0
     # via matplotlib
 healpy==1.16.2
     # via
