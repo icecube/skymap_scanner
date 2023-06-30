@@ -8,6 +8,15 @@ env:
 
 jobs:
 
+  py-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: versions
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
+
   # flake8:
   #   runs-on: ubuntu-latest
   #   steps:
@@ -16,13 +25,18 @@ jobs:
   #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
+    needs: [py-versions]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: '3.10'
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
 
   wait-for-tests:  # pass always when not on main (don't use 'if' b/c downstream)
     runs-on: ubuntu-latest
@@ -31,8 +45,9 @@ jobs:
       # don't cancel on main/master/default
       cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
     env:
-      WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-run-nsides-thresholds-dummy (1:12, 1); test-run-nsides-thresholds-dummy (1:12, 0.65); test-run-nsides-thresholds-dummy (1:12 2:12, 1); test-run-nsides-thresholds-dummy (1:12 2:12, 0.65); test-run-nsides-thresholds-dummy (1:12 2:12 4:12, 1); test-run-nsides-thresholds-dummy (1:12 2:12 4:12, 0.65); test-run-realistic (hese_event_01.json, millipede_original); test-run-realistic (run00136766-evt000007637140-GOLD.pkl, millipede_original); test-run-realistic (run00136662-evt000035405932-BRONZE.pkl, millipede_original); test-run-single-pixel (BRONZE, millipede_original); test-run-single-pixel (GOLD, millipede_original); test-run-single-pixel (JSON, millipede_original)"
+      WAIT_FOR_JOBS: "test-build-docker; test-build-docker-pulsar; test-run-singularity-dummy-reco; test-file-staging; test-run-nsides-thresholds-dummy; test-run-realistic; test-run-single-pixel"
       OK_CONCLUSION: "success; skipped"  # see https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
+      STARTUP_WAIT: 60  # seconds
       RETRY_TIME: 60  # seconds
       TOTAL_WAIT_TIME: 4500  # seconds
     steps:
@@ -44,10 +59,15 @@ jobs:
           import time
           import sys
           import requests
+          import re
           from pprint import pprint
+          import itertools as it
 
-          JOBS = [j.strip() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")]
-          print(f"Checking jobs: {JOBS}")
+          print("Waiting for ${{ env.STARTUP_WAIT }} seconds for jobs to start up")
+          time.sleep(${{ env.STARTUP_WAIT }})  # wait for jobs to start
+
+          JOB_PATTERNS = {re.compile(fr"{re.escape(j.strip())}( \(.+\))?"): set() for j in "${{ env.WAIT_FOR_JOBS }}".split(";")}
+          print(f"Checking job patterns: {JOB_PATTERNS.keys()}")
           OK_CONCLUSION = [s.strip() for s in "${{ env.OK_CONCLUSION }}".split(";")]
           print(f"Jobs must have these conclusions: {OK_CONCLUSION}")
 
@@ -56,21 +76,50 @@ jobs:
               "Accept": "application/vnd.github+json",
               "X-GitHub-Api-Version": "2022-11-28",
           }
+          url = "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs"
+
+          def match_to_pattern(name: str):
+              # return matching regex & add name to JOB_PATTERNS entry
+              for p in JOB_PATTERNS:
+                  if p.fullmatch(name):
+                      JOB_PATTERNS[p].add(name)  # record job
+                      return p
+              return None
 
           def get_conclusions():
-              for cname in JOBS:
-                  resp = requests.get(
-                      "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs",
-                      headers=headers,
-                      params={
-                          "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
-                          "check_name": cname,
-                          # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
-                      },
-                  ).json()
-                  for crun in resp["check_runs"]:  # there may be muliple checks (jobs) w/ same name
-                      print( (crun["name"], crun["id"], crun["conclusion"]) )
-                      yield crun["name"], crun["conclusion"]
+              print(f"requesting {url} ...")
+              resp = requests.get(
+                  url,
+                  headers=headers,
+                  params={
+                      "filter": "latest",  # we dont want previous runs (but if re-job hasnt been re-created, we will get the old one...)
+                      # "status": "completed",  # in case of re-run get uncompleted newby over completed oldy
+                  },
+              ).json()
+              for crun in sorted(resp["check_runs"], key=lambda d: d["name"]):  # there may be muliple checks (jobs) w/ same name
+                  if not (pat := match_to_pattern(crun["name"])):
+                      continue
+                  print( (pat, crun["name"], crun["id"], crun["conclusion"]) )
+                  yield crun["name"], crun["conclusion"]
+
+          def get_pending() -> list[str]:
+              # get conclusions
+              okay_jobs = set()
+              bad_jobs = set()
+              for job, conclusion in get_conclusions():
+                  if job in bad_jobs:
+                      continue
+                  if conclusion in OK_CONCLUSION:
+                      okay_jobs.add(job)
+                  else:
+                      # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion
+                      okay_jobs.discard(job)  # in case a name-twin was marked as okay
+                      bad_jobs.add(job)
+              # final check -- get unfinished jobs + unmatched patterns
+              return sorted(
+                  [j for j in it.chain(*JOB_PATTERNS.values()) if j not in okay_jobs]
+                  + [str(p) for p in JOB_PATTERNS if not JOB_PATTERNS[p]]
+              )
 
           # MAIN RETRY LOOP
           start = time.time()
@@ -82,22 +131,20 @@ jobs:
                   sys.exit(1)
               time.sleep(${{ env.RETRY_TIME }})
 
-              # get conclusions
-              okay_jobs = set()
-              for job, conclusion in get_conclusions():
-                  print(f"Job conclusion: {job} ({conclusion})")
-                  if conclusion not in OK_CONCLUSION:
-                      # NOTE: there may be multiple jobs called X, so we need remove on each bad conclusion then break
-                      okay_jobs.discard(job)  # in case a name-twin was marked as okay
-                      break  # break early to limit requests
-                  okay_jobs.add(job)
+              pending = get_pending()
 
-              # final check
-              if okay_jobs == set(JOBS):
+              if not pending:
+                  print("All jobs appear to be done, rechecking in ${{ env.STARTUP_WAIT }} seconds...")
+                  time.sleep(${{ env.STARTUP_WAIT }})
+                  if pending := get_pending():
+                      print(f"Not done! More jobs started up: {pending}")
+                      continue  # more jobs started up
                   print("The wait is over!")
                   break
-              # NOTE: it is tempting to see if we have all failed or all ok jobs and quite early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
-              print(f"Pending jobs: {set(JOBS) - okay_jobs}")
+              # NOTE: it is tempting to see if we have all failed or all ok jobs and quit early !BUT! those failures/oks could be from earlier runs so we need to wait for timeout
+              print("Pending jobs:")
+              for p in pending:
+                  print(p)
           '
 
   py-setup:
@@ -109,20 +156,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.12
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.15
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
           git_committer_email: ${{ env.BOT_EMAIL }}
-
-  py-versions:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.versions.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.0
 
   pip-install:
     # If this fails, the longer tests are sure to fail
