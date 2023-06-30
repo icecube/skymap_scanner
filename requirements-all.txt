@@ -20,7 +20,7 @@ charset-normalizer==3.1.0
     # via requests
 coloredlogs==15.0.1
     # via wipac-dev-tools
-contourpy==1.0.7
+contourpy==1.1.0
     # via matplotlib
 cryptography==41.0.1
     # via pyjwt
@@ -30,7 +30,7 @@ ed25519==1.5
     # via nkeys
 ewms-pilot==0.10.3
     # via skymap-scanner (setup.py)
-fonttools==4.39.4
+fonttools==4.40.0
     # via matplotlib
 healpy==1.16.2
     # via
@@ -44,7 +44,7 @@ icecube-skyreader==1.2.0
     # via skymap-scanner (setup.py)
 idna==3.4
     # via requests
-iminuit==2.21.3
+iminuit==2.22.0
     # via skymap-scanner (setup.py)
 kiwisolver==1.4.4
     # via matplotlib
@@ -58,7 +58,7 @@ nats-py[nkeys]==2.3.1
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
-numpy==1.24.3
+numpy==1.25.0
     # via
     #   astropy
     #   contourpy
@@ -78,7 +78,7 @@ packaging==23.1
     # via
     #   astropy
     #   matplotlib
-pandas==2.0.2
+pandas==2.0.3
     # via icecube-skyreader
 pika==1.3.2
     # via oms-mqclient
@@ -92,7 +92,7 @@ pyerfa==2.0.0.3
     # via astropy
 pyjwt[crypto]==2.7.0
     # via wipac-rest-tools
-pyparsing==3.0.9
+pyparsing==3.1.0
     # via matplotlib
 pypng==0.20220715.0
     # via qrcode
@@ -111,15 +111,15 @@ requests==2.31.0
     #   requests-futures
     #   wipac-dev-tools
     #   wipac-rest-tools
-requests-futures==1.0.0
+requests-futures==1.0.1
     # via wipac-rest-tools
-scipy==1.10.1
+scipy==1.11.1
     # via healpy
 six==1.16.0
     # via python-dateutil
 tornado==6.3.2
     # via wipac-rest-tools
-typing-extensions==4.6.3
+typing-extensions==4.7.0
     # via
     #   qrcode
     #   wipac-dev-tools
