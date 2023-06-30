@@ -14,7 +14,9 @@ PixelTuple = Tuple[int, float, float, float]
 
 
 def from_nsides_dict(
-    nsides_dict: NSidesDict, event_metadata: Optional[EventMetadata] = None
+    nsides_dict: NSidesDict,
+    is_complete: bool,
+    event_metadata: Optional[EventMetadata] = None,
 ) -> SkyScanResult:
     """Factory method for nsides_dict."""
     event_metadata_dict = {}
@@ -25,7 +27,11 @@ def from_nsides_dict(
     for nside, pixel_dict in nsides_dict.items():
         _dtype = np.dtype(  # type: ignore[call-overload]
             SkyScanResult.PIXEL_TYPE,
-            metadata=dict(nside=nside, **event_metadata_dict),
+            metadata=dict(
+                nside=nside,
+                complete=is_complete,
+                **event_metadata_dict,
+            ),
         )
         nside_pixel_values = np.zeros(len(pixel_dict), dtype=_dtype)
         LOGGER.debug(
