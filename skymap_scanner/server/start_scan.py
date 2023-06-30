@@ -481,11 +481,16 @@ async def _serve_and_collect(
                         LOGGER.info(f"Threshold met (max={max_nside_thresholded})")
                         break
 
-            # do-while loop logic
+            #
+            # OUT OF LOOP: either b/c time for more pixels, or timed-out
+            #
+            # time for more pixels
             if max_nside_thresholded:
-                continue
-            LOGGER.error("The MQ-sub must have timed out (too many MIA clients)")
-            return collector.n_sent
+                continue  # do-while loop logic
+            # timed-out
+            err = "The MQ-sub must have timed out (too many MIA clients)"
+            LOGGER.error(err)
+            raise RuntimeError(err)
 
     # this statement should never be reached
     raise RuntimeError("Unknown state -- there is an error upstream")
