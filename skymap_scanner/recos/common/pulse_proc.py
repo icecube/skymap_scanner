@@ -39,9 +39,11 @@ def weighted_median(values, weights):
     return weighted_quantile(values, weights, q=0.5)
 
 
-def late_pulse_cleaning(frame, Pulses, Residual=3e3 * I3Units.ns):
-    pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
-    mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
+def late_pulse_cleaning(
+    frame, input_pulses_name: str, output_pulses_name: str, Residual=3e3 * I3Units.ns
+):
+    pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses_name)
+    mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses_name)
     counter, charge = 0, 0
     qtot = 0
     times = dataclasses.I3TimeWindowSeriesMap()
@@ -65,8 +67,8 @@ def late_pulse_cleaning(frame, Pulses, Residual=3e3 * I3Units.ns):
                 mask.set(omkey, p, False)
                 counter += 1
                 charge += p.charge
-    frame[cls.pulsesName_cleaned] = mask
-    frame[cls.pulsesName_cleaned + "TimeWindows"] = times
-    frame[cls.pulsesName_cleaned + "TimeRange"] = copy.deepcopy(
-        frame[Pulses + "TimeRange"]
+    frame[output_pulses_name] = mask
+    frame[output_pulses_name + "TimeWindows"] = times
+    frame[output_pulses_name + "TimeRange"] = copy.deepcopy(
+        frame[input_pulses_name + "TimeRange"]
     )
