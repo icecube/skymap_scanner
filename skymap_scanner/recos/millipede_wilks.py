@@ -29,7 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
-from .common.pulse_proc import mask_deepcore
+from .common.pulse_proc import mask_deepcore, _weighted_quantile_arg
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -176,15 +176,6 @@ class MillipedeWilks(RecoInterface):
         ExcludedDOMs.append('OtherUnhits')
 
         ##################
-
-        def _weighted_quantile_arg(values, weights, q=0.5):
-            indices = numpy.argsort(values)
-            sorted_indices = numpy.arange(len(values))[indices]
-            medianidx = (weights[indices].cumsum()/weights[indices].sum()).searchsorted(q)
-            if (0 <= medianidx) and (medianidx < len(values)):
-                return sorted_indices[medianidx]
-            else:
-                return numpy.nan
 
         def weighted_quantile(values, weights, q=0.5):
             if len(values) != len(weights):
