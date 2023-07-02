@@ -107,7 +107,7 @@ six==1.16.0
     # via python-dateutil
 tornado==6.3.2
     # via wipac-rest-tools
-typing-extensions==4.7.0
+typing-extensions==4.7.1
     # via
     #   qrcode
     #   wipac-dev-tools
