@@ -41,8 +41,17 @@ def weighted_median(values, weights):
 
 
 def late_pulse_cleaning(
-    frame, input_pulses_name: str, output_pulses_name: str, Residual=3e3 * I3Units.ns
+    frame,
+    input_pulses_name: str,
+    output_pulses_name: str,
+    orig_pulses_name: str = None,
+    Residual=3e3 * I3Units.ns,
 ):
+    # input_pulses_name can specify a masked hit series that does not carry the TimeRange key
+    # in such case, the TimeRange key will be retrieved from orig_pulses_name
+    if orig_pulses_name is None:
+        orig_pulses_name = input_pulses_name
+
     pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses_name)
     mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses_name)
     counter, charge = 0, 0
@@ -70,6 +79,7 @@ def late_pulse_cleaning(
                 charge += p.charge
     frame[output_pulses_name] = mask
     frame[output_pulses_name + "TimeWindows"] = times
+
     frame[output_pulses_name + "TimeRange"] = copy.deepcopy(
-        frame[input_pulses_name + "TimeRange"]
+        frame[orig_pulses_name + "TimeRange"]
     )
