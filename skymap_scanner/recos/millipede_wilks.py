@@ -29,7 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
-from .common.pulse_proc import mask_deepcore, weighted_quantile
+from .common.pulse_proc import mask_deepcore, weighted_median
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -176,9 +176,6 @@ class MillipedeWilks(RecoInterface):
         ExcludedDOMs.append('OtherUnhits')
 
         ##################
-
-        def weighted_median(values, weights):
-            return weighted_quantile(values, weights, q=0.5)
 
         def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
             pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
