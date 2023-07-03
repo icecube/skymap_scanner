@@ -42,9 +42,9 @@ def weighted_median(values, weights):
 
 def late_pulse_cleaning(
     frame,
-    input_pulses_name: str,
-    output_pulses_name: str,
-    orig_pulses_name: Union[str, None] = None,
+    input_pulses_name,  #: str,
+    output_pulses_name,  #: str,
+    orig_pulses_name,  #: Union[str, None] = None,
     Residual=3e3 * I3Units.ns,
 ):
     # input_pulses_name can specify a masked hit series that does not carry the TimeRange key
