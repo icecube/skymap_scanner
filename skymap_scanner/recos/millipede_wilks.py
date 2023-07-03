@@ -180,8 +180,8 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(late_pulse_cleaning, "LatePulseCleaning",
                        input_pulses_name=cls.pulsesName,
                        output_pulses_name=cls.pulsesName_cleaned,
-                       orig_pulses_name=cls.pulsesName_orig
-                       )
+                       orig_pulses_name=cls.pulsesName_orig,
+                       residual=1.5e3*I3Units.ns)
         return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
     @icetray.traysegment
