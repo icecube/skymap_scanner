@@ -29,7 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
-from .common.pulse_proc import mask_deepcore, late_pulse_cleaning
+from .common.pulse_proc import mask_deepcore, LatePulseCleaning
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -177,7 +177,7 @@ class MillipedeWilks(RecoInterface):
 
         ##################
 
-        tray.AddModule(late_pulse_cleaning, "LatePulseCleaning",
+        tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
                        input_pulses_name=cls.pulsesName,
                        output_pulses_name=cls.pulsesName_cleaned,
                        orig_pulses_name=cls.pulsesName_orig

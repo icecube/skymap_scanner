@@ -86,10 +86,14 @@ def late_pulse_cleaning(
 
 
 def LatePulseCleaning(
-    frame, input_pulses, output_pulses, orig_pulses, Residual=1.5e3 * I3Units.ns
+    frame,
+    input_pulses_name,
+    output_pulses_name,
+    orig_pulses_name,
+    Residual=1.5e3 * I3Units.ns,
 ):
-    pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses)
-    mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses)
+    pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses_name)
+    mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses_name)
     counter, charge = 0, 0
     qtot = 0
     times = dataclasses.I3TimeWindowSeriesMap()
@@ -113,6 +117,8 @@ def LatePulseCleaning(
                 mask.set(omkey, p, False)
                 counter += 1
                 charge += p.charge
-    frame[output_pulses] = mask
-    frame[output_pulses + "TimeWindows"] = times
-    frame[output_pulses + "TimeRange"] = copy.deepcopy(frame[orig_pulses + "TimeRange"])
+    frame[output_pulses_name] = mask
+    frame[output_pulses_name + "TimeWindows"] = times
+    frame[output_pulses_name + "TimeRange"] = copy.deepcopy(
+        frame[orig_pulses_name + "TimeRange"]
+    )
