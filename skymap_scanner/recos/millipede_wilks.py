@@ -207,6 +207,7 @@ class MillipedeWilks(RecoInterface):
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
                        input_pulses=cls.pulsesName,
+                       output_pulses=cls.pulsesName_cleaned,
                        orig_pulses=cls.pulsesName_orig
                        )
         return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
