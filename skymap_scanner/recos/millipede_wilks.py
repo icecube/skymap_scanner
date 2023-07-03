@@ -177,9 +177,9 @@ class MillipedeWilks(RecoInterface):
 
         ##################
 
-        def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
-            pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
-            mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
+        def LatePulseCleaning(frame, input_pulses, output_pulses, orig_pulses, Residual=1.5e3*I3Units.ns):
+            pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses)
+            mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses)
             counter, charge = 0, 0
             qtot = 0
             times = dataclasses.I3TimeWindowSeriesMap()
@@ -201,12 +201,13 @@ class MillipedeWilks(RecoInterface):
                         mask.set(omkey, p, False)
                         counter += 1
                         charge += p.charge
-            frame[cls.pulsesName_cleaned] = mask
-            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
-            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[cls.pulsesName_orig+"TimeRange"])
+            frame[output_pulses] = mask
+            frame[output_pulses+"TimeWindows"] = times
+            frame[output_pulses+"TimeRange"] = copy.deepcopy(frame[orig_pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=cls.pulsesName,
+                       input_pulses=cls.pulsesName,
+                       orig_pulses=cls.pulsesName_orig
                        )
         return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
