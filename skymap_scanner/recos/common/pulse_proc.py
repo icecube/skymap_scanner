@@ -69,11 +69,11 @@ def late_pulse_cleaning(
         for p in ps:
             if p.time >= (median + Residual):
                 if omkey not in times:
-                    tws = dataclasses.I3TimeWindowSeries()
-                    tws.append(
+                    ts = dataclasses.I3TimeWindowSeries()
+                    ts.append(
                         dataclasses.I3TimeWindow(median + Residual, numpy.inf)
                     )  # this defines the **excluded** time window
-                    times[omkey] = tws
+                    times[omkey] = ts
                 mask.set(omkey, p, False)
                 counter += 1
                 charge += p.charge
