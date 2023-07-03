@@ -29,7 +29,7 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
-from .common.pulse_proc import mask_deepcore, weighted_median
+from .common.pulse_proc import mask_deepcore, LatePulseCleaning
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -176,34 +176,6 @@ class MillipedeWilks(RecoInterface):
         ExcludedDOMs.append('OtherUnhits')
 
         ##################
-
-        def LatePulseCleaning(frame, input_pulses, output_pulses, orig_pulses, Residual=1.5e3*I3Units.ns):
-            pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses)
-            mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses)
-            counter, charge = 0, 0
-            qtot = 0
-            times = dataclasses.I3TimeWindowSeriesMap()
-            for omkey, ps in pulses.items():
-                if len(ps) < 2:
-                    if len(ps) == 1:
-                        qtot += ps[0].charge
-                    continue
-                ts = numpy.asarray([p.time for p in ps])
-                cs = numpy.asarray([p.charge for p in ps])
-                median = weighted_median(ts, cs)
-                qtot += cs.sum()
-                for p in ps:
-                    if p.time >= (median+Residual):
-                        if omkey not in times:
-                            ts = dataclasses.I3TimeWindowSeries()
-                            ts.append(dataclasses.I3TimeWindow(median+Residual, numpy.inf)) # this defines the **excluded** time window
-                            times[omkey] = ts
-                        mask.set(omkey, p, False)
-                        counter += 1
-                        charge += p.charge
-            frame[output_pulses] = mask
-            frame[output_pulses+"TimeWindows"] = times
-            frame[output_pulses+"TimeRange"] = copy.deepcopy(frame[orig_pulses+"TimeRange"])
 
         tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
                        input_pulses=cls.pulsesName,
