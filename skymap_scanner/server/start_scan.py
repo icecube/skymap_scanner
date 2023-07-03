@@ -277,7 +277,7 @@ class PixelsToReco:
                 pos_variation.rotate_y(direction.theta)
                 pos_variation.rotate_z(direction.phi)
 
-            if self.reco.use_fallback_position:
+            if self.reco.add_fallback_position:
                 if position != self.fallback_position:
                     # add fallback pos as an extra first guess
                     p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(

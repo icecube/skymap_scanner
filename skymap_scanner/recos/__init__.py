@@ -37,7 +37,7 @@ class RecoInterface(ABC):
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
     refine_time: bool
-    use_fallback_position: bool
+    add_fallback_position: bool
 
     # List of spline filenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.

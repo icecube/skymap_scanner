@@ -32,7 +32,7 @@ class Dummy(RecoInterface):
     def __init__(self):
         self.rotate_vertex = True
         self.refine_time = True
-        self.use_fallback_position = False
+        self.add_fallback_position = False
 
     def setup_reco(self):
         pass
