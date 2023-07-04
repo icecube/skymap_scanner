@@ -31,10 +31,7 @@ from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
-<<<<<<< HEAD
-=======
 from .common.pulse_proc import late_pulse_cleaning
->>>>>>> main
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
