@@ -40,7 +40,6 @@ from ..recos import RecoInterface
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
-from .reco_utils import get_splinempe_position_variations
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
 
