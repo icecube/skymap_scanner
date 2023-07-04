@@ -7,15 +7,18 @@ prepare the GCDQp packet by adding frame objects that might be missing
 
 import copy
 import os
-
-import numpy
-from I3Tray import I3Tray, I3Units  # type: ignore[import]
-from icecube import icetray  # type: ignore[import]
-from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 from typing import Union, List
 
+from I3Tray import I3Tray  # type: ignore[import]
+from icecube import icetray  # type: ignore[import]
+from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+
+from icecube import (
+    DomTools, # for I3LCPulseCleaning
+) # type: ignore[import]
 
 from .. import config as cfg
+from .. import recos
 from . import LOGGER
 
 
@@ -67,18 +70,13 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]:
-    # type hint using list available from python 3.11
-    from icecube import (
-        DomTools,
-        VHESelfVeto,
-        dataclasses,
-        gulliver,
-        millipede,
-        photonics_service,
-        recclasses,
-        simclasses,
-    )
+def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
+
+    # ACTIVATE FOR DEBUG
+    # icetray.logging.console()
+
+    # Reconstruction algorithm provider class
+    RecoAlgo = recos.get_reco_interface_object(reco_algo)
 
     output_frames: list[icetray.I3Frame] = []
 
@@ -100,40 +98,19 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
         OutputSLC=pulsesName+'SLC',
         If=lambda frame: pulsesName+'HLC' not in frame)
 
-    # Generates the vertex seed for the initial scan. 
-    # Only run if HESE_VHESelfVeto is not present in the frame.
-    # VertexThreshold is 250 in the original HESE analysis (Tianlu)
-    # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
-    if reco_algo.lower() == 'millipede_original':
-        # TODO: documentation for this conditional statement
-        tray.AddModule('VHESelfVeto', 'selfveto',
-                       VertexThreshold=2,
-                       Pulses=pulsesName+'HLC',
-                       OutputBool='HESE_VHESelfVeto',
-                       OutputVertexTime=cfg.INPUT_TIME_NAME,
-                       OutputVertexPos=cfg.INPUT_POS_NAME,
-                       If=lambda frame: "HESE_VHESelfVeto" not in frame)
-    else:
-        tray.AddModule('VHESelfVeto', 'selfveto',
-            VertexThreshold=250,
-            Pulses=pulsesName+'HLC',
-            OutputBool='HESE_VHESelfVeto',
-            OutputVertexTime=cfg.INPUT_TIME_NAME,
-            OutputVertexPos=cfg.INPUT_POS_NAME,
-            If=lambda frame: "HESE_VHESelfVeto" not in frame)
-
-        # this only runs if the previous module did not return anything
-        tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
-                       VertexThreshold=5,
-                       Pulses=pulsesName+'HLC',
-                       OutputBool='VHESelfVeto_meaningless_lowen',
-                       OutputVertexTime=cfg.INPUT_TIME_NAME,
-                       OutputVertexPos=cfg.INPUT_POS_NAME,
-                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+    # Run reco-specific preprocessing.
+    tray.AddSegment(
+        RecoAlgo.prepare_frames,
+        f"{reco_algo}_prepareframes",
+        logger=LOGGER,
+        pulsesName=pulsesName
+    )
 
     # If the event has a GCD diff (compressed GCD), only keep the diffs.
     # The GCD will be reassembled from baseline + diff by the client.
     if baseline_GCD is not None:
+        # The input event carries a compressed GCD.
+        # Only the GCD diff is propagated, the full GCD will be rebuilt downstream.
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
             for key in list(frame.keys()):

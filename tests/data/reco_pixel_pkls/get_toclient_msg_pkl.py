@@ -27,8 +27,16 @@ def main():
     with open(args.pframe_pkl, "rb") as f:
         pframe = pickle.load(f)
 
-    with open(args.pframe_pkl.parent / "in.pkl", "wb") as f:
-        pickle.dump({"pframe": pframe, "reco_algo": args.reco_algo}, f)
+    # When extracting the debug .pkl from ewms-pilot, the in- pickles already contain the full message.
+    # Do we need to support "bare" pframes pickles at all?
+    # For the moment, this is a workaround.
+    if "pframe" in pframe:
+        # Effectively this is equivalent to copying the file.
+        with open(args.pframe_pkl.parent / "in.pkl", "wb") as f:
+            pickle.dump(pframe, f)
+    else:
+        with open(args.pframe_pkl.parent / "in.pkl", "wb") as f:
+            pickle.dump({"pframe": pframe, "reco_algo": args.reco_algo}, f)
 
 
 if __name__ == "__main__":

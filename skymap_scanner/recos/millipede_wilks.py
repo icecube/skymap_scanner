@@ -7,7 +7,7 @@
 import copy
 import datetime
 import os
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 import numpy
 from I3Tray import I3Units
@@ -27,12 +27,13 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
+from . import RecoInterface, VertexGenerator
+from .common.pulse_proc import mask_deepcore, late_pulse_cleaning
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
+
     # Spline requirements ##############################################
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
     FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
@@ -46,7 +47,15 @@ class MillipedeWilks(RecoInterface):
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     def __init__(self):
-        pass
+        self.rotate_vertex = True
+        self.refine_time = True
+        self.add_fallback_position = True
+
+    @staticmethod
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
+        """
+        return VertexGenerator.point()
 
     def setup_reco(self):
         datastager = self.get_datastager()
@@ -65,6 +74,41 @@ class MillipedeWilks(RecoInterface):
         )
 
         self.muon_service = None
+
+    @classmethod
+    @icetray.traysegment
+    def prepare_frames(cls, tray, name, logger, pulsesName):
+        # Generates the vertex seed for the initial scan. 
+        # Only run if HESE_VHESelfVeto is not present in the frame.
+        # VertexThreshold is 250 in the original HESE analysis (Tianlu)
+        # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
+        def extract_seed(frame):
+            seed_prefix = "HESE_VHESelfVeto"
+            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexPos"]
+            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexTime"]
+
+        tray.Add(extract_seed, "ExtractSeed",
+                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
+
+        tray.AddModule('VHESelfVeto', 'selfveto',
+            VertexThreshold=250,
+            Pulses=pulsesName+'HLC',
+            OutputBool='HESE_VHESelfVeto',
+            OutputVertexTime=cfg.INPUT_TIME_NAME,
+            OutputVertexPos=cfg.INPUT_POS_NAME,
+            If=lambda frame: "HESE_VHESelfVeto" not in frame)
+
+        # this only runs if the previous module did not return anything
+        tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
+                       VertexThreshold=5,
+                       Pulses=pulsesName+'HLC',
+                       OutputBool='VHESelfVeto_meaningless_lowen',
+                       OutputVertexTime=cfg.INPUT_TIME_NAME,
+                       OutputVertexPos=cfg.INPUT_POS_NAME,
+                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+        
+
+        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName)
 
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
@@ -133,69 +177,16 @@ class MillipedeWilks(RecoInterface):
 
         ##################
 
-        def _weighted_quantile_arg(values, weights, q=0.5):
-            indices = numpy.argsort(values)
-            sorted_indices = numpy.arange(len(values))[indices]
-            medianidx = (weights[indices].cumsum()/weights[indices].sum()).searchsorted(q)
-            if (0 <= medianidx) and (medianidx < len(values)):
-                return sorted_indices[medianidx]
-            else:
-                return numpy.nan
-
-        def weighted_quantile(values, weights, q=0.5):
-            if len(values) != len(weights):
-                raise ValueError("shape of `values` and `weights` don't match!")
-            index = _weighted_quantile_arg(values, weights, q=q)
-            if not numpy.isnan(index):
-                return values[index]
-            else:
-                return numpy.nan
-
-        def weighted_median(values, weights):
-            return weighted_quantile(values, weights, q=0.5)
-
-        def LatePulseCleaning(frame, Pulses, Residual=1.5e3*I3Units.ns):
-            pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
-            mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
-            counter, charge = 0, 0
-            qtot = 0
-            times = dataclasses.I3TimeWindowSeriesMap()
-            for omkey, ps in pulses.items():
-                if len(ps) < 2:
-                    if len(ps) == 1:
-                        qtot += ps[0].charge
-                    continue
-                ts = numpy.asarray([p.time for p in ps])
-                cs = numpy.asarray([p.charge for p in ps])
-                median = weighted_median(ts, cs)
-                qtot += cs.sum()
-                for p in ps:
-                    if p.time >= (median+Residual):
-                        if omkey not in times:
-                            ts = dataclasses.I3TimeWindowSeries()
-                            ts.append(dataclasses.I3TimeWindow(median+Residual, numpy.inf)) # this defines the **excluded** time window
-                            times[omkey] = ts
-                        mask.set(omkey, p, False)
-                        counter += 1
-                        charge += p.charge
-            frame[cls.pulsesName_cleaned] = mask
-            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
-            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[cls.pulsesName_orig+"TimeRange"])
-
-        tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=cls.pulsesName,
-                       )
+        tray.AddModule(late_pulse_cleaning, "LatePulseCleaning",
+                       input_pulses_name=cls.pulsesName,
+                       output_pulses_name=cls.pulsesName_cleaned,
+                       orig_pulses_name=cls.pulsesName_orig,
+                       residual=1.5e3*I3Units.ns)
         return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
-
-        def mask_dc(frame, origpulses, maskedpulses):
-            # Masks DeepCore pulses by selecting string numbers < 79.
-            frame[maskedpulses] = dataclasses.I3RecoPulseSeriesMapMask(
-                frame, origpulses, lambda omkey, index, pulse: omkey.string < 79)
-        tray.Add(mask_dc, origpulses=self.pulsesName_orig, maskedpulses=self.pulsesName)
 
         ExcludedDOMs = tray.Add(self.exclusions)
 

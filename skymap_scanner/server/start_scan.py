@@ -36,11 +36,13 @@ from ..utils.pixel_classes import (
     SentPixelVariation,
     pframe_tuple,
 )
+from ..recos import RecoInterface
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
+
 
 StrDict = Dict[str, Any]
 
@@ -84,30 +86,12 @@ class PixelsToReco:
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
-        self.reco_algo = reco_algo.lower()
+        
+        RecoAlgo: type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
+        
+        self.reco: RecoInterface = RecoAlgo()
 
-        # Get Position Variations
-        variation_distance = 20.*I3Units.m
-        if self.reco_algo == 'millipede_original':
-            if cfg.ENV.SKYSCAN_MINI_TEST:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    dataclasses.I3Position(-variation_distance,0.,0.)
-                ]
-            else:
-                self.pos_variations = [
-                    dataclasses.I3Position(0.,0.,0.),
-                    dataclasses.I3Position(-variation_distance,0.,0.),
-                    dataclasses.I3Position(variation_distance,0.,0.),
-                    dataclasses.I3Position(0.,-variation_distance,0.),
-                    dataclasses.I3Position(0., variation_distance,0.),
-                    dataclasses.I3Position(0.,0.,-variation_distance),
-                    dataclasses.I3Position(0.,0., variation_distance)
-                ]
-        else:
-            self.pos_variations = [
-                dataclasses.I3Position(0.,0.,0.),
-            ]
+        self.pos_variations = self.reco.get_vertex_variations()
 
         # Set min nside
         self.min_nside = min_nside
@@ -131,10 +115,11 @@ class PixelsToReco:
                 f"({self.event_header.run_id=}, {self.event_header.event_id=})"
             )
 
-        # The HLC pulse mask has been created in prepare_frames().
+        # The HLC pulse mask should have been been created in prepare_frames().
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
         
         self.omgeo = g_frame["I3Geometry"].omgeo
+
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
@@ -195,11 +180,9 @@ class PixelsToReco:
         particle.fit_status = dataclasses.I3Particle.FitStatus.OK
         particle.pos = position
         particle.dir = direction
-        if self.reco_algo == 'millipede_original':
-            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
-            particle.time = time
-        else:
-            LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
+        
+        if self.reco.refine_time:
+            LOGGER.debug(f"Reco_algo is {self.reco.name}, refining time")
             # given direction and vertex position, calculate time from CAD
             particle.time = self.refine_vertex_time(
                 position,
@@ -207,7 +190,12 @@ class PixelsToReco:
                 direction,
                 self.pulseseries_hlc,
                 self.omgeo)
+        else:
+            LOGGER.debug(f"Reco_algo is {self.reco.name}, not refining time")
+            particle.time = time
+
         particle.energy = energy
+
         return particle
 
     def _gen_pframes(
@@ -215,34 +203,52 @@ class PixelsToReco:
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
     ) -> Iterator[icetray.I3Frame]:
-        """Yield PFrames to be reco'd for a given `nside` and `pixel`."""
+        """Yield PFrames to be reco'd for a given `nside` and `pixel`.
+        
+        Each PFrame consists of an I3Particle to be used as seed by the reconstruction, plus some metadata.
+        
+        The seed direction (zenith and azimuth) is calculated from the celestial coordinates (RA, dec) of the given HEALPIX pixel.
+        
+        Multiple seed vertices (position variations) are generated according to a reco-specific set of vectors to be added to the base vertex (position).
+
+        The base vertex is taken from the best-fit of the coarser pixel or, in absence of it (for example when scanning pixels of the minimum NSIDE), from a seed defined by the reco algorithm.
+        
+        """
 
         codec, ra = healpy.pix2ang(nside, pixel)
         dec = numpy.pi/2 - codec
         zenith, azimuth = astro.equa_to_dir(ra, dec, self.event_metadata.mjd)
         zenith = float(zenith)
         azimuth = float(azimuth)
-        direction = dataclasses.I3Direction(zenith,azimuth)
+        direction = dataclasses.I3Direction(zenith, azimuth)
+
+
 
         if nside == self.min_nside:
+            # Scanning the minimum NSIDE, the position is taken from a seed provided by reco-specific logic and passed as "fallback position".
             position = self.fallback_position
             time = self.fallback_time
             energy = self.fallback_energy
         else:
             coarser_nside = nside
             while True:
+                # Look up the first available coarser NSIDE by iteratively dividing by two the current nside. 
+                # NOTE (v3): this guesswork could be avoided using the NSIDE progression.
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
 
                 if coarser_nside < self.min_nside:
-                    break # no coarser pixel is available (probably we are just scanning finely around MC truth)
-                    #raise RuntimeError("internal error. cannot find an original coarser pixel for nside={0}/pixel={1}".format(nside, pixel))
+                    # no coarser pixel is available (probably we are just scanning finely around MC truth)
+                    # NOTE (v3): nside != min_side and nside/2 < min_side should be always false? Given the comment above this could have been introduced to support "pointed" scans but this is not currently possible in v3.
+                    break
 
                 if coarser_nside in self.nsides_dict:
+                    # NOTE: This is the first nside in the divide-by-two progression that is available in the dictionary. By construction, this should be the previous value in the NSIDE progression.
                     if coarser_pixel in self.nsides_dict[coarser_nside]:
                         # coarser pixel found
                         break
 
+            # The following if-else clause decided based on the outcome of the lookup in the previous loop.
             if coarser_nside < self.min_nside:
                 # no coarser pixel is available (probably we are just scanning finely around MC truth)
                 position = self.fallback_position
@@ -259,23 +265,28 @@ class PixelsToReco:
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
-        for i in range(0,len(self.pos_variations)):
-            p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
-            posVariation = self.pos_variations[i]
+        # Now generate the vertex seed position variations according to the reco-specific logic. 
 
-            if self.reco_algo == 'millipede_wilks':
+        LOGGER.debug(f"Generating {len(self.pos_variations)} position variations.")
+
+        for i, pos_variation in enumerate(self.pos_variations):
+            p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
+
+            if self.reco.rotate_vertex:
                 # rotate variation to be applied in transverse plane
-                posVariation.rotate_y(direction.theta)
-                posVariation.rotate_z(direction.phi)
+                pos_variation.rotate_y(direction.theta)
+                pos_variation.rotate_z(direction.phi)
+
+            if self.reco.add_fallback_position:
                 if position != self.fallback_position:
                     # add fallback pos as an extra first guess
                     p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
-                        self.fallback_position+posVariation,
+                        self.fallback_position+pos_variation,
                         direction,
                         self.fallback_energy,
                         self.fallback_time)
 
-            p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
+            p_frame[f'{self.output_particle_name}'] = self.i3particle(position+pos_variation,
                                                                       direction,
                                                                       energy,
                                                                       time)
@@ -290,7 +301,7 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"{pframe_tuple(p_frame)} ({posVariation=})..."
+                f"{pframe_tuple(p_frame)} ({pos_variation=})..."
             )
             yield p_frame
 
@@ -458,13 +469,13 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    if not isinstance(msg['reco_pixel_variation'], RecoPixelVariation):
+                    if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
                         raise ValueError(
                             f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
                         )
                     try:
                         await collector.collect(
-                            msg['reco_pixel_variation'], msg['runtime']
+                            msg["reco_pixel_variation"], msg["runtime"]
                         )
                     except ExtraRecoPixelVariationException as e:
                         logging.error(e)
@@ -617,7 +628,7 @@ def main() -> None:
             f"The first nside's pixel extension must be {NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION}. "
             f"Example: --nsides 8:{NSideProgression.FIRST_NSIDE_PIXEL_EXTENSION} 64:12 512:24"
         ),
-        nargs='*',
+        nargs="*",
         type=_nside_and_pixelextension,
     )
     # --real-event XOR --simulated-event
@@ -625,12 +636,12 @@ def main() -> None:
     group.add_argument(
         "--real-event",
         action="store_true",
-        help='include this flag if the event is real',
+        help="include this flag if the event is real",
     )
     group.add_argument(
         "--simulated-event",
         action="store_true",
-        help='include this flag if the event was simulated',
+        help="include this flag if the event was simulated",
     )
 
     # predictive_scanning_threshold
