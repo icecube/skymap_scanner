@@ -152,8 +152,8 @@ class SplineMPE(RecoInterface):
         tray.AddModule(
             "I3SeededRTCleaning_RecoPulseMask_Module",
             "BaseProc_RTCleaning",
-            InputHitSeriesMapName=self.base_pulseseries,
-            OutputHitSeriesMapName=self.rt_cleaned_pulseseries,
+            InputHitSeriesMapName=cls.base_pulseseries,
+            OutputHitSeriesMapName=cls.rt_cleaned_pulseseries,
             STConfigService=seededRTConfig,
             SeedProcedure="HLCCoreHits",
             NHitsThreshold=2,
@@ -161,18 +161,18 @@ class SplineMPE(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(checkName, name=self.rt_cleaned_pulseseries)
+        tray.Add(checkName, name=cls.rt_cleaned_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
             "I3TimeWindowCleaning<I3RecoPulse>",
             "BaseProc_TimeWindowCleaning",
-            InputResponse=self.rt_cleaned_pulseseries,
-            OutputResponse=self.cleaned_muon_pulseseries,
+            InputResponse=cls.rt_cleaned_pulseseries,
+            OutputResponse=cls.cleaned_muon_pulseseries,
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(checkName, name=self.cleaned_muon_pulseseries)
+        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
 
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
@@ -190,10 +190,10 @@ class SplineMPE(RecoInterface):
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
             "muex",
-            self.energy_estimator,
-            pulses=self.cleaned_muon_pulseseries,
-            rectrk=self.energy_reco_seed,
-            result=self.energy_estimator,
+            cls.energy_estimator,
+            pulses=cls.cleaned_muon_pulseseries,
+            rectrk=cls.energy_reco_seed,
+            result=cls.energy_estimator,
             energy=True,
             detail=True,
             compat=False,
@@ -204,18 +204,18 @@ class SplineMPE(RecoInterface):
 
         tray.Add(
             mask_deepcore,
-            origpulses=self.cleaned_muon_pulseseries,
-            maskedpulses=self.cleaned_muon_pulseseries_ic,
+            origpulses=cls.cleaned_muon_pulseseries,
+            maskedpulses=cls.cleaned_muon_pulseseries_ic,
         )
 
         ####
 
-        if self.vertex_seed_source == "VHESelfVeto":
+        if cls.vertex_seed_source == "VHESelfVeto":
             tray.AddModule(
                 "VHESelfVeto",
                 "selfveto",
                 VertexThreshold=250,
-                Pulses=self.base_pulseseries + "HLC",
+                Pulses=cls.base_pulseseries + "HLC",
                 OutputBool="HESE_VHESelfVeto",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -227,7 +227,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto-emergency-lowen-settings",
                 VertexThreshold=5,
-                Pulses=self.base_pulseseries + "HLC",
+                Pulses=cls.base_pulseseries + "HLC",
                 OutputBool="VHESelfVeto_meaningless_lowen",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -244,7 +244,7 @@ class SplineMPE(RecoInterface):
 
             tray.Add(notify_seed)
 
-        elif self.vertex_seed_source == "OnlineL2_SplineMPE":
+        elif cls.vertex_seed_source == "OnlineL2_SplineMPE":
             # First vertex seed is extracted from OnlineL2 reco.
             def extract_seed(frame):
                 seed_source = "OnlineL2_SplineMPE"
