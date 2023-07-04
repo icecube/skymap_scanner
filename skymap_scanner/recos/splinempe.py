@@ -61,14 +61,13 @@ class SplineMPE(RecoInterface):
     # Names used in the reco.
     energy_reco_seed = "OnlineL2_BestFit"
     energy_estimator = "OnlineL2_BestFit_MuEx"
+    vertex_seed_source = "VHESelfVeto"
 
     def __init__(self):
         # Mandatory attributes (RecoInterface).
         self.rotate_vertex = True
         self.refine_time = True
         self.use_fallback_position = True
-        # Custom attributes.
-        self.vertex_seed_source = "VHESelfVeto"
 
     @staticmethod
     def get_prejitter(config="max") -> int:
