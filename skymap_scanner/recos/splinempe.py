@@ -67,7 +67,7 @@ class SplineMPE(RecoInterface):
         # Mandatory attributes (RecoInterface).
         self.rotate_vertex = True
         self.refine_time = True
-        self.use_fallback_position = True
+        self.add_fallback_position = True
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -365,7 +365,7 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name=vertex_seed)
 
-        if self.use_fallback_position:
+        if self.add_fallback_position:
             tray.AddService(
                 "I3BasicSeedServiceFactory",
                 "splinempe-seed",
