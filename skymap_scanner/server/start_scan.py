@@ -88,8 +88,6 @@ class PixelsToReco:
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
         
-        self.reco_algo: str = reco_algo
-        
         RecoAlgo: type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
         
         self.reco: RecoInterface = RecoAlgo()
@@ -185,7 +183,7 @@ class PixelsToReco:
         particle.dir = direction
         
         if self.reco.refine_time:
-            LOGGER.debug(f"Reco_algo is {self.reco_algo}, refining time")
+            LOGGER.debug(f"Reco_algo is {self.reco.name}, refining time")
             # given direction and vertex position, calculate time from CAD
             particle.time = self.refine_vertex_time(
                 position,
@@ -194,7 +192,7 @@ class PixelsToReco:
                 self.pulseseries_hlc,
                 self.omgeo)
         else:
-            LOGGER.debug(f"Reco_algo is {self.reco_algo}, not refining time")
+            LOGGER.debug(f"Reco_algo is {self.reco.name}, not refining time")
             particle.time = time
 
         particle.energy = energy
@@ -268,31 +266,28 @@ class PixelsToReco:
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
-        # Now generate the vertex seed position variations according to the reco-specific logic.
+        # Now generate the vertex seed position variations according to the reco-specific logic. 
 
-        n_pos_variations = len(self.pos_variations)
+        LOGGER.debug(f"Generating {len(self.pos_variations)} position variations.")
 
-        LOGGER.debug(f"Generating {n_pos_variations} position variations.")
-
-        for i in range(0, n_pos_variations):
+        for i, pos_variation in enumerate(self.pos_variations):
             p_frame = icetray.I3Frame(icetray.I3Frame.Physics)
-            posVariation = self.pos_variations[i]
 
             if self.reco.rotate_vertex:
                 # rotate variation to be applied in transverse plane
-                posVariation.rotate_y(direction.theta)
-                posVariation.rotate_z(direction.phi)
+                pos_variation.rotate_y(direction.theta)
+                pos_variation.rotate_z(direction.phi)
 
-            if self.reco.use_fallback_position:
+            if self.reco.add_fallback_position:
                 if position != self.fallback_position:
                     # add fallback pos as an extra first guess
                     p_frame[f'{self.output_particle_name}_fallback'] = self.i3particle(
-                        self.fallback_position+posVariation,
+                        self.fallback_position+pos_variation,
                         direction,
                         self.fallback_energy,
                         self.fallback_time)
 
-            p_frame[f'{self.output_particle_name}'] = self.i3particle(position+posVariation,
+            p_frame[f'{self.output_particle_name}'] = self.i3particle(position+pos_variation,
                                                                       direction,
                                                                       energy,
                                                                       time)
@@ -307,7 +302,7 @@ class PixelsToReco:
 
             LOGGER.debug(
                 f"Yielding PFrame (pixel position-variation) PV#{i} "
-                f"{pframe_tuple(p_frame)} ({posVariation=})..."
+                f"{pframe_tuple(p_frame)} ({pos_variation=})..."
             )
             yield p_frame
 

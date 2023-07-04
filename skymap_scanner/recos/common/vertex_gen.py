@@ -1,4 +1,4 @@
-from typing import List
+from typing import Tuple
 
 import numpy as np
 
@@ -28,8 +28,8 @@ class VertexGenerator:
 
     @staticmethod
     def cylinder(
-        v_ax: List[float] = [-40.0, 40.0],
-        r_ax: List[float] = [150.0],
+        v_ax: Tuple[float, float] = (-40.0, 40.0),
+        r_ax: Tuple[float] = (150.0,),
         ang_steps=3,
     ):
         vert_u = I3Units.m

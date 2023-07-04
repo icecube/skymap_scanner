@@ -8,6 +8,8 @@ from pathlib import Path
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
+RTOL_PER_FIELD = {"llh": 0.18, "E_in": 0.7, "E_tot": 0.7}
+
 
 def read_file(filepath: Path) -> SkyScanResult:
     if filepath.suffix == ".json":
@@ -55,12 +57,6 @@ def main():
         action="store_true",
         help="'assert' the results",
     )
-    parser.add_argument(  # TODO: remove?
-        "--disqualify-zero-energy-pixels",
-        default=False,
-        action="store_true",
-        help='whether a zero-energy pixel value "disqualifies" the entire pixel\'s numerical results',
-    )
 
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
@@ -78,7 +74,6 @@ def main():
         args.do_assert,
         args.diff_out_dir,
         logger,
-        args.disqualify_zero_energy_pixels,  # TODO: remove?
     )
 
 
@@ -90,18 +85,14 @@ def compare_then_exit(
     do_assert: bool,
     diff_out_dir: str,
     logger: logging.Logger,
-    do_disqualify_zero_energy_pixels: bool,  # TODO: remove?
 ) -> None:
     """Compare the results, dump a json diff file, and sys.exit."""
     dump_json_diff = (
         Path(diff_out_dir) / f"{actual_fpath.name}-{expected_fpath.name}.diff.json"
     )
 
-    # compare
     close = actual.is_close(
-        expected,
-        dump_json_diff=dump_json_diff,
-        do_disqualify_zero_energy_pixels=do_disqualify_zero_energy_pixels,  # TODO: remove?
+        expected, dump_json_diff=dump_json_diff, rtol_per_field=RTOL_PER_FIELD
     )
     equal = actual == expected
 

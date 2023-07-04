@@ -72,9 +72,11 @@ class FrameArraySink(icetray.I3Module):
 
 def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
+    # ACTIVATE FOR DEBUG
+    # icetray.logging.console()
+
     # Reconstruction algorithm provider class
     RecoAlgo = recos.get_reco_interface_object(reco_algo)
-    reco = RecoAlgo()
 
     output_frames: list[icetray.I3Frame] = []
 
@@ -98,7 +100,7 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
 
     # Run reco-specific preprocessing.
     tray.AddSegment(
-        reco.prepare_frames,
+        RecoAlgo.prepare_frames,
         f"{reco_algo}_prepareframes",
         logger=LOGGER,
         pulsesName=pulsesName
