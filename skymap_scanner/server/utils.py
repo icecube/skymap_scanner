@@ -1,10 +1,10 @@
 """Server-specific utils."""
 
 
+import asyncio
 import functools
 import json
 import pickle
-import time
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Awaitable, Dict, List, Optional, Tuple
@@ -32,7 +32,7 @@ async def httperror_silent_fail_or_infinite_retry(
         except requests.exceptions.HTTPError:
             if not infinite_retry:
                 return {}
-        time.sleep(60)
+        await asyncio.sleep(60)
 
 
 async def fetch_event_contents(
