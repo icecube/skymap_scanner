@@ -6,12 +6,14 @@
 import bisect
 import dataclasses as dc
 import datetime as dt
+import functools
 import itertools
 import math
 import statistics
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
+import requests
 from rest_tools.client import RestClient
 from skyreader import EventMetadata, SkyScanResult
 
@@ -566,6 +568,23 @@ class Reporter:
         )
         return result
 
+    async def _okay_fail_but_infinite_retry_on_final(
+        self, pfunc: functools.partial[Awaitable[dict]]
+    ) -> None:
+        """Call partial (async).
+
+        If there's an HTTP error, return without error--the job isn't
+        *that* important. BUT if this is the final report (the scan is
+        done), then keep retrying indefinitely.
+        """
+        while True:
+            try:
+                await pfunc()
+            except requests.exceptions.HTTPError:
+                if not self.is_event_scan_done:
+                    return
+            time.sleep(60)
+
     async def _send_progress(
         self,
         summary_msg: str,
@@ -595,7 +614,14 @@ class Reporter:
             "event_metadata": dc.asdict(self.event_metadata),
             "scan_metadata": scan_metadata,
         }
-        await self.skydriver_rc.request("PATCH", f"/scan/{self.scan_id}/manifest", body)
+        await self._okay_fail_but_infinite_retry_on_final(
+            functools.partial(
+                self.skydriver_rc.request,
+                "PATCH",
+                f"/scan/{self.scan_id}/manifest",
+                body,
+            )
+        )
 
     async def _send_result(self) -> SkyScanResult:
         """Send result to SkyDriver (if the connection is established)."""
@@ -608,7 +634,17 @@ class Reporter:
         if not self.skydriver_rc:
             return result
 
-        body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
-        await self.skydriver_rc.request("PUT", f"/scan/{self.scan_id}/result", body)
+        body = {
+            "skyscan_result": serialized,
+            "is_final": self.is_event_scan_done,
+        }
+        await self._okay_fail_but_infinite_retry_on_final(
+            functools.partial(
+                self.skydriver_rc.request,
+                "PUT",
+                f"/scan/{self.scan_id}/result",
+                body,
+            )
+        )
 
         return result

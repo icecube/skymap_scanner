@@ -679,7 +679,8 @@ def main() -> None:
     # make skydriver REST connection
     if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         skydriver_rc = RestClient(
-            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS, token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
         )
     else:
         skydriver_rc = None
