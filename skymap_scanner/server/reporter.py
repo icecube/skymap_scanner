@@ -11,9 +11,8 @@ import itertools
 import math
 import statistics
 import time
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-import requests
 from rest_tools.client import RestClient
 from skyreader import EventMetadata, SkyScanResult
 
@@ -22,7 +21,7 @@ from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import NSideProgression
+from .utils import NSideProgression, httperror_silent_fail_or_infinite_retry
 
 StrDict = Dict[str, Any]
 
@@ -568,23 +567,6 @@ class Reporter:
         )
         return result
 
-    async def _okay_fail_but_infinite_retry_on_final(
-        self, pfunc: functools.partial[Awaitable[dict]]
-    ) -> None:
-        """Call partial (async).
-
-        If there's an HTTP error, return without error--the job isn't
-        *that* important. BUT if this is the final report (the scan is
-        done), then keep retrying indefinitely.
-        """
-        while True:
-            try:
-                await pfunc()
-            except requests.exceptions.HTTPError:
-                if not self.is_event_scan_done:
-                    return
-            time.sleep(60)
-
     async def _send_progress(
         self,
         summary_msg: str,
@@ -614,13 +596,14 @@ class Reporter:
             "event_metadata": dc.asdict(self.event_metadata),
             "scan_metadata": scan_metadata,
         }
-        await self._okay_fail_but_infinite_retry_on_final(
+        await httperror_silent_fail_or_infinite_retry(
             functools.partial(
                 self.skydriver_rc.request,
                 "PATCH",
                 f"/scan/{self.scan_id}/manifest",
                 body,
-            )
+            ),
+            self.is_event_scan_done,
         )
 
     async def _send_result(self) -> SkyScanResult:
@@ -638,13 +621,14 @@ class Reporter:
             "skyscan_result": serialized,
             "is_final": self.is_event_scan_done,
         }
-        await self._okay_fail_but_infinite_retry_on_final(
+        await httperror_silent_fail_or_infinite_retry(
             functools.partial(
                 self.skydriver_rc.request,
                 "PUT",
                 f"/scan/{self.scan_id}/result",
                 body,
-            )
+            ),
+            self.is_event_scan_done,
         )
 
         return result

@@ -691,7 +691,7 @@ def main() -> None:
             )
 
     # read event file
-    event_contents = fetch_event_contents(args.event_file, skydriver_rc)
+    event_contents = asyncio.run(fetch_event_contents(args.event_file, skydriver_rc))
 
     # get inputs (load event_id + state_dict cache)
     event_metadata, state_dict = extract_json_message.extract_json_message(

@@ -1,27 +1,53 @@
 """Server-specific utils."""
 
 
+import functools
 import json
 import pickle
+import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Dict, List, Optional, Tuple
 
 import cachetools.func
+import requests
 from rest_tools.client import RestClient
 
 from .. import config as cfg
 from . import LOGGER
 
 
-def fetch_event_contents(
+async def httperror_silent_fail_or_infinite_retry(
+    pfunc: functools.partial[Awaitable[dict]], infinite_retry: bool
+) -> dict:
+    """Call partial (async).
+
+    If there's an HTTP error, return without error--the job isn't
+    *that* important. BUT if `infinite_retry=True`, then keep
+    retrying indefinitely.
+    """
+    while True:
+        try:
+            return await pfunc()
+        except requests.exceptions.HTTPError:
+            if not infinite_retry:
+                return {}
+        time.sleep(60)
+
+
+async def fetch_event_contents(
     event_file: Optional[Path], skydriver_rc: Optional[RestClient]
 ) -> Any:
     """Fetch event contents from file (.json or .pkl) or via SkyDriver."""
     # request from skydriver
     if skydriver_rc:
-        manifest = skydriver_rc.request_seq(
-            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+        manifest = await httperror_silent_fail_or_infinite_retry(
+            functools.partial(
+                skydriver_rc.request,
+                "GET",
+                f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest",
+            ),
+            True,
         )
         LOGGER.info("Fetched event contents from SkyDriver")
         return manifest["event_i3live_json_dict"]
