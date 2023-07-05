@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v3.11.1 (2023-07-05)
+
+### Other
+
+* <bot> update requirements.txt ([`7ef8fb4`](https://github.com/icecube/skymap_scanner/commit/7ef8fb4dc94544213a4af9e20dd7cc5d8a6c5c3e))
+* <bot> update requirements-rabbitmq.txt ([`b195c51`](https://github.com/icecube/skymap_scanner/commit/b195c5134e62487f10c423536acb2fb8fcc01816))
+* <bot> update requirements-pulsar.txt ([`97008b7`](https://github.com/icecube/skymap_scanner/commit/97008b725c4fcb339827077e696dc343d411869d))
+* <bot> update requirements-nats.txt ([`b6f8456`](https://github.com/icecube/skymap_scanner/commit/b6f845696281b918ff76d28ebb1dc0c1a97b184d))
+* <bot> update requirements-client-starter.txt ([`c53aa68`](https://github.com/icecube/skymap_scanner/commit/c53aa68c807902028684a62c3cdce009541e618e))
+* <bot> update requirements-all.txt ([`05901d1`](https://github.com/icecube/skymap_scanner/commit/05901d1a1ea14551ad2890f078b2a517609a52b3))
+
 ## v3.11.0 (2023-07-05)
 
 
