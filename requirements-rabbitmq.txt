@@ -28,7 +28,7 @@ ewms-pilot==0.10.3
     # via skymap-scanner (setup.py)
 fonttools==4.40.0
     # via matplotlib
-healpy==1.16.2
+healpy==1.16.3
     # via
     #   icecube-skyreader
     #   skymap-scanner (setup.py)
@@ -74,7 +74,7 @@ pandas==2.0.3
     # via icecube-skyreader
 pika==1.3.2
     # via oms-mqclient
-pillow==9.5.0
+pillow==10.0.0
     # via matplotlib
 pycparser==2.21
     # via cffi
@@ -109,7 +109,7 @@ six==1.16.0
     # via python-dateutil
 tornado==6.3.2
     # via wipac-rest-tools
-typing-extensions==4.7.0
+typing-extensions==4.7.1
     # via
     #   qrcode
     #   wipac-dev-tools
