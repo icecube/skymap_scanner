@@ -28,6 +28,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
+from ..recos import RecoInterface
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
@@ -720,6 +721,7 @@ def main() -> None:
         name=f"to-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+        ack_timeout=cfg.SERVER_ACK_TIMEOUT,
     )
     from_clients_queue = mq.Queue(
         cfg.ENV.SKYSCAN_BROKER_CLIENT,
@@ -727,6 +729,7 @@ def main() -> None:
         name=f"from-clients-{scan_id}",
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+        ack_timeout=cfg.SERVER_ACK_TIMEOUT,
     )
 
     # go!
