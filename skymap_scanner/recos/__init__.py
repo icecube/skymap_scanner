@@ -1,9 +1,9 @@
 """Tools for conducting & representing a pixel reconstruction."""
 
-
+from abc import ABC, abstractmethod
 import importlib
 import pkgutil
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -18,6 +18,9 @@ except ImportError:
     I3Position = Any
     I3Frame = Any
 
+# Redundant imports are used to declare symbols exported by the module.
+from .common.vertex_gen import VertexGenerator as VertexGenerator
+
 
 class UnsupportedRecoAlgoException(Exception):
     """Raise when a reconstruction algorithm is not supported for a given
@@ -27,21 +30,25 @@ class UnsupportedRecoAlgoException(Exception):
         super().__init__(f"Requested unsupported reconstruction algorithm: {reco_algo}")
 
 
-class RecoInterface:
+class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
-    # List of spline file basenames required by the class.
+    name: str = __name__
+    # Reco-specific behaviors that need to be defined in derived classes.
+    rotate_vertex: bool
+    refine_time: bool
+    add_fallback_position: bool
+
+    # List of spline filenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
     SPLINE_REQUIREMENTS: List[str] = list()
 
-    def init(self):
-        raise NotImplementedError()
+    @abstractmethod
+    def __init__(self):
+        pass
 
-    def setup_reco(self):
-        """Performs the necessary operations to prepare the execution of the reconstruction traysegment."""
-        raise NotImplementedError()
-
-    def get_datastager(self):
+    @staticmethod
+    def get_datastager():
         datastager = DataStager(
             local_paths=cfg.LOCAL_DATA_SOURCES,
             local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
@@ -50,10 +57,30 @@ class RecoInterface:
         return datastager
 
     @staticmethod
-    def traysegment(tray, name, logger, **kwargs: Any) -> None:
-        raise NotImplementedError()
+    @abstractmethod
+    def get_vertex_variations() -> List[I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
+        pass
+
+    @abstractmethod
+    def prepare_frames(self, tray, name, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def setup_reco(self):
+        """Performs the necessary operations to prepare the execution of the reconstruction traysegment.
+
+        This method is expected to perform "expensive" operations such as fetching spline data and initializing IceTray spline services.
+        """
+        pass
+
+    @abstractmethod
+    def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
+        """Performs the reconstruction."""
+        pass
 
     @staticmethod
+    @abstractmethod
     def to_recopixelvariation(
         frame: I3Frame, geometry: I3Frame
     ) -> "RecoPixelVariation":
