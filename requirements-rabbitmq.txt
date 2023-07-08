@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=rabbitmq --output-file=requirements-rabbitmq.txt
 #
-astropy==5.3
+astropy==5.3.1
     # via
     #   healpy
     #   icecube-skyreader
@@ -14,7 +14,7 @@ certifi==2023.5.7
     # via requests
 cffi==1.15.1
     # via cryptography
-charset-normalizer==3.1.0
+charset-normalizer==3.2.0
     # via requests
 coloredlogs==15.0.1
     # via wipac-dev-tools
@@ -62,7 +62,7 @@ numpy==1.25.0
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[rabbitmq]==2.1.0
+oms-mqclient[rabbitmq]==2.1.1
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
