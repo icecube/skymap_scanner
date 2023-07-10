@@ -50,7 +50,7 @@ matplotlib==3.7.2
     #   icecube-skyreader
 meander==0.0.3
     # via icecube-skyreader
-numpy==1.25.0
+numpy==1.25.1
     # via
     #   astropy
     #   contourpy
@@ -82,7 +82,7 @@ pyerfa==2.0.0.3
     # via astropy
 pyjwt[crypto]==2.7.0
     # via wipac-rest-tools
-pyparsing==3.1.0
+pyparsing==3.0.9
     # via matplotlib
 pypng==0.20220715.0
     # via qrcode
