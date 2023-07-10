@@ -6,7 +6,7 @@
 
 import copy
 import datetime
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 import numpy
 
@@ -30,11 +30,28 @@ from icecube.icetray import I3Frame
 from .. import config as cfg
 from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
+from . import RecoInterface, VertexGenerator
+from .common.pulse_proc import late_pulse_cleaning
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    # Spline requirements ##############################################
+    
+
+    @staticmethod
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
+        """
+        variation_distance = 20.*I3Units.m
+
+        if cfg.ENV.SKYSCAN_MINI_TEST:
+            return VertexGenerator.mini_test(variation_distance=variation_distance)
+        else:    
+            return VertexGenerator.octahedron(radius=variation_distance)
+    
+    pulsesName = cfg.INPUT_PULSES_NAME
+    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
+
+    # Spline requirements
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
     MIE_PROB_SPLINE = "ems_mie_z20_a10.prob.fits"
 
@@ -51,8 +68,33 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
 
+    @icetray.traysegment
+    def prepare_frames(tray, name, logger, pulsesName):
+        # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
+        def extract_seed(frame):
+            seed_prefix = "HESE_VHESelfVeto"
+            frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexPos"]
+            frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexTime"]
+
+        tray.Add(extract_seed, "ExtractSeed",
+                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
+        
+        # Generates the vertex seed for the initial scan. 
+        # Only run if HESE_VHESelfVeto is not present in the frame.
+        # VertexThreshold is 250 in the original HESE analysis (Tianlu)
+        # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
+        tray.AddModule('VHESelfVeto', 'selfveto',
+                    VertexThreshold=2,
+                    Pulses=pulsesName+'HLC',
+                    OutputBool='HESE_VHESelfVeto',
+                    OutputVertexTime=cfg.INPUT_TIME_NAME,
+                    OutputVertexPos=cfg.INPUT_POS_NAME,
+                    If=lambda frame: "HESE_VHESelfVeto" not in frame)
+
     def __init__(self):
-        pass
+        self.rotate_vertex = False
+        self.refine_time = False
+        self.add_fallback_position = False
 
     def setup_reco(self):
         datastager = self.get_datastager()
@@ -111,57 +153,11 @@ class MillipedeOriginal(RecoInterface):
 
         ##################
 
-        def _weighted_quantile_arg(values, weights, q=0.5):
-            indices = numpy.argsort(values)
-            sorted_indices = numpy.arange(len(values))[indices]
-            medianidx = (weights[indices].cumsum()/weights[indices].sum()).searchsorted(q)
-            if (0 <= medianidx) and (medianidx < len(values)):
-                return sorted_indices[medianidx]
-            else:
-                return numpy.nan
-
-        def weighted_quantile(values, weights, q=0.5):
-            if len(values) != len(weights):
-                raise ValueError("shape of `values` and `weights` don't match!")
-            index = _weighted_quantile_arg(values, weights, q=q)
-            if not numpy.isnan(index):
-                return values[index]
-            else:
-                return numpy.nan
-
-        def weighted_median(values, weights):
-            return weighted_quantile(values, weights, q=0.5)
-
-        def LatePulseCleaning(frame, Pulses, Residual=3e3*I3Units.ns):
-            pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, Pulses)
-            mask = dataclasses.I3RecoPulseSeriesMapMask(frame, Pulses)
-            counter, charge = 0, 0
-            qtot = 0
-            times = dataclasses.I3TimeWindowSeriesMap()
-            for omkey, ps in pulses.items():
-                if len(ps) < 2:
-                    if len(ps) == 1:
-                        qtot += ps[0].charge
-                    continue
-                ts = numpy.asarray([p.time for p in ps])
-                cs = numpy.asarray([p.charge for p in ps])
-                median = weighted_median(ts, cs)
-                qtot += cs.sum()
-                for p in ps:
-                    if p.time >= (median+Residual):
-                        if omkey not in times:
-                            ts = dataclasses.I3TimeWindowSeries()
-                            ts.append(dataclasses.I3TimeWindow(median+Residual, numpy.inf)) # this defines the **excluded** time window
-                            times[omkey] = ts
-                        mask.set(omkey, p, False)
-                        counter += 1
-                        charge += p.charge
-            frame[cls.pulsesName_cleaned] = mask
-            frame[cls.pulsesName_cleaned+"TimeWindows"] = times
-            frame[cls.pulsesName_cleaned+"TimeRange"] = copy.deepcopy(frame[Pulses+"TimeRange"])
-
-        tray.AddModule(LatePulseCleaning, "LatePulseCleaning",
-                       Pulses=cls.pulsesName,
+        tray.AddModule(late_pulse_cleaning, "LatePulseCleaning",
+                       input_pulses_name=cls.pulsesName,
+                       output_pulses_name=cls.pulsesName_cleaned,
+                       orig_pulses_name=cls.pulsesName,
+                       residual=1.5e3*I3Units.ns,
                        )
         return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 

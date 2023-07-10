@@ -18,21 +18,49 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     recclasses,
     simclasses,
 )
+
 from icecube.icetray import I3Frame  # type: ignore[import]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface
+from . import RecoInterface, VertexGenerator
 
 
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
     def __init__(self):
-        pass
+        self.rotate_vertex = True
+        self.refine_time = True
+        self.add_fallback_position = False
 
     def setup_reco(self):
         pass
+
+    @staticmethod
+    def get_vertex_variations() -> List[dataclasses.I3Position]:
+        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
+        return VertexGenerator.point()
+
+    @staticmethod
+    @icetray.traysegment
+    def prepare_frames(tray, name, logger, **kwargs) -> None:
+        def gen_dummy_vertex(frame):
+            frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(0.0)
+            frame[cfg.INPUT_POS_NAME] = dataclasses.I3Position(
+                0.0 * I3Units.m, 0.0 * I3Units.m, 0.0 * I3Units.m
+            )
+
+        def notify(frame):
+            logger.debug(f"Preparing frames (dummy). {datetime.datetime.now()}")
+
+        tray.Add(notify, "notify")
+        tray.Add(
+            gen_dummy_vertex,
+            "gen_dummy_vertex",
+            If=lambda frame: cfg.INPUT_TIME_NAME not in frame
+            and cfg.INPUT_POS_NAME not in frame,
+        )
 
     @staticmethod
     @icetray.traysegment
