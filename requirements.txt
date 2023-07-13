@@ -62,7 +62,7 @@ numpy==1.25.1
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient==2.3.1
+oms-mqclient==2.2.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
