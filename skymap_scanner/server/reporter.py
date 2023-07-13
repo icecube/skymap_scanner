@@ -7,9 +7,11 @@ import bisect
 import dataclasses as dc
 import datetime as dt
 import itertools
+import json
 import math
 import statistics
 import time
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from rest_tools.client import RestClient
@@ -221,6 +223,7 @@ class Reporter:
         n_posvar: int,
         nside_progression: NSideProgression,
         skydriver_rc: Optional[RestClient],
+        output_dir: Optional[Path],
         event_metadata: EventMetadata,
         predictive_scanning_threshold: float,
     ) -> None:
@@ -238,6 +241,8 @@ class Reporter:
                 - the list of nsides & pixel-extensions
             `skydriver_rc`
                 - a connection to the SkyDriver REST interface
+            `output_dir`
+                - a directory to write out results & progress
             `event_metadata`
                 - a collection of metadata about the event
             `predictive_scanning_threshold`
@@ -264,6 +269,7 @@ class Reporter:
         self._n_sent_by_nside: Dict[int, int] = {}
 
         self.skydriver_rc = skydriver_rc
+        self.output_dir = output_dir
         self.event_metadata = event_metadata
 
         # all set by calling initial_report()
@@ -583,15 +589,23 @@ class Reporter:
         }
 
         LOGGER.info(pyobj_to_string_repr(progress))
-        if not self.skydriver_rc:
-            return
 
         body = {
             "progress": progress,
             "event_metadata": dc.asdict(self.event_metadata),
             "scan_metadata": scan_metadata,
         }
-        await self.skydriver_rc.request("PATCH", f"/scan/{self.scan_id}/manifest", body)
+
+        if self.skydriver_rc:
+            await self.skydriver_rc.request(
+                "PATCH", f"/scan/{self.scan_id}/manifest", body
+            )
+
+        if self.output_dir:
+            fpath = self.output_dir / "scan-manifest.json"
+            with open(fpath, "w") as f:
+                json.dump(body, f, indent=4)
+            LOGGER.info(f"Manifest File (scan progress + metadata): {fpath}")
 
     async def _send_result(self) -> SkyScanResult:
         """Send result to SkyDriver (if the connection is established)."""
@@ -601,10 +615,14 @@ class Reporter:
         LOGGER.debug(  # don't log HUGE string
             f"Result info (# pixels per nside): {[(k, len(v)) for k, v in result.result.items()]}"
         )
-        if not self.skydriver_rc:
-            return result
 
-        body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
-        await self.skydriver_rc.request("PUT", f"/scan/{self.scan_id}/result", body)
+        if self.skydriver_rc:
+            body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
+            await self.skydriver_rc.request("PUT", f"/scan/{self.scan_id}/result", body)
+
+        if self.output_dir:
+            npz_fpath = result.to_npz(self.event_metadata, self.output_dir)
+            json_fpath = result.to_json(self.event_metadata, self.output_dir)
+            LOGGER.info(f"Result Files: {npz_fpath}, {json_fpath}")
 
         return result
