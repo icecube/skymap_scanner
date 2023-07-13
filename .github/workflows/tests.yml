@@ -244,7 +244,7 @@ jobs:
       - name: check no nsides skipped
         run: |
           ls $SKYSCAN_OUTPUT_DIR
-          export outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          export outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/run*.json)
           echo $outfile
           python3 -c '
           import json
@@ -349,7 +349,7 @@ jobs:
       - name: test output against known result (.npz/.json)
         run: |
           ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/run*.json)
           echo $outfile
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
