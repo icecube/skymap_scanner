@@ -620,7 +620,7 @@ class Reporter:
             body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
             await self.skydriver_rc.request("PUT", f"/scan/{self.scan_id}/result", body)
 
-        if self.output_dir:
+        if self.output_dir and result.result:  # don't write empty result to files
             npz_fpath = result.to_npz(self.event_metadata, self.output_dir)
             json_fpath = result.to_json(self.event_metadata, self.output_dir)
             LOGGER.info(f"Result Files: {npz_fpath}, {json_fpath}")
