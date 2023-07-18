@@ -58,7 +58,7 @@ nats-py[nkeys]==2.3.1
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
-numpy==1.25.1
+numpy==1.25.0
     # via
     #   astropy
     #   contourpy
