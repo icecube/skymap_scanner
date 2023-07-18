@@ -24,7 +24,7 @@ cryptography==41.0.2
     # via pyjwt
 cycler==0.11.0
     # via matplotlib
-ewms-pilot==0.11.1
+ewms-pilot==0.10.3
     # via skymap-scanner (setup.py)
 fonttools==4.41.0
     # via matplotlib
@@ -62,7 +62,7 @@ numpy==1.25.1
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient==2.3.2
+oms-mqclient==2.1.0
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
