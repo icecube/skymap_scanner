@@ -17,7 +17,7 @@ def read_file(filepath: Path) -> SkyScanResult:
     elif filepath.suffix == ".npz":
         return SkyScanResult.read_npz(filepath)
     else:
-        raise Exception("Unsupported file type: {filepath}")
+        raise Exception(f"Unsupported file type: {filepath}")
 
 
 def main():
