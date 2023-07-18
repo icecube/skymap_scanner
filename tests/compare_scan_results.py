@@ -97,6 +97,7 @@ def compare_then_exit(
     equal = actual == expected
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
+    logger.info(f"{RTOL_PER_FIELD=}")
 
     if equal or close:
         sys.exit(0)
