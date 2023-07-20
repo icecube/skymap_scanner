@@ -404,6 +404,10 @@ jobs:
               millipede_wilks,
               splinempe
             ]
+        exclude:
+        # splinempe should not run on HESE
+        - reco_algo: splinempe
+          dir: "JSON"
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
