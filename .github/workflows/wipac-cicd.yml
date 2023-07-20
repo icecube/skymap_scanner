@@ -98,11 +98,14 @@ jobs:
               ).json()
               print(resp)
               for crun in sorted(resp["check_runs"], key=lambda d: d["name"]):  # there may be muliple checks (jobs) w/ same name
+                  print()
                   if not (pat := match_to_pattern(crun["name"])):
-                      print("ignoring: " + str((crun["name"], crun["id"], crun["conclusion"])))
+                      print("ignoring: " + str( (crun["name"], crun["id"], crun["conclusion"]) ) )
                       continue
-                  print( (pat, crun["name"], crun["id"], crun["conclusion"]) )
+                  print("inspecting:" + str( (crun["name"], crun["id"], crun["conclusion"]) ) )
+                  print(f"    -> pattern: {pat}")
                   yield crun["name"], crun["conclusion"]
+              print()
 
           def get_pending() -> list[str]:
               # get conclusions
