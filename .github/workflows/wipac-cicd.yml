@@ -129,7 +129,7 @@ jobs:
           # MAIN RETRY LOOP
           start = time.time()
           while True:
-              print("\n###############################################################")
+              print("\n\n###############################################################\n")
               print("Waiting for job conclusions (${{ env.RETRY_TIME }} seconds)...")
               if time.time() - start > ${{ env.TOTAL_WAIT_TIME }}:
                   print("Timeout.")
