@@ -99,7 +99,7 @@ jobs:
               print(resp)
               for crun in sorted(resp["check_runs"], key=lambda d: d["name"]):  # there may be muliple checks (jobs) w/ same name
                   if not (pat := match_to_pattern(crun["name"])):
-                      print("ignoring: " + (crun["name"], crun["id"], crun["conclusion"]))
+                      print("ignoring: " + str((crun["name"], crun["id"], crun["conclusion"])))
                       continue
                   print( (pat, crun["name"], crun["id"], crun["conclusion"]) )
                   yield crun["name"], crun["conclusion"]
