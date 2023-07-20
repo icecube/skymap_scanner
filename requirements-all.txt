@@ -28,7 +28,7 @@ cycler==0.11.0
     # via matplotlib
 ed25519==1.5
     # via nkeys
-ewms-pilot==0.10.3
+ewms-pilot==0.11.1
     # via skymap-scanner (setup.py)
 fonttools==4.41.0
     # via matplotlib
@@ -70,7 +70,7 @@ numpy==1.25.1
     #   pyerfa
     #   scipy
     #   skymap-scanner (setup.py)
-oms-mqclient[all]==2.3.1
+oms-mqclient[all]==2.3.2
     # via
     #   ewms-pilot
     #   skymap-scanner (setup.py)
@@ -90,7 +90,7 @@ pycparser==2.21
     # via cffi
 pyerfa==2.0.0.3
     # via astropy
-pyjwt[crypto]==2.7.0
+pyjwt[crypto]==2.8.0
     # via wipac-rest-tools
 pyparsing==3.0.9
     # via matplotlib
@@ -102,7 +102,7 @@ python-dateutil==2.8.2
     #   pandas
 pytz==2023.3
     # via pandas
-pyyaml==6.0
+pyyaml==6.0.1
     # via astropy
 qrcode==7.4.2
     # via wipac-rest-tools
@@ -125,7 +125,7 @@ typing-extensions==4.7.1
     #   wipac-dev-tools
 tzdata==2023.3
     # via pandas
-urllib3==2.0.3
+urllib3==2.0.4
     # via requests
 wipac-dev-tools[coloredlogs]==1.6.16
     # via
