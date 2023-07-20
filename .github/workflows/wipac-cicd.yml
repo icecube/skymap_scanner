@@ -153,6 +153,10 @@ jobs:
     # needs: [wait-for-tests]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
     runs-on: ubuntu-latest
     steps:
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: 'true'
+          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: checkout
         uses: actions/checkout@v3
