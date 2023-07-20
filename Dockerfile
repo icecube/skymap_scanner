@@ -45,6 +45,8 @@ COPY . .
 # client-starter fails to install on architectures not supporting htcondor, so silently fail without the extra
 RUN pip install .[client-starter,rabbitmq] || pip install .[rabbitmq]
 
+RUN pip freeze
+
 
 # set the entry point so that module is called with any parameters given to the `docker run` command
 ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
