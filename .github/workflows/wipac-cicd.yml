@@ -156,7 +156,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.15
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
