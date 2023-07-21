@@ -90,7 +90,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-setup-action@v2.2
-        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+        if: ${{ github.actor != env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
           git_committer_email: ${{ env.BOT_EMAIL }}
