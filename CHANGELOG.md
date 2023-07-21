@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v3.11.2 (2023-07-21)
+
+### Other
+
+* CI: Pin `python-semantic-release` ([`aab323f`](https://github.com/icecube/skymap_scanner/commit/aab323f81753becb00b153a1239b03316307f0a5))
+* Fix CI Dependencies ([#207](https://github.com/icecube/skymap_scanner/issues/207)) ([`a3fcccb`](https://github.com/icecube/skymap_scanner/commit/a3fcccbb1f7e6138729e58bf6e51341d06abdc26))
+* Result Regression Error Fix ([#206](https://github.com/icecube/skymap_scanner/issues/206)) ([`aa94606`](https://github.com/icecube/skymap_scanner/commit/aa9460680d254a3a7c709d124965eab33843fc99))
+
 ## v3.11.1 (2023-07-05)
 
 ### Other
