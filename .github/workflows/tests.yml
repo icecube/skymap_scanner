@@ -315,7 +315,8 @@ jobs:
       - name: check no nsides skipped
         run: |
           ls $SKYSCAN_OUTPUT_DIR
-          export outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          # get newest run*.json
+          export outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           python3 -c '
           import json
@@ -430,7 +431,8 @@ jobs:
           fi
 
           ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          # get newest run*.json
+          outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
