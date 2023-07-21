@@ -1,5 +1,6 @@
 name: tests
 
+
 on:
   push:
     branches:
@@ -7,13 +8,17 @@ on:
     tags-ignore:
       - '**'
 
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # don't cancel on main/master/default
   cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
+
 env:
   PY_COLORS: "1"
+  BOT_NAME: wipacdevbot
+  BOT_EMAIL: developers@icecube.wisc.edu
   REALTIME_EVENTS_DIR: tests/data/realtime_events
   SKYSCAN_CACHE_DIR: cache-dir
   SKYSCAN_OUTPUT_DIR: output-dir
@@ -32,7 +37,69 @@ env:
   CLIENT_STARTER_WAIT_FOR_STARTUP_JSON: 120
   BROKER_CONTAINER_NAME: the-message-broker
 
+
 jobs:
+
+
+  #############################################################################
+  # PACKAGING & LINTERS
+  #############################################################################
+
+
+  py-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: versions
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
+
+  # flake8:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v3
+  #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
+
+  mypy:
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
+
+  py-setup:
+    # needs: [wait-for-tests]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: 'true'
+          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.1
+        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+        with:
+          git_committer_name: ${{ env.BOT_NAME }}
+          git_committer_email: ${{ env.BOT_EMAIL }}
+
+
+  #############################################################################
+  # TESTS
+  #############################################################################
+
 
   test-build-docker:
     runs-on: ubuntu-latest
@@ -478,3 +545,40 @@ jobs:
             --diff-out-dir /local/pkls/ \
             --assert \
             || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
+
+
+  #############################################################################
+  # GITHUB RELEASE
+  #############################################################################
+
+
+  release:
+    # only run on main/master/default
+    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
+      # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
+    needs: [
+              mypy,
+              py-setup,
+              test-build-docker,
+              test-build-docker-pulsar,
+              test-run-singularity-dummy-reco,
+              test-file-staging,
+              test-run-nsides-thresholds-dummy,
+              test-run-realistic,
+              test-run-single-pixel
+           ]
+    runs-on: ubuntu-latest
+    concurrency: release
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    - name: Python Semantic Release
+      uses: python-semantic-release/python-semantic-release@master
+      with:
+        git_committer_name: ${{ env.BOT_NAME }}
+        git_committer_email: ${{ env.BOT_EMAIL }}
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        # repository_username: __token__
+        # repository_password: ${{ secrets.PYPI_TOKEN }}
