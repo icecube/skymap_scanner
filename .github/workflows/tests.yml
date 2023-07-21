@@ -24,7 +24,7 @@ env:
   SKYSCAN_OUTPUT_DIR: output-dir
   SKYSCAN_BROKER_CLIENT: rabbitmq
   # note: auth env vars are in job(s)
-  EWMS_PILOT_TASK_TIMEOUT: 600
+  # EWMS_PILOT_TASK_TIMEOUT: 600  # use default
   SKYSCAN_DEBUG_DIR: debug-pkl-dir
   SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
   # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
