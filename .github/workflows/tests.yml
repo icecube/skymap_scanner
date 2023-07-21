@@ -575,7 +575,7 @@ jobs:
         fetch-depth: 0
         token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     - name: Python Semantic Release
-      uses: python-semantic-release/python-semantic-release@master
+      uses: python-semantic-release/python-semantic-release@v7.34.6
       with:
         git_committer_name: ${{ env.BOT_NAME }}
         git_committer_email: ${{ env.BOT_EMAIL }}
