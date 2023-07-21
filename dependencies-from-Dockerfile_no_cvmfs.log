@@ -36,7 +36,7 @@ htcondor==10.6.0
 html5lib==1.1
 humanfriendly==10.0
 hypothesis==6.36.0
-icecube-skyreader==1.2.0
+icecube-skyreader==1.2.2
 idna==3.3
 imagesize==1.4.1
 iminuit==2.22.0
@@ -83,7 +83,7 @@ py==1.10.0
 pycparser==2.21
 pyerfa==2.0.0.1
 Pygments==2.14.0
-PyJWT==2.7.0
+PyJWT==2.8.0
 PyMySQL==1.0.2
 pyparsing==2.4.7
 pypng==0.20220715.0
@@ -126,7 +126,6 @@ traitlets==5.1.1
 typing_extensions==4.7.1
 ufoLib2==0.13.1
 unicodedata2==14.0.0
-UNKNOWN==3.11.1
 urllib3==1.26.5
 urwid==2.1.2
 wcwidth==0.2.5
