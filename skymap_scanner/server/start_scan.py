@@ -28,6 +28,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
+from ..recos import RecoInterface
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
@@ -36,13 +37,11 @@ from ..utils.pixel_classes import (
     SentPixelVariation,
     pframe_tuple,
 )
-from ..recos import RecoInterface
 from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import NSideProgression, fetch_event_contents
-
 
 StrDict = Dict[str, Any]
 
@@ -204,15 +203,14 @@ class PixelsToReco:
         pixel: icetray.I3Int,
     ) -> Iterator[icetray.I3Frame]:
         """Yield PFrames to be reco'd for a given `nside` and `pixel`.
-        
+
         Each PFrame consists of an I3Particle to be used as seed by the reconstruction, plus some metadata.
-        
+
         The seed direction (zenith and azimuth) is calculated from the celestial coordinates (RA, dec) of the given HEALPIX pixel.
-        
+
         Multiple seed vertices (position variations) are generated according to a reco-specific set of vectors to be added to the base vertex (position).
 
         The base vertex is taken from the best-fit of the coarser pixel or, in absence of it (for example when scanning pixels of the minimum NSIDE), from a seed defined by the reco algorithm.
-        
         """
 
         codec, ra = healpy.pix2ang(nside, pixel)
@@ -348,6 +346,7 @@ async def scan(
         len(pixeler.pos_variations),
         nside_progression,
         skydriver_rc,
+        output_dir,
         event_metadata,
         predictive_scanning_threshold,
     )
@@ -369,14 +368,8 @@ async def scan(
     if not total_n_pixfin:
         raise RuntimeError("No pixels were ever sent.")
 
-    # get, log, & post final results
-    result = await reporter.after_computing_report()
-
-    # write out .npz & .json files
-    if output_dir:
-        npz_fpath = result.to_npz(event_metadata, output_dir)
-        json_fpath = result.to_json(event_metadata, output_dir)
-        LOGGER.info(f"Output Files: {npz_fpath}, {json_fpath}")
+    # get/log/post/write final results
+    await reporter.after_computing_report()
 
     return nsides_dict
 
