@@ -100,6 +100,7 @@ def make_condor_job_description(  # pylint: disable=too-many-arguments
         "request_cpus": "1",
         "request_memory": memory,
         "notification": "Error",
+        "transfer_output_files": '""',
     }
 
     # accounting group
