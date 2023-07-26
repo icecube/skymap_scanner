@@ -2,6 +2,22 @@
 
 <!--next-version-placeholder-->
 
+## v3.11.3 (2023-07-21)
+
+### Other
+
+* Write Results & Manifest to File Throughout Scan ([#204](https://github.com/icecube/skymap_scanner/issues/204)) ([`200b1f5`](https://github.com/icecube/skymap_scanner/commit/200b1f599389a702b4e86364b0f7c8d707615f54))
+* CI: Bump `WIPACrepo/wipac-dev-py-setup-action@v2.2` ([`fac14d4`](https://github.com/icecube/skymap_scanner/commit/fac14d47970b5f6a5fee53736efe1db1488f2674))
+* <bot> update dependencies*.log files(s) ([`e2a9e15`](https://github.com/icecube/skymap_scanner/commit/e2a9e15351a2d6b80329e017f73e39525d398a6a))
+
+## v3.11.2 (2023-07-21)
+
+### Other
+
+* CI: Pin `python-semantic-release` ([`aab323f`](https://github.com/icecube/skymap_scanner/commit/aab323f81753becb00b153a1239b03316307f0a5))
+* Fix CI Dependencies ([#207](https://github.com/icecube/skymap_scanner/issues/207)) ([`a3fcccb`](https://github.com/icecube/skymap_scanner/commit/a3fcccbb1f7e6138729e58bf6e51341d06abdc26))
+* Result Regression Error Fix ([#206](https://github.com/icecube/skymap_scanner/issues/206)) ([`aa94606`](https://github.com/icecube/skymap_scanner/commit/aa9460680d254a3a7c709d124965eab33843fc99))
+
 ## v3.11.1 (2023-07-05)
 
 ### Other

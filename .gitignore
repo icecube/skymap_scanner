@@ -168,3 +168,6 @@ _condor_*
 local-runs/
 temp.txt
 plots-*/
+
+# wipac-dev-py-setup-action
+!dependencies*.log
