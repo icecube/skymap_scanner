@@ -443,7 +443,7 @@ jobs:
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
-            --expected $(echo tests/data/results_npz/${{ matrix.reco_algo }}/$(basename $outfile) | sed 's/.json/.npz/g') \
+            --expected tests/data/results_npz/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
       - name: broker docker logs
