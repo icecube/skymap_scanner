@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+# set -ex  # file is sourced so don't source `set`
 
 export REALTIME_EVENTS_DIR=/home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
 export SKYSCAN_CACHE_DIR=/home/runner/work/skymap_scanner/skymap_scanner/cache-dir
