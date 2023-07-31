@@ -29,7 +29,7 @@ fi
 
 
 # Launch Server
-./launch_server.sh \
+./docker/launch_server.sh \
     --reco-algo $_RECO_ALGO \
     --event-file $_EVENTS_FILE \
     --cache-dir $SKYSCAN_CACHE_DIR \
@@ -51,7 +51,7 @@ echo "Launching $nclients clients"
 mkdir $SKYSCAN_DEBUG_DIR
 export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
 for i in $( seq 1 $nclients ); do
-    ./launch_client.sh \
+    ./docker/launch_client.sh \
         --client-startup-json ./startup.json \
         --debug-directory $SKYSCAN_DEBUG_DIR \
         &
