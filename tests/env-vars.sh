@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -x
 
 export REALTIME_EVENTS_DIR=/home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
 export SKYSCAN_CACHE_DIR=/home/runner/work/skymap_scanner/skymap_scanner/cache-dir
