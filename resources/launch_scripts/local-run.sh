@@ -3,8 +3,7 @@ set -ex
 
 ########################################################################
 #
-# Runs a scanner instance (server & clients) at a scale useful for CI
-# testing
+# Runs a scanner instance (server & clients) all on the same machine
 #
 ########################################################################
 
