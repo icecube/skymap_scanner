@@ -276,42 +276,14 @@ jobs:
       - name: run
         run: |
           set -x
+          export _RECO_ALGO=dummy
+          export _EVENTS_FILE=$REALTIME_EVENTS_DIR/hese_event_01.json
+          export _NSIDES="${{ matrix.nsides }}"
+          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
-          mkdir $SKYSCAN_CACHE_DIR
-          mkdir $SKYSCAN_OUTPUT_DIR
+          cd ./resources/launch_scripts
+          ./ci-test.sh
 
-          # Launch Server
-          ./resources/launch_scripts/docker/launch_server.sh \
-            --reco-algo dummy \
-            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --output-dir $SKYSCAN_OUTPUT_DIR \
-            --client-startup-json ./startup.json \
-            --nsides ${{ matrix.nsides }} \
-            --predictive-scanning-threshold ${{ matrix.predictive_scanning_threshold }} \
-            --real-event \
-            &
-
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
-
-          # Launch Clients
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
-          echo "Launching $nclients clients"
-          mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
-          for i in $( seq 1 $nclients ); do
-            ./resources/launch_scripts/docker/launch_client.sh \
-              --client-startup-json ./startup.json \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
-              &
-            echo -e "\tclient #$i launched"
-          done
-
-          # Wait for Everyone
-          wait -n  # for server
-          for i in $( seq 1 $nclients ); do
-            wait -n  # for client
-          done
       - name: check no nsides skipped
         run: |
           ls $SKYSCAN_OUTPUT_DIR
@@ -383,41 +355,14 @@ jobs:
       - name: run
         run: |
           set -x
+          export _RECO_ALGO=dummy
+          export _EVENTS_FILE=$REALTIME_EVENTS_DIR/${{ matrix.eventfile }}
+          export _NSIDES="1:12"
+          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
-          mkdir $SKYSCAN_CACHE_DIR
-          mkdir $SKYSCAN_OUTPUT_DIR
+          cd ./resources/launch_scripts
+          ./ci-test.sh
 
-          # Launch Server
-          ./resources/launch_scripts/docker/launch_server.sh \
-            --reco-algo ${{ matrix.reco_algo }} \
-            --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --output-dir $SKYSCAN_OUTPUT_DIR \
-            --client-startup-json ./startup.json \
-            --nsides 1:12 \
-            --real-event \
-            &
-
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
-
-          # Launch Clients
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
-          echo "Launching $nclients clients"
-          mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
-          for i in $( seq 1 $nclients ); do
-            ./resources/launch_scripts/docker/launch_client.sh \
-              --client-startup-json ./startup.json \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
-              &
-            echo -e "\tclient #$i launched"
-          done
-
-          # Wait for Everyone
-          wait -n  # for server
-          for i in $( seq 1 $nclients ); do
-            wait -n  # for client
-          done
       - name: test output against known result (.npz/.json)
         run: |
           if [[ ${{ matrix.reco_algo }} == 'millipede_wilks' ]]; then
