@@ -1,9 +1,8 @@
 #!/bin/bash
 set -x  # file is sourced so turn off at end
 
-export REALTIME_EVENTS_DIR=/home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
-export SKYSCAN_CACHE_DIR=/home/runner/work/skymap_scanner/skymap_scanner/cache-dir
-export SKYSCAN_OUTPUT_DIR=/home/runner/work/skymap_scanner/skymap_scanner/output-dir
+export SKYSCAN_CACHE_DIR=$PWD/cache-dir  # is auto-created
+export SKYSCAN_OUTPUT_DIR=$PWD/output-dir  # is auto-created
 export SKYSCAN_BROKER_CLIENT=rabbitmq
 # note=auth env vars are in job(s)
 export EWMS_PILOT_TASK_TIMEOUT=600

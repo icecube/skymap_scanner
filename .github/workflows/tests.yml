@@ -19,6 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
+  REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   # see source tests/env-vars.sh
 
 
