@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -ex  # file is sourced so don't source `set`
+set -x  # file is sourced so turn off at end
 
 export REALTIME_EVENTS_DIR=/home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
 export SKYSCAN_CACHE_DIR=/home/runner/work/skymap_scanner/skymap_scanner/cache-dir
@@ -17,3 +17,5 @@ export SKYSCAN_MINI_TEST='yes'
 export SKYSCAN_LOG=DEBUG
 export SKYSCAN_LOG_THIRD_PARTY=INFO
 export CLIENT_STARTER_WAIT_FOR_STARTUP_JSON=120
+
+set +x
