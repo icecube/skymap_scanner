@@ -19,23 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
-  REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
-  SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache-dir
-  SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output-dir
-  SKYSCAN_BROKER_CLIENT: rabbitmq
-  # note: auth env vars are in job(s)
-  EWMS_PILOT_TASK_TIMEOUT: 600
-  SKYSCAN_DEBUG_DIR: debug-pkl-dir
-  SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
-  # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
-  SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: 120
-  SKYSCAN_DOCKER_PULL_ALWAYS: 0
-  SKYSCAN_DOCKER_IMAGE_TAG: local
-  SKYSCAN_MINI_TEST: 'yes'
-  SKYSCAN_LOG: DEBUG
-  SKYSCAN_LOG_THIRD_PARTY: INFO
-  CLIENT_STARTER_WAIT_FOR_STARTUP_JSON: 120
-  BROKER_CONTAINER_NAME: the-message-broker
+  # see source tests/env-vars.sh
 
 
 jobs:
@@ -179,6 +163,8 @@ jobs:
           ls -lh skymap_scanner.sif
       - name: run singularity container
         run: |
+          source tests/env-vars.sh
+
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
 
@@ -276,6 +262,7 @@ jobs:
       - name: run
         run: |
           set -x
+          source tests/env-vars.sh
           export _RECO_ALGO=dummy
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="${{ matrix.nsides }}"
@@ -355,6 +342,7 @@ jobs:
       - name: run
         run: |
           set -x
+          source tests/env-vars.sh
           export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:12"
@@ -439,6 +427,8 @@ jobs:
           load: true
       - name: run
         run: |
+          source tests/env-vars.sh
+
           # grab the GCDQp_packet key and throw into a file
           jq '.GCDQp_packet' \
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
