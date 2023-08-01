@@ -15,4 +15,5 @@ if [ ! -f "docker-rabbitmq.sh" ]; then
     wget raw.githubusercontent.com/Observation-Management-Service/MQClient/master/resources/docker-rabbitmq.sh
 fi
 
+chmod +x ./docker-rabbitmq.sh
 ./docker-rabbitmq.sh local-rabbitmq  # runs docker container in background
