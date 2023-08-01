@@ -14,8 +14,9 @@ if [[ $(basename `pwd`) != "launch_scripts" ]]; then
 fi
 
 
-mkdir $SKYSCAN_CACHE_DIR
-mkdir $SKYSCAN_OUTPUT_DIR
+mkdir $SKYSCAN_CACHE_DIR || (rm -r $SKYSCAN_CACHE_DIR && mkdir $SKYSCAN_CACHE_DIR)
+mkdir $SKYSCAN_OUTPUT_DIR || (rm -r $SKYSCAN_OUTPUT_DIR && mkdir $SKYSCAN_OUTPUT_DIR)
+mkdir $SKYSCAN_DEBUG_DIR || (rm -r $SKYSCAN_DEBUG_DIR && mkdir $SKYSCAN_DEBUG_DIR)
 
 
 if [ -z "$_PREDICTIVE_SCANNING_THRESHOLD" ]; then
@@ -43,9 +44,8 @@ fi
 
 
 # Launch Clients
-nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+nclients=$( ( ${CLIENTS_PER_CPU:-"1"} * $(nproc) ) )
 echo "Launching $nclients clients"
-mkdir $SKYSCAN_DEBUG_DIR
 export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
 for i in $( seq 1 $nclients ); do
     ./docker/launch_client.sh \
