@@ -14,7 +14,7 @@ if [[ $(basename `pwd`) != "launch_scripts" ]]; then
 fi
 
 
-export _RECO_ALGO=dummy
+export _RECO_ALGO=millipede_original
 export _EVENTS_FILE=$(realpath "../../tests/data/realtime_events/hese_event_01.json")
 export _NSIDES="1:12"
 
