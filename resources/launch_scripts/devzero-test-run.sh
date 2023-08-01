@@ -14,10 +14,10 @@ if [[ $(basename `pwd`) != "launch_scripts" ]]; then
 fi
 
 
-source ../../tests/env-vars.sh
-
 export _RECO_ALGO=dummy
 export _EVENTS_FILE=$(realpath "../../tests/data/realtime_events/hese_event_01.json")
 export _NSIDES="1:12"
+
+source ../../tests/env-vars.sh
 
 ./local-scan.sh
