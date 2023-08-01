@@ -3,7 +3,7 @@ set -ex
 
 ########################################################################
 #
-# Runs a scanner instance & broker for DevZero testing
+# Runs a scanner instance for DevZero testing
 #
 ########################################################################
 
