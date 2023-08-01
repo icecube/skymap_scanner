@@ -7,6 +7,7 @@ set -ex
 #
 ########################################################################
 
+mkdir -p ./local-broker/
 cd ./local-broker/
 
 if [ ! -f "docker-rabbitmq.sh" ]; then
