@@ -270,7 +270,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-run.sh
+          ./local-scan.sh
 
       - name: check no nsides skipped
         run: |
@@ -349,7 +349,7 @@ jobs:
           export _NSIDES="1:12"
 
           cd ./resources/launch_scripts
-          ./local-run.sh
+          ./local-scan.sh
 
       - name: test output against known result (.npz/.json)
         run: |
