@@ -44,7 +44,8 @@ fi
 
 
 # Launch Clients
-nclients=$( ( ${CLIENTS_PER_CPU:-"1"} * $(nproc) ) )
+clients_per_cpu=${CLIENTS_PER_CPU:-"1"}
+nclients=$(( $clients_per_cpu * $(nproc) ))
 echo "Launching $nclients clients"
 export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
 for i in $( seq 1 $nclients ); do
