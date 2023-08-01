@@ -14,9 +14,9 @@ if [[ $(basename `pwd`) != "launch_scripts" ]]; then
 fi
 
 
-mkdir $SKYSCAN_CACHE_DIR || (sudo rm -r $SKYSCAN_CACHE_DIR && mkdir $SKYSCAN_CACHE_DIR)
-mkdir $SKYSCAN_OUTPUT_DIR || (sudo rm -r $SKYSCAN_OUTPUT_DIR && mkdir $SKYSCAN_OUTPUT_DIR)
-mkdir $SKYSCAN_DEBUG_DIR || (sudo rm -r $SKYSCAN_DEBUG_DIR && mkdir $SKYSCAN_DEBUG_DIR)
+mkdir -p $SKYSCAN_CACHE_DIR
+mkdir -p $SKYSCAN_OUTPUT_DIR
+mkdir -p $SKYSCAN_DEBUG_DIR
 
 
 if [ -z "$_PREDICTIVE_SCANNING_THRESHOLD" ]; then
