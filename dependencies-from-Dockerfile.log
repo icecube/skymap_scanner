@@ -36,7 +36,7 @@ htcondor==10.7.0
 html5lib==1.1
 humanfriendly==10.0
 hypothesis==6.36.0
-icecube-skyreader==1.2.2
+icecube-skyreader==1.2.3
 idna==3.3
 imagesize==1.4.1
 iminuit==2.23.0
