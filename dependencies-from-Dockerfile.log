@@ -131,6 +131,6 @@ urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
 wipac-dev-tools==1.6.16
-wipac-rest-tools==1.4.20
+wipac-rest-tools==1.5.0
 xlwt==1.3.0
 zipp==1.0.0
