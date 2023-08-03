@@ -20,6 +20,9 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
+  SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
+  SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
+  SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
   # see source tests/env-vars.sh
 
 
@@ -184,7 +187,7 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          nclients=$(( $_CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
@@ -228,7 +231,7 @@ jobs:
           0.65,
         ]
     env:
-      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -308,7 +311,7 @@ jobs:
           # splinempe
         ]
     env:
-      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
