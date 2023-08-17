@@ -218,7 +218,6 @@ class SplineMPE(RecoInterface):
             # For HESE events, HESE_VHESelfVeto should already be in the frame.
             #   Here, we re-run the module nevertheless to ensure consistency
             #   in the settings of the scan regardless of the input event.
-            SELFVETO_BOOL = 
 
             tray.AddModule(
                 "VHESelfVeto",
