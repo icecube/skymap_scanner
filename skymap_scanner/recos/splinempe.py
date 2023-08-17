@@ -61,6 +61,11 @@ class SplineMPE(RecoInterface):
     # Names used in the reco.
     energy_reco_seed = "OnlineL2_BestFit"
     energy_estimator = "OnlineL2_BestFit_MuEx"
+
+    # This may be configurable in the future.
+    # "VHESelfVeto" yields a reco-independent vertex seed.
+    # "OnlineL2_SplineMPE" picks the output of the L2 SplineMPE reco
+    #   and is mostly supported for legacy reasons.
     vertex_seed_source = "VHESelfVeto"
 
     def __init__(self):
@@ -210,15 +215,17 @@ class SplineMPE(RecoInterface):
         ####
 
         if cls.vertex_seed_source == "VHESelfVeto":
+            # For HESE events, HESE_VHESelfVeto should already be in the frame.
+            #   Here, we re-run the module nevertheless to ensure consistency
+            #   in the settings of the scan regardless of the input event.
             tray.AddModule(
                 "VHESelfVeto",
                 "selfveto",
                 VertexThreshold=250,
                 Pulses=cls.base_pulseseries + "HLC",
-                OutputBool="HESE_VHESelfVeto",
+                OutputBool="VHESelfVeto",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
-                If=lambda frame: "HESE_VHESelfVeto" not in frame,
             )
 
             # this only runs if the previous module did not return anything
@@ -227,15 +234,14 @@ class SplineMPE(RecoInterface):
                 "selfveto-emergency-lowen-settings",
                 VertexThreshold=5,
                 Pulses=cls.base_pulseseries + "HLC",
-                OutputBool="VHESelfVeto_meaningless_lowen",
+                OutputBool="VHESelfVeto-seed-source",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
-                If=lambda frame: not frame.Has("HESE_VHESelfVeto"),
+                If=lambda frame: not frame.Has("VHESelfVeto"),
             )
 
             def notify_seed(frame):
                 logger.debug(f"Seed from VHESelfVeto:")
-                logger.debug(frame[cfg.INPUT_POS_NAME])
                 logger.debug(frame[cfg.INPUT_POS_NAME])
                 logger.debug(f"Seed from OnlineL2_SplineMPE:")
                 logger.debug(frame["OnlineL2_SplineMPE"].pos)
