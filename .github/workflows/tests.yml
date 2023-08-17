@@ -300,16 +300,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        reco_algo: [
+          millipede_original,
+          millipede_wilks,
+          splinempe
+        ]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
-        reco_algo: [
-          millipede_original,
-          millipede_wilks,
-          # splinempe
-        ]
+        exclude:
+        # splinempe should not run on HESE
+          - reco_algo: splinempe
+            eventfile: hese_event_01.json
+
     env:
       _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
@@ -370,10 +375,11 @@ jobs:
           # get newest run*.json
           outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
+          cat $outfile
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
-            --expected $(echo tests/data/results_npz/${{ matrix.reco_algo }}/$(basename $outfile) | sed 's/.json/.npz/g') \
+            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
       - name: broker docker logs
@@ -416,8 +422,12 @@ jobs:
             [
               millipede_original,
               millipede_wilks,
-              # "splinempe"
+              splinempe
             ]
+        exclude:
+        # splinempe should not run on HESE
+          - reco_algo: splinempe
+            dir: "JSON"
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
