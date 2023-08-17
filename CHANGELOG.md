@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.11.4 (2023-08-17)
+
+### Other
+
+* Use Script for CI Testing ([#209](https://github.com/icecube/skymap_scanner/issues/209)) ([`2ec587e`](https://github.com/icecube/skymap_scanner/commit/2ec587e90ef2d5bcd79015c63698192d9b38ee2f))
+
 ## v3.11.3 (2023-07-21)
 
 ### Other
