@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.12.0 (2023-08-17)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`02d121c`](https://github.com/icecube/skymap_scanner/commit/02d121ce97257deb2e8cc2a84fed292a018a6b99))
+
 ## v3.11.4 (2023-08-17)
 
 ### Other
