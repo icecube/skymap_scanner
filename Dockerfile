@@ -1,7 +1,7 @@
 #
 # Define the base image icetray version
 #
-ARG ICETRAY_VERSION=v1.7.0-ubuntu22.04-X64
+ARG ICETRAY_VERSION=v1.7.2-ubuntu22.04-X64
 
 FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
 
