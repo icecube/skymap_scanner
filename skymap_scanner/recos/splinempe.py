@@ -218,6 +218,8 @@ class SplineMPE(RecoInterface):
             # For HESE events, HESE_VHESelfVeto should already be in the frame.
             #   Here, we re-run the module nevertheless to ensure consistency
             #   in the settings of the scan regardless of the input event.
+            SELFVETO_BOOL = 
+
             tray.AddModule(
                 "VHESelfVeto",
                 "selfveto",
@@ -241,11 +243,11 @@ class SplineMPE(RecoInterface):
             )
 
             def notify_seed(frame):
-                logger.debug(f"Seed from VHESelfVeto:")
+                logger.debug(f"Seed from {cls.vertex_seed_source}:")
                 logger.debug(frame[cfg.INPUT_POS_NAME])
-                logger.debug(f"Seed from OnlineL2_SplineMPE:")
-                logger.debug(frame["OnlineL2_SplineMPE"].pos)
-                logger.debug(frame["OnlineL2_SplineMPE"].time)
+                # logger.debug(f"Seed from OnlineL2_SplineMPE:")
+                # logger.debug(frame["OnlineL2_SplineMPE"].pos)
+                # logger.debug(frame["OnlineL2_SplineMPE"].time)
 
             tray.Add(notify_seed)
 
