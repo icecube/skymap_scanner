@@ -91,8 +91,8 @@ def late_pulse_cleaning_2(
     counter, charge = 0, 0
     qtot = 0
     times = dataclasses.I3TimeWindowSeriesMap()
-    all_ts = []
-    all_cs = []
+    all_ts: List[float] = []
+    all_cs: List[float] = []
     for omkey, ps in pulses.items():
         ts = numpy.asarray([p.time for p in ps])
         all_ts.extend(ts)
@@ -124,4 +124,4 @@ def late_pulse_cleaning_2(
 
     frame[output_pulses_name] = mask
     frame[output_pulses_name + "TimeWindows"] = times
-    frame[output_pulses_name + "LatePulseCleanedTimeRange"] = dataclasses.I3TimeWindow(tw_start, tw_stop)
+    frame[output_pulses_name + "TimeRange"] = dataclasses.I3TimeWindow(tw_start, tw_stop)
