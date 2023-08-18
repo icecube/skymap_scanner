@@ -112,12 +112,12 @@ def late_pulse_cleaning_2(
                 # attempt to mask out correlated noise
                 mask.set(omkey, p, False)
             elif p.time >= (latest_time := min(median + residual, tw_stop)) or p.time < tw_start:
-                if not times.has_key(omkey):
-                    ts = dataclasses.I3TimeWindowSeries()
-                    ts.append(
+                if omkey not in times:
+                    tws = dataclasses.I3TimeWindowSeries()
+                    tws.append(
                         dataclasses.I3TimeWindow(latest_time, numpy.inf)
                         )  # this defines the **excluded** time window
-                    times[omkey] = ts
+                    times[omkey] = tws
                 mask.set(omkey, p, False)
                 counter += 1
                 charge += p.charge
