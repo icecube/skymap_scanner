@@ -77,3 +77,51 @@ def late_pulse_cleaning(
     frame[output_pulses_name + "TimeRange"] = copy.deepcopy(
         frame[orig_pulses_name + "TimeRange"]
     )
+
+
+def late_pulse_cleaning_2(
+    frame,
+    input_pulses_name: str,
+    output_pulses_name: str,
+    orig_pulses_name: str,
+    residual,
+):
+    pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses_name)
+    mask = dataclasses.I3RecoPulseSeriesMapMask(frame, input_pulses_name)
+    counter, charge = 0, 0
+    qtot = 0
+    times = dataclasses.I3TimeWindowSeriesMap()
+    all_ts = []
+    all_cs = []
+    for omkey, ps in pulses.items():
+        ts = numpy.asarray([p.time for p in ps])
+        all_ts.extend(ts)
+        cs = numpy.asarray([p.charge for p in ps])
+        all_cs.extend(cs)
+    tw_start = weighted_quantile(numpy.asarray(all_ts), numpy.asarray(all_cs), 0.1) - 1000
+    tw_stop = weighted_quantile(numpy.asarray(all_ts), numpy.asarray(all_cs), 0.95) + 1000
+    for omkey, ps in pulses.items():
+        ts = numpy.asarray([p.time for p in ps])
+        cs = numpy.asarray([p.charge for p in ps])
+        median = weighted_median(ts, cs)
+        dts = numpy.ediff1d(ts)
+        median_dts = numpy.median(dts)
+        qtot += cs.sum()
+        for p in ps:
+            if median_dts > 1200 and len(dts) > 1:
+                # attempt to mask out correlated noise
+                mask.set(omkey, p, False)
+            elif p.time >= (latest_time := min(median + residual, tw_stop)) or p.time < tw_start:
+                if not times.has_key(omkey):
+                    ts = dataclasses.I3TimeWindowSeries()
+                    ts.append(
+                        dataclasses.I3TimeWindow(latest_time, numpy.inf)
+                        )  # this defines the **excluded** time window
+                    times[omkey] = ts
+                mask.set(omkey, p, False)
+                counter += 1
+                charge += p.charge
+
+    frame[output_pulses_name] = mask
+    frame[output_pulses_name + "TimeWindows"] = times
+    frame[output_pulses_name + "LatePulseCleanedTimeRange"] = dataclasses.I3TimeWindow(tw_start, tw_stop)

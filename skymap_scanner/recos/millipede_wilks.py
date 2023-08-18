@@ -38,8 +38,11 @@ class MillipedeWilks(RecoInterface):
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
     FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
     FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+    FTP_EFFP_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.prob.fits"
+    FTP_TMOD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.tmod.fits"
 
-    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
+    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE,
+                           FTP_EFFP_SPLINE, FTP_TMOD_SPLINE]
     # Constants ########################################################
 
     pulsesName_orig = cfg.INPUT_PULSES_NAME
@@ -65,12 +68,16 @@ class MillipedeWilks(RecoInterface):
         abs_spline: str = datastager.get_filepath(self.FTP_ABS_SPLINE)
         prob_spline: str = datastager.get_filepath(self.FTP_PROB_SPLINE)
         effd_spline: str = datastager.get_filepath(self.FTP_EFFD_SPLINE)
+        effp_spline: str = datastager.get_filepath(self.FTP_EFFP_SPLINE)
+        tmod_spline: str = datastager.get_filepath(self.FTP_TMOD_SPLINE)
 
         self.cascade_service = photonics_service.I3PhotoSplineService(
             abs_spline, prob_spline, timingSigma=0.0,
             effectivedistancetable = effd_spline,
             tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
-            quantileEpsilon=1
+            quantileEpsilon=1,
+            effectivedistancetableprob = effp_spline,
+            effectivedistancetabletmod = tmod_spline
         )
 
         self.muon_service = None
@@ -135,7 +142,7 @@ class MillipedeWilks(RecoInterface):
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
-            BrightDOMThreshold=2,
+            BrightDOMThreshold=5,
             BadDomsList='BadDomsList',
             CalibrationErrata='CalibrationErrata',
             SaturationWindows='SaturationWindows'
