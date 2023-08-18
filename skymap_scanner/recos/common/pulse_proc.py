@@ -79,7 +79,7 @@ def late_pulse_cleaning(
     )
 
 
-def late_pulse_cleaning_2(
+def pulse_cleaning(
     frame,
     input_pulses_name: str,
     output_pulses_name: str,
