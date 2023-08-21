@@ -142,7 +142,7 @@ class MillipedeWilks(RecoInterface):
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
-            BrightDOMThreshold=5,
+            BrightDOMThreshold=2,
             BadDomsList='BadDomsList',
             CalibrationErrata='CalibrationErrata',
             SaturationWindows='SaturationWindows'
@@ -187,7 +187,6 @@ class MillipedeWilks(RecoInterface):
         tray.AddModule(pulse_cleaning, "LatePulseCleaning",
                        input_pulses_name=cls.pulsesName,
                        output_pulses_name=cls.pulsesName_cleaned,
-                       orig_pulses_name=cls.pulsesName_orig,
                        residual=1.5e3*I3Units.ns)
         return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
 

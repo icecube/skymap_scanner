@@ -83,7 +83,6 @@ def pulse_cleaning(
     frame,
     input_pulses_name: str,
     output_pulses_name: str,
-    orig_pulses_name: str,
     residual,
 ):
     pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, input_pulses_name)
