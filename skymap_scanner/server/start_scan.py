@@ -41,7 +41,11 @@ from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
-from .utils import NSideProgression, fetch_event_contents
+from .utils import (
+    NSideProgression,
+    fetch_event_contents_from_file,
+    fetch_event_contents_from_skydriver,
+)
 
 StrDict = Dict[str, Any]
 
@@ -317,7 +321,6 @@ async def scan(
     from_clients_queue: mq.Queue,
     nside_progression: NSideProgression,
     predictive_scanning_threshold: float,
-    skydriver_rc: Optional[RestClient],
 ) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
@@ -345,7 +348,6 @@ async def scan(
         nsides_dict,
         len(pixeler.pos_variations),
         nside_progression,
-        skydriver_rc,
         output_dir,
         event_metadata,
         predictive_scanning_threshold,
@@ -680,22 +682,17 @@ def main() -> None:
     if not Path(args.gcd_dir).is_dir():
         raise NotADirectoryError(args.gcd_dir)
 
-    # make skydriver REST connection
-    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
-        skydriver_rc = RestClient(
-            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+    # check output status
+    if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS and not args.output_dir:
+        raise RuntimeError(
+            "Must include either --output-dir or SKYSCAN_SKYDRIVER_ADDRESS (env var), "
+            "otherwise you won't see your results!"
         )
-    else:
-        skydriver_rc = None
-        if not args.output_dir:
-            raise RuntimeError(
-                "Must include either --output-dir or SKYSCAN_SKYDRIVER_ADDRESS (env var), "
-                f"otherwise you won't see your results!"
-            )
-
     # read event file
-    event_contents = asyncio.run(fetch_event_contents(args.event_file, skydriver_rc))
+    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        event_contents = asyncio.run(fetch_event_contents_from_skydriver())
+    else:
+        event_contents = fetch_event_contents_from_file(args.event_file)
 
     # get inputs (load event_id + state_dict cache)
     event_metadata, state_dict = extract_json_message.extract_json_message(
@@ -747,7 +744,6 @@ def main() -> None:
             from_clients_queue=from_clients_queue,
             nside_progression=args.nside_progression,
             predictive_scanning_threshold=args.predictive_scanning_threshold,
-            skydriver_rc=skydriver_rc,
         )
     )
     LOGGER.info("Done.")
