@@ -45,7 +45,7 @@ async def fetch_event_contents_from_skydriver() -> Any:
     return manifest["event_i3live_json_dict"]
 
 
-async def fetch_event_contents_from_file(event_file: Optional[Path]) -> Any:
+def fetch_event_contents_from_file(event_file: Optional[Path]) -> Any:
     """Fetch event contents from file (.json or .pkl)."""
     if not event_file:
         raise RuntimeError(
