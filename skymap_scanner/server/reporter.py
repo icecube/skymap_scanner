@@ -22,7 +22,7 @@ from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import NSideProgression, make_skydriver
+from .utils import NSideProgression, connect_to_skydriver
 
 StrDict = Dict[str, Any]
 
@@ -265,12 +265,12 @@ class Reporter:
 
         self._n_sent_by_nside: Dict[int, int] = {}
 
-        if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
-            self.skydriver_rc_nonurgent = make_skydriver(urgent=False)
-            self.skydriver_rc_urgent = make_skydriver(urgent=True)
+        if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+            self.skydriver_rc_nonurgent: Optional[RestClient] = None
+            self.skydriver_rc_urgent: Optional[RestClient] = None
         else:
-            self.skydriver_rc_nonurgent = None
-            self.skydriver_rc_urgent = None
+            self.skydriver_rc_nonurgent = connect_to_skydriver(urgent=False)
+            self.skydriver_rc_urgent = connect_to_skydriver(urgent=True)
 
         self.output_dir = output_dir
         self.event_metadata = event_metadata

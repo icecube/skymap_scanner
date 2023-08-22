@@ -14,14 +14,15 @@ from .. import config as cfg
 from . import LOGGER
 
 
-def make_skydriver(urgent: bool) -> RestClient:
+def connect_to_skydriver(urgent: bool) -> RestClient:
+    """Get REST client for SkyDriver depending on the urgency."""
     if urgent:
         return RestClient(
             cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
             token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=60.0,
             retries=CalcRetryFromWaittimeMax(waittime_max=1 * 60 * 60),
-            backoff_factor=0.3,
+            # backoff_factor=0.3,
         )
     else:
         return RestClient(
@@ -35,7 +36,7 @@ def make_skydriver(urgent: bool) -> RestClient:
 
 async def fetch_event_contents_from_skydriver() -> Any:
     """Fetch event contents from SkyDriver."""
-    skydriver_rc = make_skydriver(urgent=True)
+    skydriver_rc = connect_to_skydriver(urgent=True)
 
     manifest = await skydriver_rc.request(
         "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
