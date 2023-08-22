@@ -375,7 +375,11 @@ class Reporter:
 
     def _get_result(self) -> SkyScanResult:
         """Get SkyScanResult."""
-        return to_skyscan_result.from_nsides_dict(self.nsides_dict, self.event_metadata)
+        return to_skyscan_result.from_nsides_dict(
+            self.nsides_dict,
+            self.is_event_scan_done,
+            self.event_metadata,
+        )
 
     def predicted_total_recos(self) -> int:
         """Get a prediction for total number of recos for the entire scan.
