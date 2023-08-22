@@ -3,7 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-from typing import List, Final
+from typing import Final, List
 
 from wipac_dev_tools import from_environment_as_dataclass
 

@@ -68,8 +68,9 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
 
+    @classmethod
     @icetray.traysegment
-    def prepare_frames(tray, name, logger, pulsesName):
+    def prepare_frames(cls, tray, name, logger, pulsesName):
         # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
         def extract_seed(frame):
             seed_prefix = "HESE_VHESelfVeto"

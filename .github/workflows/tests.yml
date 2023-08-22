@@ -19,23 +19,11 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
-  REALTIME_EVENTS_DIR: tests/data/realtime_events
-  SKYSCAN_CACHE_DIR: cache-dir
-  SKYSCAN_OUTPUT_DIR: output-dir
-  SKYSCAN_BROKER_CLIENT: rabbitmq
-  # note: auth env vars are in job(s)
-  # EWMS_PILOT_TASK_TIMEOUT: 600  # use default
-  SKYSCAN_DEBUG_DIR: debug-pkl-dir
-  SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: 60
-  # SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: 60  # use default
-  SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: 120
-  SKYSCAN_DOCKER_PULL_ALWAYS: 0
-  SKYSCAN_DOCKER_IMAGE_TAG: local
-  SKYSCAN_MINI_TEST: 'yes'
-  SKYSCAN_LOG: DEBUG
-  SKYSCAN_LOG_THIRD_PARTY: INFO
-  CLIENT_STARTER_WAIT_FOR_STARTUP_JSON: 120
-  BROKER_CONTAINER_NAME: the-message-broker
+  REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
+  SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
+  SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
+  SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
+  # see source tests/env-vars.sh
 
 
 jobs:
@@ -74,7 +62,7 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
 
   py-setup:
     # needs: [wait-for-tests]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
@@ -90,7 +78,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-setup-action@v2.2
-        if: ${{ github.actor != env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
           git_committer_email: ${{ env.BOT_EMAIL }}
@@ -179,6 +167,8 @@ jobs:
           ls -lh skymap_scanner.sif
       - name: run singularity container
         run: |
+          source tests/env-vars.sh
+
           mkdir $SKYSCAN_CACHE_DIR
           mkdir $SKYSCAN_OUTPUT_DIR
 
@@ -197,10 +187,10 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
+          nclients=$(( $_CLIENTS_PER_CPU * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
-
+          export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
           for i in $( seq 1 $nclients ); do
             singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
@@ -241,7 +231,7 @@ jobs:
           0.65,
         ]
     env:
-      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -276,46 +266,20 @@ jobs:
       - name: run
         run: |
           set -x
+          source tests/env-vars.sh
+          export _RECO_ALGO=dummy
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+          export _NSIDES="${{ matrix.nsides }}"
+          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
-          mkdir $SKYSCAN_CACHE_DIR
-          mkdir $SKYSCAN_OUTPUT_DIR
+          cd ./resources/launch_scripts
+          ./local-scan.sh
 
-          # Launch Server
-          ./resources/launch_scripts/docker/launch_server.sh \
-            --reco-algo dummy \
-            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --output-dir $SKYSCAN_OUTPUT_DIR \
-            --client-startup-json ./startup.json \
-            --nsides ${{ matrix.nsides }} \
-            --predictive-scanning-threshold ${{ matrix.predictive_scanning_threshold }} \
-            --real-event \
-            &
-
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
-
-          # Launch Clients
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
-          echo "Launching $nclients clients"
-          mkdir $SKYSCAN_DEBUG_DIR
-
-          for i in $( seq 1 $nclients ); do
-            ./resources/launch_scripts/docker/launch_client.sh \
-              --client-startup-json ./startup.json \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
-              &
-            echo -e "\tclient #$i launched"
-          done
-
-          # Wait for Everyone
-          wait -n  # for server
-          for i in $( seq 1 $nclients ); do
-            wait -n  # for client
-          done
       - name: check no nsides skipped
         run: |
           ls $SKYSCAN_OUTPUT_DIR
-          export outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          # get newest run*.json
+          export outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           python3 -c '
           import json
@@ -336,18 +300,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        reco_algo: [
+          millipede_original,
+          millipede_wilks,
+          splinempe
+        ]
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
-        reco_algo: [
-          millipede_original,
-          millipede_wilks,
-          # splinempe
-        ]
+        exclude:
+        # splinempe should not run on HESE
+          - reco_algo: splinempe
+            eventfile: hese_event_01.json
+
     env:
-      CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -382,41 +351,14 @@ jobs:
       - name: run
         run: |
           set -x
+          source tests/env-vars.sh
+          export _RECO_ALGO=${{ matrix.reco_algo }}
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
+          export _NSIDES="1:12"
 
-          mkdir $SKYSCAN_CACHE_DIR
-          mkdir $SKYSCAN_OUTPUT_DIR
+          cd ./resources/launch_scripts
+          ./local-scan.sh
 
-          # Launch Server
-          ./resources/launch_scripts/docker/launch_server.sh \
-            --reco-algo ${{ matrix.reco_algo }} \
-            --event-file $REALTIME_EVENTS_DIR/${{ matrix.eventfile }} \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --output-dir $SKYSCAN_OUTPUT_DIR \
-            --client-startup-json ./startup.json \
-            --nsides 1:12 \
-            --real-event \
-            &
-
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
-
-          # Launch Clients
-          nclients=$(( $CLIENTS_PER_CPU * $(nproc) ))
-          echo "Launching $nclients clients"
-          mkdir $SKYSCAN_DEBUG_DIR
-
-          for i in $( seq 1 $nclients ); do
-            ./resources/launch_scripts/docker/launch_client.sh \
-              --client-startup-json ./startup.json \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
-              &
-            echo -e "\tclient #$i launched"
-          done
-
-          # Wait for Everyone
-          wait -n  # for server
-          for i in $( seq 1 $nclients ); do
-            wait -n  # for client
-          done
       - name: test output against known result (.npz/.json)
         run: |
           if [[ ${{ matrix.reco_algo }} == 'millipede_wilks' ]]; then
@@ -430,12 +372,14 @@ jobs:
           fi
 
           ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.json)
+          # get newest run*.json
+          outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
+          cat $outfile
           pip install .  # don't need icecube, so no docker container needed
           python tests/compare_scan_results.py \
             --actual $outfile \
-            --expected $(echo tests/data/results_npz/${{ matrix.reco_algo }}/$(basename $outfile) | sed 's/.json/.npz/g') \
+            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
       - name: broker docker logs
@@ -478,8 +422,12 @@ jobs:
             [
               millipede_original,
               millipede_wilks,
-              # "splinempe"
+              splinempe
             ]
+        exclude:
+        # splinempe should not run on HESE
+          - reco_algo: splinempe
+            dir: "JSON"
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -493,6 +441,8 @@ jobs:
           load: true
       - name: run
         run: |
+          source tests/env-vars.sh
+
           # grab the GCDQp_packet key and throw into a file
           jq '.GCDQp_packet' \
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \

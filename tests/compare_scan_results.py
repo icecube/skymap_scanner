@@ -61,7 +61,7 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    if not read_file(args.actual).has_metadata():
+    if not read_file(args.actual).has_minimal_metadata():
         if args.do_assert:
             assert False
         sys.exit(1)
