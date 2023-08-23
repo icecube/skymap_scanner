@@ -22,7 +22,7 @@ from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import NSideProgression
+from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 
 StrDict = Dict[str, Any]
 
@@ -222,7 +222,6 @@ class Reporter:
         nsides_dict: NSidesDict,
         n_posvar: int,
         nside_progression: NSideProgression,
-        skydriver_rc: Optional[RestClient],
         output_dir: Optional[Path],
         event_metadata: EventMetadata,
         predictive_scanning_threshold: float,
@@ -239,8 +238,6 @@ class Reporter:
                 - number of position variations per pixel
             `nside_progression`
                 - the list of nsides & pixel-extensions
-            `skydriver_rc`
-                - a connection to the SkyDriver REST interface
             `output_dir`
                 - a directory to write out results & progress
             `event_metadata`
@@ -268,7 +265,13 @@ class Reporter:
 
         self._n_sent_by_nside: Dict[int, int] = {}
 
-        self.skydriver_rc = skydriver_rc
+        if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+            self.skydriver_rc_nonurgent: Optional[RestClient] = None
+            self.skydriver_rc_urgent: Optional[RestClient] = None
+        else:
+            self.skydriver_rc_nonurgent = connect_to_skydriver(urgent=False)
+            self.skydriver_rc_urgent = connect_to_skydriver(urgent=True)
+
         self.output_dir = output_dir
         self.event_metadata = event_metadata
 
@@ -375,7 +378,11 @@ class Reporter:
 
     def _get_result(self) -> SkyScanResult:
         """Get SkyScanResult."""
-        return to_skyscan_result.from_nsides_dict(self.nsides_dict, self.event_metadata)
+        return to_skyscan_result.from_nsides_dict(
+            self.nsides_dict,
+            self.is_event_scan_done,
+            self.event_metadata,
+        )
 
     def predicted_total_recos(self) -> int:
         """Get a prediction for total number of recos for the entire scan.
@@ -596,11 +603,14 @@ class Reporter:
             "scan_metadata": scan_metadata,
         }
 
-        if self.skydriver_rc:
-            await self.skydriver_rc.request(
-                "PATCH", f"/scan/{self.scan_id}/manifest", body
-            )
+        # skydriver
+        sd_args = dict(method="PATCH", path=f"/scan/{self.scan_id}/manifest", args=body)
+        if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
+            await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
+        elif self.is_event_scan_done and self.skydriver_rc_urgent:
+            await self.skydriver_rc_urgent.request(**sd_args)
 
+        # output file
         if self.output_dir:
             fpath = self.output_dir / "scan-manifest.json"
             with open(fpath, "w") as f:
@@ -616,10 +626,15 @@ class Reporter:
             f"Result info (# pixels per nside): {[(k, len(v)) for k, v in result.result.items()]}"
         )
 
-        if self.skydriver_rc:
-            body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
-            await self.skydriver_rc.request("PUT", f"/scan/{self.scan_id}/result", body)
+        # skydriver
+        body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
+        sd_args = dict(method="PUT", path=f"/scan/{self.scan_id}/result", args=body)
+        if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
+            await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
+        elif self.is_event_scan_done and self.skydriver_rc_urgent:
+            await self.skydriver_rc_urgent.request(**sd_args)
 
+        # output file
         if self.output_dir and result.result:  # don't write empty result to files
             npz_fpath = result.to_npz(self.event_metadata, self.output_dir)
             json_fpath = result.to_json(self.event_metadata, self.output_dir)

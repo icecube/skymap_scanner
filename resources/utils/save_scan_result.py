@@ -41,7 +41,9 @@ def main():
     """
     The output filename is partially built inside the SkyScanResult class.
     """
-    result = to_skyscan_result.from_nsides_dict(state_dict[cfg.STATEDICT_NSIDES])
+    result = to_skyscan_result.from_nsides_dict(
+        state_dict[cfg.STATEDICT_NSIDES], is_complete=True
+    )
     output_file = result.to_npz(args.event_id, output_dir=args.output_path)
 
     print(f"Saved to {output_file}")

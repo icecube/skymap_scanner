@@ -8,24 +8,54 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import cachetools.func
-from rest_tools.client import RestClient
+from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 
 from .. import config as cfg
 from . import LOGGER
 
 
-def fetch_event_contents(
-    event_file: Optional[Path], skydriver_rc: Optional[RestClient]
-) -> Any:
-    """Fetch event contents from file (.json or .pkl) or via SkyDriver."""
-    # request from skydriver
-    if skydriver_rc:
-        manifest = skydriver_rc.request_seq(
-            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+def connect_to_skydriver(urgent: bool) -> RestClient:
+    """Get REST client for SkyDriver depending on the urgency."""
+    if urgent:
+        return RestClient(
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            timeout=60.0,
+            retries=CalcRetryFromWaittimeMax(waittime_max=1 * 60 * 60),
+            # backoff_factor=0.3,
         )
-        LOGGER.info("Fetched event contents from SkyDriver")
-        return manifest["event_i3live_json_dict"]
+    else:
+        return RestClient(
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            timeout=10.0,
+            retries=1,
+            # backoff_factor=0.3,
+        )
 
+
+async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
+    """Request but if there's an error, don't raise it."""
+    try:
+        return await rc.request(**args)
+    except Exception as e:
+        LOGGER.warning(f"request to {rc.address} failed -- not fatal: {e}")
+        return None
+
+
+async def fetch_event_contents_from_skydriver() -> Any:
+    """Fetch event contents from SkyDriver."""
+    skydriver_rc = connect_to_skydriver(urgent=True)
+
+    manifest = await skydriver_rc.request(
+        "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+    )
+    LOGGER.info("Fetched event contents from SkyDriver")
+    return manifest["event_i3live_json_dict"]
+
+
+def fetch_event_contents_from_file(event_file: Optional[Path]) -> Any:
+    """Fetch event contents from file (.json or .pkl)."""
     if not event_file:
         raise RuntimeError(
             "Cannot Fetch Event: must provide either a filepath or a connection to SkyDriver"
