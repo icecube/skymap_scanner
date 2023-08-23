@@ -118,6 +118,8 @@ class EnvConfig:
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
 
+    EWMS_PILOT_TASK_TIMEOUT: int = 60 * 30
+
     # SKYDRIVER VARS
     SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token

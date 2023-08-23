@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.13.0 (2023-08-23)
+
+### Other
+
+* Bump to IceTray `v1.7.2` ([#210](https://github.com/icecube/skymap_scanner/issues/210)) ([`4b07f7e`](https://github.com/icecube/skymap_scanner/commit/4b07f7e49d824b172d1910c0d4929a1935a0927f))
+
 ## v3.12.0 (2023-08-17)
 
 ### Other

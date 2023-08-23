@@ -61,7 +61,8 @@ def main():
 
         pixfin = RecoPixelFinal.from_recopixelvariation(msg["reco_pixel_variation"])
         return to_skyscan_result.from_nsides_dict(
-            {pixfin.nside: {pixfin.pixel_id: pixfin}}
+            {pixfin.nside: {pixfin.pixel_id: pixfin}},
+            is_complete=True,
         )
 
     actual = load_from_out_pkl(args.actual)
