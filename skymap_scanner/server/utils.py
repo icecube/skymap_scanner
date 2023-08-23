@@ -82,7 +82,9 @@ def _is_pow_of_two(intval: int) -> bool:
 class NSideProgression(OrderedDict[int, int]):
     """Holds a valid progression of nsides & pixel-extension numbers."""
 
-    FIRST_NSIDE_PIXEL_EXTENSION = 12  # this is mandated by HEALPix algorithm
+    # this is just a placeholder for the first iteration, which needs no
+    # extension as all pixels over the sky are scanned
+    FIRST_NSIDE_PIXEL_EXTENSION = 0
     DEFAULT = [(8, FIRST_NSIDE_PIXEL_EXTENSION), (64, 12), (512, 24)]
 
     def __init__(self, int_int_list: List[Tuple[int, int]]):
