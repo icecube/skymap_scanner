@@ -29,7 +29,7 @@ def connect_to_skydriver(urgent: bool) -> RestClient:
             cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
             token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=10.0,
-            retries=0,
+            retries=1,
             # backoff_factor=0.3,
         )
 
