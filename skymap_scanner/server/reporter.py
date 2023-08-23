@@ -22,7 +22,7 @@ from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
 from . import LOGGER
-from .utils import NSideProgression, connect_to_skydriver
+from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 
 StrDict = Dict[str, Any]
 
@@ -606,10 +606,7 @@ class Reporter:
         # skydriver
         sd_args = dict(method="PATCH", path=f"/scan/{self.scan_id}/manifest", args=body)
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
-            try:
-                await self.skydriver_rc_nonurgent.request(**sd_args)
-            except Exception as e:
-                LOGGER.warning(f"reporting progress failed -- not fatal: {e}")
+            await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
         elif self.is_event_scan_done and self.skydriver_rc_urgent:
             await self.skydriver_rc_urgent.request(**sd_args)
 
@@ -633,10 +630,7 @@ class Reporter:
         body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
         sd_args = dict(method="PUT", path=f"/scan/{self.scan_id}/result", args=body)
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
-            try:
-                await self.skydriver_rc_nonurgent.request(**sd_args)
-            except Exception as e:
-                LOGGER.warning(f"result sending failed -- not fatal: {e}")
+            await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
         elif self.is_event_scan_done and self.skydriver_rc_urgent:
             await self.skydriver_rc_urgent.request(**sd_args)
 

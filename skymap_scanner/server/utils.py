@@ -34,6 +34,15 @@ def connect_to_skydriver(urgent: bool) -> RestClient:
         )
 
 
+async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
+    """Request but if there's an error, don't raise it."""
+    try:
+        return await rc.request(**args)
+    except Exception as e:
+        LOGGER.warning(f"request to {rc.address} failed -- not fatal: {e}")
+        return None
+
+
 async def fetch_event_contents_from_skydriver() -> Any:
     """Fetch event contents from SkyDriver."""
     skydriver_rc = connect_to_skydriver(urgent=True)
