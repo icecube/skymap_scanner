@@ -167,14 +167,13 @@ class NSideProgression(OrderedDict[int, int]):
         """
         int_int_list = self._get_int_int_list()
 
-        def previous_nside(n: Tuple[int, int]) -> int:
+        def previous_nside(index: int) -> int:
             # get previous nside value
-            idx = int_int_list.index(n)
-            if idx == 0:
+            if index == 0:  # for the first nside use 1, since it's used to divide
                 return 1
-            return int_int_list[idx - 1][0]
+            return int_int_list[index - 1][0]  # nside
 
         return {
-            N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
-            for N in int_int_list
+            nside: int(n_posvar * pixext * (nside / previous_nside(i) ** 2))
+            for i, (nside, pixext) in enumerate(int_int_list)
         }
