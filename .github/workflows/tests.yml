@@ -180,7 +180,7 @@ jobs:
             --cache-dir $SKYSCAN_CACHE_DIR \
             --output-dir $SKYSCAN_OUTPUT_DIR \
             --client-startup-json ./startup.json \
-            --nsides 1:12 \
+            --nsides 1:0 \
             --simulated-event \
             &
 
@@ -222,9 +222,9 @@ jobs:
       fail-fast: false
       matrix:
         nsides: [
-          "1:12",
-          "1:12 2:12",
-          "1:12 2:12 4:12"
+          "1:0",
+          "1:0 2:12",
+          "1:0 2:12 4:12"
         ]
         predictive_scanning_threshold: [
           1.0,
@@ -354,7 +354,7 @@ jobs:
           source tests/env-vars.sh
           export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
-          export _NSIDES="1:12"
+          export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
           ./local-scan.sh
