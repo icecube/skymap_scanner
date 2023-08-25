@@ -87,6 +87,8 @@ class NSideProgression(OrderedDict[int, int]):
     FIRST_NSIDE_PIXEL_EXTENSION = 0
     DEFAULT = [(8, FIRST_NSIDE_PIXEL_EXTENSION), (64, 12), (512, 24)]
 
+    HEALPIX_BASE_PIXEL_COUNT = 12
+
     def __init__(self, int_int_list: List[Tuple[int, int]]):
         super().__init__(NSideProgression._prevalidate(int_int_list))
 
@@ -161,19 +163,24 @@ class NSideProgression(OrderedDict[int, int]):
 
     @cachetools.func.lru_cache()
     def n_recos_by_nside_lowerbound(self, n_posvar: int) -> Dict[int, int]:
-        """Get estimated # of recos per nside.
+        """Get # of recos per nside (w/ predictive scanning its a LOWER bound).
 
-        These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+        The actual pixel generation is done iteratively, and does not
+        rely on this function. Use this function for reporting & logging
+        only.
         """
-        int_int_list = self._get_int_int_list()
+
+        # override first pixel extension for the math (uses base pixel count)
+        nside_factor_list = self._get_int_int_list()
+        nside_factor_list[0] = (nside_factor_list[0][0], self.HEALPIX_BASE_PIXEL_COUNT)
 
         def previous_nside(index: int) -> int:
             # get previous nside value
             if index == 0:  # for the first nside use 1, since it's used to divide
                 return 1
-            return int_int_list[index - 1][0]  # nside
+            return nside_factor_list[index - 1][0]  # nside
 
         return {
-            nside: int(n_posvar * pixext * (nside / previous_nside(i) ** 2))
-            for i, (nside, pixext) in enumerate(int_int_list)
+            nside: int(n_posvar * factor * (nside / previous_nside(i) ** 2))
+            for i, (nside, factor) in enumerate(nside_factor_list)
         }
