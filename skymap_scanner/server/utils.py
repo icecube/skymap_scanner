@@ -181,6 +181,6 @@ class NSideProgression(OrderedDict[int, int]):
             return nside_factor_list[index - 1][0]  # nside
 
         return {
-            nside: int(n_posvar * factor * (nside / previous_nside(i) ** 2))
+            nside: int(n_posvar * factor * ((nside / previous_nside(i)) ** 2))
             for i, (nside, factor) in enumerate(nside_factor_list)
         }
