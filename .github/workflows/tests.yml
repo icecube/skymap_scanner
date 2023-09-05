@@ -362,8 +362,8 @@ jobs:
       - name: test output against known result (.npz/.json)
         run: |
           if [[ ${{ matrix.reco_algo }} == 'millipede_wilks' ]]; then
-            if [[ $(date +"%s") -gt 1693699200 ]]; then
-              # Date and time (GMT): Sunday, September 3, 2023 0:00:00
+            if [[ $(date +"%s") -gt 1694322000 ]]; then
+              echo "Date and time (GMT): Sunday, September 10, 2023 0:00:00"
               echo "tests should pass nowish, ping Tianlu about the ftp-v1 timing spline table fix"
               exit 1
             else
