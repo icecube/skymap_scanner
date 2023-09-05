@@ -125,7 +125,7 @@ traitlets==5.1.1
 typing_extensions==4.7.1
 ufoLib2==0.13.1
 unicodedata2==14.0.0
-urllib3==1.26.5
+urllib3==2.0.4
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
