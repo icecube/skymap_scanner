@@ -213,7 +213,7 @@ class MillipedeWilks(RecoInterface):
             Pulses=self.pulsesName_cleaned,
             BinSigma=2,
             MinTimeWidth=25,
-            RelUncertainty=0.3)
+            RelUncertainty=1)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 
