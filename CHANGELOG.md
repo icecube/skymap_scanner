@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.1 (2023-09-05)
+
+### Other
+
+* Dependecy Fix `urllib3` and `wipac-rest-tools` ([#214](https://github.com/icecube/skymap_scanner/issues/214)) ([`e292da6`](https://github.com/icecube/skymap_scanner/commit/e292da6a8340a0a778353a401fb4283a42dbce63))
+
+## v3.14.0 (2023-08-28)
+
+
+
 ## v3.13.1 (2023-08-23)
 
 ### Other

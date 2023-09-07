@@ -62,7 +62,7 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
+      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
   py-setup:
     # needs: [wait-for-tests]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.2
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.5
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
@@ -362,8 +362,8 @@ jobs:
       - name: test output against known result (.npz/.json)
         run: |
           if [[ ${{ matrix.reco_algo }} == 'millipede_wilks' ]]; then
-            if [[ $(date +"%s") -gt 1693699200 ]]; then
-              # Date and time (GMT): Sunday, September 3, 2023 0:00:00
+            if [[ $(date +"%s") -gt 1694322000 ]]; then
+              echo "Date and time (GMT): Sunday, September 10, 2023 0:00:00"
               echo "tests should pass nowish, ping Tianlu about the ftp-v1 timing spline table fix"
               exit 1
             else
