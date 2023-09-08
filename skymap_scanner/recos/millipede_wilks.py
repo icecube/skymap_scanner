@@ -23,6 +23,7 @@ from icecube import (  # noqa: F401
     photonics_service,
     recclasses,
     simclasses,
+    IceHive
 )
 from icecube.icetray import I3Frame
 
@@ -46,7 +47,8 @@ class MillipedeWilks(RecoInterface):
     # Constants ########################################################
 
     pulsesName_orig = cfg.INPUT_PULSES_NAME
-    pulsesName = cfg.INPUT_PULSES_NAME + "IC"
+    pulsesName_for_brights = pulsesName_orig + "IC"
+    pulsesName = 'HC' + pulsesName_for_brights
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     def __init__(self):
@@ -115,7 +117,7 @@ class MillipedeWilks(RecoInterface):
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
         
 
-        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName)
+        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName_for_brights)
 
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
@@ -138,7 +140,7 @@ class MillipedeWilks(RecoInterface):
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = cls.pulsesName,
+            Pulses = cls.pulsesName_for_brights,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -179,16 +181,18 @@ class MillipedeWilks(RecoInterface):
 
             frame[output] = unhits
 
-        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName)
-        ExcludedDOMs.append('OtherUnhits')
-
         ##################
-
+        tray.Add('I3HiveCleaning<I3RecoPulse>', InputName=cls.pulsesName_for_brights, OutputName=cls.pulsesName)
         tray.AddModule(pulse_cleaning, "LatePulseCleaning",
                        input_pulses_name=cls.pulsesName,
                        output_pulses_name=cls.pulsesName_cleaned,
                        residual=1.5e3*I3Units.ns)
-        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
+        ExcludedDOMs.append(cls.pulsesName_cleaned+'TimeWindows')
+
+        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName_cleaned)
+        ExcludedDOMs.append('OtherUnhits')
+        return ExcludedDOMs
+
 
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
