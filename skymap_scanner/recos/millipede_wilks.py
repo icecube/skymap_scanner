@@ -46,8 +46,7 @@ class MillipedeWilks(RecoInterface):
                            FTP_EFFP_SPLINE, FTP_TMOD_SPLINE]
     # Constants ########################################################
 
-    pulsesName_orig = cfg.INPUT_PULSES_NAME
-    pulsesName_for_brights = pulsesName_orig + "IC"
+    pulsesName_for_brights = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName = 'HC' + pulsesName_for_brights
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
