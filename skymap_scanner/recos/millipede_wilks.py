@@ -22,8 +22,7 @@ from icecube import (  # noqa: F401
     millipede,
     photonics_service,
     recclasses,
-    simclasses,
-    IceHive
+    simclasses
 )
 from icecube.icetray import I3Frame
 
@@ -46,8 +45,7 @@ class MillipedeWilks(RecoInterface):
                            FTP_EFFP_SPLINE, FTP_TMOD_SPLINE]
     # Constants ########################################################
 
-    pulsesName_for_brights = cfg.INPUT_PULSES_NAME + "IC"
-    pulsesName = 'HC' + pulsesName_for_brights
+    pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     def __init__(self):
@@ -116,7 +114,7 @@ class MillipedeWilks(RecoInterface):
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
         
 
-        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName_for_brights)
+        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName)
 
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
@@ -139,7 +137,7 @@ class MillipedeWilks(RecoInterface):
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = cls.pulsesName_for_brights,
+            Pulses = cls.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -181,7 +179,6 @@ class MillipedeWilks(RecoInterface):
             frame[output] = unhits
 
         ##################
-        tray.Add('I3HiveCleaning<I3RecoPulse>', InputName=cls.pulsesName_for_brights, OutputName=cls.pulsesName)
         tray.AddModule(pulse_cleaning, "LatePulseCleaning",
                        input_pulses_name=cls.pulsesName,
                        output_pulses_name=cls.pulsesName_cleaned,
