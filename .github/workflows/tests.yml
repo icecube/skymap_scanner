@@ -310,6 +310,10 @@ jobs:
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
+        ewms_pilot_concurrent_tasks: [
+          0,
+          3,
+        ]
         exclude:
         # splinempe should not run on HESE
           - reco_algo: splinempe
@@ -356,8 +360,13 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
 
+          export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
+          free  # dump memory stats
+
           cd ./resources/launch_scripts
           ./local-scan.sh
+
+          free  # dump memory stats
 
       - name: test output against known result (.npz/.json)
         run: |

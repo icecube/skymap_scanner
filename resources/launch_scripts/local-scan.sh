@@ -61,6 +61,9 @@ for i in $( seq 1 $nclients ); do
 done
 
 
+free -c 6 -s 10  # dump memory stats for 1 min
+
+
 # Wait for Everyone
 wait -n  # for server
 for i in $( seq 1 $nclients ); do
