@@ -241,7 +241,12 @@ def main() -> None:
         ),
     )
 
-    # extra "physics" args
+    # "physics" args
+    parser.add_argument(
+        "--reco-algo",
+        choices=recos.get_all_reco_algos(),
+        help="The reconstruction algorithm to use",
+    )
     parser.add_argument(
         "--gcdqp-packet-json",
         dest="GCDQp_packet_json",
@@ -277,7 +282,6 @@ def main() -> None:
     # get PFrame
     with open(args.in_pkl, "rb") as f:
         msg = pickle.load(f)
-        reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = msg[cfg.MSG_KEY_PFRAME]
 
     # get GCDQp_packet
@@ -288,7 +292,7 @@ def main() -> None:
 
     # go!
     reco_pixel(
-        reco_algo,
+        args.reco_algo,
         pframe,
         GCDQp_packet,
         str(args.baseline_GCD_file),

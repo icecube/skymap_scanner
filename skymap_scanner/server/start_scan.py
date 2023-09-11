@@ -358,7 +358,6 @@ async def scan(
     total_n_pixfin = await _serve_and_collect(
         to_clients_queue,
         from_clients_queue,
-        reco_algo,
         nsides_dict,
         pixeler,
         reporter,
@@ -378,7 +377,6 @@ async def scan(
 
 async def _send_pixels(
     to_clients_queue: mq.Queue,
-    reco_algo: str,
     pixeler: PixelsToReco,
     already_sent_pixvars: Set[SentPixelVariation],
     nside_subprogression: NSideProgression,
@@ -394,7 +392,6 @@ async def _send_pixels(
             LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
                 {
-                    cfg.MSG_KEY_RECO_ALGO: reco_algo,
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
@@ -411,7 +408,6 @@ async def _send_pixels(
 async def _serve_and_collect(
     to_clients_queue: mq.Queue,
     from_clients_queue: mq.Queue,
-    reco_algo: str,
     nsides_dict: NSidesDict,
     pixeler: PixelsToReco,
     reporter: Reporter,
@@ -440,7 +436,6 @@ async def _serve_and_collect(
             #
             sent_pixvars = await _send_pixels(
                 to_clients_queue,
-                reco_algo,
                 pixeler,
                 collector.sent_pixvars,
                 # we want to open re-refinement for all nsides <= max_nside_thresholded
@@ -508,6 +503,7 @@ def write_startup_json(
     nside_progression: NSideProgression,
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
+    reco_algo: str,
 ) -> str:
     """Write startup JSON file for client-spawning.
 
@@ -531,6 +527,7 @@ def write_startup_json(
                 GCDQp_packet, pnf_framing=False
             )
         ),
+        "reco_algo": reco_algo,
     }
 
     with open(client_startup_json, "w") as f:
@@ -711,6 +708,7 @@ def main() -> None:
         args.nside_progression,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
+        args.reco_algo,
     )
 
     # make mq connections

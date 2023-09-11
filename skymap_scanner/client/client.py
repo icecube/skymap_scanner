@@ -74,6 +74,7 @@ def main() -> None:
         " --out-pkl {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
+        f" --reco-algo {startup_json_dict['reco_algo']}"
     )
 
     # go!
