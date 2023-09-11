@@ -8,24 +8,54 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import cachetools.func
-from rest_tools.client import RestClient
+from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 
 from .. import config as cfg
 from . import LOGGER
 
 
-def fetch_event_contents(
-    event_file: Optional[Path], skydriver_rc: Optional[RestClient]
-) -> Any:
-    """Fetch event contents from file (.json or .pkl) or via SkyDriver."""
-    # request from skydriver
-    if skydriver_rc:
-        manifest = skydriver_rc.request_seq(
-            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+def connect_to_skydriver(urgent: bool) -> RestClient:
+    """Get REST client for SkyDriver depending on the urgency."""
+    if urgent:
+        return RestClient(
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            timeout=60.0,
+            retries=CalcRetryFromWaittimeMax(waittime_max=1 * 60 * 60),
+            # backoff_factor=0.3,
         )
-        LOGGER.info("Fetched event contents from SkyDriver")
-        return manifest["event_i3live_json_dict"]
+    else:
+        return RestClient(
+            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            timeout=10.0,
+            retries=1,
+            # backoff_factor=0.3,
+        )
 
+
+async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
+    """Request but if there's an error, don't raise it."""
+    try:
+        return await rc.request(**args)
+    except Exception as e:
+        LOGGER.warning(f"request to {rc.address} failed -- not fatal: {e}")
+        return None
+
+
+async def fetch_event_contents_from_skydriver() -> Any:
+    """Fetch event contents from SkyDriver."""
+    skydriver_rc = connect_to_skydriver(urgent=True)
+
+    manifest = await skydriver_rc.request(
+        "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+    )
+    LOGGER.info("Fetched event contents from SkyDriver")
+    return manifest["event_i3live_json_dict"]
+
+
+def fetch_event_contents_from_file(event_file: Optional[Path]) -> Any:
+    """Fetch event contents from file (.json or .pkl)."""
     if not event_file:
         raise RuntimeError(
             "Cannot Fetch Event: must provide either a filepath or a connection to SkyDriver"
@@ -52,8 +82,12 @@ def _is_pow_of_two(intval: int) -> bool:
 class NSideProgression(OrderedDict[int, int]):
     """Holds a valid progression of nsides & pixel-extension numbers."""
 
-    FIRST_NSIDE_PIXEL_EXTENSION = 12  # this is mandated by HEALPix algorithm
+    # this is just a placeholder for the first iteration, which needs no
+    # extension as all pixels over the sky are scanned
+    FIRST_NSIDE_PIXEL_EXTENSION = 0
     DEFAULT = [(8, FIRST_NSIDE_PIXEL_EXTENSION), (64, 12), (512, 24)]
+
+    HEALPIX_BASE_PIXEL_COUNT = 12
 
     def __init__(self, int_int_list: List[Tuple[int, int]]):
         super().__init__(NSideProgression._prevalidate(int_int_list))
@@ -129,20 +163,24 @@ class NSideProgression(OrderedDict[int, int]):
 
     @cachetools.func.lru_cache()
     def n_recos_by_nside_lowerbound(self, n_posvar: int) -> Dict[int, int]:
-        """Get estimated # of recos per nside.
+        """Get # of recos per nside (w/ predictive scanning its a LOWER bound).
 
-        These are ESTIMATES (w/ predictive scanning it's a LOWER bound).
+        The actual pixel generation is done iteratively, and does not
+        rely on this function. Use this function for reporting & logging
+        only.
         """
-        int_int_list = self._get_int_int_list()
 
-        def previous_nside(n: Tuple[int, int]) -> int:
+        # override first pixel extension for the math (uses base pixel count)
+        nside_factor_list = self._get_int_int_list()
+        nside_factor_list[0] = (nside_factor_list[0][0], self.HEALPIX_BASE_PIXEL_COUNT)
+
+        def previous_nside(index: int) -> int:
             # get previous nside value
-            idx = int_int_list.index(n)
-            if idx == 0:
+            if index == 0:  # for the first nside use 1, since it's used to divide
                 return 1
-            return int_int_list[idx - 1][0]
+            return nside_factor_list[index - 1][0]  # nside
 
         return {
-            N[0]: int(n_posvar * N[1] * (N[0] / previous_nside(N)) ** 2)
-            for N in int_int_list
+            nside: int(n_posvar * factor * ((nside / previous_nside(i)) ** 2))
+            for i, (nside, factor) in enumerate(nside_factor_list)
         }

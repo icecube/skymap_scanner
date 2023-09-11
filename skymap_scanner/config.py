@@ -3,7 +3,7 @@
 import dataclasses as dc
 import enum
 from pathlib import Path
-from typing import List, Final
+from typing import Final, List
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -117,6 +117,8 @@ class EnvConfig:
     #  - important if clients launch *BEFORE* server
     #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
     SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
+
+    EWMS_PILOT_TASK_TIMEOUT: int = 60 * 30
 
     # SKYDRIVER VARS
     SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address

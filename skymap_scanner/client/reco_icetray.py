@@ -190,7 +190,8 @@ def reco_pixel(
 
     # Start Tray #######################################################
 
-    LOGGER.info("Staring IceTray...")
+    LOGGER.info("Starting IceTray...")
+    # LOGGER.debug(tray)
     tray.Execute()
     tray.Finish()
     del tray
