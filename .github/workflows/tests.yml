@@ -359,7 +359,7 @@ jobs:
           cd ./resources/launch_scripts
           ./local-scan.sh
 
-      - name: test output against known result (.npz/.json)
+      - name: test output against known result (.json)
         run: |
           ls $SKYSCAN_OUTPUT_DIR
           # get newest run*.json
