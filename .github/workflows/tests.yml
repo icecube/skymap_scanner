@@ -361,16 +361,6 @@ jobs:
 
       - name: test output against known result (.npz/.json)
         run: |
-          if [[ ${{ matrix.reco_algo }} == 'millipede_wilks' ]]; then
-            if [[ $(date +"%s") -gt 1695235370 ]]; then
-              echo "Date and time (GMT): Wednesday, September 20, 2023 18:42:50"
-              echo "tests should pass nowish, ping Tianlu about the ftp-v1 timing spline table fix"
-              exit 1
-            else
-              exit 0
-            fi
-          fi
-
           ls $SKYSCAN_OUTPUT_DIR
           # get newest run*.json
           outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
