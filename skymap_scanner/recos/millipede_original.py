@@ -10,7 +10,7 @@ from typing import Final, List, Tuple
 
 import numpy
 
-from I3Tray import I3Units
+from icecube.icetray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
