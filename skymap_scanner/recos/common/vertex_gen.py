@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 
 from icecube import dataclasses  # type: ignore[import]
-from I3Tray import I3Units  # type: ignore[import]
+from icecube.icetray import I3Units  # type: ignore[import]
 
 
 class VertexGenerator:

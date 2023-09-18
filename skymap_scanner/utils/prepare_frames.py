@@ -9,7 +9,7 @@ import copy
 import os
 from typing import Union, List
 
-from I3Tray import I3Tray  # type: ignore[import]
+from icecube.icetray import I3Tray  # type: ignore[import]
 from icecube import icetray  # type: ignore[import]
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
 
