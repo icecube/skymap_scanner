@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.2 (2023-09-19)
+
+### Other
+
+* Updates for timing ([#211](https://github.com/icecube/skymap_scanner/issues/211)) ([`ccd8135`](https://github.com/icecube/skymap_scanner/commit/ccd813519c568d8c83992a7674ba2160691a79b5))
+* Pin MQ Dependencies ([#215](https://github.com/icecube/skymap_scanner/issues/215)) ([`c270857`](https://github.com/icecube/skymap_scanner/commit/c270857e45edb9597c0e2f39aabfd8d3705b2823))
+
 ## v3.14.1 (2023-09-05)
 
 ### Other
