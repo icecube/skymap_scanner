@@ -15,7 +15,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
-from I3Tray import I3Units  # type: ignore[import]
+from icecube.icetray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,

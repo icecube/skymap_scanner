@@ -310,10 +310,6 @@ jobs:
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
-        ewms_pilot_concurrent_tasks: [
-          0,
-          3,
-        ]
         exclude:
         # splinempe should not run on HESE
           - reco_algo: splinempe
@@ -342,6 +338,13 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: 'true'
+          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
+      - uses: actionhippie/swap-space@v1
+        with:
+          size: 10G
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -360,26 +363,11 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
 
-          export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
-          free  # dump memory stats
-
           cd ./resources/launch_scripts
           ./local-scan.sh
 
-          free  # dump memory stats
-
-      - name: test output against known result (.npz/.json)
+      - name: test output against known result (.json)
         run: |
-          if [[ ${{ matrix.reco_algo }} == 'millipede_wilks' ]]; then
-            if [[ $(date +"%s") -gt 1694322000 ]]; then
-              echo "Date and time (GMT): Sunday, September 10, 2023 0:00:00"
-              echo "tests should pass nowish, ping Tianlu about the ftp-v1 timing spline table fix"
-              exit 1
-            else
-              exit 0
-            fi
-          fi
-
           ls $SKYSCAN_OUTPUT_DIR
           # get newest run*.json
           outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')

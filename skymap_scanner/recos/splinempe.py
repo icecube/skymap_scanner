@@ -6,7 +6,7 @@ import numpy as np
 from typing import Final, List
 
 
-from I3Tray import I3Units  # type: ignore[import]
+from icecube.icetray import I3Units  # type: ignore[import]
 
 # NOTE: icecube module imports are required to make IceTray modules and services available.
 from icecube import (  # type: ignore[import]  # noqa: F401

@@ -6,7 +6,7 @@ import random
 import time
 from typing import List, Final
 
-from I3Tray import I3Units  # type: ignore[import]
+from icecube.icetray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
     frame_object_diff,

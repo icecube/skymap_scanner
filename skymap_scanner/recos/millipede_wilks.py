@@ -10,7 +10,7 @@ import os
 from typing import Final, List, Tuple
 
 import numpy
-from I3Tray import I3Units
+from icecube.icetray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
@@ -22,14 +22,14 @@ from icecube import (  # noqa: F401
     millipede,
     photonics_service,
     recclasses,
-    simclasses,
+    simclasses
 )
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
-from .common.pulse_proc import mask_deepcore, late_pulse_cleaning
+from .common.pulse_proc import mask_deepcore, pulse_cleaning
 
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
@@ -38,11 +38,13 @@ class MillipedeWilks(RecoInterface):
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
     FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
     FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
+    FTP_EFFP_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.prob.fits"
+    FTP_TMOD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.tmod.fits"
 
-    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE]
+    SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE,
+                           FTP_EFFP_SPLINE, FTP_TMOD_SPLINE]
     # Constants ########################################################
 
-    pulsesName_orig = cfg.INPUT_PULSES_NAME
     pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
@@ -65,12 +67,16 @@ class MillipedeWilks(RecoInterface):
         abs_spline: str = datastager.get_filepath(self.FTP_ABS_SPLINE)
         prob_spline: str = datastager.get_filepath(self.FTP_PROB_SPLINE)
         effd_spline: str = datastager.get_filepath(self.FTP_EFFD_SPLINE)
+        effp_spline: str = datastager.get_filepath(self.FTP_EFFP_SPLINE)
+        tmod_spline: str = datastager.get_filepath(self.FTP_TMOD_SPLINE)
 
         self.cascade_service = photonics_service.I3PhotoSplineService(
             abs_spline, prob_spline, timingSigma=0.0,
             effectivedistancetable = effd_spline,
             tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
-            quantileEpsilon=1
+            quantileEpsilon=1,
+            effectivedistancetableprob = effp_spline,
+            effectivedistancetabletmod = tmod_spline
         )
 
         self.muon_service = None
@@ -172,17 +178,17 @@ class MillipedeWilks(RecoInterface):
 
             frame[output] = unhits
 
-        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName)
-        ExcludedDOMs.append('OtherUnhits')
-
         ##################
-
-        tray.AddModule(late_pulse_cleaning, "LatePulseCleaning",
+        tray.AddModule(pulse_cleaning, "LatePulseCleaning",
                        input_pulses_name=cls.pulsesName,
                        output_pulses_name=cls.pulsesName_cleaned,
-                       orig_pulses_name=cls.pulsesName_orig,
                        residual=1.5e3*I3Units.ns)
-        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
+        ExcludedDOMs.append(cls.pulsesName_cleaned+'TimeWindows')
+
+        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName_cleaned)
+        ExcludedDOMs.append('OtherUnhits')
+        return ExcludedDOMs
+
 
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
@@ -207,7 +213,7 @@ class MillipedeWilks(RecoInterface):
             Pulses=self.pulsesName_cleaned,
             BinSigma=2,
             MinTimeWidth=25,
-            RelUncertainty=0.3)
+            RelUncertainty=1)
 
         tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
 
