@@ -293,7 +293,8 @@ jobs:
       - name: reco-icetray logs
         if: always()
         run: |
-          tree $SKYSCAN_DEBUG_DIR | ls -R $SKYSCAN_DEBUG_DIR
+          sudo apt install tree
+          tree $SKYSCAN_DEBUG_DIR
           find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
       - name: broker docker logs
@@ -398,7 +399,8 @@ jobs:
       - name: reco-icetray logs
         if: always()
         run: |
-          tree $SKYSCAN_DEBUG_DIR | ls -R $SKYSCAN_DEBUG_DIR
+          sudo apt install tree
+          tree $SKYSCAN_DEBUG_DIR
           find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
       - name: broker docker logs
