@@ -1,4 +1,5 @@
 {
+  "reco_algo": "millipede_original",
   "mq_basename": "run00136766.evt000007637140.HESE-1-1",
   "baseline_GCD_file": "/opt/i3-data/baseline_gcds/baseline_gcd_135417.i3",
   "GCDQp_packet": {
