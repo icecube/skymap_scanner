@@ -289,6 +289,13 @@ jobs:
           nsides = "${{ matrix.nsides }}"
           assert len(pydict) == nsides.count(":")
           '
+
+      - name: reco-icetray logs
+        if: always()
+        run: |
+          tree $SKYSCAN_DEBUG_DIR | ls -R $SKYSCAN_DEBUG_DIR
+          find $SKYSCAN_DEBUG_DIR -type f -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
+
       - name: broker docker logs
         if: always()
         run: |
@@ -387,6 +394,13 @@ jobs:
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
+
+      - name: reco-icetray logs
+        if: always()
+        run: |
+          tree $SKYSCAN_DEBUG_DIR | ls -R $SKYSCAN_DEBUG_DIR
+          find $SKYSCAN_DEBUG_DIR -type f -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
+
       - name: broker docker logs
         if: always()
         run: |
