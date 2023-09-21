@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 from typing import Any, List, Union
 
-from icecube.icetray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataio,
     frame_object_diff,
@@ -20,6 +19,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     photonics_service,
 )
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+from icecube.icetray import I3Tray  # type: ignore[import]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
@@ -244,6 +244,7 @@ def main() -> None:
     # "physics" args
     parser.add_argument(
         "--reco-algo",
+        required=True,
         choices=recos.get_all_reco_algos(),
         help="The reconstruction algorithm to use",
     )
