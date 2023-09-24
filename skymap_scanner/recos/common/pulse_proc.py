@@ -97,8 +97,8 @@ def pulse_cleaning(
         all_ts.extend(ts)
         cs = numpy.asarray([p.charge for p in ps])
         all_cs.extend(cs)
-    tw_start = max(weighted_quantile(np.asarray(all_ts), np.asarray(all_cs), 0.1) - 1000, min(all_ts))
-    tw_stop = min(weighted_quantile(np.asarray(all_ts), np.asarray(all_cs), 0.95) + 1000, max(all_ts))
+    tw_start = max(weighted_quantile(numpy.asarray(all_ts), numpy.asarray(all_cs), 0.1) - 1000, min(all_ts))
+    tw_stop = min(weighted_quantile(numpy.asarray(all_ts), numpy.asarray(all_cs), 0.95) + 1000, max(all_ts))
     for omkey, ps in pulses.items():
         ts = numpy.asarray([p.time for p in ps])
         cs = numpy.asarray([p.charge for p in ps])
