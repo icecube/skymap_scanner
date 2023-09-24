@@ -126,7 +126,7 @@ typing_extensions==4.8.0
 ufoLib2==0.13.1
 unicodedata2==14.0.0
 UNKNOWN @ file:///root/nuflux-2.0.4
-urllib3==2.0.4
+urllib3==2.0.5
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
