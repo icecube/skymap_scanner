@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.4 (2023-09-25)
+
+### Other
+
+* Clamp tw_start/stop ([#217](https://github.com/icecube/skymap_scanner/issues/217)) ([`ecf2c52`](https://github.com/icecube/skymap_scanner/commit/ecf2c5261203babd17eaa89fe3f0b6bbf99f548a))
+
 ## v3.14.3 (2023-09-19)
 
 ### Other
