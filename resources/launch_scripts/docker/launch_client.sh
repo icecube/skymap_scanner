@@ -70,6 +70,7 @@ fi
 
 # Run
 docker run --network="host" $pull_policy --rm -i \
+    --ipc="host" \
     --shm-size=6gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
