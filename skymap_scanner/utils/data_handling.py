@@ -1,14 +1,15 @@
-from .. import config as cfg  # type: ignore[import]
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Dict, List, Union
 
+from .. import config as cfg  # type: ignore[import]
 from . import LOGGER
 
 
 class DataStager:
-    """
-    Class to manage the staging of (spline) data from different sources (in-container, mountpoint, CVMFS, http).
+    """Class to manage the staging of (spline) data from different sources (in-
+    container, mountpoint, CVMFS, http).
+
     Some similarity in the paths is assumed.
     """
 
@@ -20,7 +21,8 @@ class DataStager:
         self.staging_path.mkdir(exist_ok=True)
 
     def stage_files(self, file_list: List[str]):
-        """Checks local availability for filenames in a list, and retrieves the missing ones from the HTTP source.
+        """Checks local availability for filenames in a list, and retrieves the
+        missing ones from the HTTP source.
 
         Args:
             file_list (List[str]): list of file filenames to look up / retrieve.
@@ -72,7 +74,8 @@ class DataStager:
             )
 
     def get_filepath(self, filename: str) -> str:
-        """Look up basename under the local paths and the staging path and returns the first valid filename.
+        """Look up basename under the local paths and the staging path and
+        returns the first valid filename.
 
         Args:
             basename (str): file basename to look up.
@@ -86,7 +89,7 @@ class DataStager:
         except FileNotFoundError:
             filepath = self.staging_path / filename
             if filepath.is_file():
-                LOGGER.info("File {filename} available at {filepath}.")
+                LOGGER.info(f"File {filename} available at {filepath}.")
                 return str(filepath)
             else:
                 raise FileNotFoundError(
@@ -94,7 +97,8 @@ class DataStager:
                 )
 
     def get_local_filepath(self, filename: str) -> str:
-        """Look up filename on local paths and return the first matching filename.
+        """Look up filename on local paths and return the first matching
+        filename.
 
         Args:
             filename (str): the filename of the file to look up.
