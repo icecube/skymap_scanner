@@ -187,7 +187,7 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(( $_CLIENTS_PER_CPU * $(nproc) ))
+          nclients=$(( $_NCLIENTS * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
@@ -230,8 +230,11 @@ jobs:
           1.0,
           0.65,
         ]
+        ewms_pilot_concurrent_tasks: [
+          0,
+          2,
+        ]
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -271,9 +274,15 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="${{ matrix.nsides }}"
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
+          export _NCLIENTS=$(nproc)
+
+          export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
+          free  # dump memory stats
 
           cd ./resources/launch_scripts
           ./local-scan.sh
+
+          free  # dump memory stats
 
       - name: check no nsides skipped
         run: |
@@ -320,14 +329,13 @@ jobs:
         ]
         ewms_pilot_concurrent_tasks: [
           0,
-          3,
+          2,
         ]
         exclude:
         # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -375,6 +383,13 @@ jobs:
           export _NSIDES="1:0"
 
           export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
+          if [[ $EWMS_PILOT_CONCURRENT_TASKS == "0" ]]; then
+              # if not using concurrent tasks, then use multiple clients
+              export _NCLIENTS=$(nproc)
+          else
+              export _NCLIENTS=1
+          fi
+
           free  # dump memory stats
 
           cd ./resources/launch_scripts
