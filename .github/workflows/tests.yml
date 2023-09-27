@@ -390,12 +390,14 @@ jobs:
               export _NCLIENTS=1
           fi
 
+          ls /dev/shm
           free  # dump memory stats
 
           cd ./resources/launch_scripts
           ./local-scan.sh
 
           free  # dump memory stats
+          ls /dev/shm
 
       - name: test output against known result (.json)
         run: |
