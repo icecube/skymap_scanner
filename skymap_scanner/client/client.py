@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 
 import ewms_pilot
@@ -16,6 +17,8 @@ LOGGER = logging.getLogger("skyscan.client")
 
 def main() -> None:
     """Start up Client service."""
+    print(os.listdir("/dev/shm"))
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform reco scans on pixels "

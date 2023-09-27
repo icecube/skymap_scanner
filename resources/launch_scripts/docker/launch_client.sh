@@ -67,6 +67,7 @@ else
     pull_policy="--pull=always"
 fi
 
+ls /dev/shm
 
 # Run
 docker run --network="host" $pull_policy --rm -i \
