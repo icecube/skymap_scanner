@@ -32,7 +32,7 @@ fs==2.4.12
 gast==0.5.2
 healpy==1.15.0
 htchirp==2.0
-htcondor==10.8.0
+htcondor==10.9.0
 html5lib==1.1
 humanfriendly==10.0
 hypothesis==6.36.0
