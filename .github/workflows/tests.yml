@@ -23,6 +23,7 @@ env:
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
+  EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "reco-icetray logs" step instead
   # see source tests/env-vars.sh
 
 
@@ -289,6 +290,14 @@ jobs:
           nsides = "${{ matrix.nsides }}"
           assert len(pydict) == nsides.count(":")
           '
+
+      - name: reco-icetray logs
+        if: always()
+        run: |
+          sudo apt install tree
+          tree $SKYSCAN_DEBUG_DIR
+          find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
+
       - name: broker docker logs
         if: always()
         run: |
@@ -379,6 +388,14 @@ jobs:
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
+
+      - name: reco-icetray logs
+        if: always()
+        run: |
+          sudo apt install tree
+          tree $SKYSCAN_DEBUG_DIR
+          find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
+
       - name: broker docker logs
         if: always()
         run: |
