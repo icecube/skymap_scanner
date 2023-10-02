@@ -2,6 +2,19 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.5 (2023-09-28)
+
+### Other
+
+* Enable IceTray Logging ([#218](https://github.com/icecube/skymap_scanner/issues/218)) ([`3a93557`](https://github.com/icecube/skymap_scanner/commit/3a93557e61e946a1d230a1759c42a078b814756b))
+* <bot> update dependencies*.log files(s) ([`75e1c05`](https://github.com/icecube/skymap_scanner/commit/75e1c0507e1210b3baf9b158eb7b7ae19d804cb3))
+
+## v3.14.4 (2023-09-25)
+
+### Other
+
+* Clamp tw_start/stop ([#217](https://github.com/icecube/skymap_scanner/issues/217)) ([`ecf2c52`](https://github.com/icecube/skymap_scanner/commit/ecf2c5261203babd17eaa89fe3f0b6bbf99f548a))
+
 ## v3.14.3 (2023-09-19)
 
 ### Other
