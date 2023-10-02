@@ -15,7 +15,7 @@ from . import LOGGER
 
 def main() -> None:
     """Start up Client service."""
-    LOGGER.critical(os.listdir("/dev/shm"))
+    LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
 
     parser = argparse.ArgumentParser(
         description=(
@@ -107,5 +107,5 @@ def main() -> None:
             )
         )
     except:
-        LOGGER.critical(os.listdir("/dev/shm"))
+        LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
         raise

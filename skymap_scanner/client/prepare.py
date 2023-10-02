@@ -4,6 +4,7 @@ reconstruction."""
 
 import argparse
 import logging
+import os
 
 from wipac_dev_tools import logging_tools
 
@@ -41,6 +42,8 @@ def main() -> None:
     RecoAlgo = recos.get_reco_interface_object(args.reco_algo)
     reco = RecoAlgo()
     reco.setup_reco()
+
+    LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
 
 
 if __name__ == "__main__":
