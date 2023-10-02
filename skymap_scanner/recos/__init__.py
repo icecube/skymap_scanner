@@ -67,10 +67,13 @@ class RecoInterface(ABC):
         pass
 
     @abstractmethod
-    def setup_reco(self):
-        """Performs the necessary operations to prepare the execution of the reconstruction traysegment.
+    def setup_reco(self, logger):
+        """Performs the necessary operations to prepare the execution of the
+        reconstruction traysegment.
 
-        This method is expected to perform "expensive" operations such as fetching spline data and initializing IceTray spline services.
+        This method is expected to perform "expensive" operations such
+        as fetching spline data and initializing IceTray spline
+        services.
         """
         pass
 

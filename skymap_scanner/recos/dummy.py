@@ -34,8 +34,8 @@ class Dummy(RecoInterface):
         self.refine_time = True
         self.add_fallback_position = False
 
-    def setup_reco(self):
-        pass
+    def setup_reco(self, logger):
+        logger.info("Dummy reco has nothing to setup :)")
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:

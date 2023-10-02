@@ -55,11 +55,11 @@ class MillipedeWilks(RecoInterface):
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
-        """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
-        """
+        """Returns a list of vectors referenced to the origin that will be used
+        to generate the vertex position variations."""
         return VertexGenerator.point()
 
-    def setup_reco(self):
+    def setup_reco(self, logger):
         datastager = self.get_datastager()
 
         datastager.stage_files(self.SPLINE_REQUIREMENTS)
@@ -70,6 +70,7 @@ class MillipedeWilks(RecoInterface):
         effp_spline: str = datastager.get_filepath(self.FTP_EFFP_SPLINE)
         tmod_spline: str = datastager.get_filepath(self.FTP_TMOD_SPLINE)
 
+        logger.info("Starting I3PhotoSplineService...")
         self.cascade_service = photonics_service.I3PhotoSplineService(
             abs_spline, prob_spline, timingSigma=0.0,
             effectivedistancetable = effd_spline,
@@ -78,6 +79,7 @@ class MillipedeWilks(RecoInterface):
             effectivedistancetableprob = effp_spline,
             effectivedistancetabletmod = tmod_spline
         )
+        logger.info("Started I3PhotoSplineService.")
 
         self.muon_service = None
 

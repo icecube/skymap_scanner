@@ -97,7 +97,7 @@ class MillipedeOriginal(RecoInterface):
         self.refine_time = False
         self.add_fallback_position = False
 
-    def setup_reco(self):
+    def setup_reco(self, logger):
         datastager = self.get_datastager()
 
         datastager.stage_files(self.SPLINE_REQUIREMENTS)
@@ -105,7 +105,9 @@ class MillipedeOriginal(RecoInterface):
         abs_spline = datastager.get_filepath(self.MIE_ABS_SPLINE)
         prob_spline = datastager.get_filepath(self.MIE_PROB_SPLINE)
 
+        logger.info("Starting I3PhotoSplineService...")
         self.cascade_service = photonics_service.I3PhotoSplineService(abs_spline, prob_spline, timingSigma=0.0)
+        logger.info("Started I3PhotoSplineService.")
 
         self.cascade_service.SetEfficiencies(self.SPEScale)
 

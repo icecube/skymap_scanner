@@ -41,7 +41,7 @@ def main() -> None:
     # go!
     RecoAlgo = recos.get_reco_interface_object(args.reco_algo)
     reco = RecoAlgo()
-    reco.setup_reco()
+    reco.setup_reco(LOGGER)
 
     LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
 

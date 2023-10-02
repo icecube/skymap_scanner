@@ -264,7 +264,7 @@ class SplineMPE(RecoInterface):
     def get_vertex_variations(self):
         return VertexGenerator.cylinder()
 
-    def setup_reco(self):
+    def setup_reco(self, logger):
         datastager = self.get_datastager()
 
         datastager.stage_files(self.SPLINE_REQUIREMENTS)
@@ -274,6 +274,7 @@ class SplineMPE(RecoInterface):
         StochTimingSpline: str = datastager.get_filepath(self.MIE_STOCH_PROB)
         StochAmplitudeSpline: str = datastager.get_filepath(self.MIE_STOCH_ABS)
 
+        logger.info("Starting I3PhotoSplineServices...")
         self.bare_mu_spline = I3PhotoSplineService(
             BareMuAmplitudeSpline,
             BareMuTimingSpline,
@@ -289,10 +290,11 @@ class SplineMPE(RecoInterface):
             BareMuTimingSpline,
             timingSigma=1000,
         )
+        logger.info("Started I3PhotoSplineServices.")
 
     @traysegment
     def traysegment(self, tray, name, logger, **kwargs):
-        """SplineMPE reco"""
+        """SplineMPE reco."""
 
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:

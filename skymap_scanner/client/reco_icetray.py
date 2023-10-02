@@ -146,7 +146,7 @@ def reco_pixel(
     # create instance of reco_algo object
     RecoAlgo = recos.get_reco_interface_object(reco_algo)
     reco = RecoAlgo()
-    reco.setup_reco()
+    reco.setup_reco(LOGGER)
 
     # perform fit
     tray.AddSegment(
