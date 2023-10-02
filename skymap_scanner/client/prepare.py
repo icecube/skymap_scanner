@@ -41,8 +41,8 @@ def main() -> None:
     RecoAlgo = recos.get_reco_interface_object(args.reco_algo)()
     reco = RecoAlgo()
     reco.setup_reco()
-    LOGGER.info("Done.")
 
 
 if __name__ == "__main__":
     main()
+    LOGGER.info("Done.")

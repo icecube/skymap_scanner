@@ -299,8 +299,8 @@ def main() -> None:
         str(args.baseline_GCD_file),
         args.out_pkl,
     )
-    LOGGER.info("Done reco'ing pixel.")
 
 
 if __name__ == "__main__":
     main()
+    LOGGER.info("Done.")

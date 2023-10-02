@@ -15,14 +15,13 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
-from icecube.icetray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,
     full_event_followup,
     icetray,
 )
-from rest_tools.client import RestClient
+from icecube.icetray import I3Units  # type: ignore[import]
 from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
@@ -744,8 +743,3 @@ def main() -> None:
             predictive_scanning_threshold=args.predictive_scanning_threshold,
         )
     )
-    LOGGER.info("Done.")
-
-
-if __name__ == "__main__":
-    main()

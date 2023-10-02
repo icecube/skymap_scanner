@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import json
-import logging
 import os
 from pathlib import Path
 
@@ -11,8 +10,7 @@ import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
-
-LOGGER = logging.getLogger("skyscan.client")
+from . import LOGGER
 
 
 def main() -> None:
@@ -111,8 +109,3 @@ def main() -> None:
     except:
         LOGGER.critical(os.listdir("/dev/shm"))
         raise
-    LOGGER.info("Done.")
-
-
-if __name__ == "__main__":
-    main()
