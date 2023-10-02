@@ -80,6 +80,11 @@ def main() -> None:
         f" --reco-algo {startup_json_dict['reco_algo']}"
     )
 
+    init_cmd = (
+        "python -m skymap_scanner.client.prepare "
+        f" --reco-algo {startup_json_dict['reco_algo']}"
+    )
+
     # go!
     LOGGER.info(
         f"Starting up a Skymap Scanner client for event: {startup_json_dict['mq_basename']=}"
@@ -88,6 +93,7 @@ def main() -> None:
         asyncio.run(
             ewms_pilot.consume_and_reply(
                 cmd=cmd,
+                init_cmd=init_cmd,
                 broker_client=cfg.ENV.SKYSCAN_BROKER_CLIENT,
                 broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
                 auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
