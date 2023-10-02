@@ -52,7 +52,7 @@ nclients=${_NCLIENTS:-"1"}
 echo "Launching $nclients clients"
 export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
 for i in $( seq 1 $nclients ); do
-    if [[ $i != "2" ]]; then
+    if [[ $i == "2" ]]; then
         sleep 30  # sleep past race condition
     fi
     ./docker/launch_client.sh \
