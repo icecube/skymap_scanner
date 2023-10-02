@@ -231,9 +231,9 @@ jobs:
           1.0,
           0.65,
         ]
-        ewms_pilot_concurrent_tasks: [
-          0,
-          2,
+        tasks_concurrency: [
+          'yes',
+          'no',
         ]
     env:
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
@@ -277,7 +277,15 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
           export _NCLIENTS=$(nproc)
 
-          export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
+          if [[ ${{ matrix.tasks_concurrency }} == "no" ]]; then
+              # if not using concurrent tasks, then use multiple clients
+              export _NCLIENTS=$(nproc)
+              export EWMS_PILOT_CONCURRENT_TASKS=0
+          else
+              export _NCLIENTS=1
+              export EWMS_PILOT_CONCURRENT_TASKS=$(nproc)
+          fi
+
           free  # dump memory stats
 
           cd ./resources/launch_scripts
@@ -328,9 +336,9 @@ jobs:
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
-        ewms_pilot_concurrent_tasks: [
-          0,
-          2,
+        tasks_concurrency: [
+          'yes',
+          'no',
         ]
         exclude:
         # splinempe should not run on HESE
@@ -383,12 +391,13 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
 
-          export EWMS_PILOT_CONCURRENT_TASKS=${{ matrix.ewms_pilot_concurrent_tasks }}
-          if [[ $EWMS_PILOT_CONCURRENT_TASKS == "0" ]]; then
+          if [[ ${{ matrix.tasks_concurrency }} == "no" ]]; then
               # if not using concurrent tasks, then use multiple clients
               export _NCLIENTS=$(nproc)
+              export EWMS_PILOT_CONCURRENT_TASKS=0
           else
               export _NCLIENTS=1
+              export EWMS_PILOT_CONCURRENT_TASKS=$(nproc)
           fi
 
           ls /dev/shm
