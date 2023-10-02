@@ -38,7 +38,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # go!
-    RecoAlgo = recos.get_reco_interface_object(args.reco_algo)()
+    RecoAlgo = recos.get_reco_interface_object(args.reco_algo)
     reco = RecoAlgo()
     reco.setup_reco()
 
