@@ -280,6 +280,8 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
+
     # get PFrame
     with open(args.in_pkl, "rb") as f:
         msg = pickle.load(f)
