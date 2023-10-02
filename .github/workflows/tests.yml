@@ -23,7 +23,7 @@ env:
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
-  EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "reco-icetray logs" step instead
+  EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "client/pilot subprocesses stderr & stdout" step instead
   # see source tests/env-vars.sh
 
 
@@ -300,7 +300,7 @@ jobs:
           assert len(pydict) == nsides.count(":")
           '
 
-      - name: reco-icetray logs
+      - name: client/pilot subprocesses stderr & stdout
         if: always()
         run: |
           sudo apt install tree
@@ -414,7 +414,7 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-      - name: reco-icetray logs
+      - name: client/pilot subprocesses stderr & stdout
         if: always()
         run: |
           sudo apt install tree
