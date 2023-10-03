@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.6 (2023-10-03)
+
+### Other
+
+* Set `python_max = 3.11` ([#221](https://github.com/icecube/skymap_scanner/issues/221)) ([`e4d53c3`](https://github.com/icecube/skymap_scanner/commit/e4d53c327b09e1b0bb3aa3a33b474155e5489df8))
+* <bot> update setup.cfg ([`eaa5db5`](https://github.com/icecube/skymap_scanner/commit/eaa5db51538d77601966be11a5261eba52fd79ca))
+* Use `WIPACrepo/wipac-dev-py-setup-action@v2.6` ([#220](https://github.com/icecube/skymap_scanner/issues/220)) ([`519140a`](https://github.com/icecube/skymap_scanner/commit/519140a5bff3ae91b3acc2fbff512177f487ca3b))
+* <bot> update dependencies*.log files(s) ([`3ac07c0`](https://github.com/icecube/skymap_scanner/commit/3ac07c0b68d4ce8438f0de682d47008b9f31b05a))
+* <bot> update dependencies*.log files(s) ([`938d05d`](https://github.com/icecube/skymap_scanner/commit/938d05d22cf100ec78fe0216e0b8befe9ab4140b))
+
 ## v3.14.5 (2023-09-28)
 
 ### Other
