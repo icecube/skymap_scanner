@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 from typing import Any, List, Union
 
-from icecube.icetray import I3Tray  # type: ignore[import]
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataio,
     frame_object_diff,
@@ -20,6 +19,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
     photonics_service,
 )
 from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+from icecube.icetray import I3Tray  # type: ignore[import]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
@@ -146,7 +146,7 @@ def reco_pixel(
     # create instance of reco_algo object
     RecoAlgo = recos.get_reco_interface_object(reco_algo)
     reco = RecoAlgo()
-    reco.setup_reco()
+    reco.setup_reco(LOGGER)
 
     # perform fit
     tray.AddSegment(
@@ -241,7 +241,13 @@ def main() -> None:
         ),
     )
 
-    # extra "physics" args
+    # "physics" args
+    parser.add_argument(
+        "--reco-algo",
+        required=True,
+        choices=recos.get_all_reco_algos(),
+        help="The reconstruction algorithm to use",
+    )
     parser.add_argument(
         "--gcdqp-packet-json",
         dest="GCDQp_packet_json",
@@ -274,10 +280,11 @@ def main() -> None:
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
+    LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
+
     # get PFrame
     with open(args.in_pkl, "rb") as f:
         msg = pickle.load(f)
-        reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = msg[cfg.MSG_KEY_PFRAME]
 
     # get GCDQp_packet
@@ -288,14 +295,14 @@ def main() -> None:
 
     # go!
     reco_pixel(
-        reco_algo,
+        args.reco_algo,
         pframe,
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.out_pkl,
     )
-    LOGGER.info("Done reco'ing pixel.")
 
 
 if __name__ == "__main__":
     main()
+    LOGGER.info("Done.")

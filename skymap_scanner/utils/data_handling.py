@@ -1,14 +1,15 @@
-from .. import config as cfg  # type: ignore[import]
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Dict, List, Union
 
+from .. import config as cfg  # type: ignore[import]
 from . import LOGGER
 
 
 class DataStager:
-    """
-    Class to manage the staging of (spline) data from different sources (in-container, mountpoint, CVMFS, http).
+    """Class to manage the staging of (spline) data from different sources (in-
+    container, mountpoint, CVMFS, http).
+
     Some similarity in the paths is assumed.
     """
 
@@ -20,27 +21,28 @@ class DataStager:
         self.staging_path.mkdir(exist_ok=True)
 
     def stage_files(self, file_list: List[str]):
-        """Checks local availability for filenames in a list, and retrieves the missing ones from the HTTP source.
+        """Checks local availability for filenames in a list, and retrieves the
+        missing ones from the HTTP source.
 
         Args:
             file_list (List[str]): list of file filenames to look up / retrieve.
         """
-        LOGGER.debug(f"Staging files in filelist: {file_list}")
+        LOGGER.info(f"Staging files in filelist: {file_list}")
         for basename in file_list:
             try:
                 filepath: str = self.get_local_filepath(basename)
             except FileNotFoundError:
-                LOGGER.debug(
-                    f"File {basename} is not available on default local paths."
-                )
+                LOGGER.info(f"File {basename} is not available on default local paths.")
                 if (self.staging_path / basename).is_file():
-                    LOGGER.debug("File is available on staging path.")
+                    LOGGER.info("File is available on staging path.")
                 else:
-                    LOGGER.debug("Staging from HTTP source.")
+                    LOGGER.info("Staging from HTTP source.")
                     self.stage_file(basename)
 
             else:
-                LOGGER.debug(f"File {basename} is available at {filepath}.")
+                LOGGER.info(f"File {basename} is available at {filepath}.")
+
+        LOGGER.info(f"Finished staging files in filelist: {file_list}")
 
     def stage_file(self, basename: str):
         """Retrieves a file from the HTTP source.
@@ -72,7 +74,8 @@ class DataStager:
             )
 
     def get_filepath(self, filename: str) -> str:
-        """Look up basename under the local paths and the staging path and returns the first valid filename.
+        """Look up basename under the local paths and the staging path and
+        returns the first valid filename.
 
         Args:
             basename (str): file basename to look up.
@@ -86,7 +89,7 @@ class DataStager:
         except FileNotFoundError:
             filepath = self.staging_path / filename
             if filepath.is_file():
-                LOGGER.info("File {filename} available at {filepath}.")
+                LOGGER.info(f"File {filename} available at {filepath}.")
                 return str(filepath)
             else:
                 raise FileNotFoundError(
@@ -94,7 +97,8 @@ class DataStager:
                 )
 
     def get_local_filepath(self, filename: str) -> str:
-        """Look up filename on local paths and return the first matching filename.
+        """Look up filename on local paths and return the first matching
+        filename.
 
         Args:
             filename (str): the filename of the file to look up.
@@ -108,10 +112,9 @@ class DataStager:
             filepath = subdir / filename
             LOGGER.debug(f"Trying to read {filepath}...")
             if filepath.is_file():
-                LOGGER.debug(f"-> success.")
-                filename = str(filepath)
-                return filename
-            else:
-                LOGGER.debug(f"-> fail.")
-                # File was not found in local paths.
-        raise FileNotFoundError(f"File {filename} is not available on any local path.")
+                LOGGER.debug(f"File found {filename}.")
+                return str(filepath)
+
+        raise FileNotFoundError(
+            f"File {filename} is not available on any local path: {self.local_paths}."
+        )

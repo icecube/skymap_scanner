@@ -48,17 +48,22 @@ fi
 
 
 # Launch Clients
-clients_per_cpu=${_CLIENTS_PER_CPU:-"1"}
-nclients=$(( $clients_per_cpu * $(nproc) ))
+nclients=${_NCLIENTS:-"1"}
 echo "Launching $nclients clients"
 export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
 for i in $( seq 1 $nclients ); do
+    if [[ $i == "2" ]]; then
+        sleep 60  # sleep past race condition
+    fi
     ./docker/launch_client.sh \
         --client-startup-json ./startup.json \
         --debug-directory $SKYSCAN_DEBUG_DIR \
         &
     echo -e "\tclient #$i launched"
 done
+
+
+free -c 6 -s 10  # dump memory stats for 1 min
 
 
 # Wait for Everyone

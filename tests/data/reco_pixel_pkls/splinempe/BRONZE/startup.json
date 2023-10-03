@@ -1,4 +1,5 @@
 {
+  "reco_algo": "splinempe",
   "scan_id": "35405932-1:0-1689867940",
   "mq_basename": "35405932-1:0-1689867940",
   "baseline_GCD_file": "/opt/i3-data/baseline_gcds/baseline_gcd_135417.i3",

@@ -47,10 +47,10 @@ def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet) -> List[icetray.I3F
         try:
             baseline_GCD_frames = load_framepacket_from_file(baseline_GCD_file)
         except:
-            LOGGER.debug(" -> failed")
+            LOGGER.debug(f"Failed to read GCD from {baseline_GCD_file}")
             raise RuntimeError("Unable to read baseline GCD. In the current design, this is unexpected. Possibly a bug or data corruption!")
         if baseline_GCD_frames is not None:
-            LOGGER.debug(" -> success")
+            LOGGER.debug("Retrieved GCD from file")
         # NOTE: Legacy code used to scan a list of GCD_BASE_DIRS.
         #       It is now assumed that assume that the passed `baseline_GCD_file` is a valid path to a baseline GCD file.
 
@@ -155,7 +155,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
                 LOGGER.debug("load_GCDQp_state => reading source baseline GCD from {0}".format(read_path))
                 source_baseline_GCD_framepacket = load_framepacket_from_file(read_path)
             except:
-                LOGGER.debug(" -> failed")
+                LOGGER.debug(f"Failed to load source baseline GCD from {read_path}")
                 source_baseline_GCD_framepacket = None
             if source_baseline_GCD_framepacket is None:
                 raise RuntimeError(f"load_GCDQp_state => Could not read the source GCD file \"{source_baseline_GCD_metadata}\"")

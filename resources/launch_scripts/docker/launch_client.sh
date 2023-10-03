@@ -70,7 +70,8 @@ fi
 
 # Run
 docker run --network="host" $pull_policy --rm -i \
-    --shm-size=6gb \
+    --ipc="host" \
+    --shm-size=32gb \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \

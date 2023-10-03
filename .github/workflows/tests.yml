@@ -9,10 +9,10 @@ on:
       - '**'
 
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # don't cancel on main/master/default
-  cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   # don't cancel on main/master/default
+#   cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 
 env:
@@ -23,7 +23,7 @@ env:
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
-  EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "reco-icetray logs" step instead
+  EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "client/pilot subprocesses stderr & stdout" step instead
   # see source tests/env-vars.sh
 
 
@@ -188,7 +188,7 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(( $_CLIENTS_PER_CPU * $(nproc) ))
+          nclients=$(( $_NCLIENTS * $(nproc) ))
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
@@ -231,8 +231,11 @@ jobs:
           1.0,
           0.65,
         ]
+        concurrency: [
+          'multitask',
+          "multiclient",
+        ]
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -272,9 +275,23 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="${{ matrix.nsides }}"
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
+          export _NCLIENTS=$(nproc)
+
+          if [[ ${{ matrix.concurrency }} == "multiclient" ]]; then
+              # if not using concurrent tasks, then use multiple clients
+              export _NCLIENTS=$(nproc)
+              export EWMS_PILOT_CONCURRENT_TASKS=0
+          else
+              export _NCLIENTS=1
+              export EWMS_PILOT_CONCURRENT_TASKS=$(nproc)
+          fi
+
+          free  # dump memory stats
 
           cd ./resources/launch_scripts
           ./local-scan.sh
+
+          free  # dump memory stats
 
       - name: check no nsides skipped
         run: |
@@ -291,7 +308,7 @@ jobs:
           assert len(pydict) == nsides.count(":")
           '
 
-      - name: reco-icetray logs
+      - name: client/pilot subprocesses stderr & stdout
         if: always()
         run: |
           sudo apt install tree
@@ -319,13 +336,15 @@ jobs:
           run00136766-evt000007637140-GOLD.pkl,
           run00136662-evt000035405932-BRONZE.pkl
         ]
+        concurrency: [
+          'multitask',
+          "multiclient",
+        ]
         exclude:
         # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
-
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -372,8 +391,23 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
 
+          if [[ ${{ matrix.concurrency }} == "multiclient" ]]; then
+              # if not using concurrent tasks, then use multiple clients
+              export _NCLIENTS=$(nproc)
+              export EWMS_PILOT_CONCURRENT_TASKS=0
+          else
+              export _NCLIENTS=1
+              export EWMS_PILOT_CONCURRENT_TASKS=$(nproc)
+          fi
+
+          ls /dev/shm
+          free  # dump memory stats
+
           cd ./resources/launch_scripts
           ./local-scan.sh
+
+          free  # dump memory stats
+          ls /dev/shm
 
       - name: test output against known result (.json)
         run: |
@@ -389,7 +423,7 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-      - name: reco-icetray logs
+      - name: client/pilot subprocesses stderr & stdout
         if: always()
         run: |
           sudo apt install tree
@@ -488,6 +522,7 @@ jobs:
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
             --in-pkl /local/pkls/in.pkl \
+            --reco-algo ${{ matrix.reco_algo }} \
             --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
             --out-pkl /local/pkls/out.pkl

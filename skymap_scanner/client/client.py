@@ -3,19 +3,20 @@
 import argparse
 import asyncio
 import json
-import logging
+import os
 from pathlib import Path
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
-
-LOGGER = logging.getLogger("skyscan.client")
+from . import LOGGER
 
 
 def main() -> None:
     """Start up Client service."""
+    LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up client daemon to perform reco scans on pixels "
@@ -74,31 +75,37 @@ def main() -> None:
         " --out-pkl {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
+        f" --reco-algo {startup_json_dict['reco_algo']}"
+    )
+
+    init_cmd = (
+        "python -m skymap_scanner.client.prepare "
+        f" --reco-algo {startup_json_dict['reco_algo']}"
     )
 
     # go!
     LOGGER.info(
         f"Starting up a Skymap Scanner client for event: {startup_json_dict['mq_basename']=}"
     )
-    asyncio.run(
-        ewms_pilot.consume_and_reply(
-            cmd=cmd,
-            broker_client=cfg.ENV.SKYSCAN_BROKER_CLIENT,
-            broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
-            auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-            queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
-            queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
-            ftype_to_subproc=".pkl",
-            ftype_from_subproc=".pkl",
-            timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-            timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
-            timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
-            debug_dir=args.debug_directory,
-            task_timeout=cfg.ENV.EWMS_PILOT_TASK_TIMEOUT,
+    try:
+        asyncio.run(
+            ewms_pilot.consume_and_reply(
+                cmd=cmd,
+                init_cmd=init_cmd,
+                broker_client=cfg.ENV.SKYSCAN_BROKER_CLIENT,
+                broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
+                auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
+                queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
+                queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
+                ftype_to_subproc=".pkl",
+                ftype_from_subproc=".pkl",
+                timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+                timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+                timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
+                debug_dir=args.debug_directory,
+                task_timeout=cfg.ENV.EWMS_PILOT_TASK_TIMEOUT,
+            )
         )
-    )
-    LOGGER.info("Done.")
-
-
-if __name__ == "__main__":
-    main()
+    except:
+        LOGGER.critical(f'/dev/shm: {os.listdir("/dev/shm")}')
+        raise

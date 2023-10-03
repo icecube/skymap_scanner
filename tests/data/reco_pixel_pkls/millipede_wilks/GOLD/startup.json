@@ -1,4 +1,5 @@
 {
+  "reco_algo": "millipede_wilks",
   "scan_id": "7637140-1:0-1684845570",
   "mq_basename": "7637140-1:0-1684845570",
   "baseline_GCD_file": "/opt/i3-data/baseline_gcds/baseline_gcd_135417.i3",
