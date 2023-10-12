@@ -30,6 +30,9 @@ from ..utils.utils import save_GCD_frame_packet_to_file
 
 LOGGER = logging.getLogger("skyscan.client.reco")
 
+# Activate to log full IceTray operations
+icetray.logging.console()
+
 
 def frame_for_logging(frame: icetray.I3Frame) -> str:
     return f"{repr(frame)}/{frame}"
