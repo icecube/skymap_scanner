@@ -176,13 +176,16 @@ class SplineMPE(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
-
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
         # Provide SplineMPE with energy estimation from MuEx
         # This should improve the following SplineMPE track reco.
         # =========================================================
+
+        # Prerequisites
+        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
+        tray.Add(checkName, name=cls.energy_reco_seed)
+
         def notify_muex(frame):
             logger.debug(f"Running MuEX - {datetime.datetime.now()}")
 
