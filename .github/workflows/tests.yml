@@ -317,7 +317,8 @@ jobs:
         eventfile: [
           hese_event_01.json,
           run00136766-evt000007637140-GOLD.pkl,
-          run00136662-evt000035405932-BRONZE.pkl
+          run00136662-evt000035405932-BRONZE.pkl,
+          run00118435.evt000058198553.json
         ]
         exclude:
         # splinempe should not run on HESE
