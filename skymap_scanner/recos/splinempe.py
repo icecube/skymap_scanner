@@ -37,6 +37,9 @@ from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
 
+# Activate to log full IceTray operations
+icetray.logging.console()
+
 
 class SplineMPE(RecoInterface):
     """Logic for SplineMPE reco."""
