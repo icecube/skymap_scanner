@@ -205,7 +205,6 @@ class SplineMPE(RecoInterface):
             lcspan=0,
             If=lambda f: True,
         )
-        tray.Add(log_frame, logger=logger)
 
         tray.Add(check_name, logger=logger, key=cls.energy_estimator)
 
