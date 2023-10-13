@@ -36,6 +36,7 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
+from .common.utils import check_name, notify_debug
 
 # Activate to log full IceTray operations
 icetray.logging.console()
@@ -189,10 +190,11 @@ class SplineMPE(RecoInterface):
         tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
         tray.Add(checkName, name=cls.energy_reco_seed)
 
-        def notify_muex(frame):
-            logger.debug(f"Running MuEX - {datetime.datetime.now()}")
+        # def notify_muex(frame):
+        #    logger.debug(f"Running MuEX - {datetime.datetime.now()}")
 
-        tray.Add(notify_muex, "notify_muex")
+        # tray.Add(notify_muex, "notify_muex")
+        tray.Add(notify_debug, logger=logger, message="Running MuEX")
 
         def log_frame(frame):
             logger.debug(f"{repr(frame)}/{frame}")
@@ -211,6 +213,8 @@ class SplineMPE(RecoInterface):
             If=lambda f: True,
         )
         tray.Add(log_frame, "logframe")
+
+        tray.Add(checkName, name=cls.energy_reco_seed)
 
         tray.Add(
             mask_deepcore,
