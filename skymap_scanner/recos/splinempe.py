@@ -64,7 +64,8 @@ class SplineMPE(RecoInterface):
     ]
 
     # Names used in the reco.
-    energy_reco_seed = "OnlineL2_BestFit"
+    # energy_reco_seed = "OnlineL2_BestFit"
+    energy_reco_seed = "OnlineL2_SplineMPE"
     energy_estimator = "OnlineL2_BestFit_MuEx"
 
     # This may be configurable in the future.
@@ -202,12 +203,12 @@ class SplineMPE(RecoInterface):
             result=cls.energy_estimator,
             energy=True,
             detail=True,
-            compat=True,
+            compat=False,
             lcspan=0,
             If=lambda f: True,
         )
 
-        tray.Add(check_name, logger=logger, key=cls.energy_estimator)
+        # tray.Add(check_name, logger=logger, key=cls.energy_estimator)
         tray.Add(check_name, logger=logger, key=cls.base_pulseseries_hlc)
 
         tray.Add(
@@ -330,7 +331,7 @@ class SplineMPE(RecoInterface):
         # Multiple energy estimators can be provided but they should be run beforehand.
         # =============================================================================
 
-        tray.AddModule(checkName, name=self.energy_estimator)
+        # tray.AddModule(checkName, name=self.energy_estimator)
 
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
