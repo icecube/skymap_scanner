@@ -193,6 +193,8 @@ class SplineMPE(RecoInterface):
         # Prerequisites
         tray.Add(check_name, f"check-{name}", logger=logger, key=cls.energy_reco_seed)
 
+        tray.Add(frame_for_logging, "logframe_before_muex")
+
         tray.Add(notify_debug, "notify-MuEX", logger=logger, message="Running MuEX")
 
         # From icetray/filterscript/python/onlinel2filter.py
