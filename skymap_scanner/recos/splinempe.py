@@ -142,6 +142,7 @@ class SplineMPE(RecoInterface):
         # =========================================================
         def checkName(frame: I3Frame, name: str) -> None:
             if name not in frame:
+                logger.error(f"Check that {name} is in frame: -> FAIL!")
                 raise RuntimeError(f"{name} not in frame.")
             else:
                 logger.debug(f"Check that {name} is in frame: -> success.")
