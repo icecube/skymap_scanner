@@ -202,7 +202,7 @@ class SplineMPE(RecoInterface):
             result=cls.energy_estimator,
             energy=True,
             detail=True,
-            compat=False,
+            compat=True,
             lcspan=0,
             If=lambda f: True,
         )
