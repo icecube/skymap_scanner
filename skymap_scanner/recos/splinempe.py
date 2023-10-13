@@ -46,6 +46,7 @@ class SplineMPE(RecoInterface):
     """Logic for SplineMPE reco."""
 
     base_pulseseries = cfg.INPUT_PULSES_NAME
+    base_pulseseries_hlc = cfg.INPUT_PULSES_NAME + "HLC"
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
     cleaned_muon_pulseseries = "CleanedMuonPulses"
     cleaned_muon_pulseseries_ic = "CleanedMuonPulsesIC"
@@ -207,7 +208,7 @@ class SplineMPE(RecoInterface):
         )
 
         tray.Add(check_name, logger=logger, key=cls.energy_estimator)
-        tray.Add(check_name, logger=logger, key=cls.base_pulseseries + "HLC")
+        tray.Add(check_name, logger=logger, key=cls.base_pulseseries_hlc)
 
         tray.Add(
             mask_deepcore,
@@ -226,7 +227,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto",
                 VertexThreshold=250,
-                Pulses=cls.base_pulseseries + "HLC",
+                Pulses=cls.base_pulseseries_hlc,
                 OutputBool="VHESelfVeto",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -237,7 +238,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto-emergency-lowen-settings",
                 VertexThreshold=5,
-                Pulses=cls.base_pulseseries + "HLC",
+                Pulses=cls.base_pulseseries_hlc,
                 OutputBool="VHESelfVeto-seed-source",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
