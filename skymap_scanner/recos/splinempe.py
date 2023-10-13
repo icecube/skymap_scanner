@@ -207,6 +207,7 @@ class SplineMPE(RecoInterface):
         )
 
         tray.Add(check_name, logger=logger, key=cls.energy_estimator)
+        tray.Add(check_name, logger=logger, key=cls.base_pulseseries + "HLC")
 
         tray.Add(
             mask_deepcore,
