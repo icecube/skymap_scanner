@@ -214,7 +214,7 @@ class SplineMPE(RecoInterface):
         )
         tray.Add(log_frame, "logframe")
 
-        tray.Add(checkName, name=cls.energy_reco_seed)
+        tray.Add(checkName, name=cls.energy_estimator)
 
         tray.Add(
             mask_deepcore,
