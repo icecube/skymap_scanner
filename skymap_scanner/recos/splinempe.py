@@ -193,7 +193,7 @@ class SplineMPE(RecoInterface):
         # Prerequisites
         tray.Add(check_name, f"check-{name}", logger=logger, key=cls.energy_reco_seed)
 
-        tray.Add(notify_debug, "notify-MuEX" logger=logger, message="Running MuEX")
+        tray.Add(notify_debug, "notify-MuEX", logger=logger, message="Running MuEX")
 
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
@@ -314,7 +314,12 @@ class SplineMPE(RecoInterface):
                 f"starting a new SplineMPE fit ({name})! {datetime.datetime.now()}"
             )
 
-        tray.Add(notify_debug, "notify_start", logger=logger, message=f"starting a new SplineMPE fit!")
+        tray.Add(
+            notify_debug,
+            "notify_start",
+            logger=logger,
+            message=f"starting a new SplineMPE fit!",
+        )
 
         # Check that the base pulses are in the input frame.
         tray.Add(checkName, name=self.base_pulseseries)
@@ -409,7 +414,9 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name="splinempe-reco" + "FitParams")
 
-        tray.Add(notify_debug, "notify_end", logger=logger, message="SplineMPE pass done!")
+        tray.Add(
+            notify_debug, "notify_end", logger=logger, message="SplineMPE pass done!"
+        )
 
     @classmethod
     def to_recopixelvariation(
