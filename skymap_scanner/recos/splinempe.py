@@ -34,6 +34,7 @@ from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTCon
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
+from ..utils.utils import frame_for_logging
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
 from .common.utils import check_name, notify_debug
@@ -140,12 +141,6 @@ class SplineMPE(RecoInterface):
         # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
         # "CleanedMuonPulses" is equivalent to "OnlineL2_CleanedMuonPulses".
         # =========================================================
-        def checkName(frame: I3Frame, name: str) -> None:
-            if name not in frame:
-                logger.error(f"Check that {name} is in frame: -> FAIL!")
-                raise RuntimeError(f"{name} not in frame.")
-            else:
-                logger.debug(f"Check that {name} is in frame: -> success.")
 
         # from icetray/filterscripts/python/all_filters.py
         seededRTConfig = I3DOMLinkSeededRTConfigurationService(
@@ -172,7 +167,9 @@ class SplineMPE(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(checkName, name=cls.rt_cleaned_pulseseries)
+        tray.Add(
+            check_name, f"check-{name}", logger=logger, key=cls.rt_cleaned_pulseseries
+        )
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
@@ -183,6 +180,10 @@ class SplineMPE(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
         )
 
+        tray.Add(
+            check_name, f"check-{name}", logger=logger, key=cls.cleaned_muon_pulseseries
+        )
+
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
         # Provide SplineMPE with energy estimation from MuEx
@@ -190,17 +191,9 @@ class SplineMPE(RecoInterface):
         # =========================================================
 
         # Prerequisites
-        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
-        tray.Add(checkName, name=cls.energy_reco_seed)
+        tray.Add(check_name, f"check-{name}", logger=logger, key=cls.energy_reco_seed)
 
-        # def notify_muex(frame):
-        #    logger.debug(f"Running MuEX - {datetime.datetime.now()}")
-
-        # tray.Add(notify_muex, "notify_muex")
-        tray.Add(notify_debug, logger=logger, message="Running MuEX")
-
-        def log_frame(frame):
-            logger.debug(f"{repr(frame)}/{frame}")
+        tray.Add(notify_debug, "notify-MuEX" logger=logger, message="Running MuEX")
 
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
@@ -215,9 +208,9 @@ class SplineMPE(RecoInterface):
             lcspan=0,
             If=lambda f: True,
         )
-        tray.Add(log_frame, "logframe")
+        tray.Add(frame_for_logging, "logframe_after_muex")
 
-        tray.Add(checkName, name=cls.energy_estimator)
+        tray.Add(check_name, f"check-{name}", logger=logger, key=cls.energy_estimator)
 
         tray.Add(
             mask_deepcore,
@@ -321,7 +314,7 @@ class SplineMPE(RecoInterface):
                 f"starting a new SplineMPE fit ({name})! {datetime.datetime.now()}"
             )
 
-        tray.Add(notify0, "notify0")
+        tray.Add(notify_debug, "notify_start", logger=logger, message=f"starting a new SplineMPE fit!")
 
         # Check that the base pulses are in the input frame.
         tray.Add(checkName, name=self.base_pulseseries)
@@ -416,10 +409,7 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name="splinempe-reco" + "FitParams")
 
-        def notify1(frame):
-            logger.debug(f"SplineMPE pass done! {datetime.datetime.now()}")
-
-        tray.Add(notify1, "notify1")
+        tray.Add(notify_debug, "notify_end", logger=logger, message="SplineMPE pass done!")
 
     @classmethod
     def to_recopixelvariation(
