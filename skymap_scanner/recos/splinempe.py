@@ -188,7 +188,7 @@ class SplineMPE(RecoInterface):
         # Prerequisites
         tray.Add(check_name, logger=logger, key=cls.energy_reco_seed)
 
-        tray.Add(log_frame, logger=logger, "logframe_before_muex")
+        tray.Add(log_frame, logger=logger)
 
         tray.Add(notify_debug, "notify-MuEX", logger=logger, message="Running MuEX")
 
@@ -205,7 +205,7 @@ class SplineMPE(RecoInterface):
             lcspan=0,
             If=lambda f: True,
         )
-        tray.Add(log_frame, logger=logger, "logframe_after_muex")
+        tray.Add(log_frame, logger=logger)
 
         tray.Add(check_name, logger=logger, key=cls.energy_estimator)
 
