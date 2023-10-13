@@ -12,3 +12,7 @@ def check_name(frame: I3Frame, logger, key: str) -> None:
 
 def notify_debug(frame: I3Frame, logger, message):
     logger.debug(f"{message} - {datetime.now()}")
+
+
+def log_frame(frame, logger):
+    logger.debug(f"{repr(frame)}/{frame}")

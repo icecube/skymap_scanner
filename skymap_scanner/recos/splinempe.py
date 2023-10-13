@@ -34,10 +34,9 @@ from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTCon
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from ..utils.utils import frame_for_logging
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
-from .common.utils import check_name, notify_debug
+from .common.utils import check_name, notify_debug, log_frame
 
 # Activate to log full IceTray operations
 icetray.logging.console()
@@ -189,7 +188,7 @@ class SplineMPE(RecoInterface):
         # Prerequisites
         tray.Add(check_name, logger=logger, key=cls.energy_reco_seed)
 
-        tray.Add(frame_for_logging, "logframe_before_muex")
+        tray.Add(log_frame, logger=logger, "logframe_before_muex")
 
         tray.Add(notify_debug, "notify-MuEX", logger=logger, message="Running MuEX")
 
@@ -206,7 +205,7 @@ class SplineMPE(RecoInterface):
             lcspan=0,
             If=lambda f: True,
         )
-        tray.Add(frame_for_logging, "logframe_after_muex")
+        tray.Add(log_frame, logger=logger, "logframe_after_muex")
 
         tray.Add(check_name, logger=logger, key=cls.energy_estimator)
 
