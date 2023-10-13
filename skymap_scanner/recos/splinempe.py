@@ -152,7 +152,7 @@ class SplineMPE(RecoInterface):
             allowSelfCoincidence=True,
         )
 
-        tray.Add(check_name, f"check-{name}", logger=logger, key=cls.base_pulseseries)
+        tray.Add(check_name, logger=logger, key=cls.base_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
@@ -167,9 +167,7 @@ class SplineMPE(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(
-            check_name, f"check-{name}", logger=logger, key=cls.rt_cleaned_pulseseries
-        )
+        tray.Add(check_name, logger=logger, key=cls.rt_cleaned_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
@@ -180,9 +178,7 @@ class SplineMPE(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(
-            check_name, f"check-{name}", logger=logger, key=cls.cleaned_muon_pulseseries
-        )
+        tray.Add(check_name, logger=logger, key=cls.cleaned_muon_pulseseries)
 
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
@@ -191,7 +187,7 @@ class SplineMPE(RecoInterface):
         # =========================================================
 
         # Prerequisites
-        tray.Add(check_name, f"check-{name}", logger=logger, key=cls.energy_reco_seed)
+        tray.Add(check_name, logger=logger, key=cls.energy_reco_seed)
 
         tray.Add(frame_for_logging, "logframe_before_muex")
 
@@ -212,7 +208,7 @@ class SplineMPE(RecoInterface):
         )
         tray.Add(frame_for_logging, "logframe_after_muex")
 
-        tray.Add(check_name, f"check-{name}", logger=logger, key=cls.energy_estimator)
+        tray.Add(check_name, logger=logger, key=cls.energy_estimator)
 
         tray.Add(
             mask_deepcore,
