@@ -1,4 +1,4 @@
-from icecube.icetray import I3Frame
+from icecube.icetray import I3Frame  # type: ignore[import]
 from datetime import datetime
 
 
