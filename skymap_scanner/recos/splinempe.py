@@ -157,6 +157,8 @@ class SplineMPE(RecoInterface):
             allowSelfCoincidence=True,
         )
 
+        tray.add(check_name(logger=logger, name=cls.base_pulseseries))
+
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
             "I3SeededRTCleaning_RecoPulseMask_Module",
