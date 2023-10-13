@@ -115,3 +115,6 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
     dec = float(dec)
 
     return (ra, dec)
+
+def frame_for_logging(frame: icetray.I3Frame) -> str:
+    return f"{repr(frame)}/{frame}"

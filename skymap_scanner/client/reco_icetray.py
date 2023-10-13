@@ -26,16 +26,12 @@ from .. import config as cfg
 from .. import recos
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
-from ..utils.utils import save_GCD_frame_packet_to_file
+from ..utils.utils import save_GCD_frame_packet_to_file, frame_for_logging
 
 LOGGER = logging.getLogger("skyscan.client.reco")
 
 # Activate to log full IceTray operations
 icetray.logging.console()
-
-
-def frame_for_logging(frame: icetray.I3Frame) -> str:
-    return f"{repr(frame)}/{frame}"
 
 
 class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
