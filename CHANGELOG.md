@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.8 (2023-10-13)
+
+### Other
+
+* Set shower regularization to very small value ([#225](https://github.com/icecube/skymap_scanner/issues/225)) ([`8ac7057`](https://github.com/icecube/skymap_scanner/commit/8ac705706c67751d7f31ca853f6a07cc5d5f52b5))
+
 ## v3.14.7 (2023-10-04)
 
 ### Other

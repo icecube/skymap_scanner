@@ -206,7 +206,7 @@ class MillipedeWilks(RecoInterface):
         tray.AddService('MillipedeLikelihoodFactory', 'millipedellh',
             MuonPhotonicsService=self.muon_service,
             CascadePhotonicsService=self.cascade_service,
-            ShowerRegularization=0,
+            ShowerRegularization=1e-14,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
             ReadoutWindow=self.pulsesName_cleaned+'TimeRange',
