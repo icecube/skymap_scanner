@@ -39,7 +39,7 @@ from .common.pulse_proc import mask_deepcore
 from .common.utils import check_name, notify_debug, log_frame
 
 # Activate to log full IceTray operations
-icetray.logging.console()
+# icetray.logging.console()
 
 
 class SplineMPE(RecoInterface):
