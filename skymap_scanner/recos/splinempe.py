@@ -64,8 +64,7 @@ class SplineMPE(RecoInterface):
     ]
 
     # Names used in the reco.
-    # energy_reco_seed = "OnlineL2_BestFit"
-    energy_reco_seed = "OnlineL2_SplineMPE"
+    energy_reco_seed = "OnlineL2_BestFit"
     energy_estimator = "OnlineL2_BestFit_MuEx"
 
     # This may be configurable in the future.
