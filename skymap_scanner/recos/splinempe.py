@@ -36,7 +36,7 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
-from .common.utils import check_name, notify_debug, log_frame
+from .common.utils import check_name, notify_debug  # , log_frame
 
 # Activate to log full IceTray operations
 # icetray.logging.console()
@@ -189,7 +189,7 @@ class SplineMPE(RecoInterface):
         # Prerequisites
         tray.Add(check_name, logger=logger, key=cls.energy_reco_seed)
 
-        tray.Add(log_frame, logger=logger)
+        # tray.Add(log_frame, logger=logger)
 
         tray.Add(notify_debug, "notify-MuEX", logger=logger, message="Running MuEX")
 
