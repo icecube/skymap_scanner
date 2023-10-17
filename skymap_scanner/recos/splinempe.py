@@ -65,7 +65,7 @@ class SplineMPE(RecoInterface):
 
     # Names used in the reco.
     energy_reco_seed = "OnlineL2_BestFit"
-    energy_estimator = "OnlineL2_BestFit_MuEx"
+    energy_estimator = "SkyScan_SplineMPE_MuEx"
 
     # This may be configurable in the future.
     # "VHESelfVeto" yields a reco-independent vertex seed.
