@@ -3,13 +3,12 @@
 import argparse
 import logging
 import sys
-import os
 from pathlib import Path
 
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
-RTOL_PER_FIELD = {"llh": 0.15, "E_in": 0.1, "E_tot": 0.1} if os.system("lscpu | grep avx512") == 0 else {"llh": 0.2, "E_in": 1, "E_tot": 2}
+RTOL_PER_FIELD = {"llh": 0.15, "E_in": 0.1, "E_tot": 0.1}
 
 
 def read_file(filepath: Path) -> SkyScanResult:
