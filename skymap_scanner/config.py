@@ -132,6 +132,10 @@ class EnvConfig:
     # TESTING/DEBUG VARS
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
 
+    # DEPENDENCY VARS
+    OPENBLAS_CORETYPE: str = "Haswell"  # use openblas with avx2
+    NPY_DISABLE_CPU_FEATURES: str = "AVX512F"
+
     def __post_init__(self) -> None:
         """Check values."""
         if self.SKYSCAN_PROGRESS_INTERVAL_SEC <= 0:
