@@ -22,7 +22,7 @@ export SKYSCAN_LOG_THIRD_PARTY=${SKYSCAN_LOG_THIRD_PARTY:-"INFO"}
 
 export CLIENT_STARTER_WAIT_FOR_STARTUP_JSON=${CLIENT_STARTER_WAIT_FOR_STARTUP_JSON:-12}
 
-export OPENBLAS_CORETYPE="Haswell"  # use openblas with avx2
+export OPENBLAS_CORETYPE="Sandybridge"  # use openblas with avx2
 export NPY_DISABLE_CPU_FEATURES="AVX512F"
 
 set +ex  # file is sourced so turn off

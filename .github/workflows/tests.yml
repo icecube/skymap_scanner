@@ -373,7 +373,6 @@ jobs:
           export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
-          printenv
 
           cd ./resources/launch_scripts
           ./local-scan.sh
