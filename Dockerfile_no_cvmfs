@@ -14,6 +14,8 @@ RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_single_spice_ftp
 RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/cascade_effectivedistance_spice_ftp-v1_z20.eff.fits \
        http://prod-exe.icecube.wisc.edu/spline-tables/cascade_effectivedistance_spice_ftp-v1_z20.eff.fits
 
+ENV OPENBLAS_CORETYPE="Haswell"
+ENV NPY_DISABLE_CPU_FEATURES="AVX512F,AVX512_KNL,AVX512_KNM,AVX512_CLX,AVX512_CNL,AVX512_ICL,AVX512CD,AVX512_SKX"
 
 ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
 
