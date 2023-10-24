@@ -47,7 +47,7 @@ RUN pip install .[client-starter,rabbitmq] || pip install .[rabbitmq]
 
 RUN pip freeze
 
-ENV OPENBLAS_CORETYPE="Haswell"  # use openblas with avx2
+ENV OPENBLAS_CORETYPE="Haswell"
 ENV NPY_DISABLE_CPU_FEATURES="AVX512F"
 
 # set the entry point so that module is called with any parameters given to the `docker run` command
