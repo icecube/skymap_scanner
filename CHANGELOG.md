@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.9 (2023-10-24)
+
+### Other
+
+* Debugging tests ([#227](https://github.com/icecube/skymap_scanner/issues/227)) ([`e7457ed`](https://github.com/icecube/skymap_scanner/commit/e7457ed951acf657f5871d93813de9c81210ae9a))
+* CI Updates ([#226](https://github.com/icecube/skymap_scanner/issues/226)) ([`3a75c27`](https://github.com/icecube/skymap_scanner/commit/3a75c27a315265781934314d24d9b18b113489e9))
+* <bot> update dependencies*.log files(s) ([`09b349c`](https://github.com/icecube/skymap_scanner/commit/09b349c0378b3c786d392f519e4d3dc2bc5b071f))
+
 ## v3.14.8 (2023-10-13)
 
 ### Other
