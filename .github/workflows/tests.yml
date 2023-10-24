@@ -369,11 +369,11 @@ jobs:
           set -x
           lscpu
           python3 --version
-          python -c 'import numpy; numpy.show_config()'
           source tests/env-vars.sh
           export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
+          printenv
 
           cd ./resources/launch_scripts
           ./local-scan.sh
