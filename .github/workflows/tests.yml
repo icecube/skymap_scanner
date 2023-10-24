@@ -367,6 +367,8 @@ jobs:
       - name: run
         run: |
           set -x
+          lscpu
+          python3 --version
           source tests/env-vars.sh
           export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
