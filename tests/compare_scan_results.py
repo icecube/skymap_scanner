@@ -8,7 +8,7 @@ from pathlib import Path
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
-RTOL_PER_FIELD = {"llh": 0.15, "E_in": 0.1, "E_tot": 0.1}
+RTOL_PER_FIELD = {"llh": 0.01, "E_in": 0.01, "E_tot": 0.01}
 
 
 def read_file(filepath: Path) -> SkyScanResult:

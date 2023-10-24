@@ -30,6 +30,7 @@ from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore, pulse_cleaning
 
+
 class MillipedeWilks(RecoInterface):
     """Reco logic for millipede."""
 
@@ -51,7 +52,6 @@ class MillipedeWilks(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
-        numpy.show_config()
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
