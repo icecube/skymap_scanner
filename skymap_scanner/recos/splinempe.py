@@ -73,7 +73,6 @@ class SplineMPE(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
-        np.show_config()
 
     @staticmethod
     def get_prejitter(config="max") -> int:
