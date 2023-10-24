@@ -4,7 +4,6 @@
 # pylint: skip-file
 # mypy: ignore-errors
 
-import copy
 import datetime
 import os
 from typing import Final, List, Tuple
@@ -52,6 +51,7 @@ class MillipedeWilks(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
+        numpy.show_config()
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
