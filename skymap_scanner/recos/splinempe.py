@@ -216,7 +216,7 @@ class SplineMPE(RecoInterface):
 
         tray.Add(log_energy)
 
-        tray.Add(check_name, logger=logger, key=cls.energy_estimator)
+        tray.Add(check_name, logger=logger, key=cls.ENERGY_ESTIMATOR)
         tray.Add(check_name, logger=logger, key=cls.base_pulseseries_hlc)
 
         tray.Add(
