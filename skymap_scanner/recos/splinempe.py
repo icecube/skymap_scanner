@@ -63,15 +63,19 @@ class SplineMPE(RecoInterface):
         MIE_STOCH_ABS,
     ]
 
-    # Names used in the reco.
-    energy_reco_seed = "OnlineL2_BestFit"
-    energy_estimator = "SkyScan_SplineMPE_MuEx"
+    # Seed for the energy reconstruction.
+    ENERGY_RECO_SEED: Final[str] = "OnlineL2_BestFit"
+
+    # Key to store the energy estimator.
+    # Chosen to avoid conflict with existing keys.
+    ENERGY_ESTIMATOR: Final[str] = "OnlineL2_BestFit_MuEx"
+    # ENERGY_ESTIMATOR: Final[str] = "SkyScan_SplineMPE_MuEx"
 
     # This may be configurable in the future.
     # "VHESelfVeto" yields a reco-independent vertex seed.
     # "OnlineL2_SplineMPE" picks the output of the L2 SplineMPE reco
     #   and is mostly supported for legacy reasons.
-    vertex_seed_source = "VHESelfVeto"
+    VERTEX_SEED_SOURCE = "VHESelfVeto"
 
     def __init__(self):
         # Mandatory attributes (RecoInterface).
@@ -187,7 +191,7 @@ class SplineMPE(RecoInterface):
         # =========================================================
 
         # Prerequisites
-        tray.Add(check_name, logger=logger, key=cls.energy_reco_seed)
+        tray.Add(check_name, logger=logger, key=cls.ENERGY_RECO_SEED)
 
         # tray.Add(log_frame, logger=logger)
 
@@ -196,10 +200,10 @@ class SplineMPE(RecoInterface):
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
             "muex",
-            cls.energy_estimator,
+            cls.ENERGY_ESTIMATOR,
             pulses=cls.cleaned_muon_pulseseries,
-            rectrk=cls.energy_reco_seed,
-            result=cls.energy_estimator,
+            rectrk=cls.ENERGY_RECO_SEED,
+            result=cls.ENERGY_ESTIMATOR,
             energy=True,
             detail=True,
             compat=False,
@@ -207,7 +211,12 @@ class SplineMPE(RecoInterface):
             If=lambda f: True,
         )
 
-        # tray.Add(check_name, logger=logger, key=cls.energy_estimator)
+        def log_energy(frame):
+            logger.info(f"MuEX = {frame[cls.ENERGY_ESTIMATOR].energy} GeV")
+
+        tray.Add(log_energy)
+
+        tray.Add(check_name, logger=logger, key=cls.energy_estimator)
         tray.Add(check_name, logger=logger, key=cls.base_pulseseries_hlc)
 
         tray.Add(
@@ -218,7 +227,7 @@ class SplineMPE(RecoInterface):
 
         ####
 
-        if cls.vertex_seed_source == "VHESelfVeto":
+        if cls.VERTEX_SEED_SOURCE == "VHESelfVeto":
             # For HESE events, HESE_VHESelfVeto should already be in the frame.
             #   Here, we re-run the module nevertheless to ensure consistency
             #   in the settings of the scan regardless of the input event.
@@ -246,7 +255,7 @@ class SplineMPE(RecoInterface):
             )
 
             def notify_seed(frame):
-                logger.debug(f"Seed from {cls.vertex_seed_source}:")
+                logger.debug(f"Seed from {cls.VERTEX_SEED_SOURCE}:")
                 logger.debug(frame[cfg.INPUT_POS_NAME])
                 # logger.debug(f"Seed from OnlineL2_SplineMPE:")
                 # logger.debug(frame["OnlineL2_SplineMPE"].pos)
@@ -254,7 +263,7 @@ class SplineMPE(RecoInterface):
 
             tray.Add(notify_seed)
 
-        elif cls.vertex_seed_source == "OnlineL2_SplineMPE":
+        elif cls.VERTEX_SEED_SOURCE == "OnlineL2_SplineMPE":
             # First vertex seed is extracted from OnlineL2 reco.
             def extract_seed(frame):
                 seed_source = "OnlineL2_SplineMPE"
@@ -322,7 +331,7 @@ class SplineMPE(RecoInterface):
         # Check that the base pulses are in the input frame.
         tray.Add(checkName, name=self.base_pulseseries)
 
-        tray.AddModule(checkName, name=self.energy_reco_seed)
+        tray.AddModule(checkName, name=self.ENERGY_RECO_SEED)
 
         # ==============================================================================
         # MAIN RECONSTRUCTION
@@ -341,7 +350,7 @@ class SplineMPE(RecoInterface):
             ModelStochastics=False,
             NoiseModel=self.get_noise_model(),
             Pulses=self.cleaned_muon_pulseseries_ic,
-            E_Estimators=[self.energy_estimator],
+            E_Estimators=[self.ENERGY_ESTIMATOR],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
