@@ -68,8 +68,8 @@ class SplineMPE(RecoInterface):
 
     # Key to store the energy estimator.
     # Chosen to avoid conflict with existing keys.
-    ENERGY_ESTIMATOR: Final[str] = "OnlineL2_BestFit_MuEx"
-    # ENERGY_ESTIMATOR: Final[str] = "SkyScan_SplineMPE_MuEx"
+    # ENERGY_ESTIMATOR: Final[str] = "OnlineL2_BestFit_MuEx"
+    ENERGY_ESTIMATOR: Final[str] = "SkyScan_SplineMPE_MuEx"
 
     # This may be configurable in the future.
     # "VHESelfVeto" yields a reco-independent vertex seed.
