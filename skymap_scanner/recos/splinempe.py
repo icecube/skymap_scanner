@@ -215,7 +215,7 @@ class SplineMPE(RecoInterface):
             logger.info(
                 f"{cls.ENERGY_ESTIMATOR} = {frame[cls.ENERGY_ESTIMATOR].energy} GeV"
             )
-            if "OnlineL2_BestFit_MuEX" in frame:
+            if cls.ENERGY_ESTIMATOR != "OnlineL2_BestFit_MuEX" and "OnlineL2_BestFit_MuEX" in frame:
                 logger.info(
                     f = {frame['OnlineL2_BestFit_MuEx'].energy} GeV"
                 )
