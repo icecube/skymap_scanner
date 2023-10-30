@@ -75,7 +75,8 @@ class SplineMPE(RecoInterface):
     # "VHESelfVeto" yields a reco-independent vertex seed.
     # "OnlineL2_SplineMPE" picks the output of the L2 SplineMPE reco
     #   and is mostly supported for legacy reasons.
-    VERTEX_SEED_SOURCE = "VHESelfVeto"
+    # VERTEX_SEED_SOURCE = "VHESelfVeto"
+    VERTEX_SEED_SOURCE = "OnlineL2_SplineMPE"
 
     def __init__(self):
         # Mandatory attributes (RecoInterface).
