@@ -171,3 +171,5 @@ plots-*/
 
 # wipac-dev-py-setup-action
 !dependencies*.log
+
+device-refresh-token
