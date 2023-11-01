@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.11 (2023-11-01)
+
+### Other
+
+* Bump Dependencies ([#231](https://github.com/icecube/skymap_scanner/issues/231)) ([`167bf2c`](https://github.com/icecube/skymap_scanner/commit/167bf2cc8c5a48755ca3513932646f14f4dfd81e))
+
 ## v3.14.10 (2023-10-24)
 
 ### Other
