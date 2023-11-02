@@ -34,7 +34,7 @@ decorator==4.4.2
 defusedxml==0.7.1
 docutils==0.20.1
 et-xmlfile==1.0.1
-ewms-pilot==0.16.0
+ewms-pilot==0.16.2
 fonttools==4.29.1
 fs==2.4.12
 gast==0.5.2
@@ -249,7 +249,7 @@ scipy==1.8.0
 setuptools==59.6.0
 six==1.16.0
 skymap-scanner
-├── ewms-pilot [required: Any, installed: 0.16.0]
+├── ewms-pilot [required: Any, installed: 0.16.2]
 │   ├── htchirp [required: Any, installed: 2.0]
 │   └── oms-mqclient [required: Any, installed: 2.4.9]
 │       └── wipac-dev-tools [required: Any, installed: 1.7.1]
