@@ -6,7 +6,7 @@ set -ex  # file is sourced so turn off at end
 export SKYSCAN_BROKER_CLIENT=${SKYSCAN_BROKER_CLIENT:-"rabbitmq"}
 # note=auth env vars are in job(s)
 
-export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-1800}
+export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-600}
 export EWMS_PILOT_DUMP_SUBPROC_OUTPUT=${EWMS_PILOT_DUMP_SUBPROC_OUTPUT:-"True"}
 
 # export SKYSCAN_DEBUG_DIR=debug-pkl-dir -- rely on user value
