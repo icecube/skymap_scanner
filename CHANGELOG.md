@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.14 (2023-11-03)
+
+### Other
+
+* CI: Fail Faster ([#233](https://github.com/icecube/skymap_scanner/issues/233)) ([`4d94112`](https://github.com/icecube/skymap_scanner/commit/4d941125ec88f68d5b8a9e63ee1967471fd160ad))
+* CI: Wait Only on Server ([#232](https://github.com/icecube/skymap_scanner/issues/232)) ([`639c86e`](https://github.com/icecube/skymap_scanner/commit/639c86e5a54a52975f5e523b3a0b57443311d864))
+* <bot> update dependencies*.log files(s) ([`6f70af5`](https://github.com/icecube/skymap_scanner/commit/6f70af503361d7033fbae4837e0191baeefa1b87))
+
 ## v3.14.13 (2023-11-02)
 
 ### Other
