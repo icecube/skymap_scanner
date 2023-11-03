@@ -41,6 +41,7 @@ fi
     $arg_predictive_scanning_threshold \
     --real-event \
     &
+server_pid=$!
 
 
 # Wait for startup.json
@@ -61,8 +62,7 @@ for i in $( seq 1 $nclients ); do
 done
 
 
-# Wait for Everyone
-wait -n  # for server
-for i in $( seq 1 $nclients ); do
-    wait -n  # for client
-done
+# Wait for scan
+# -- we don't actually care about the clients, if they fail or not
+# -- if all the clients fail, then the sever times out and we can look at client logs
+wait $server_pid
