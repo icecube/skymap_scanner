@@ -24,6 +24,7 @@ env:
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
   EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "reco-icetray logs" step instead
+  EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # allow a reco to fail (if it keeps failing on redelivery/ies, expect it to affect the scanner server's timeout eventually)
   # see source tests/env-vars.sh
 
 
