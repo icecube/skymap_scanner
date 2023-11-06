@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.16 (2023-11-06)
+
+### Other
+
+* CI: Failure Resiliant Clients ([#234](https://github.com/icecube/skymap_scanner/issues/234)) ([`14b860e`](https://github.com/icecube/skymap_scanner/commit/14b860e45df7933d674f283b2c65b5c19d3bae1e))
+
 ## v3.14.15 (2023-11-03)
 
 ### Other
