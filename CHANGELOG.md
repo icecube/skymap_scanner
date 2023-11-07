@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.14.18 (2023-11-07)
+
+### Other
+
+* Bump `WIPACrepo/wipac-dev-py-setup-action` ([#235](https://github.com/icecube/skymap_scanner/issues/235)) ([`61e9303`](https://github.com/icecube/skymap_scanner/commit/61e9303e8636e57b85c3f8a6e67328accbc02598))
+
 ## v3.14.17 (2023-11-06)
 
 ### Other
