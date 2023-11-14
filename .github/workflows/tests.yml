@@ -357,9 +357,9 @@ jobs:
 
           cd ./resources/launch_scripts
           timeout 240 ./local-scan.sh
-          tree c
-          # TODO - add check for fails
-          for i in $(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f); do tail -1 $i ; done
+
+          # check for fails
+          find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec tail -1 {} \; | sort | uniq
 
 
   test-run-realistic:
