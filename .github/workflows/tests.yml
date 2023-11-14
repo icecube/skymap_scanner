@@ -356,8 +356,8 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          timeout 240 ./local-scan.sh
-      - name: run
+          timeout 240 ./local-scan.sh  || true
+      - name: look at stderrfiles
         run: |
           set -x
           # check for fails
