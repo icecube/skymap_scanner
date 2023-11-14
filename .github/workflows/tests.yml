@@ -588,6 +588,7 @@ jobs:
               test-run-singularity-dummy-reco,
               test-file-staging,
               test-run-nsides-thresholds-dummy,
+              test-run-crash-dummy,
               test-run-realistic,
               test-run-single-pixel
            ]
