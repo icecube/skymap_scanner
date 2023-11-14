@@ -23,16 +23,12 @@ class CrashDummy(dummy.Dummy):
                 logger.debug(f"crash! {rand=}")
 
                 # now, pick what to fail with
-                match random.choice(["infinite-loop", "error"]):
-                    case "infinite-loop":
-                        while True:  # to infinity!
-                            continue
-                    case "error":
-                        raise KeyError("intentional crash-dummy error")
-                    case other:
-                        raise Exception(
-                            f"unintentional intentional crash-dummy error ({other})"
-                        )
+                fail = random.choice(["infinite-loop", "error"])
+                if fail == "infinite-loop":
+                    while True:  # to infinity!
+                        continue
+                elif fail == "error":
+                    raise KeyError("intentional crash-dummy error")
 
             else:
                 logger.debug(f"no crash: {rand=}")
