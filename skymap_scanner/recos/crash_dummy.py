@@ -28,6 +28,7 @@ class CrashDummy(dummy.Dummy):
 
                 # now, pick what to fail with
                 fail = random.choice(["infinite-loop", "error"])
+                logger.debug(f"crashing with '{fail}'")
                 if fail == "infinite-loop":
                     while True:  # to infinity!
                         continue

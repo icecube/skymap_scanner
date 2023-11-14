@@ -361,7 +361,7 @@ jobs:
         run: |
           set -x
           # check for fails
-          find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec tail -1 {} \; | sort | uniq
+          find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c
 
 
   test-run-realistic:
