@@ -359,7 +359,7 @@ jobs:
           timeout 240 ./local-scan.sh
           tree c
           # TODO - add check for fails
-          for i in $(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f); do tail $i ; done
+          for i in $(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f); do tail -1 $i ; done
 
 
   test-run-realistic:
