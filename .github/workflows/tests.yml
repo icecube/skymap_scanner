@@ -355,7 +355,7 @@ jobs:
           export SKYSCAN_CRASH_DUMMY_PROBABILITY=0.75
 
           cd ./resources/launch_scripts
-          timeout 600 ./local-scan.sh
+          timeout 240 ./local-scan.sh
           ls .
           tree .
           # TODO - add check for fails
