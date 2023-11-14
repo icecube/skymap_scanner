@@ -357,8 +357,7 @@ jobs:
 
           cd ./resources/launch_scripts
           timeout 240 ./local-scan.sh
-          ls .
-          tree .
+          tree $SKYSCAN_DEBUG_DIR
           # TODO - add check for fails
 
 
