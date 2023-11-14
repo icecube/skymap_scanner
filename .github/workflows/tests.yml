@@ -357,7 +357,9 @@ jobs:
 
           cd ./resources/launch_scripts
           timeout 240 ./local-scan.sh
-
+      - name: run
+        run: |
+          set -x
           # check for fails
           find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec tail -1 {} \; | sort | uniq
 
