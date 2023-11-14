@@ -4,6 +4,8 @@
 import random
 from typing import Final
 
+from icecube import icetray  # type: ignore[import]  # noqa: F401
+
 from ..config import ENV
 from . import RecoInterface, dummy
 
@@ -11,6 +13,8 @@ from . import RecoInterface, dummy
 class CrashDummy(dummy.Dummy):
     """Logic for a dummy reco."""
 
+    @staticmethod
+    @icetray.traysegment
     def traysegment(tray, name, logger, **kwargs):
         """Perform dummy reco."""
         dummy.Dummy.traysegment(tray, name, logger, **kwargs)
