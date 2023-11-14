@@ -131,6 +131,7 @@ class EnvConfig:
 
     # TESTING/DEBUG VARS
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
+    SKYSCAN_CRASH_DUMMY_PROBABILITY: float = 0.5  # for reco algo: crash-dummy
 
     def __post_init__(self) -> None:
         """Check values."""
