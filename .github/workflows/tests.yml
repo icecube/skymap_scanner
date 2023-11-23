@@ -24,6 +24,7 @@ env:
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
   EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "reco-icetray logs" step instead
+  EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # allow a reco to fail (if it keeps failing on redelivery/ies, expect it to affect the scanner server's timeout eventually)
   # see source tests/env-vars.sh
 
 
@@ -78,11 +79,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.7
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.9
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
           git_committer_email: ${{ env.BOT_EMAIL }}
+          dockerfile_nametags: Dockerfile:icecube/skymap_scanner:latest
 
 
   #############################################################################
@@ -103,6 +105,7 @@ jobs:
           file: Dockerfile
           tags: icecube/skymap_scanner:local
 
+
   test-build-docker-pulsar:
     needs: test-build-docker
     runs-on: ubuntu-latest
@@ -119,6 +122,7 @@ jobs:
           cache-from: type=gha
           file: Dockerfile_pulsar
           tags: icecube/skymap_scanner:local-pulsar
+
 
   test-run-singularity-dummy-reco:
     needs: test-build-docker
@@ -216,6 +220,7 @@ jobs:
         run: |
           docker logs rabbitmq
 
+
   test-run-nsides-thresholds-dummy:
     needs: test-build-docker
     runs-on: ubuntu-latest
@@ -302,6 +307,62 @@ jobs:
         if: always()
         run: |
           docker logs rabbitmq
+
+
+  test-run-crash-dummy:
+    needs: test-build-docker
+    runs-on: ubuntu-latest
+    env:
+      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
+      SKYSCAN_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_BROKER_AUTH: password  # using this would override password in address
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:latest
+        env:
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
+          RABBITMQ_VHOST: test
+          BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
+        options: >-
+          --name rabbitmq
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+        - 5672:5672
+        - 15672:15672
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
+          file: Dockerfile
+          tags: icecube/skymap_scanner:local
+          load: true
+      - name: run
+        run: |
+          set -x
+          source tests/env-vars.sh
+          export _RECO_ALGO=crash_dummy
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+          export _NSIDES="1:0 2:12 4:12"
+          export SKYSCAN_CRASH_DUMMY_PROBABILITY=0.75
+          export EWMS_PILOT_TASK_TIMEOUT=15
+
+          cd ./resources/launch_scripts
+          timeout 240 ./local-scan.sh  || true
+      - name: look at stderrfiles
+        run: |
+          set -x
+          # check for fails
+          find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c
+
 
   test-run-realistic:
     needs: test-build-docker
@@ -403,6 +464,7 @@ jobs:
         run: |
           docker logs rabbitmq
 
+
   test-file-staging:
     needs: test-build-docker
     runs-on: ubuntu-latest
@@ -422,6 +484,7 @@ jobs:
           docker run --rm -i \
             icecube/skymap_scanner:local \
             python tests/file_staging.py
+
 
   test-run-single-pixel:
     needs: test-build-docker
@@ -530,6 +593,7 @@ jobs:
               test-run-singularity-dummy-reco,
               test-file-staging,
               test-run-nsides-thresholds-dummy,
+              test-run-crash-dummy,
               test-run-realistic,
               test-run-single-pixel
            ]

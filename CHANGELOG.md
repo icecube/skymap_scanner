@@ -2,6 +2,84 @@
 
 <!--next-version-placeholder-->
 
+## v3.15.2 (2023-11-17)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`6e119d5`](https://github.com/icecube/skymap_scanner/commit/6e119d5f69a2160da6c5425fdcca213704c43815))
+
+## v3.15.1 (2023-11-16)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`d265c6c`](https://github.com/icecube/skymap_scanner/commit/d265c6c05ac5c9547b64b6712538283dee0dc715))
+
+## v3.15.0 (2023-11-15)
+
+
+
+## v3.14.20 (2023-11-09)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`dec80f6`](https://github.com/icecube/skymap_scanner/commit/dec80f64da2163d49a522bcbfef92e5ad5900829))
+
+## v3.14.19 (2023-11-08)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`29dbc73`](https://github.com/icecube/skymap_scanner/commit/29dbc7383759df651e54ee0d6dd8c690b3a4b796))
+
+## v3.14.18 (2023-11-07)
+
+### Other
+
+* Bump `WIPACrepo/wipac-dev-py-setup-action` ([#235](https://github.com/icecube/skymap_scanner/issues/235)) ([`61e9303`](https://github.com/icecube/skymap_scanner/commit/61e9303e8636e57b85c3f8a6e67328accbc02598))
+
+## v3.14.17 (2023-11-06)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`ad54d69`](https://github.com/icecube/skymap_scanner/commit/ad54d69422fc3db5883e242ea26d42929679ad4c))
+
+## v3.14.16 (2023-11-06)
+
+### Other
+
+* CI: Failure Resiliant Clients ([#234](https://github.com/icecube/skymap_scanner/issues/234)) ([`14b860e`](https://github.com/icecube/skymap_scanner/commit/14b860e45df7933d674f283b2c65b5c19d3bae1e))
+
+## v3.14.15 (2023-11-03)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`833ae43`](https://github.com/icecube/skymap_scanner/commit/833ae433a5b97f43e35a511f68b15286c760043e))
+
+## v3.14.14 (2023-11-03)
+
+### Other
+
+* CI: Fail Faster ([#233](https://github.com/icecube/skymap_scanner/issues/233)) ([`4d94112`](https://github.com/icecube/skymap_scanner/commit/4d941125ec88f68d5b8a9e63ee1967471fd160ad))
+* CI: Wait Only on Server ([#232](https://github.com/icecube/skymap_scanner/issues/232)) ([`639c86e`](https://github.com/icecube/skymap_scanner/commit/639c86e5a54a52975f5e523b3a0b57443311d864))
+* <bot> update dependencies*.log files(s) ([`6f70af5`](https://github.com/icecube/skymap_scanner/commit/6f70af503361d7033fbae4837e0191baeefa1b87))
+
+## v3.14.13 (2023-11-02)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`b6504e2`](https://github.com/icecube/skymap_scanner/commit/b6504e243c11f63dbcac2d6a6731395b32cc650e))
+
+## v3.14.12 (2023-11-02)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`55aef6c`](https://github.com/icecube/skymap_scanner/commit/55aef6c881658127385da5b4c011e1191bb26ddd))
+
+## v3.14.11 (2023-11-01)
+
+### Other
+
+* Bump Dependencies ([#231](https://github.com/icecube/skymap_scanner/issues/231)) ([`167bf2c`](https://github.com/icecube/skymap_scanner/commit/167bf2cc8c5a48755ca3513932646f14f4dfd81e))
+
 ## v3.14.10 (2023-10-24)
 
 ### Other
