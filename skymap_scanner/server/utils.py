@@ -1,8 +1,11 @@
 """Server-specific utils."""
 
 
+import asyncio
 import json
+import logging
 import pickle
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -41,6 +44,35 @@ async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
     except Exception as e:
         LOGGER.warning(f"request to {rc.address} failed -- not fatal: {e}")
         return None
+
+
+async def kill_switch_check_from_skydriver() -> None:
+    """Routinely check SkyDriver whether to continue the scan."""
+    logger = logging.getLogger("skyscan.kill_switch")
+
+    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        skydriver_rc = connect_to_skydriver(urgent=False)
+    else:
+        skydriver_rc = None
+
+    while True:
+        await asyncio.sleep(cfg.ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
+
+        if not skydriver_rc:
+            # even if there's no skydriver to connect to,
+            #   we still run the loop & thread to mimic
+            #   closer-to-reality testing conditions.
+            continue
+
+        status = await skydriver_rc.request(
+            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
+        )
+
+        if status["scan_state"].startswith("STOPPED__"):
+            logger.critical(
+                f"Kill switch triggered by SkyDriver scan state: {status['scan_state']}"
+            )
+            sys.exit(1)
 
 
 async def fetch_event_contents_from_skydriver() -> Any:
