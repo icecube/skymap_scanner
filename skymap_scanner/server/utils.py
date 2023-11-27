@@ -48,21 +48,15 @@ async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
 
 async def kill_switch_check_from_skydriver() -> None:
     """Routinely check SkyDriver whether to continue the scan."""
+    if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        return
+
     logger = logging.getLogger("skyscan.kill_switch")
 
-    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
-        skydriver_rc = connect_to_skydriver(urgent=False)
-    else:
-        skydriver_rc = None
+    skydriver_rc = connect_to_skydriver(urgent=False)
 
     while True:
         await asyncio.sleep(cfg.ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
-
-        if not skydriver_rc:
-            # even if there's no skydriver to connect to,
-            #   we still run the loop & thread to mimic
-            #   closer-to-reality testing conditions.
-            continue
 
         status = await skydriver_rc.request(
             "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
