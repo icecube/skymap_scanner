@@ -731,7 +731,10 @@ def main() -> None:
     )
 
     # create background thread for checking whether to abort -- fire & forget
-    threading.Thread(target=kill_switch_check_from_skydriver).start()
+    threading.Thread(
+        target=asyncio.run,
+        args=(kill_switch_check_from_skydriver(),),
+    ).start()
 
     # go!
     asyncio.run(
