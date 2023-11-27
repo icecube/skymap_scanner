@@ -734,6 +734,7 @@ def main() -> None:
     threading.Thread(
         target=asyncio.run,
         args=(kill_switch_check_from_skydriver(),),
+        daemon=True,
     ).start()
 
     # go!
