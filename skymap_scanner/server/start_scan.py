@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import random
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
@@ -15,14 +16,12 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 import healpy  # type: ignore[import]
 import mqclient as mq
 import numpy
-from icecube.icetray import I3Units  # type: ignore[import]
 from icecube import (  # type: ignore[import]
     astro,
     dataclasses,
     full_event_followup,
     icetray,
 )
-from rest_tools.client import RestClient
 from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
@@ -45,6 +44,7 @@ from .utils import (
     NSideProgression,
     fetch_event_contents_from_file,
     fetch_event_contents_from_skydriver,
+    kill_switch_check_from_skydriver,
 )
 
 StrDict = Dict[str, Any]
@@ -89,9 +89,9 @@ class PixelsToReco:
         self.input_pos_name = input_pos_name
         self.input_time_name = input_time_name
         self.output_particle_name = output_particle_name
-        
+
         RecoAlgo: type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
-        
+
         self.reco: RecoInterface = RecoAlgo()
 
         self.pos_variations = self.reco.get_vertex_variations()
@@ -120,7 +120,7 @@ class PixelsToReco:
 
         # The HLC pulse mask should have been been created in prepare_frames().
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
-        
+
         self.omgeo = g_frame["I3Geometry"].omgeo
 
 
@@ -183,7 +183,7 @@ class PixelsToReco:
         particle.fit_status = dataclasses.I3Particle.FitStatus.OK
         particle.pos = position
         particle.dir = direction
-        
+
         if self.reco.refine_time:
             LOGGER.debug(f"Reco_algo is {self.reco.name}, refining time")
             # given direction and vertex position, calculate time from CAD
@@ -234,7 +234,7 @@ class PixelsToReco:
         else:
             coarser_nside = nside
             while True:
-                # Look up the first available coarser NSIDE by iteratively dividing by two the current nside. 
+                # Look up the first available coarser NSIDE by iteratively dividing by two the current nside.
                 # NOTE (v3): this guesswork could be avoided using the NSIDE progression.
                 coarser_nside = coarser_nside/2
                 coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
@@ -267,7 +267,7 @@ class PixelsToReco:
                     time = self.nsides_dict[coarser_nside][coarser_pixel].time
                     energy = self.nsides_dict[coarser_nside][coarser_pixel].energy
 
-        # Now generate the vertex seed position variations according to the reco-specific logic. 
+        # Now generate the vertex seed position variations according to the reco-specific logic.
 
         LOGGER.debug(f"Generating {len(self.pos_variations)} position variations.")
 
@@ -729,6 +729,13 @@ def main() -> None:
         auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
+
+    # create background thread for checking whether to abort -- fire & forget
+    threading.Thread(
+        target=asyncio.run,
+        args=(kill_switch_check_from_skydriver(),),
+        daemon=True,
+    ).start()
 
     # go!
     asyncio.run(

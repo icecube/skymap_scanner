@@ -94,6 +94,8 @@ class EnvConfig:
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
+    SKYSCAN_KILL_SWITCH_CHECK_INTERVAL: int = 5 * 60
+
     # BROKER/MQ VARS
     SKYSCAN_BROKER_CLIENT: str = "rabbitmq"
     SKYSCAN_BROKER_ADDRESS: str = ""  # broker / mq address
