@@ -129,7 +129,7 @@ sphinxcontrib-serializinghtml==1.1.9
 sympy==1.9
 tables==3.7.0
 toml==0.10.2
-tornado==6.3.3
+tornado==6.4
 traitlets==5.1.1
 typing_extensions==4.8.0
 ufoLib2==0.13.1
@@ -287,7 +287,7 @@ skymap-scanner
     ├── requests [required: Any, installed: 2.25.1]
     ├── requests-futures [required: Any, installed: 1.0.1]
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
-    ├── tornado [required: Any, installed: 6.3.3]
+    ├── tornado [required: Any, installed: 6.4]
     ├── urllib3 [required: >=2.0.4, installed: 2.1.0]
     └── wipac-dev-tools [required: Any, installed: 1.8.1]
         ├── requests [required: Any, installed: 2.25.1]
