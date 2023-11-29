@@ -36,12 +36,17 @@ from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
+from .common.utils import check_name, notify_debug  # , log_frame
+
+# Activate to log full IceTray operations
+# icetray.logging.console()
 
 
 class SplineMPE(RecoInterface):
     """Logic for SplineMPE reco."""
 
     base_pulseseries = cfg.INPUT_PULSES_NAME
+    base_pulseseries_hlc = cfg.INPUT_PULSES_NAME + "HLC"
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
     cleaned_muon_pulseseries = "CleanedMuonPulses"
     cleaned_muon_pulseseries_ic = "CleanedMuonPulsesIC"
@@ -58,15 +63,20 @@ class SplineMPE(RecoInterface):
         MIE_STOCH_ABS,
     ]
 
-    # Names used in the reco.
-    energy_reco_seed = "OnlineL2_BestFit"
-    energy_estimator = "OnlineL2_BestFit_MuEx"
+    # Seed for the energy reconstruction.
+    ENERGY_RECO_SEED: Final[str] = "OnlineL2_BestFit"
+
+    # Key to store the energy estimator.
+    # Chosen to avoid conflict with existing keys.
+    # ENERGY_ESTIMATOR: Final[str] = "OnlineL2_BestFit_MuEx"
+    ENERGY_ESTIMATOR: Final[str] = "SkyScan_SplineMPE_MuEx"
 
     # This may be configurable in the future.
     # "VHESelfVeto" yields a reco-independent vertex seed.
     # "OnlineL2_SplineMPE" picks the output of the L2 SplineMPE reco
     #   and is mostly supported for legacy reasons.
-    vertex_seed_source = "VHESelfVeto"
+    # VERTEX_SEED_SOURCE = "VHESelfVeto"
+    VERTEX_SEED_SOURCE = "OnlineL2_SplineMPE"
 
     def __init__(self):
         # Mandatory attributes (RecoInterface).
@@ -136,11 +146,6 @@ class SplineMPE(RecoInterface):
         # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
         # "CleanedMuonPulses" is equivalent to "OnlineL2_CleanedMuonPulses".
         # =========================================================
-        def checkName(frame: I3Frame, name: str) -> None:
-            if name not in frame:
-                raise RuntimeError(f"{name} not in frame.")
-            else:
-                logger.debug(f"Check that {name} is in frame: -> success.")
 
         # from icetray/filterscripts/python/all_filters.py
         seededRTConfig = I3DOMLinkSeededRTConfigurationService(
@@ -151,6 +156,8 @@ class SplineMPE(RecoInterface):
             useDustlayerCorrection=False,
             allowSelfCoincidence=True,
         )
+
+        tray.Add(check_name, logger=logger, key=cls.base_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
@@ -165,7 +172,7 @@ class SplineMPE(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(checkName, name=cls.rt_cleaned_pulseseries)
+        tray.Add(check_name, logger=logger, key=cls.rt_cleaned_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
@@ -176,35 +183,49 @@ class SplineMPE(RecoInterface):
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
+        tray.Add(check_name, logger=logger, key=cls.cleaned_muon_pulseseries)
 
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
         # Provide SplineMPE with energy estimation from MuEx
         # This should improve the following SplineMPE track reco.
         # =========================================================
-        def notify_muex(frame):
-            logger.debug(f"Running MuEX - {datetime.datetime.now()}")
 
-        tray.Add(notify_muex, "notify_muex")
+        # Prerequisites
+        tray.Add(check_name, logger=logger, key=cls.ENERGY_RECO_SEED)
 
-        def log_frame(frame):
-            logger.debug(f"{repr(frame)}/{frame}")
+        # tray.Add(log_frame, logger=logger)
+
+        tray.Add(notify_debug, "notify-MuEX", logger=logger, message="Running MuEX")
 
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
             "muex",
-            cls.energy_estimator,
+            cls.ENERGY_ESTIMATOR,
             pulses=cls.cleaned_muon_pulseseries,
-            rectrk=cls.energy_reco_seed,
-            result=cls.energy_estimator,
+            rectrk=cls.ENERGY_RECO_SEED,
+            result=cls.ENERGY_ESTIMATOR,
             energy=True,
             detail=True,
             compat=False,
             lcspan=0,
             If=lambda f: True,
         )
-        tray.Add(log_frame, "logframe")
+
+        def log_energy(frame):
+            logger.info(
+                f"{cls.ENERGY_ESTIMATOR} = {frame[cls.ENERGY_ESTIMATOR].energy} GeV"
+            )
+            if (
+                cls.ENERGY_ESTIMATOR != "OnlineL2_BestFit_MuEX"
+                and "OnlineL2_BestFit_MuEX" in frame
+            ):
+                logger.info(f"{frame['OnlineL2_BestFit_MuEx'].energy} GeV")
+
+        tray.Add(log_energy)
+
+        tray.Add(check_name, logger=logger, key=cls.ENERGY_ESTIMATOR)
+        tray.Add(check_name, logger=logger, key=cls.base_pulseseries_hlc)
 
         tray.Add(
             mask_deepcore,
@@ -214,7 +235,7 @@ class SplineMPE(RecoInterface):
 
         ####
 
-        if cls.vertex_seed_source == "VHESelfVeto":
+        if cls.VERTEX_SEED_SOURCE == "VHESelfVeto":
             # For HESE events, HESE_VHESelfVeto should already be in the frame.
             #   Here, we re-run the module nevertheless to ensure consistency
             #   in the settings of the scan regardless of the input event.
@@ -223,7 +244,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto",
                 VertexThreshold=250,
-                Pulses=cls.base_pulseseries + "HLC",
+                Pulses=cls.base_pulseseries_hlc,
                 OutputBool="VHESelfVeto",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -234,7 +255,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto-emergency-lowen-settings",
                 VertexThreshold=5,
-                Pulses=cls.base_pulseseries + "HLC",
+                Pulses=cls.base_pulseseries_hlc,
                 OutputBool="VHESelfVeto-seed-source",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -242,7 +263,7 @@ class SplineMPE(RecoInterface):
             )
 
             def notify_seed(frame):
-                logger.debug(f"Seed from {cls.vertex_seed_source}:")
+                logger.debug(f"Seed from {cls.VERTEX_SEED_SOURCE}:")
                 logger.debug(frame[cfg.INPUT_POS_NAME])
                 # logger.debug(f"Seed from OnlineL2_SplineMPE:")
                 # logger.debug(frame["OnlineL2_SplineMPE"].pos)
@@ -250,7 +271,7 @@ class SplineMPE(RecoInterface):
 
             tray.Add(notify_seed)
 
-        elif cls.vertex_seed_source == "OnlineL2_SplineMPE":
+        elif cls.VERTEX_SEED_SOURCE == "OnlineL2_SplineMPE":
             # First vertex seed is extracted from OnlineL2 reco.
             def extract_seed(frame):
                 seed_source = "OnlineL2_SplineMPE"
@@ -308,12 +329,17 @@ class SplineMPE(RecoInterface):
                 f"starting a new SplineMPE fit ({name})! {datetime.datetime.now()}"
             )
 
-        tray.Add(notify0, "notify0")
+        tray.Add(
+            notify_debug,
+            "notify_start",
+            logger=logger,
+            message=f"starting a new SplineMPE fit!",
+        )
 
         # Check that the base pulses are in the input frame.
         tray.Add(checkName, name=self.base_pulseseries)
 
-        tray.AddModule(checkName, name=self.energy_reco_seed)
+        tray.AddModule(checkName, name=self.ENERGY_RECO_SEED)
 
         # ==============================================================================
         # MAIN RECONSTRUCTION
@@ -321,7 +347,7 @@ class SplineMPE(RecoInterface):
         # Multiple energy estimators can be provided but they should be run beforehand.
         # =============================================================================
 
-        tray.AddModule(checkName, name=self.energy_estimator)
+        # tray.AddModule(checkName, name=self.energy_estimator)
 
         tray.Add(
             "I3SplineRecoLikelihoodFactory",
@@ -332,7 +358,7 @@ class SplineMPE(RecoInterface):
             ModelStochastics=False,
             NoiseModel=self.get_noise_model(),
             Pulses=self.cleaned_muon_pulseseries_ic,
-            E_Estimators=[self.energy_estimator],
+            E_Estimators=[self.ENERGY_ESTIMATOR],
             Likelihood="MPE",
             NoiseRate=10 * I3Units.hertz,
             PreJitter=0,
@@ -403,10 +429,9 @@ class SplineMPE(RecoInterface):
 
         tray.Add(checkName, name="splinempe-reco" + "FitParams")
 
-        def notify1(frame):
-            logger.debug(f"SplineMPE pass done! {datetime.datetime.now()}")
-
-        tray.Add(notify1, "notify1")
+        tray.Add(
+            notify_debug, "notify_end", logger=logger, message="SplineMPE pass done!"
+        )
 
     @classmethod
     def to_recopixelvariation(
