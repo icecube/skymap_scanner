@@ -30,7 +30,7 @@ REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
 LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
 # physics strings
-INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
+INPUT_PULSES_NAME: Final = "SplitInIcePulses"
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
 OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
