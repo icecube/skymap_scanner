@@ -695,13 +695,15 @@ def main() -> None:
         event_contents = fetch_event_contents_from_file(args.event_file)
 
     # get inputs (load event_id + state_dict cache)
+    # NOTE: if pulses_name is None, it is automatically determined from the realtime format version
+    # leave argument to support passing an arbitrary pulses_name in the future
     event_metadata, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
-        pulsesName=cfg.INPUT_PULSES_NAME,
+        pulses_name=None,
     )
 
     # write startup files for client-spawning
@@ -711,6 +713,7 @@ def main() -> None:
         args.nside_progression,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
+        state_dict[cfg.STATEDICT_INPUT_PULSES],
     )
 
     # make mq connections
