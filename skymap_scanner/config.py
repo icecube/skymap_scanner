@@ -130,6 +130,8 @@ class EnvConfig:
     # LOGGING VARS
     SKYSCAN_LOG: str = "INFO"
     SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
+    SKYSCAN_EWMS_PILOT_LOG: str = "INFO"
+    SKYSCAN_MQ_CLIENT_LOG: str = "INFO"
 
     # TESTING/DEBUG VARS
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
