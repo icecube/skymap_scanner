@@ -1,7 +1,6 @@
 """Configuration constants."""
 
 import dataclasses as dc
-import enum
 from pathlib import Path
 from typing import Final, List
 
@@ -74,14 +73,6 @@ REPORTER_TIMELINE_PERCENTAGES = [
     1.0,
 ]
 COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-
-
-class RecoAlgo(enum.Enum):
-    """The supported reconstruction algorithms."""
-
-    MILLIPEDE_ORIGINAL = enum.auto()
-    MILLIPEDE_WILKS = enum.auto()
-    DUMMY = enum.auto()
 
 
 #
