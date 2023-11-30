@@ -5,7 +5,9 @@ import enum
 from pathlib import Path
 from typing import Final, List
 
-from wipac_dev_tools import from_environment_as_dataclass
+import ewms_pilot
+import mqclient
+from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 
 # pylint:disable=invalid-name
 
@@ -150,3 +152,18 @@ class EnvConfig:
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
+
+
+def configure_loggers() -> None:
+    """Set up loggers with common configurations."""
+    logging_tools.set_level(
+        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        first_party_loggers="skyscan",
+        third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        use_coloredlogs=True,
+        future_third_parties=["google", "pika"],  # at most only one will be used
+        specialty_loggers={
+            ewms_pilot.pilot.LOGGER: ENV.SKYSCAN_EWMS_PILOT_LOG,  # type: ignore[attr-defined, dict-item]
+            mqclient.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
+        },
+    )
