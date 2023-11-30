@@ -62,18 +62,19 @@ def main() -> None:
     with open(args.client_startup_json, "rb") as f:
         startup_json_dict = json.load(f)
     with open("GCDQp_packet.json", "w") as f:
-        json.dump(startup_json_dict["GCDQp_packet"], f)
+        json.dump(startup_json_dict[cfg.STATEDICT_GCDQP_PACKET], f)
 
     # check if baseline GCD file is reachable
-    if not Path(startup_json_dict["baseline_GCD_file"]).exists():
-        raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
+    if not Path(startup_json_dict[cfg.STATEDICT_BASELINE_GCD_FILE]).exists():
+        raise FileNotFoundError(startup_json_dict[cfg.STATEDICT_BASELINE_GCD_FILE])
 
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
         " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
         " --out-pkl {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
-        f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
+        f" --baseline-gcd-file {startup_json_dict[cfg.STATEDICT_BASELINE_GCD_FILE]}"
+        f" --input-pulses {startup_json_dict[cfg.STATEDICT_INPUT_PULSES]}"
     )
 
     # go!
