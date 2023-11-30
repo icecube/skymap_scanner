@@ -47,6 +47,7 @@ I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
 STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
 STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
 STATEDICT_NSIDES: Final = "nsides"
+STATEDICT_INPUT_PULSES: Final = "input_pulses_name"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME: Final = "pframe"
