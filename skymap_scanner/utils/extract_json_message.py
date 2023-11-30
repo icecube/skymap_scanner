@@ -48,33 +48,47 @@ def extract_GCD_diff_base_filename(frame_packet):
     return GCD_diff_base_filename
 
 
+
 def extract_json_message(
-    json_data,
+    event_dict: dict,
     reco_algo: str,
     is_real_event: bool,
     cache_dir: str,
     GCD_dir: str,
-    pulsesName
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
-    # extract the packet
-    frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
+    realtime_format_version: str = event_dict["value"]["version"]
 
-    _, event_metadata, state_dict = __extract_frame_packet(
+    pulses_name = cfg.INPUT_PULSES_NAME.get(realtime_format_version,
+                                            default=cfg.DEFAULT_INPUT_PULSES_NAME)
+
+    # extract the event content
+    # the event object is converted to JSON
+    # and the IceTray frames are extracted using `full_event_followup`
+    frame_packet = full_event_followup.i3live_json_to_frame_packet(
+        json.dumps(event_dict),
+        pnf_framing=True
+    )
+
+    event_metadata, state_dict = prepare_frame_packet(
         frame_packet,
         reco_algo=reco_algo,
         is_real_event=is_real_event,
         cache_dir=cache_dir,
         GCD_dir=GCD_dir,
-        pulsesName=pulsesName
+        pulsesName=pulses_name
     )
 
     # try to load existing pixels if there are any
-    state_dict = load_scan_state(event_metadata, state_dict, reco_algo, cache_dir=cache_dir)
+    state_dict = load_scan_state(event_metadata,
+                                 state_dict,
+                                 reco_algo,
+                                 cache_dir=cache_dir)
+    
     return event_metadata, state_dict
 
 
@@ -98,33 +112,71 @@ def __extract_event_type(physics_frame):
     return None
 
 
-def __extract_frame_packet(
-    frame_packet,
+# split out from prepare_frame_packet()
+def __validate_cache_dir(cache_dir: str):
+    if not os.path.exists(cache_dir):
+        raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
+    if not os.path.isdir(cache_dir):
+        raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
+
+# split out from prepare_frame_packet()
+def __validate_frame_packet(frame_packet: list):
+    if len(frame_packet) != 5:
+        raise RuntimeError("frame packet length is not 5")
+    if frame_packet[-1].Stop not in [icetray.I3Frame.Physics, icetray.I3Frame.Stream('p')]:
+        raise RuntimeError("frame packet does not end with Physics frame")
+
+# split out from prepare_frame_packet()
+def __validate_physics_frame(physics_frame):
+    # extract event ID
+    if "I3EventHeader" not in physics_frame:
+        raise RuntimeError("No I3EventHeader in Physics frame.")
+
+# split out from __extract_frame_packet 
+def __ensure_cache_directory(cache_dir, event_metadata):
+    event_cache_dir = os.path.join(cache_dir, str(event_metadata))
+    if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
+        raise RuntimeError("This event would be cached in directory \"{0}\", but it exists and is not a directory.".format(event_cache_dir))
+    if not os.path.exists(event_cache_dir):
+        os.mkdir(event_cache_dir)
+    return event_cache_dir
+
+
+def prepare_frame_packet(
+    frame_packet: list,
     reco_algo: str,
     is_real_event: bool,
     pulsesName: str,
     cache_dir: str,
     GCD_dir: str,
 ) -> Tuple[str, EventMetadata, dict]:
-    if not os.path.exists(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
-    if not os.path.isdir(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
+    """This method:
+    1. extracts metadata from the IceTray frame_packet;
+    2. creates a cache for the event under `cache_dir` (to be deprecated);
+    3. determines the baseline GCD filename for events having compressed GCD;
+    4. invokes `prepare_frames` to uncompress the GCD information and
+        run the `prepare_frames` traysegment of `reco_algo`. 
 
-    # sanity check the packet
-    if len(frame_packet) != 5:
-        raise RuntimeError("frame packet length is not 5")
-    if frame_packet[-1].Stop != icetray.I3Frame.Physics and frame_packet[-1].Stop != icetray.I3Frame.Stream('p'):
-        raise RuntimeError("frame packet does not end with Physics frame")
+    Returns:
+        Tuple[EventMetadata, dict]:
+            - event metadata
+            - dict containing uncompressed frame packet and baseline GCD filename
+    """
+
+    
+    __validate_cache_dir(cache_dir=cache_dir)
+
+    __validate_frame_packet(frame_packet=frame_packet)
 
     # move the last packet frame from Physics to the Physics stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('P'))
+    
     physics_frame = frame_packet[-1]
 
-    # extract event ID
-    if "I3EventHeader" not in physics_frame:
-        raise RuntimeError("No I3EventHeader in Physics frame.")
+    __validate_physics_frame(physics_frame=physics_frame)
+ 
     header = physics_frame["I3EventHeader"]
+
     event_metadata = EventMetadata(
         header.run_id,
         header.event_id,
@@ -134,15 +186,9 @@ def __extract_frame_packet(
     )
     LOGGER.debug("event ID is {0}".format(event_metadata))
 
-    # create the cache directory if necessary
-    event_cache_dir = os.path.join(cache_dir, str(event_metadata))
-    if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
-        raise RuntimeError("This event would be cached in directory \"{0}\", but it exists and is not a directory.".format(event_cache_dir))
-    if not os.path.exists(event_cache_dir):
-        os.mkdir(event_cache_dir)
+    event_cache_dir = __ensure_cache_directory(cache_dir, event_metadata)
 
     # see if we have the required baseline GCD to which to apply the GCD diff
-    
     baseline_GCD = extract_GCD_diff_base_filename(frame_packet)
 
     # Deal with different scenarios:
@@ -162,6 +208,7 @@ def __extract_frame_packet(
     #=====================
     if baseline_GCD is None:
         LOGGER.debug("Packet does not need a GCD diff.")
+        baseline_GCD_file = None
     else:
         # assume GCD dir is always valid
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
@@ -226,15 +273,17 @@ def __extract_frame_packet(
         del baseline_GCD_framepacket
 
     LOGGER.info("Preprocessing event frames!")
-    if baseline_GCD is not None:
-        # frame_packet has GCD diff, provide baseline
-        frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulsesName=pulsesName)
-    else:
-        # frame_packet has either normal GCD or has been reassembled
-        frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
+    # Uncompress GCD info and invoke `prepare_frames` traysegment provided by `reco_algo`
+    # - frame_packet has GCD diff => baseline_GCD_file is a path string
+    # - frame_packet has either normal GCD or has been reassembled => baseline_GCD_file is None
+    prepared_frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulsesName=pulsesName)
+
+    # Delete original frame packet.
+    del frame_packet
 
     # move the last packet frame from Physics to the 'p' stream
-    frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
+    # the 'p' stream is a renamed IceTray Physics stream to be only used in the scanner client
+    prepared_frame_packet[-1] = rewrite_frame_stop(prepared_frame_packet[-1], icetray.I3Frame.Stream('p'))
 
     cached_GCDQp = os.path.join(event_cache_dir, cfg.GCDQp_FILENAME)
 
@@ -252,10 +301,9 @@ def __extract_frame_packet(
         LOGGER.debug(f"Wrote GCDQp dependency frames to {cached_GCDQp}.")
 
     return (
-        event_cache_dir,
         event_metadata,
         {
-            cfg.STATEDICT_GCDQP_PACKET: frame_packet,
+            cfg.STATEDICT_GCDQP_PACKET: prepared_frame_packet,
             cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD_file
         },
     )
