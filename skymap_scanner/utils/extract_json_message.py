@@ -55,6 +55,7 @@ def extract_json_message(
     is_real_event: bool,
     cache_dir: str,
     GCD_dir: str,
+    pulses_name: str | None
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
@@ -63,7 +64,8 @@ def extract_json_message(
 
     realtime_format_version: str = event_dict["value"]["version"]
 
-    pulses_name = cfg.INPUT_PULSES_NAME.get(realtime_format_version,
+    if pulses_name is None:
+        pulses_name = cfg.INPUT_PULSES_NAME.get(realtime_format_version,
                                             default=cfg.DEFAULT_INPUT_PULSES_NAME)
 
     # extract the event content
@@ -88,6 +90,8 @@ def extract_json_message(
                                  state_dict,
                                  reco_algo,
                                  cache_dir=cache_dir)
+    
+    state_dict[cfg.STATEDICT_INPUT_PULSES] = pulses_name
     
     return event_metadata, state_dict
 
