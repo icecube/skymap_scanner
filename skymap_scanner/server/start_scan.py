@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 import healpy  # type: ignore[import-untyped]
 import mqclient as mq
 import numpy
-from icecube import (  # type: ignore[import-untyped]
+from icecube import (  # type: ignore[import-not-found]
     astro,
     dataclasses,
     full_event_followup,

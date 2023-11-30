@@ -11,15 +11,17 @@ import time
 from pathlib import Path
 from typing import Any, List, Union
 
-from icecube import (  # type: ignore[import-untyped]  # noqa: F401
+from icecube import (  # type: ignore[import-not-found]  # noqa: F401
     dataio,
     frame_object_diff,
     full_event_followup,
     icetray,
     photonics_service,
 )
-from icecube.frame_object_diff.segments import uncompress  # type: ignore[import-untyped]
-from icecube.icetray import I3Tray  # type: ignore[import-untyped]
+from icecube.frame_object_diff.segments import (  # type: ignore[import-not-found]
+    uncompress,
+)
+from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
