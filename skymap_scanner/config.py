@@ -1,11 +1,12 @@
 """Configuration constants."""
 
 import dataclasses as dc
-import enum
 from pathlib import Path
 from typing import Final, List
 
-from wipac_dev_tools import from_environment_as_dataclass
+import ewms_pilot
+import mqclient
+from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 
 # pylint:disable=invalid-name
 
@@ -74,14 +75,6 @@ REPORTER_TIMELINE_PERCENTAGES = [
 COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
-class RecoAlgo(enum.Enum):
-    """The supported reconstruction algorithms."""
-
-    MILLIPEDE_ORIGINAL = enum.auto()
-    MILLIPEDE_WILKS = enum.auto()
-    DUMMY = enum.auto()
-
-
 #
 # Env var constants: set as constants & typecast
 #
@@ -130,6 +123,8 @@ class EnvConfig:
     # LOGGING VARS
     SKYSCAN_LOG: str = "INFO"
     SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
+    SKYSCAN_EWMS_PILOT_LOG: str = "INFO"
+    SKYSCAN_MQ_CLIENT_LOG: str = "INFO"
 
     # TESTING/DEBUG VARS
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
@@ -148,3 +143,18 @@ class EnvConfig:
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
+
+
+def configure_loggers() -> None:
+    """Set up loggers with common configurations."""
+    logging_tools.set_level(
+        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        first_party_loggers="skyscan",
+        third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        use_coloredlogs=True,
+        future_third_parties=["google", "pika"],
+        specialty_loggers={
+            ewms_pilot.pilot.LOGGER: ENV.SKYSCAN_EWMS_PILOT_LOG,  # type: ignore[attr-defined, dict-item]
+            mqclient.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
+        },
+    )

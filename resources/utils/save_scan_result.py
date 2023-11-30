@@ -27,7 +27,6 @@ def main():
     parser.add_argument("-o", "--output_path", help="Output path", required=False)
     parser.add_argument(
         "--reco-algo",
-        choices=[en.name.lower() for en in cfg.RecoAlgo],
         help="The reconstruction algorithm to use",
     )
     args = parser.parse_args()
