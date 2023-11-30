@@ -70,7 +70,10 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
+def prepare_frames(frame_array,
+                   baseline_GCD: Union[None, str],
+                   reco_algo: str,
+                   pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
     # ACTIVATE FOR DEBUG
     # icetray.logging.console()
