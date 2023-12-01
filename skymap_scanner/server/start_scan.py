@@ -13,10 +13,10 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
-import healpy  # type: ignore[import]
+import healpy  # type: ignore[import-untyped]
 import mqclient as mq
 import numpy
-from icecube import (  # type: ignore[import]
+from icecube import (  # type: ignore[import-not-found]
     astro,
     dataclasses,
     full_event_followup,
@@ -666,13 +666,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
-        first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
-        future_third_parties=["google", "pika"],  # at most only one will be used
-    )
+    cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides

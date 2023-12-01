@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v3.16.3 (2023-11-30)
+
+### Other
+
+* More Configurable Logging: `SKYSCAN_EWMS_PILOT_LOG`, `SKYSCAN_MQ_CLIENT_LOG` ([#245](https://github.com/icecube/skymap_scanner/issues/245)) ([`92cde04`](https://github.com/icecube/skymap_scanner/commit/92cde041d4537b50db29e4226a60f1e831767302))
+
+## v3.16.2 (2023-11-30)
+
+### Other
+
+* Remove `client_starter.py` ([#243](https://github.com/icecube/skymap_scanner/issues/243)) ([`7683b4e`](https://github.com/icecube/skymap_scanner/commit/7683b4eade1c0dbd7183be855cb8a0030d84e01b))
+
 ## v3.16.1 (2023-11-29)
 
 ### Other

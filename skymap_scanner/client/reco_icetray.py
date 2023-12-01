@@ -11,15 +11,17 @@ import time
 from pathlib import Path
 from typing import Any, List, Union
 
-from icecube.icetray import I3Tray  # type: ignore[import]
-from icecube import (  # type: ignore[import]  # noqa: F401
+from icecube import (  # type: ignore[import-not-found]  # noqa: F401
     dataio,
     frame_object_diff,
     full_event_followup,
     icetray,
     photonics_service,
 )
-from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+from icecube.frame_object_diff.segments import (  # type: ignore[import-not-found]
+    uncompress,
+)
+from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
@@ -266,12 +268,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
-        first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
-    )
+    cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get PFrame
