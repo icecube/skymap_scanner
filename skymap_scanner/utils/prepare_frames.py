@@ -92,12 +92,12 @@ def prepare_frames(frame_array,
                  keep_compressed=True,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
-        
+    
     def fetch_pulses(frame):
         frame[cfg.INPUT_PULSES_NAME] = copy.deepcopy(frame[pulses_name])
         del frame[pulses_name]
 
-    tray.Add(fetch_pulses, "fetch_pulse_series")
+    tray.Add(fetch_pulses, "fetch_pulse_series", If = lambda f: cfg.INPUT_PULSES_NAME not in f)
 
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
