@@ -114,7 +114,7 @@ class MillipedeWilks(RecoInterface):
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
         
 
-        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName)
+        tray.Add(mask_deepcore, origpulses=cfg.INPUT_PULSES_NAME, maskedpulses=cls.pulsesName)
 
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
