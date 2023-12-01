@@ -62,6 +62,8 @@ def extract_json_message(
     if not os.path.isdir(cache_dir):
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
+
+    LOGGER.info(event_dict["value"].keys())
     realtime_format_version: str = event_dict["value"]["version"]
 
     if pulses_name is None:
