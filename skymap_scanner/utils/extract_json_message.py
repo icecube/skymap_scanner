@@ -47,7 +47,18 @@ def extract_GCD_diff_base_filename(frame_packet):
 
     return GCD_diff_base_filename
 
+def __get_pulses_name(event_dict: dict):
+    # Some JSON events may not have the 'version' attribute.
+    # In such case we default to "no-version".
+    realtime_format_version: str = event_dict["value"].get("version", "no-version")
 
+    # If a version is not in the map (always the case for `no-version`) use default
+    #   otherwise get pulses name from the map.
+    pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(
+            realtime_format_version,
+            cfg.DEFAULT_INPUT_PULSES_NAME
+        )
+    return pulses_name
 
 def extract_json_message(
     event_dict: dict,
@@ -57,17 +68,11 @@ def extract_json_message(
     GCD_dir: str,
     pulses_name: Union[str, None] # Union can be replaced by `|` only from python 3.10 
 ) -> Tuple[EventMetadata, dict]:
-    if not os.path.exists(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
-    if not os.path.isdir(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
-
-    LOGGER.info(event_dict["value"].keys())
-    realtime_format_version: str = event_dict["value"]["version"]
+    __validate_cache_dir(cache_dir=cache_dir)
 
     if pulses_name is None:
-        pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(realtime_format_version, cfg.DEFAULT_INPUT_PULSES_NAME)
+        pulses_name = __get_pulses_name(event_dict=event_dict)
 
     # extract the event content
     # the event object is converted to JSON
@@ -167,9 +172,6 @@ def prepare_frame_packet(
             - event metadata
             - dict containing uncompressed frame packet and baseline GCD filename
     """
-
-    
-    __validate_cache_dir(cache_dir=cache_dir)
 
     __validate_frame_packet(frame_packet=frame_packet)
 
