@@ -130,7 +130,7 @@ class SplineMPE(RecoInterface):
 
     @classmethod
     @traysegment
-    def prepare_frames(cls, tray, name: str, logger, pulsesName) -> None:
+    def prepare_frames(cls, tray, name: str, logger) -> None:
         # =========================================================
         # PULSE CLEANING
         # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
