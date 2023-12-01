@@ -37,7 +37,7 @@ INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
 }
 DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
 
-INPUT_PULSES_NAME = "SkyScanBasePulses"
+INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
 
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
