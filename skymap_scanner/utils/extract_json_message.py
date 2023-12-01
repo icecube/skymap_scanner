@@ -5,7 +5,7 @@
 
 import json
 import os
-from typing import Tuple
+from typing import Tuple, Union
 
 from icecube import full_event_followup, icetray  # type: ignore[import]
 from skyreader import EventMetadata
@@ -55,7 +55,7 @@ def extract_json_message(
     is_real_event: bool,
     cache_dir: str,
     GCD_dir: str,
-    pulses_name: str | None
+    pulses_name: Union[str, None] # Union can be replaced by `|` only from python 3.10 
 ) -> Tuple[EventMetadata, dict]:
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))

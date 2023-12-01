@@ -30,7 +30,7 @@ REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
 LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
 # physics strings
-INPUT_PULSES_NAME_MAP: Final = {
+INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
     "2021a": "SplitUncleanedInIcePulses",
     "2023a": "SplitInIcePulses",
 }
