@@ -65,10 +65,7 @@ def extract_json_message(
     realtime_format_version: str = event_dict["value"]["version"]
 
     if pulses_name is None:
-        pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(
-                realtime_format_version,
-                default=cfg.DEFAULT_INPUT_PULSES_NAME
-            )
+        pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(realtime_format_version, cfg.DEFAULT_INPUT_PULSES_NAME)
 
     # extract the event content
     # the event object is converted to JSON
@@ -152,10 +149,10 @@ def prepare_frame_packet(
     frame_packet: list,
     reco_algo: str,
     is_real_event: bool,
-    pulsesName: str,
+    pulses_name: str,
     cache_dir: str,
     GCD_dir: str,
-) -> Tuple[str, EventMetadata, dict]:
+) -> Tuple[EventMetadata, dict]:
     """This method:
     1. extracts metadata from the IceTray frame_packet;
     2. creates a cache for the event under `cache_dir` (to be deprecated);
@@ -282,7 +279,7 @@ def prepare_frame_packet(
     # Uncompress GCD info and invoke `prepare_frames` traysegment provided by `reco_algo`
     # - frame_packet has GCD diff => baseline_GCD_file is a path string
     # - frame_packet has either normal GCD or has been reassembled => baseline_GCD_file is None
-    prepared_frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulses_name=pulsesName)
+    prepared_frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulses_name=pulses_name)
 
     # Delete original frame packet.
     del frame_packet
@@ -295,7 +292,7 @@ def prepare_frame_packet(
 
     if os.path.exists(cached_GCDQp):
         # GCD already exists - check to make sure it is consistent
-        GCDQp_framepacket_hash = hash_frame_packet(frame_packet)
+        GCDQp_framepacket_hash = hash_frame_packet(prepared_frame_packet)
         cached_QCDQp_framepacket = load_framepacket_from_file(cached_GCDQp)
         cached_GCDQp_framepacket_hash = hash_frame_packet(cached_QCDQp_framepacket)
         if GCDQp_framepacket_hash != cached_GCDQp_framepacket_hash:
@@ -303,7 +300,7 @@ def prepare_frame_packet(
         LOGGER.debug("Checked dependency against cached GCDQp: consistent.")
     else:
         # no GCD exists yet
-        save_GCD_frame_packet_to_file(frame_packet, cached_GCDQp)
+        save_GCD_frame_packet_to_file(prepared_frame_packet, cached_GCDQp)
         LOGGER.debug(f"Wrote GCDQp dependency frames to {cached_GCDQp}.")
 
     return (
