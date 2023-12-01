@@ -74,7 +74,6 @@ def main() -> None:
         " --out-pkl {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {startup_json_dict[cfg.STATEDICT_BASELINE_GCD_FILE]}"
-        f" --input-pulses {startup_json_dict[cfg.STATEDICT_INPUT_PULSES]}"
     )
 
     # go!
