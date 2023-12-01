@@ -65,8 +65,10 @@ def extract_json_message(
     realtime_format_version: str = event_dict["value"]["version"]
 
     if pulses_name is None:
-        pulses_name = cfg.INPUT_PULSES_NAME.get(realtime_format_version,
-                                            default=cfg.DEFAULT_INPUT_PULSES_NAME)
+        pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(
+                realtime_format_version,
+                default=cfg.DEFAULT_INPUT_PULSES_NAME
+            )
 
     # extract the event content
     # the event object is converted to JSON
@@ -82,7 +84,7 @@ def extract_json_message(
         is_real_event=is_real_event,
         cache_dir=cache_dir,
         GCD_dir=GCD_dir,
-        pulsesName=pulses_name
+        pulses_name=pulses_name
     )
 
     # try to load existing pixels if there are any
@@ -280,7 +282,7 @@ def prepare_frame_packet(
     # Uncompress GCD info and invoke `prepare_frames` traysegment provided by `reco_algo`
     # - frame_packet has GCD diff => baseline_GCD_file is a path string
     # - frame_packet has either normal GCD or has been reassembled => baseline_GCD_file is None
-    prepared_frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulsesName=pulsesName)
+    prepared_frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulses_name=pulsesName)
 
     # Delete original frame packet.
     del frame_packet

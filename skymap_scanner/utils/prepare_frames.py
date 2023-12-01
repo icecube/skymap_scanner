@@ -73,7 +73,7 @@ class FrameArraySink(icetray.I3Module):
 def prepare_frames(frame_array,
                    baseline_GCD: Union[None, str],
                    reco_algo: str,
-                   pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
+                   pulses_name: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
     # ACTIVATE FOR DEBUG
     # icetray.logging.console()
@@ -92,21 +92,27 @@ def prepare_frames(frame_array,
                  keep_compressed=True,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
+        
+    def fetch_pulses(frame):
+        frame[cfg.INPUT_PULSES_NAME] = copy.deepcopy(frame[pulses_name])
+        del frame[pulses_name]
+
+    tray.Add(fetch_pulses, "fetch_pulse_series")
 
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
-        Input=pulsesName,
-        OutputHLC=pulsesName+'HLC',
-        OutputSLC=pulsesName+'SLC',
-        If=lambda frame: pulsesName+'HLC' not in frame)
+        Input=pulses_name,
+        OutputHLC=pulses_name+'HLC',
+        OutputSLC=pulses_name+'SLC',
+        If=lambda frame: pulses_name+'HLC' not in frame)
 
     # Run reco-specific preprocessing.
     tray.AddSegment(
         RecoAlgo.prepare_frames,
         f"{reco_algo}_prepareframes",
         logger=LOGGER,
-        pulsesName=pulsesName
+        pulsesName=pulses_name
     )
 
     # If the event has a GCD diff (compressed GCD), only keep the diffs.
