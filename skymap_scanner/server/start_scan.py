@@ -713,7 +713,6 @@ def main() -> None:
         args.nside_progression,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
-        state_dict[cfg.STATEDICT_INPUT_PULSES],
     )
 
     # make mq connections
