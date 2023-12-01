@@ -102,17 +102,16 @@ def prepare_frames(frame_array,
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
-        Input=pulses_name,
-        OutputHLC=pulses_name+'HLC',
-        OutputSLC=pulses_name+'SLC',
-        If=lambda frame: pulses_name+'HLC' not in frame)
+        Input=cfg.INPUT_PULSES_NAME,
+        OutputHLC=cfg.INPUT_PULSES_NAME+'HLC',
+        OutputSLC=cfg.INPUT_PULSES_NAME+'SLC',
+        If=lambda frame: cfg.INPUT_PULSES_NAME+'HLC' not in frame)
 
     # Run reco-specific preprocessing.
     tray.AddSegment(
         RecoAlgo.prepare_frames,
         f"{reco_algo}_prepareframes",
-        logger=LOGGER,
-        pulsesName=pulses_name
+        logger=LOGGER
     )
 
     # If the event has a GCD diff (compressed GCD), only keep the diffs.
