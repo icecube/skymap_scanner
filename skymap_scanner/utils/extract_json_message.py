@@ -167,7 +167,7 @@ def __extract_frame_packet(
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
         LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
         if not os.path.isfile(baseline_GCD_file):
-            raise RuntimeError("Baseline GCD file not available!")
+            raise RuntimeError(f"Baseline GCD file {baseline_GCD_file} not available!")
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
         
         cached_baseline_GCD_file = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
