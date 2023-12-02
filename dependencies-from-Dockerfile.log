@@ -40,7 +40,7 @@ fs==2.4.12
 gast==0.5.2
 healpy==1.15.0
 htchirp==3.0
-htcondor==23.1.0
+htcondor==23.2.0
 html5lib==1.1
 humanfriendly==10.0
 hypothesis==6.36.0
@@ -250,7 +250,7 @@ six==1.16.0
 skymap-scanner
 ├── ewms-pilot [required: Any, installed: 0.17.5]
 │   ├── htchirp [required: Any, installed: 3.0]
-│   ├── htcondor [required: Any, installed: 23.1.0]
+│   ├── htcondor [required: Any, installed: 23.2.0]
 │   └── oms-mqclient [required: Any, installed: 2.4.9]
 │       └── wipac-dev-tools [required: Any, installed: 1.8.1]
 │           ├── requests [required: Any, installed: 2.25.1]

@@ -4,8 +4,9 @@
 import asyncio
 import json
 import logging
+import os
 import pickle
-import sys
+import signal
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -66,7 +67,7 @@ async def kill_switch_check_from_skydriver() -> None:
             logger.critical(
                 f"Kill switch triggered by SkyDriver scan state: {status['scan_state']}"
             )
-            sys.exit(1)
+            os.kill(os.getpid(), signal.SIGINT)  # NOTE - sys.exit only exits thread
 
 
 async def fetch_event_contents_from_skydriver() -> Any:

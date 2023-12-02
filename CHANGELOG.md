@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v3.16.2 (2023-11-30)
+
+### Other
+
+* Remove `client_starter.py` ([#243](https://github.com/icecube/skymap_scanner/issues/243)) ([`7683b4e`](https://github.com/icecube/skymap_scanner/commit/7683b4eade1c0dbd7183be855cb8a0030d84e01b))
+
+## v3.16.1 (2023-11-29)
+
+### Other
+
+* Fix SkyDriver-Triggered Kill Switch for Central Server ([#241](https://github.com/icecube/skymap_scanner/issues/241)) ([`18ec863`](https://github.com/icecube/skymap_scanner/commit/18ec86315e4aca0f0a836cbbb5e6e1bcaca1c639))
+
 ## v3.16.0 (2023-11-28)
 
 
