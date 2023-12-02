@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.16.5 (2023-12-02)
+
+### Other
+
+* Include incomplete pixels to the to-refine set ([#249](https://github.com/icecube/skymap_scanner/issues/249)) ([`8e66f33`](https://github.com/icecube/skymap_scanner/commit/8e66f33c9264e822c510c9184e0de12fa88a98e3))
+
 ## v3.16.4 (2023-12-01)
 
 ### Other
