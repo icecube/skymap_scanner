@@ -21,6 +21,17 @@ from .utils import (
     rewrite_frame_stop,
     save_GCD_frame_packet_to_file,
 )
+from .data_handling import DataStager
+
+
+def get_gcd_datastager():
+    datastager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir="baseline_gcds",
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+    )
+    return datastager
+
 
 
 def extract_GCD_diff_base_filename(frame_packet):
@@ -163,9 +174,14 @@ def __extract_frame_packet(
     if baseline_GCD is None:
         LOGGER.debug("Packet does not need a GCD diff.")
     else:
+        datastager = get_gcd_datastager()
         # assume GCD dir is always valid
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
+        
         LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
+        datastager.stage_file(baseline_GCD_file)
+        baseline_GCD_file = datastager.get_filepath(baseline_GCD_file)
+
         if not os.path.isfile(baseline_GCD_file):
             raise RuntimeError(f"Baseline GCD file {baseline_GCD_file} not available!")
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
