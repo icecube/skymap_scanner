@@ -179,7 +179,7 @@ def __extract_frame_packet(
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
         
         LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
-        datastager.stage_file(baseline_GCD)
+        datastager.stage_files([baseline_GCD])
         baseline_GCD_file = datastager.get_filepath(baseline_GCD_file)
 
         if not os.path.isfile(baseline_GCD_file):
