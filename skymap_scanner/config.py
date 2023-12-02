@@ -26,7 +26,10 @@ LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
 
 # HTTP source to download data from.
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
+REMOTE_DATA_SOURCE_GCD: Final[str] = "https://www-zeuthen.desy.de/~mlincett"
+
 REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
+REMOTE_GCD_SUBDIR: Final[str] = "baseline-gcds"
 
 LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 

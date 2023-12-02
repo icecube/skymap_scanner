@@ -28,7 +28,7 @@ def get_gcd_datastager():
     datastager = DataStager(
         local_paths=cfg.LOCAL_DATA_SOURCES,
         local_subdir="baseline_gcds",
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/baseline_gcds",
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE_GCD}/baseline_gcds",
     )
     return datastager
 
