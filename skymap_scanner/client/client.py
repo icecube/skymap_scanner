@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 from pathlib import Path
+from ..utils.data_handling import DataStager
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
@@ -58,9 +59,19 @@ def main() -> None:
     with open("GCDQp_packet.json", "w") as f:
         json.dump(startup_json_dict["GCDQp_packet"], f)
 
+    datastager = DataStager(
+        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_subdir="baseline_gcds",
+        remote_path=f"{cfg.REMOTE_DATA_SOURCE_GCD}/baseline_gcds",
+    )
+
+    datastager.stage_files([startup_json_dict["baseline_GCD_file"]])
+
+    baseline_gcd_file = datastager.get_filepath(startup_json_dict["baseline_GCD_file"])
+
     # check if baseline GCD file is reachable
-    if not Path(startup_json_dict["baseline_GCD_file"]).exists():
-        raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
+    if not Path(baseline_gcd_file).exists():
+        raise FileNotFoundError(baseline_gcd_file)
 
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
