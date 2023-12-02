@@ -180,7 +180,7 @@ def __extract_frame_packet(
         
         LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
         datastager.stage_files([baseline_GCD])
-        baseline_GCD_file = datastager.get_filepath(baseline_GCD_file)
+        baseline_GCD_file = datastager.get_filepath(baseline_GCD)
 
         if not os.path.isfile(baseline_GCD_file):
             raise RuntimeError(f"Baseline GCD file {baseline_GCD_file} not available!")
