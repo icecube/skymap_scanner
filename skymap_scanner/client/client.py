@@ -65,9 +65,11 @@ def main() -> None:
         remote_path=f"{cfg.REMOTE_DATA_SOURCE_GCD}/baseline_gcds",
     )
 
-    datastager.stage_files([startup_json_dict["baseline_GCD_file"]])
+    baseline_gcd_file = Path(startup_json_dict["baseline_GCD_file"])
 
-    baseline_gcd_file = datastager.get_filepath(startup_json_dict["baseline_GCD_file"])
+    datastager.stage_files([baseline_gcd_file.name])
+
+    baseline_gcd_file = datastager.get_filepath(baseline_gcd_file.name)
 
     # check if baseline GCD file is reachable
     if not Path(baseline_gcd_file).exists():
