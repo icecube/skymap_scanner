@@ -236,13 +236,12 @@ class PixelsToReco:
             while True:
                 # Look up the first available coarser NSIDE by iteratively dividing by two the current nside.
                 # NOTE (v3): this guesswork could be avoided using the NSIDE progression.
-                coarser_nside = coarser_nside/2
-                coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
-
+                coarser_nside = coarser_nside//2
                 if coarser_nside < self.min_nside:
                     # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     # NOTE (v3): nside != min_side and nside/2 < min_side should be always false? Given the comment above this could have been introduced to support "pointed" scans but this is not currently possible in v3.
                     break
+                coarser_pixel = healpy.ang2pix(coarser_nside, numpy.pi/2-dec, ra)
 
                 if coarser_nside in self.nsides_dict:
                     # NOTE: This is the first nside in the divide-by-two progression that is available in the dictionary. By construction, this should be the previous value in the NSIDE progression.
