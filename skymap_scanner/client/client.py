@@ -49,13 +49,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
-        first_party_loggers=["skyscan", ewms_pilot.pilot.LOGGER],
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
-        future_third_parties=["google", "pika"],  # at most only one will be used
-    )
+    cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # read startup.json

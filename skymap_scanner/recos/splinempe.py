@@ -264,7 +264,7 @@ class SplineMPE(RecoInterface):
     def get_vertex_variations(self):
         return VertexGenerator.cylinder()
 
-    def setup_reco(self):
+    def setup_reco(self) -> None:
         datastager = self.get_datastager()
 
         datastager.stage_files(self.SPLINE_REQUIREMENTS)

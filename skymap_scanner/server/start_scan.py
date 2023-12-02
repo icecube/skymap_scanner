@@ -13,10 +13,10 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
-import healpy  # type: ignore[import]
+import healpy  # type: ignore[import-untyped]
 import mqclient as mq
 import numpy
-from icecube import (  # type: ignore[import]
+from icecube import (  # type: ignore[import-not-found]
     astro,
     dataclasses,
     full_event_followup,
@@ -236,13 +236,12 @@ class PixelsToReco:
             while True:
                 # Look up the first available coarser NSIDE by iteratively dividing by two the current nside.
                 # NOTE (v3): this guesswork could be avoided using the NSIDE progression.
-                coarser_nside = coarser_nside/2
-                coarser_pixel = healpy.ang2pix(int(coarser_nside), numpy.pi/2-dec, ra)
-
+                coarser_nside = coarser_nside//2
                 if coarser_nside < self.min_nside:
                     # no coarser pixel is available (probably we are just scanning finely around MC truth)
                     # NOTE (v3): nside != min_side and nside/2 < min_side should be always false? Given the comment above this could have been introduced to support "pointed" scans but this is not currently possible in v3.
                     break
+                coarser_pixel = healpy.ang2pix(coarser_nside, numpy.pi/2-dec, ra)
 
                 if coarser_nside in self.nsides_dict:
                     # NOTE: This is the first nside in the divide-by-two progression that is available in the dictionary. By construction, this should be the previous value in the NSIDE progression.
@@ -666,13 +665,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    logging_tools.set_level(
-        cfg.ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
-        first_party_loggers="skyscan",
-        third_party_level=cfg.ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
-        future_third_parties=["google", "pika"],  # at most only one will be used
-    )
+    cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides

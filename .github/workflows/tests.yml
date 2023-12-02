@@ -132,7 +132,7 @@ jobs:
       # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
     services:
       rabbitmq:
-        image: bitnami/rabbitmq:latest
+        image: bitnami/rabbitmq:3.12.9
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
@@ -242,7 +242,7 @@ jobs:
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
       rabbitmq:
-        image: bitnami/rabbitmq:latest
+        image: bitnami/rabbitmq:3.12.9
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
@@ -318,7 +318,7 @@ jobs:
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
       rabbitmq:
-        image: bitnami/rabbitmq:latest
+        image: bitnami/rabbitmq:3.12.9
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
@@ -392,7 +392,7 @@ jobs:
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
       rabbitmq:
-        image: bitnami/rabbitmq:latest
+        image: bitnami/rabbitmq:3.12.9
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
