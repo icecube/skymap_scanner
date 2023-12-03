@@ -140,7 +140,7 @@ class EnvConfig:
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
 
     # LOGGING VARS
-    SKYSCAN_LOG: str = "DEBUG"
+    SKYSCAN_LOG: str = "INFO"
     SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
     SKYSCAN_EWMS_PILOT_LOG: str = "INFO"
     SKYSCAN_MQ_CLIENT_LOG: str = "INFO"
@@ -167,7 +167,7 @@ ENV = from_environment_as_dataclass(EnvConfig)
 def configure_loggers() -> None:
     """Set up loggers with common configurations."""
     logging_tools.set_level(
-        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        "debug",  # type: ignore[arg-type]
         first_party_loggers="skyscan",
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
