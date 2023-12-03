@@ -121,5 +121,5 @@ def get_gcd_datastager() -> DataStager:
     return DataStager(
         local_paths=cfg.LOCAL_GCD_DATA_SOURCES,
         local_subdir=cfg.LOCAL_GCD_SUBDIR,
-        remote_path=cfg.REMOTE_DATA_SOURCE,
+        remote_path=cfg.REMOTE_GCD_DATA_SOURCE,
     )

@@ -167,7 +167,7 @@ ENV = from_environment_as_dataclass(EnvConfig)
 def configure_loggers() -> None:
     """Set up loggers with common configurations."""
     logging_tools.set_level(
-        "debug",  # type: ignore[arg-type]
+        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers="skyscan",
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
