@@ -76,7 +76,7 @@ def main() -> None:
         " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
         " --out-pkl {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
-        f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
+        f" --baseline-gcd-file {baseline_gcd_file}"
     )
 
     # go!

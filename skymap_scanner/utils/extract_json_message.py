@@ -267,6 +267,6 @@ def __extract_frame_packet(
         event_metadata,
         {
             cfg.STATEDICT_GCDQP_PACKET: frame_packet,
-            cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD
+            cfg.STATEDICT_BASELINE_GCD_FILE: baseline_GCD_file
         },
     )
