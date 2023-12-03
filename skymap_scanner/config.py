@@ -140,7 +140,7 @@ class EnvConfig:
     SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
 
     # LOGGING VARS
-    SKYSCAN_LOG: str = "INFO"
+    SKYSCAN_LOG: str = "DEBUG"
     SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
     SKYSCAN_EWMS_PILOT_LOG: str = "INFO"
     SKYSCAN_MQ_CLIENT_LOG: str = "INFO"
