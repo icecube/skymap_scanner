@@ -37,6 +37,8 @@ LOCAL_GCD_DATA_SOURCES: Final[List[Path]] = [
     Path("/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs"),
 ]
 
+DEFAULT_GCD_DIR = LOCAL_GCD_DATA_SOURCES[0]
+
 # Since the container and CVFMS have GCD files in different subdirectories
 #   we put the complete path in LOCAL_GCD_DATA_SOURCES and use no subdir.
 LOCAL_GCD_SUBDIR = ""
