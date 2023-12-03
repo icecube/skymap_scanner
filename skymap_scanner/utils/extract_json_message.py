@@ -21,17 +21,7 @@ from .utils import (
     rewrite_frame_stop,
     save_GCD_frame_packet_to_file,
 )
-from .data_handling import DataStager
-
-
-def get_gcd_datastager():
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir="baseline_gcds",
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE_GCD}/baseline_gcds",
-    )
-    return datastager
-
+from .data_handling import get_gcd_datastager
 
 
 def extract_GCD_diff_base_filename(frame_packet):

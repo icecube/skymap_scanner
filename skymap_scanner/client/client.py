@@ -5,7 +5,7 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from ..utils.data_handling import DataStager
+from ..utils.data_handling import get_gcd_datastager
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
@@ -59,11 +59,7 @@ def main() -> None:
     with open("GCDQp_packet.json", "w") as f:
         json.dump(startup_json_dict["GCDQp_packet"], f)
 
-    datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
-        local_subdir="baseline_gcds",
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE_GCD}/baseline_gcds",
-    )
+    datastager = get_gcd_datastager()
 
     baseline_gcd_file = Path(startup_json_dict["baseline_GCD_file"])
 
