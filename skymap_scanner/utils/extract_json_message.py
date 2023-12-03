@@ -63,8 +63,10 @@ def extract_json_message(
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
     # extract the packet
+    LOGGER.info("Extracting JSON to frame packet")
     frame_packet = full_event_followup.i3live_json_to_frame_packet(json.dumps(json_data), pnf_framing=True)
 
+    LOGGER.info("Assembling event frames")
     _, event_metadata, state_dict = __extract_frame_packet(
         frame_packet,
         reco_algo=reco_algo,
@@ -74,6 +76,7 @@ def extract_json_message(
         pulsesName=pulsesName
     )
 
+    LOGGER.info("Load scan state...")
     # try to load existing pixels if there are any
     state_dict = load_scan_state(event_metadata, state_dict, reco_algo, cache_dir=cache_dir)
     return event_metadata, state_dict
@@ -155,6 +158,7 @@ def __extract_frame_packet(
     # - look up baseline GCD in GCD_dir based on run number
     # - assemble GCDQp from baseline GCD
 
+    LOGGER.info("Retrieving GCD...")
     LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
@@ -162,8 +166,9 @@ def __extract_frame_packet(
     # GCD-diff framepacket
     #=====================
     if baseline_GCD is None:
-        LOGGER.debug("Packet does not need a GCD diff.")
+        LOGGER.info("Packet does not need a GCD diff.")
     else:
+        LOGGER.info("Running GCD uncompress logic...")
         datastager = get_gcd_datastager()
         # assume GCD dir is always valid
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
@@ -209,7 +214,7 @@ def __extract_frame_packet(
     # GCD-less framepacket
     #=====================
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
-        LOGGER.debug("Packet with empty GCD frames. Need to load baseline GCD")
+        LOGGER.info("Packet with empty GCD frames. Need to load baseline GCD")
         # If no GCD is specified, work out correct one from run number
         available_GCDs = sorted([x for x in os.listdir(GCD_dir) if ".i3" in x])
         run = float(header.run_id)
