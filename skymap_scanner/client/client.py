@@ -69,10 +69,10 @@ def main() -> None:
 
     datastager.stage_files([baseline_gcd_file.name])
 
-    baseline_gcd_file = datastager.get_filepath(baseline_gcd_file.name)
+    baseline_gcd_file = Path(datastager.get_filepath(baseline_gcd_file.name))
 
     # check if baseline GCD file is reachable
-    if not Path(baseline_gcd_file).exists():
+    if not baseline_gcd_file.exists():
         raise FileNotFoundError(baseline_gcd_file)
 
     cmd = (
