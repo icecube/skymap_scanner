@@ -14,21 +14,40 @@ from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 # True constants
 #
 
-DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
 LOCAL_DATA_SOURCES: Final[List[Path]] = [
     Path("/opt/i3-data"),
     Path("/cvmfs/icecube.opensciencegrid.org/data"),
 ]
-# Directory path under a local data source to fetch spline data from.
-LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
 
 # HTTP source to download data from.
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
+
+# Local ephemeral directory to stage files.
+LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
+
+# Directory path under a local data source to fetch spline data from.
+LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
 REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
 
-LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
+# GCD data sources.
+LOCAL_GCD_DATA_SOURCES: Final[List[Path]] = [
+    Path("/opt/i3-data/baseline_gcds"),
+    Path("/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs"),
+]
+
+DEFAULT_GCD_DIR = LOCAL_GCD_DATA_SOURCES[0]
+
+# Since the container and CVFMS have GCD files in different subdirectories
+#   we put the complete path in LOCAL_GCD_DATA_SOURCES and use no subdir.
+LOCAL_GCD_SUBDIR = ""
+
+# This is temporary until it can be replaced by prod-exe.
+REMOTE_GCD_DATA_SOURCE: Final[
+    str
+] = "https://www-zeuthen.desy.de/~mlincett/baseline_gcds"
+
 
 # physics strings
 INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {

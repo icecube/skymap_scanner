@@ -21,6 +21,7 @@ from .utils import (
     rewrite_frame_stop,
     save_GCD_frame_packet_to_file,
 )
+from .data_handling import get_gcd_datastager
 
 
 def extract_GCD_diff_base_filename(frame_packet):
@@ -77,6 +78,7 @@ def extract_json_message(
     # extract the event content
     # the event object is converted to JSON
     # and the IceTray frames are extracted using `full_event_followup`
+    LOGGER.info("Extracting JSON to frame packet")
     frame_packet = full_event_followup.i3live_json_to_frame_packet(
         json.dumps(event_dict),
         pnf_framing=True
@@ -91,6 +93,7 @@ def extract_json_message(
         pulses_name=pulses_name
     )
 
+    LOGGER.info("Load scan state...")
     # try to load existing pixels if there are any
     state_dict = load_scan_state(event_metadata,
                                  state_dict,
@@ -207,6 +210,7 @@ def prepare_frame_packet(
     # - look up baseline GCD in GCD_dir based on run number
     # - assemble GCDQp from baseline GCD
 
+    LOGGER.info("Retrieving GCD...")
     LOGGER.debug(f"Extracted GCD_diff_base_filename = {baseline_GCD}.")
     LOGGER.debug(f"GCD dir is set to = {GCD_dir}.")
 
@@ -217,11 +221,17 @@ def prepare_frame_packet(
         LOGGER.debug("Packet does not need a GCD diff.")
         baseline_GCD_file = None
     else:
+        LOGGER.info("Running GCD uncompress logic...")
+        datastager = get_gcd_datastager()
         # assume GCD dir is always valid
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
+        
         LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
+        datastager.stage_files([baseline_GCD])
+        baseline_GCD_file = datastager.get_filepath(baseline_GCD)
+
         if not os.path.isfile(baseline_GCD_file):
-            raise RuntimeError("Baseline GCD file not available!")
+            raise RuntimeError(f"Baseline GCD file {baseline_GCD_file} not available!")
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
         
         cached_baseline_GCD_file = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
@@ -257,7 +267,7 @@ def prepare_frame_packet(
     # GCD-less framepacket
     #=====================
     if ("I3Geometry" not in frame_packet[0]) and ("I3GeometryDiff" not in frame_packet[0]):
-        LOGGER.debug("Packet with empty GCD frames. Need to load baseline GCD")
+        LOGGER.info("Packet with empty GCD frames. Need to load baseline GCD")
         # If no GCD is specified, work out correct one from run number
         available_GCDs = sorted([x for x in os.listdir(GCD_dir) if ".i3" in x])
         run = float(header.run_id)

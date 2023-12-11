@@ -690,6 +690,7 @@ def main() -> None:
     # get inputs (load event_id + state_dict cache)
     # NOTE: if pulses_name is None, it is automatically determined from the realtime format version
     # leave argument to support passing an arbitrary pulses_name in the future
+    LOGGER.info("Extracting event...")
     event_metadata, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
@@ -700,6 +701,7 @@ def main() -> None:
     )
 
     # write startup files for client-spawning
+    LOGGER.info("Writing startup JSON...")
     scan_id = write_startup_json(
         args.client_startup_json,
         event_metadata,
