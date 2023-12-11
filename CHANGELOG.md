@@ -2,6 +2,20 @@
 
 <!--next-version-placeholder-->
 
+## v3.16.5 (2023-12-02)
+
+### Other
+
+* Include incomplete pixels to the to-refine set ([#249](https://github.com/icecube/skymap_scanner/issues/249)) ([`8e66f33`](https://github.com/icecube/skymap_scanner/commit/8e66f33c9264e822c510c9184e0de12fa88a98e3))
+
+## v3.16.4 (2023-12-01)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`68e484d`](https://github.com/icecube/skymap_scanner/commit/68e484df83ef9d020f1224e16160e4d7078c6c59))
+* CI: Pin RabbitMQ Server to `bitnami/rabbitmq:latest` ([#248](https://github.com/icecube/skymap_scanner/issues/248)) ([`5f49581`](https://github.com/icecube/skymap_scanner/commit/5f4958135e6a61e49f7e8d8582f3aed37563891f))
+* <bot> update dependencies*.log files(s) ([`d177d95`](https://github.com/icecube/skymap_scanner/commit/d177d956381c5a7fd26a61e8267dcc7a3e4c29a4))
+
 ## v3.16.3 (2023-11-30)
 
 ### Other

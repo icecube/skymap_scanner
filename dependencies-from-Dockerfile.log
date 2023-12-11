@@ -34,7 +34,7 @@ decorator==4.4.2
 defusedxml==0.7.1
 docutils==0.20.1
 et-xmlfile==1.0.1
-ewms-pilot==0.17.6
+ewms-pilot==0.17.7
 fonttools==4.29.1
 fs==2.4.12
 gast==0.5.2
@@ -72,7 +72,7 @@ numexpr==2.8.1
 numpy==1.21.5
 odfpy==1.4.2
 olefile==0.46
-oms-mqclient==2.4.9
+oms-mqclient==2.4.10
 openpyxl==3.0.9
 packaging==21.3
 pandas==1.3.5
@@ -248,10 +248,10 @@ scipy==1.8.0
 setuptools==59.6.0
 six==1.16.0
 skymap-scanner
-├── ewms-pilot [required: Any, installed: 0.17.6]
+├── ewms-pilot [required: Any, installed: 0.17.7]
 │   ├── htchirp [required: Any, installed: 3.0]
 │   ├── htcondor [required: Any, installed: 23.2.0]
-│   └── oms-mqclient [required: Any, installed: 2.4.9]
+│   └── oms-mqclient [required: Any, installed: 2.4.10]
 │       └── wipac-dev-tools [required: Any, installed: 1.8.2]
 │           ├── requests [required: Any, installed: 2.25.1]
 │           └── typing-extensions [required: Any, installed: 4.8.0]
@@ -269,7 +269,7 @@ skymap-scanner
 ├── iminuit [required: Any, installed: 2.24.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: Any, installed: 1.21.5]
-├── oms-mqclient [required: Any, installed: 2.4.9]
+├── oms-mqclient [required: Any, installed: 2.4.10]
 │   └── wipac-dev-tools [required: Any, installed: 1.8.2]
 │       ├── requests [required: Any, installed: 2.25.1]
 │       └── typing-extensions [required: Any, installed: 4.8.0]
