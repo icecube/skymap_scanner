@@ -16,11 +16,6 @@ concurrency:
 
 
 env:
-  # use the same rabbitmq version as what's used in production (EWMS)
-  # - image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml
-  # - (https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-  RABBITMQ_IMAGE: bitnami/rabbitmq:3.11.15-debian-11-r0
-  #
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
@@ -137,7 +132,8 @@ jobs:
       # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
     services:
       rabbitmq:
-        image: ${{ env.RABBITMQ_IMAGE }}
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+        image: bitnami/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
@@ -247,7 +243,8 @@ jobs:
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
       rabbitmq:
-        image: ${{ env.RABBITMQ_IMAGE }}
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+        image: bitnami/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
@@ -323,7 +320,8 @@ jobs:
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
       rabbitmq:
-        image: ${{ env.RABBITMQ_IMAGE }}
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+        image: bitnami/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
@@ -396,7 +394,8 @@ jobs:
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
       rabbitmq:
-        image: ${{ env.RABBITMQ_IMAGE }}
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+        image: bitnami/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
