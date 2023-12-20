@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v3.16.6 (2023-12-20)
+
+### Other
+
+* CI: Use RabbitMQ Production Version ([#255](https://github.com/icecube/skymap_scanner/issues/255)) ([`ab11d5f`](https://github.com/icecube/skymap_scanner/commit/ab11d5f95f69b4af8f9c74d0e47a97f33eaa7ee9))
+* Cleanup test data ([#247](https://github.com/icecube/skymap_scanner/issues/247)) ([`f439d4c`](https://github.com/icecube/skymap_scanner/commit/f439d4c746388996b77526aba188c7bf82003f6d))
+
 ## v3.16.5 (2023-12-02)
 
 ### Other
