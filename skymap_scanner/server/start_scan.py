@@ -47,6 +47,9 @@ from .utils import (
     kill_switch_check_from_skydriver,
 )
 
+LOGGER = logging.getLogger(__name__)
+
+
 StrDict = Dict[str, Any]
 
 
@@ -472,7 +475,7 @@ async def _serve_and_collect(
                             msg["reco_pixel_variation"], msg["runtime"]
                         )
                     except ExtraRecoPixelVariationException as e:
-                        logging.error(e)
+                        LOGGER.error(e)
 
                     # if we've got enough pixfins, let's get a jump on the next round
                     if max_nside_thresholded := collector.get_max_nside_thresholded():
