@@ -1,17 +1,18 @@
 """Tools for extracting json messages."""
 
+
 # fmt: off
 # pylint: skip-file
 
 import json
+import logging
 import os
 from typing import Tuple
 
-from icecube import full_event_followup, icetray  # type: ignore[import]
+from icecube import full_event_followup, icetray  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 
 from .. import config as cfg
-from . import LOGGER
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
 from .utils import (
@@ -21,6 +22,8 @@ from .utils import (
     rewrite_frame_stop,
     save_GCD_frame_packet_to_file,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 def extract_GCD_diff_base_filename(frame_packet):

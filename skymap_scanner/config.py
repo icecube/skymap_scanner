@@ -1,5 +1,6 @@
 """Configuration constants."""
 
+
 import dataclasses as dc
 from pathlib import Path
 from typing import Final, List

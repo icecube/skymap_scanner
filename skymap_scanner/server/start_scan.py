@@ -1,5 +1,6 @@
 """The Skymap Scanner Server."""
 
+
 # pylint: disable=invalid-name,import-error
 # fmt:quotes-ok
 
@@ -36,7 +37,6 @@ from ..utils.pixel_classes import (
     SentPixelVariation,
     pframe_tuple,
 )
-from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter

@@ -1,19 +1,21 @@
 """Tools for loading the scan state."""
 
+
 # fmt: off
-# mypy: ignore-errors
 # pylint: skip-file
 
+import logging
 import os
 from typing import List
 
-from icecube import icetray
+from icecube import icetray  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 
 from .. import config as cfg
-from . import LOGGER
 from .pixel_classes import RecoPixelFinal, RecoPixelVariation
 from .utils import hash_frame_packet, load_framepacket_from_file
+
+LOGGER = logging.getLogger(__name__)
 
 
 def load_cache_state(
