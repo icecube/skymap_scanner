@@ -293,3 +293,8 @@ def main() -> None:
         args.out_pkl,
     )
     LOGGER.info("Done reco'ing pixel.")
+
+
+# This entrypoint is only used in CI testing
+if __name__ == "__main__":
+    main()
