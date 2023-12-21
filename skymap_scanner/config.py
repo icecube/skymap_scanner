@@ -150,7 +150,7 @@ def configure_loggers() -> None:
     """Set up loggers with common configurations."""
     logging_tools.set_level(
         ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
-        first_party_loggers="skyscan",
+        first_party_loggers=__name__.split(".", maxsplit=1)[0],
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
         future_third_parties=["google", "pika"],
