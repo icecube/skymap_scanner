@@ -1,5 +1,6 @@
 """The Client service."""
 
+
 import argparse
 import asyncio
 import json
@@ -11,7 +12,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 
-LOGGER = logging.getLogger("skyscan.client")
+LOGGER = logging.getLogger(__name__)
 
 
 def main() -> None:

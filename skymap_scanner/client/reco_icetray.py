@@ -1,5 +1,6 @@
 """Reco a single pixel."""
 
+
 # pylint: skip-file
 
 import argparse
@@ -30,7 +31,7 @@ from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
 
-LOGGER = logging.getLogger("skyscan.client.reco")
+LOGGER = logging.getLogger(__name__)
 
 
 def frame_for_logging(frame: icetray.I3Frame) -> str:
