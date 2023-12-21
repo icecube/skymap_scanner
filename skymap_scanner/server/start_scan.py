@@ -750,7 +750,3 @@ def main() -> None:
         )
     )
     LOGGER.info("Done.")
-
-
-if __name__ == "__main__":
-    main()

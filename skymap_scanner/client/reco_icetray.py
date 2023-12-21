@@ -293,7 +293,3 @@ def main() -> None:
         args.out_pkl,
     )
     LOGGER.info("Done reco'ing pixel.")
-
-
-if __name__ == "__main__":
-    main()

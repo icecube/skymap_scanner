@@ -181,29 +181,3 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
         cfg.STATEDICT_GCDQP_PACKET: frame_packet,
         cfg.STATEDICT_BASELINE_GCD_FILE: source_baseline_GCD,
     }
-
-
-if __name__ == "__main__":
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    if len(args) != 1:
-        raise RuntimeError("You need to specify exatcly one event ID")
-    eventID = args[0]
-
-    # do the work
-    packets = load_cache_state(
-        eventID,
-        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
-        cache_dir=options.CACHEDIR
-    )
-
-    print(("got:", packets))
