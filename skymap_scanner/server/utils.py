@@ -15,7 +15,8 @@ import cachetools.func
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 
 from .. import config as cfg
-from . import LOGGER
+
+LOGGER = logging.getLogger(__name__)
 
 
 def connect_to_skydriver(urgent: bool) -> RestClient:

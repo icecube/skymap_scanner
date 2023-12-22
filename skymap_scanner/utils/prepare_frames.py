@@ -1,25 +1,26 @@
-"""
-prepare the GCDQp packet by adding frame objects that might be missing
-"""
+"""prepare the GCDQp packet by adding frame objects that might be missing."""
+
 
 # fmt: off
 # pylint: skip-file
 
 import copy
+import logging
 import os
-from typing import Union, List
+from typing import List, Union
 
-from icecube.icetray import I3Tray  # type: ignore[import]
-from icecube import icetray  # type: ignore[import]
-from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+from icecube import icetray  # type: ignore[import-not-found]
+from icecube import (  # type: ignore[import-not-found]  # for I3LCPulseCleaning  # noqa: F401
+    DomTools,
+)
+from icecube.frame_object_diff.segments import (  # type: ignore[import-not-found]
+    uncompress,
+)
+from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 
-from icecube import (
-    DomTools, # for I3LCPulseCleaning
-) # type: ignore[import]
-
-from .. import config as cfg
 from .. import recos
-from . import LOGGER
+
+LOGGER = logging.getLogger(__name__)
 
 
 class FrameArraySource(icetray.I3Module):

@@ -1,16 +1,23 @@
 """Generic utility functions."""
 
+
 # fmt: off
 # pylint: skip-file
 
 import hashlib
 import json
+import logging
 from pprint import pformat
 from typing import Any, List, Optional, Tuple
 
-from icecube import astro, dataclasses, dataio, icetray  # type: ignore[import]
+from icecube import (  # type: ignore[import-not-found]
+    astro,
+    dataclasses,
+    dataio,
+    icetray,
+)
 
-from . import LOGGER
+LOGGER = logging.getLogger(__name__)
 
 
 def pyobj_to_string_repr(obj: Any) -> str:
@@ -34,9 +41,8 @@ def get_event_mjd(frame_packet: List[icetray.I3Frame]) -> float:
 
 
 def load_framepacket_from_file(filename : str) -> List[icetray.I3Frame]:
-    """
-    Loads an I3 file provided a filename and returns a list of I3Frame objects (frame packet)
-    """
+    """Loads an I3 file provided a filename and returns a list of I3Frame
+    objects (frame packet)"""
     # Legacy code used to loop over GCD_BASE_DIRS.
     # Now it is assumed that filename points to a valid GCD file.
     frame_packet: icetray.I3Frame = []

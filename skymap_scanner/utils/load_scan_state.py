@@ -1,19 +1,21 @@
 """Tools for loading the scan state."""
 
+
 # fmt: off
-# mypy: ignore-errors
 # pylint: skip-file
 
+import logging
 import os
 from typing import List
 
-from icecube import icetray
+from icecube import icetray  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 
 from .. import config as cfg
-from . import LOGGER
 from .pixel_classes import RecoPixelFinal, RecoPixelVariation
 from .utils import hash_frame_packet, load_framepacket_from_file
+
+LOGGER = logging.getLogger(__name__)
 
 
 def load_cache_state(
@@ -179,29 +181,3 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
         cfg.STATEDICT_GCDQP_PACKET: frame_packet,
         cfg.STATEDICT_BASELINE_GCD_FILE: source_baseline_GCD,
     }
-
-
-if __name__ == "__main__":
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    usage = """%prog [options]"""
-    parser.set_usage(usage)
-    parser.add_option("-c", "--cache-dir", action="store", type="string",
-        default="./cache/", dest="CACHEDIR", help="The cache directory to use")
-
-    # get parsed args
-    (options,args) = parser.parse_args()
-
-    if len(args) != 1:
-        raise RuntimeError("You need to specify exatcly one event ID")
-    eventID = args[0]
-
-    # do the work
-    packets = load_cache_state(
-        eventID,
-        args.reco_algo,  # TODO: add --reco-algo (see start_scan.py)
-        cache_dir=options.CACHEDIR
-    )
-
-    print(("got:", packets))
