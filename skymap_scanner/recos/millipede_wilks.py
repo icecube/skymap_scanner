@@ -36,7 +36,7 @@ class MillipedeWilks(RecoInterface):
 
     # Spline requirements ##############################################
     FTP_ABS_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.abs.fits"
-    FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.fits"
+    FTP_PROB_SPLINE = "cascade_single_spice_ftp-v1_flat_z20_a5.prob.v2.fits"
     FTP_EFFD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.eff.fits"
     FTP_EFFP_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.prob.fits"
     FTP_TMOD_SPLINE = "cascade_effectivedistance_spice_ftp-v1_z20.tmod.fits"
