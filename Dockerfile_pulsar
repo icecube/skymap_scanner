@@ -1,7 +1,7 @@
 #
 # Define the base image icetray version
 #
-ARG ICETRAY_VERSION=v1.7.2-ubuntu22.04-X64
+ARG ICETRAY_VERSION=v1.9.1-ubuntu22.04-X64
 
 FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION as build
 
@@ -49,6 +49,10 @@ COPY --from=build /local/pulsar-client-python/dist/ pulsar-client-python/
 RUN python3 -m pip install pulsar-client-python/pulsar_client-*.whl
 
 
+
+RUN mkdir -p /opt/i3-data/baseline_gcds && \
+    wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd http://prod-exe.icecube.wisc.edu/baseline_gcds/ && \
+    chmod -R u+rwX,go+rX,go-w /opt/i3-data/baseline_gcds
 
 # we need more spline tables (since we need to potentially re-do onlineL2)
 #RUN wget -nv -t 5 -O /opt/i3-data/photon-tables/splines/InfBareMu_mie_abs_z20a10_V2.fits \
