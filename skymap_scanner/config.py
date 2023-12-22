@@ -152,7 +152,8 @@ def configure_loggers() -> None:
     hand = logging.StreamHandler()
     hand.setFormatter(
         logging.Formatter(
-            "%(asctime)s.%(msecs)03d [%(levelname)8s] %(name)s[%(process)d] %(message)s <%(filename)s:%(lineno)s/%(funcName)s()>"
+            "%(asctime)s.%(msecs)03d [%(levelname)8s] %(name)s[%(process)d] %(message)s <%(filename)s:%(lineno)s/%(funcName)s()>",
+            datefmt="%Y-%m-%d,%H:%M:%S",
         )
     )
     logging.getLogger().addHandler(hand)
