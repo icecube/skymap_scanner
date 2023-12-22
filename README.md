@@ -278,3 +278,12 @@ Unlike pixel-like data types, these types are meant to exist as singular instanc
 - can be exported to JSON and/or `.npz`-file
 - can be created from `nsides_dict` (internal to the scanner), JSON, and/or `.npz`-file
 - SkyDriver persists a serialized (JSON) version for each scan
+
+## Versioning
+The `MAJOR.MINOR.PATCH` versioning scheme is updated according to the following
+
+1. `MAJOR`: Breaking change or other fundamental change in the skymap-scanner
+2. `MINOR`: Physics change or non-breaking new feature
+3. `PATCH`: Bug fixes
+
+When the icetray image is updated, try to follow the same schema as its version update. So if icetray is bumped up a minor release, also increment it here.
