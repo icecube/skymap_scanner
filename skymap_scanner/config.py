@@ -149,7 +149,7 @@ ENV = from_environment_as_dataclass(EnvConfig)
 
 def configure_loggers() -> None:
     """Set up loggers with common configurations."""
-    hand = logging.Handler(ENV.SKYSCAN_LOG)
+    hand = logging.StreamHandler()
     hand.setFormatter(
         logging.Formatter(
             "%(asctime)s.%(msecs)03d [%(levelname)8s] %(hostname)s %(name)s[%(process)d] %(message)s <%(filename)s:%(lineno)s/%(funcName)s()>"
