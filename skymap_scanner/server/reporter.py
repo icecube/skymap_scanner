@@ -1,13 +1,12 @@
 """Contains a class for reporting progress and result for a scan."""
 
-# pylint: disable=import-error
-
 
 import bisect
 import dataclasses as dc
 import datetime as dt
 import itertools
 import json
+import logging
 import math
 import statistics
 import time
@@ -21,8 +20,9 @@ from .. import config as cfg
 from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
-from . import LOGGER
 from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
+
+LOGGER = logging.getLogger(__name__)
 
 StrDict = Dict[str, Any]
 

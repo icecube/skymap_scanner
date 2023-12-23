@@ -2,6 +2,7 @@
 
 
 import itertools
+import logging
 import time
 from bisect import bisect
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -16,8 +17,10 @@ from ..utils.pixel_classes import (
     RecoPixelVariation,
     SentPixelVariation,
 )
-from . import LOGGER
 from .reporter import Reporter
+
+LOGGER = logging.getLogger(__name__)
+
 
 StrDict = Dict[str, Any]
 

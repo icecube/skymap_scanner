@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v3.17.0 (2023-12-22)
+
+
+
+## v3.16.7 (2023-12-22)
+
+### Other
+
+* Use Local Loggers ([#256](https://github.com/icecube/skymap_scanner/issues/256)) ([`3750d16`](https://github.com/icecube/skymap_scanner/commit/3750d1685587e157403b7a37ba3b7999b9b84c2e))
+* Remove `coloredlogs` dep ([`fd1a0b7`](https://github.com/icecube/skymap_scanner/commit/fd1a0b7f1cd2957b87486559beabd56f751b1b20))
+
 ## v3.16.6 (2023-12-20)
 
 ### Other

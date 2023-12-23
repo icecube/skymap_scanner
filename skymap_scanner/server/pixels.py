@@ -1,17 +1,20 @@
 """Tools for picking pixels to scan."""
 
+
 # fmt: off
 # pylint: skip-file
 
+import logging
 from typing import List, Optional, Set, Tuple
 
-import healpy  # type: ignore[import]
+import healpy  # type: ignore[import-untyped]
 import numpy
-from icecube import icetray  # type: ignore[import]
+from icecube import icetray  # type: ignore[import-not-found]
 
 from ..utils.pixel_classes import NSidesDict
-from . import LOGGER
 from .utils import NSideProgression
+
+LOGGER = logging.getLogger(__name__)
 
 
 def __healpix_pixel_upgrade(nside, pix) -> list:
