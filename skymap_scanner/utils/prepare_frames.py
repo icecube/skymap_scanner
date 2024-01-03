@@ -92,12 +92,15 @@ def prepare_frames(frame_array, event_metadata, baseline_GCD: Union[None, str], 
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
 
-    if event_metadata.is_real_event and 'BadDomsList' not in frame_array[2]:
-        # rebuild the BadDomsList by querying I3Live
-        # ignore the Snapshot export which may not exist for active runs
+    if 'BadDomsList' not in frame_array[2]:
+        # rebuild the BadDomsList
+        # For real data events, query i3live
+        # Ignore the Snapshot export which may not exist for active realtime runs
+        LOGGER.info('BadDomsList missing in DetectorStatus frame... rebuilding')
+        LOGGER.debug(f'Frame keys are {frame_array[2].keys()}')
         tray.Add(BadDomList,
                  RunId=event_metadata.run_id,
-                 Simulation=False,
+                 Simulation=not event_metadata.is_real_event,
                  I3liveUrlSnapshotExport=None)
 
     # Separates pulses in HLC and SLC to obtain the HLC series.
