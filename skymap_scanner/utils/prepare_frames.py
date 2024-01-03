@@ -16,6 +16,7 @@ from icecube import (  # type: ignore[import-not-found]  # for I3LCPulseCleaning
 from icecube.frame_object_diff.segments import (  # type: ignore[import-not-found]
     uncompress,
 )
+from icecube.BadDomList.BadDomListTraySegment import BadDomList # type: ignore[import-not-found]
 from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 
 from .. import recos
@@ -71,7 +72,7 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
-def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
+def prepare_frames(frame_array, event_metadata, baseline_GCD: Union[None, str], reco_algo: str, pulsesName: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
     # ACTIVATE FOR DEBUG
     # icetray.logging.console()
@@ -90,6 +91,14 @@ def prepare_frames(frame_array, baseline_GCD: Union[None, str], reco_algo: str, 
                  keep_compressed=True,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
+
+    if event_metadata.is_real_event and 'BadDomsList' not in frame_array[2]:
+        # rebuild the BadDomsList by querying I3Live
+        # ignore the Snapshot export which may not exist for active runs
+        tray.Add(BadDomList,
+                 RunId=event_metadata.run_id,
+                 Simulation=False,
+                 I3liveUrlSnapshotExport=None)
 
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
