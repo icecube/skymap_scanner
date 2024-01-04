@@ -96,7 +96,7 @@ def prepare_frames(frame_array, event_metadata, baseline_GCD: Union[None, str], 
         # rebuild the BadDomsList
         # For real data events, query i3live
         # Ignore the Snapshot export which may not exist for active realtime runs
-        LOGGER.warning('BadDomsList missing in DetectorStatus frame... rebuilding')
+        LOGGER.warning('BadDomsList missing in DetectorStatus frame... rebuilding. Use icetray 1.9.1 or higher to extract it directly from an existing i3 file.')
         LOGGER.info(f'Frame keys are {frame_array[2].keys()}')
         tray.Add(BadDomList,
                  RunId=event_metadata.run_id,
