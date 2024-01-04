@@ -231,10 +231,10 @@ def __extract_frame_packet(
     LOGGER.info("Preprocessing event frames!")
     if baseline_GCD is not None:
         # frame_packet has GCD diff, provide baseline
-        frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, event_metadata, baseline_GCD_file, reco_algo, pulsesName)
     else:
         # frame_packet has either normal GCD or has been reassembled
-        frame_packet = prepare_frames(frame_packet, None, reco_algo, pulsesName=pulsesName)
+        frame_packet = prepare_frames(frame_packet, event_metadata, None, reco_algo, pulsesName)
 
     # move the last packet frame from Physics to the 'p' stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('p'))
