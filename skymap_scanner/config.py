@@ -45,10 +45,9 @@ DEFAULT_GCD_DIR = LOCAL_GCD_DATA_SOURCES[0]
 #   we put the complete path in LOCAL_GCD_DATA_SOURCES and use no subdir.
 LOCAL_GCD_SUBDIR = ""
 
-# This is temporary until it can be replaced by prod-exe.
 REMOTE_GCD_DATA_SOURCE: Final[
     str
-] = "https://www-zeuthen.desy.de/~mlincett/baseline_gcds"
+] = "http://prod-exe.icecube.wisc.edu/baseline_gcds"
 
 
 # physics strings
@@ -58,7 +57,7 @@ INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
 }
 DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
 
-INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
+INPUT_PULSES_NAME = "SkyScanBasePulses"
 
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
