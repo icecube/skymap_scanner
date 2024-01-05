@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.18.1 (2024-01-05)
+
+### Other
+
+* Bump startup json wait to 60 ([#259](https://github.com/icecube/skymap_scanner/issues/259)) ([`97883a8`](https://github.com/icecube/skymap_scanner/commit/97883a8cd1b7f793226b503d2978b668c1abc474))
+
 ## v3.18.0 (2024-01-05)
 
 
