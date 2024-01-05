@@ -99,7 +99,7 @@ def prepare_frames(frame_array,
 
     def fetch_pulses(frame):
         frame[cfg.INPUT_PULSES_NAME] = copy.deepcopy(frame[pulses_name])
-        frame[f'{cfg.INPUT_PULSES_NAME}TimeRange'] = copy.deepcopy(f'{frame[pulses_name]}TimeRange')
+        frame[f'{cfg.INPUT_PULSES_NAME}TimeRange'] = copy.deepcopy(frame[f'{pulses_name}TimeRange'])
         del frame[pulses_name]
 
     tray.Add(fetch_pulses, "fetch_pulse_series", If = lambda f: cfg.INPUT_PULSES_NAME not in f)
