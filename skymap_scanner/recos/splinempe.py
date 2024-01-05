@@ -191,7 +191,8 @@ class SplineMPE(RecoInterface):
         def log_frame(frame):
             logger.debug(f"{repr(frame)}/{frame}")
 
-        tray.Add("Copy", ["l2_online_BestFit", cls.energy_reco_seed],
+        tray.Add("Copy",
+                 Keys=["l2_online_BestFit", cls.energy_reco_seed],
                  If=lambda f: f.Has("l2_online_BestFit") and not f.Has(cls.energy_reco_seed))
 
         # From icetray/filterscript/python/onlinel2filter.py
