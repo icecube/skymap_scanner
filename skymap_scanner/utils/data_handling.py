@@ -1,9 +1,14 @@
-from .. import config as cfg  # type: ignore[import]
-from pathlib import Path
-import subprocess
-from typing import Dict, List, Union
+"""data_handling.py."""
 
-from . import LOGGER
+
+import logging
+import subprocess
+from pathlib import Path
+from typing import List
+
+from .. import config as cfg
+
+LOGGER = logging.getLogger(__name__)
 
 
 class DataStager:

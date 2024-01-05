@@ -2,6 +2,34 @@
 
 <!--next-version-placeholder-->
 
+## v3.18.1 (2024-01-05)
+
+### Other
+
+* Bump startup json wait to 60 ([#259](https://github.com/icecube/skymap_scanner/issues/259)) ([`97883a8`](https://github.com/icecube/skymap_scanner/commit/97883a8cd1b7f793226b503d2978b668c1abc474))
+
+## v3.18.0 (2024-01-05)
+
+
+
+## v3.17.0 (2023-12-22)
+
+
+
+## v3.16.7 (2023-12-22)
+
+### Other
+
+* Use Local Loggers ([#256](https://github.com/icecube/skymap_scanner/issues/256)) ([`3750d16`](https://github.com/icecube/skymap_scanner/commit/3750d1685587e157403b7a37ba3b7999b9b84c2e))
+* Remove `coloredlogs` dep ([`fd1a0b7`](https://github.com/icecube/skymap_scanner/commit/fd1a0b7f1cd2957b87486559beabd56f751b1b20))
+
+## v3.16.6 (2023-12-20)
+
+### Other
+
+* CI: Use RabbitMQ Production Version ([#255](https://github.com/icecube/skymap_scanner/issues/255)) ([`ab11d5f`](https://github.com/icecube/skymap_scanner/commit/ab11d5f95f69b4af8f9c74d0e47a97f33eaa7ee9))
+* Cleanup test data ([#247](https://github.com/icecube/skymap_scanner/issues/247)) ([`f439d4c`](https://github.com/icecube/skymap_scanner/commit/f439d4c746388996b77526aba188c7bf82003f6d))
+
 ## v3.16.5 (2023-12-02)
 
 ### Other

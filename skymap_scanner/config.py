@@ -1,6 +1,8 @@
 """Configuration constants."""
 
+
 import dataclasses as dc
+import logging
 from pathlib import Path
 from typing import Final, List
 
@@ -174,11 +176,18 @@ ENV = from_environment_as_dataclass(EnvConfig)
 
 def configure_loggers() -> None:
     """Set up loggers with common configurations."""
+    hand = logging.StreamHandler()
+    hand.setFormatter(
+        logging.Formatter(
+            "%(asctime)s.%(msecs)03d [%(levelname)8s] %(name)s[%(process)d] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    logging.getLogger().addHandler(hand)
     logging_tools.set_level(
         ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
-        first_party_loggers="skyscan",
+        first_party_loggers=__name__.split(".", maxsplit=1)[0],
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
         future_third_parties=["google", "pika"],
         specialty_loggers={
             ewms_pilot.pilot.LOGGER: ENV.SKYSCAN_EWMS_PILOT_LOG,  # type: ignore[attr-defined, dict-item]

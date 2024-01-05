@@ -2,13 +2,16 @@
 
 
 import dataclasses as dc
+import logging
 from typing import Optional, Tuple
 
 import numpy as np
 from skyreader import EventMetadata, SkyScanResult
 
-from . import LOGGER
 from .pixel_classes import NSidesDict, RecoPixelFinal
+
+LOGGER = logging.getLogger(__name__)
+
 
 PixelTuple = Tuple[int, float, float, float]
 

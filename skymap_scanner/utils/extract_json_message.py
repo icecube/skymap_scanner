@@ -1,17 +1,18 @@
 """Tools for extracting json messages."""
 
+
 # fmt: off
 # pylint: skip-file
 
 import json
+import logging
 import os
 from typing import Tuple, Union
 
-from icecube import full_event_followup, icetray  # type: ignore[import]
+from icecube import full_event_followup, icetray  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 
 from .. import config as cfg
-from . import LOGGER
 from .load_scan_state import load_scan_state
 from .prepare_frames import prepare_frames
 from .utils import (
@@ -22,6 +23,8 @@ from .utils import (
     save_GCD_frame_packet_to_file,
 )
 from .data_handling import get_gcd_datastager
+
+LOGGER = logging.getLogger(__name__)
 
 
 def extract_GCD_diff_base_filename(frame_packet):
@@ -293,7 +296,7 @@ def prepare_frame_packet(
     # Uncompress GCD info and invoke `prepare_frames` traysegment provided by `reco_algo`
     # - frame_packet has GCD diff => baseline_GCD_file is a path string
     # - frame_packet has either normal GCD or has been reassembled => baseline_GCD_file is None
-    prepared_frame_packet = prepare_frames(frame_packet, baseline_GCD_file, reco_algo, pulses_name=pulses_name)
+    prepared_frame_packet = prepare_frames(frame_packet, event_metadata, baseline_GCD_file, reco_algo, pulses_name=pulses_name)
 
     # Delete original frame packet.
     del frame_packet

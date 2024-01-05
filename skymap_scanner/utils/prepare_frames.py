@@ -1,25 +1,28 @@
-"""
-prepare the GCDQp packet by adding frame objects that might be missing
-"""
+"""prepare the GCDQp packet by adding frame objects that might be missing."""
+
 
 # fmt: off
 # pylint: skip-file
 
 import copy
+import logging
 import os
-from typing import Union, List
+from typing import List, Union
 
-from icecube.icetray import I3Tray  # type: ignore[import]
-from icecube import icetray  # type: ignore[import]
-from icecube.frame_object_diff.segments import uncompress  # type: ignore[import]
+from icecube import icetray  # type: ignore[import-not-found]
+from icecube import (  # type: ignore[import-not-found]  # for I3LCPulseCleaning  # noqa: F401
+    DomTools,
+)
+from icecube.frame_object_diff.segments import (  # type: ignore[import-not-found]
+    uncompress,
+)
+from icecube.BadDomList.BadDomListTraySegment import BadDomList # type: ignore[import-not-found]
+from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 
-from icecube import (
-    DomTools, # for I3LCPulseCleaning
-) # type: ignore[import]
-
-from .. import config as cfg
 from .. import recos
-from . import LOGGER
+from .. import config as cfg
+
+LOGGER = logging.getLogger(__name__)
 
 
 class FrameArraySource(icetray.I3Module):
@@ -71,6 +74,7 @@ class FrameArraySink(icetray.I3Module):
         self.PushFrame(frame)
 
 def prepare_frames(frame_array,
+                   event_metadata,
                    baseline_GCD: Union[None, str],
                    reco_algo: str,
                    pulses_name: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
@@ -92,12 +96,23 @@ def prepare_frames(frame_array,
                  keep_compressed=True,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
-    
+
     def fetch_pulses(frame):
         frame[cfg.INPUT_PULSES_NAME] = copy.deepcopy(frame[pulses_name])
         del frame[pulses_name]
 
     tray.Add(fetch_pulses, "fetch_pulse_series", If = lambda f: cfg.INPUT_PULSES_NAME not in f)
+
+    if 'BadDomsList' not in frame_array[2]:
+        # rebuild the BadDomsList
+        # For real data events, query i3live
+        # Ignore the Snapshot export which may not exist for active realtime runs
+        LOGGER.warning('BadDomsList missing in DetectorStatus frame... rebuilding. Use icetray 1.9.1 or higher to extract it directly from an existing i3 file.')
+        LOGGER.info(f'Frame keys are {frame_array[2].keys()}')
+        tray.Add(BadDomList,
+                 RunId=event_metadata.run_id,
+                 Simulation=not event_metadata.is_real_event,
+                 I3liveUrlSnapshotExport=None)
 
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.

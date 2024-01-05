@@ -1,5 +1,6 @@
 """The Skymap Scanner Server."""
 
+
 # pylint: disable=invalid-name,import-error
 # fmt:quotes-ok
 
@@ -36,7 +37,6 @@ from ..utils.pixel_classes import (
     SentPixelVariation,
     pframe_tuple,
 )
-from . import LOGGER
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
@@ -46,6 +46,9 @@ from .utils import (
     fetch_event_contents_from_skydriver,
     kill_switch_check_from_skydriver,
 )
+
+LOGGER = logging.getLogger(__name__)
+
 
 StrDict = Dict[str, Any]
 
@@ -472,7 +475,7 @@ async def _serve_and_collect(
                             msg["reco_pixel_variation"], msg["runtime"]
                         )
                     except ExtraRecoPixelVariationException as e:
-                        logging.error(e)
+                        LOGGER.error(e)
 
                     # if we've got enough pixfins, let's get a jump on the next round
                     if max_nside_thresholded := collector.get_max_nside_thresholded():
@@ -751,7 +754,3 @@ def main() -> None:
         )
     )
     LOGGER.info("Done.")
-
-
-if __name__ == "__main__":
-    main()
