@@ -105,7 +105,7 @@ def extract_json_message(
     return event_metadata, state_dict
 
 
-def __extract_event_type(physics_frame):
+def _extract_event_type(physics_frame):
     if "AlertShortFollowupMsg" in physics_frame:
         alert_keys = json.loads(physics_frame["AlertShortFollowupMsg"].value).keys()
         if "hese" in alert_keys:
@@ -190,7 +190,7 @@ def prepare_frame_packet(
     event_metadata = EventMetadata(
         header.run_id,
         header.event_id,
-        __extract_event_type(physics_frame),
+        _extract_event_type(physics_frame),
         get_event_mjd(frame_packet),
         is_real_event,
     )
