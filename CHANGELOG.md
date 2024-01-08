@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.18.2 (2024-01-08)
+
+### Other
+
+* Support realtime 2023a data format (`SplitInIcePulses`) ([#244](https://github.com/icecube/skymap_scanner/issues/244)) ([`4dba8f2`](https://github.com/icecube/skymap_scanner/commit/4dba8f2efb56b9df27fa7eaaa27f33e2bdd665d5))
+
 ## v3.18.1 (2024-01-05)
 
 ### Other
