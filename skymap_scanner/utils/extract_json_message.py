@@ -51,7 +51,7 @@ def extract_GCD_diff_base_filename(frame_packet):
 
     return GCD_diff_base_filename
 
-def __get_pulses_name(event_dict: dict):
+def _get_pulses_name(event_dict: dict):
     # Some JSON events may not have the 'version' attribute.
     # In such case we default to "no-version".
     realtime_format_version: str = event_dict["value"].get("version", "no-version")
@@ -59,9 +59,9 @@ def __get_pulses_name(event_dict: dict):
     # If a version is not in the map (always the case for `no-version`) use default
     #   otherwise get pulses name from the map.
     pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(
-            realtime_format_version,
-            cfg.DEFAULT_INPUT_PULSES_NAME
-        )
+        realtime_format_version,
+        cfg.DEFAULT_INPUT_PULSES_NAME
+    )
     return pulses_name
 
 def extract_json_message(
@@ -69,14 +69,11 @@ def extract_json_message(
     reco_algo: str,
     is_real_event: bool,
     cache_dir: str,
-    GCD_dir: str,
-    pulses_name: Union[str, None] # Union can be replaced by `|` only from python 3.10 
+    GCD_dir: str
 ) -> Tuple[EventMetadata, dict]:
 
-    __validate_cache_dir(cache_dir=cache_dir)
-
-    if pulses_name is None:
-        pulses_name = __get_pulses_name(event_dict=event_dict)
+    _validate_cache_dir(cache_dir=cache_dir)
+    pulses_name = _get_pulses_name(event_dict=event_dict)
 
     # extract the event content
     # the event object is converted to JSON
@@ -129,27 +126,27 @@ def __extract_event_type(physics_frame):
 
 
 # split out from prepare_frame_packet()
-def __validate_cache_dir(cache_dir: str):
+def _validate_cache_dir(cache_dir: str):
     if not os.path.exists(cache_dir):
         raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
     if not os.path.isdir(cache_dir):
         raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
 
 # split out from prepare_frame_packet()
-def __validate_frame_packet(frame_packet: list):
+def _validate_frame_packet(frame_packet: list):
     if len(frame_packet) != 5:
         raise RuntimeError("frame packet length is not 5")
     if frame_packet[-1].Stop not in [icetray.I3Frame.Physics, icetray.I3Frame.Stream('p')]:
         raise RuntimeError("frame packet does not end with Physics frame")
 
 # split out from prepare_frame_packet()
-def __validate_physics_frame(physics_frame):
+def _validate_physics_frame(physics_frame):
     # extract event ID
     if "I3EventHeader" not in physics_frame:
         raise RuntimeError("No I3EventHeader in Physics frame.")
 
 # split out from __extract_frame_packet 
-def __ensure_cache_directory(cache_dir, event_metadata):
+def _ensure_cache_directory(cache_dir, event_metadata):
     event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
         raise RuntimeError("This event would be cached in directory \"{0}\", but it exists and is not a directory.".format(event_cache_dir))
@@ -179,14 +176,14 @@ def prepare_frame_packet(
             - dict containing uncompressed frame packet and baseline GCD filename
     """
 
-    __validate_frame_packet(frame_packet=frame_packet)
+    _validate_frame_packet(frame_packet=frame_packet)
 
     # move the last packet frame from Physics to the Physics stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('P'))
     
     physics_frame = frame_packet[-1]
 
-    __validate_physics_frame(physics_frame=physics_frame)
+    _validate_physics_frame(physics_frame=physics_frame)
  
     header = physics_frame["I3EventHeader"]
 
@@ -199,7 +196,7 @@ def prepare_frame_packet(
     )
     LOGGER.debug("event ID is {0}".format(event_metadata))
 
-    event_cache_dir = __ensure_cache_directory(cache_dir, event_metadata)
+    event_cache_dir = _ensure_cache_directory(cache_dir, event_metadata)
 
     # see if we have the required baseline GCD to which to apply the GCD diff
     baseline_GCD = extract_GCD_diff_base_filename(frame_packet)
