@@ -83,7 +83,7 @@ class MillipedeWilks(RecoInterface):
 
     @classmethod
     @icetray.traysegment
-    def prepare_frames(cls, tray, name, logger, pulsesName):
+    def prepare_frames(cls, tray, name, logger):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
@@ -98,7 +98,7 @@ class MillipedeWilks(RecoInterface):
 
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
-            Pulses=pulsesName+'HLC',
+            Pulses=cfg.INPUT_PULSES_NAME+'HLC',
             OutputBool='HESE_VHESelfVeto',
             OutputVertexTime=cfg.INPUT_TIME_NAME,
             OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -107,14 +107,14 @@ class MillipedeWilks(RecoInterface):
         # this only runs if the previous module did not return anything
         tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
                        VertexThreshold=5,
-                       Pulses=pulsesName+'HLC',
+                       Pulses=cfg.INPUT_PULSES_NAME+'HLC',
                        OutputBool='VHESelfVeto_meaningless_lowen',
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
         
 
-        tray.Add(mask_deepcore, origpulses=pulsesName, maskedpulses=cls.pulsesName)
+        tray.Add(mask_deepcore, origpulses=cfg.INPUT_PULSES_NAME, maskedpulses=cls.pulsesName)
 
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:

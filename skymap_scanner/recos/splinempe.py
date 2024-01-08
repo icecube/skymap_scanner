@@ -130,7 +130,7 @@ class SplineMPE(RecoInterface):
 
     @classmethod
     @traysegment
-    def prepare_frames(cls, tray, name: str, logger, pulsesName) -> None:
+    def prepare_frames(cls, tray, name: str, logger) -> None:
         # =========================================================
         # PULSE CLEANING
         # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
@@ -190,6 +190,10 @@ class SplineMPE(RecoInterface):
 
         def log_frame(frame):
             logger.debug(f"{repr(frame)}/{frame}")
+
+        tray.Add("Copy",
+                 Keys=["l2_online_BestFit", cls.energy_reco_seed],
+                 If=lambda f: f.Has("l2_online_BestFit") and not f.Has(cls.energy_reco_seed))
 
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(

@@ -70,7 +70,7 @@ class MillipedeOriginal(RecoInterface):
 
     @classmethod
     @icetray.traysegment
-    def prepare_frames(cls, tray, name, logger, pulsesName):
+    def prepare_frames(cls, tray, name, logger):
         # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
         def extract_seed(frame):
             seed_prefix = "HESE_VHESelfVeto"
@@ -86,7 +86,7 @@ class MillipedeOriginal(RecoInterface):
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
         tray.AddModule('VHESelfVeto', 'selfveto',
                     VertexThreshold=2,
-                    Pulses=pulsesName+'HLC',
+                    Pulses=cfg.INPUT_PULSES_NAME+'HLC',
                     OutputBool='HESE_VHESelfVeto',
                     OutputVertexTime=cfg.INPUT_TIME_NAME,
                     OutputVertexPos=cfg.INPUT_POS_NAME,

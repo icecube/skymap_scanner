@@ -16,24 +16,49 @@ from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 # True constants
 #
 
-DEFAULT_GCD_DIR: Path = Path("/opt/i3-data/baseline_gcds")
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
 LOCAL_DATA_SOURCES: Final[List[Path]] = [
     Path("/opt/i3-data"),
     Path("/cvmfs/icecube.opensciencegrid.org/data"),
 ]
-# Directory path under a local data source to fetch spline data from.
-LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
 
 # HTTP source to download data from.
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
-REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
 
+# Local ephemeral directory to stage files.
 LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
+# Directory path under a local data source to fetch spline data from.
+LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
+REMOTE_SPLINE_SUBDIR: Final[str] = "spline-tables"
+
+# GCD data sources.
+LOCAL_GCD_DATA_SOURCES: Final[List[Path]] = [
+    Path("/opt/i3-data/baseline_gcds"),
+    Path("/cvmfs/icecube.opensciencegrid.org/users/RealTime/GCD/PoleBaseGCDs"),
+]
+
+DEFAULT_GCD_DIR = LOCAL_GCD_DATA_SOURCES[0]
+
+# Since the container and CVFMS have GCD files in different subdirectories
+#   we put the complete path in LOCAL_GCD_DATA_SOURCES and use no subdir.
+LOCAL_GCD_SUBDIR = ""
+
+REMOTE_GCD_DATA_SOURCE: Final[
+    str
+] = "http://prod-exe.icecube.wisc.edu/baseline_gcds"
+
+
 # physics strings
-INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
+INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
+    "2021a": "SplitUncleanedInIcePulses",
+    "2023a": "SplitInIcePulses",
+}
+DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
+
+INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
+
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
 OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
@@ -46,6 +71,7 @@ I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
 STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
 STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
 STATEDICT_NSIDES: Final = "nsides"
+STATEDICT_INPUT_PULSES: Final = "input_pulses_name"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME: Final = "pframe"

@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 from pathlib import Path
+from ..utils.data_handling import get_gcd_datastager
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
@@ -57,18 +58,26 @@ def main() -> None:
     with open(args.client_startup_json, "rb") as f:
         startup_json_dict = json.load(f)
     with open("GCDQp_packet.json", "w") as f:
-        json.dump(startup_json_dict["GCDQp_packet"], f)
+        json.dump(startup_json_dict[cfg.STATEDICT_GCDQP_PACKET], f)
+
+    datastager = get_gcd_datastager()
+
+    baseline_gcd_file = Path(startup_json_dict["baseline_GCD_file"])
+
+    datastager.stage_files([baseline_gcd_file.name])
+
+    baseline_gcd_file = Path(datastager.get_filepath(baseline_gcd_file.name))
 
     # check if baseline GCD file is reachable
-    if not Path(startup_json_dict["baseline_GCD_file"]).exists():
-        raise FileNotFoundError(startup_json_dict["baseline_GCD_file"])
+    if not baseline_gcd_file.exists():
+        raise FileNotFoundError(baseline_gcd_file)
 
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
         " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
         " --out-pkl {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
-        f" --baseline-gcd-file {startup_json_dict['baseline_GCD_file']}"
+        f" --baseline-gcd-file {baseline_gcd_file}"
     )
 
     # go!

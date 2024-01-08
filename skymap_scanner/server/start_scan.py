@@ -691,16 +691,17 @@ def main() -> None:
         event_contents = fetch_event_contents_from_file(args.event_file)
 
     # get inputs (load event_id + state_dict cache)
+    LOGGER.info("Extracting event...")
     event_metadata, state_dict = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
         is_real_event=args.real_event,
         cache_dir=str(args.cache_dir),
         GCD_dir=str(args.gcd_dir),
-        pulsesName=cfg.INPUT_PULSES_NAME,
     )
 
     # write startup files for client-spawning
+    LOGGER.info("Writing startup JSON...")
     scan_id = write_startup_json(
         args.client_startup_json,
         event_metadata,
