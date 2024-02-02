@@ -129,7 +129,7 @@ class PixelsToReco:
         # Attributes necessary for the pointed scan with SplineMPE.
         # If the reco isn't SplineMPE, they don't affect the scanner.
         self.online_ra_dec = None
-        self.ang_dist = 5.
+        self.ang_dist = 5. * numpy.pi / 180.
 
         if reco_algo == "splinempe":
             particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
