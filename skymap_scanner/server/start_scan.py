@@ -126,6 +126,22 @@ class PixelsToReco:
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 
+        # Attributes necessary for the pointed scan with SplineMPE.
+        # If the reco isn't SplineMPE, they don't affect the scanner.
+        self.online_ra_dec = None
+        self.ang_dist = 5.
+
+        if reco_algo == "splinempe":
+            particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
+            for particle_name in particle_name_possibilities:
+                if particle_name in p_frame.keys():
+                    online_dir = p_frame[particle_name].dir
+                    self.online_ra_dec = astro.dir_to_equa(
+                        online_dir.azimuth,
+                        online_dir.zenith,
+                        self.event_header.start_time.mod_julian_day_double
+                    )
+
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
