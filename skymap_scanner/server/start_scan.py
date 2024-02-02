@@ -137,8 +137,8 @@ class PixelsToReco:
                 if particle_name in p_frame.keys():
                     online_dir = p_frame[particle_name].dir
                     self.online_ra_dec = astro.dir_to_equa(
-                        online_dir.azimuth,
                         online_dir.zenith,
+                        online_dir.azimuth,
                         self.event_header.start_time.mod_julian_day_double
                     )
 
