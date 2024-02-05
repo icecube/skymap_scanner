@@ -180,7 +180,7 @@ class PixelsToReco:
         LOGGER.info(f"Looking for refinements for {nside_subprogression}...")
         #
         if self.online_ra_dec is not None:
-            nside_subprogression = NSideProgression({self.min_nside:0})
+            nside_subprogression = NSideProgression([(self.min_nside,0)])
 
         pixels_to_refine = choose_pixels_to_reconstruct(
             self.nsides_dict,
