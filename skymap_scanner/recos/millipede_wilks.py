@@ -138,7 +138,7 @@ class MillipedeWilks(RecoInterface):
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
             Pulses = cls.pulsesName,
-            ExcludeDeepCore='DeepCoreDOMs',
+            ExcludeDeepCore=False,
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
             BrightDOMThreshold=2,
