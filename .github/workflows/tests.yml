@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.2
 
   # flake8:
   #   runs-on: ubuntu-latest
@@ -67,23 +67,31 @@ jobs:
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
   py-setup:
-    # needs: [wait-for-tests]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
     runs-on: ubuntu-latest
     steps:
-      - uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: checkout
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.9
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
           git_committer_email: ${{ env.BOT_EMAIL }}
+          base-keywords: IceCube
+
+  py-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jlumbroso/free-disk-space@main  # need space for images to build
+        with:
+          tool-cache: 'true'
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
+        with:
           dockerfile_nametags: Dockerfile:icecube/skymap_scanner:latest
 
 
@@ -113,7 +121,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -153,7 +160,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -416,7 +422,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
@@ -593,6 +598,7 @@ jobs:
     needs: [
               mypy,
               py-setup,
+              py-dependencies,
               test-build-docker,
               test-build-docker-pulsar,
               test-run-singularity-dummy-reco,
