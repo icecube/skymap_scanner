@@ -14,8 +14,8 @@ if [[ $(basename `pwd`) != "launch_scripts" ]]; then
 fi
 
 
-if [ -z "$1" ]; then
-    echo "Usage: local-scan.sh N_CLIENTS"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: local-scan.sh N_CLIENTS OUTPUT_DIR"
     exit 1
 fi
 if [[ "$1" != +([[:digit:]]) ]]; then
@@ -23,6 +23,11 @@ if [[ "$1" != +([[:digit:]]) ]]; then
     exit 2
 fi
 nclients="$1"
+if [ ! -d $(dirname $2) ]; then
+    echo "Directory Not Found: $(dirname $1)"
+    exit 2
+fi
+outdir="$2"
 
 
 if [ -z "$SKYSCAN_CACHE_DIR" ] || [ -z "$SKYSCAN_OUTPUT_DIR" ] || [ -z "$SKYSCAN_DEBUG_DIR" ]; then
@@ -51,7 +56,7 @@ fi
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
-    2>&1 | tee output \
+    2>&1 | tee outdir/server.out \
     &
 server_pid=$!
 
@@ -67,7 +72,7 @@ for i in $( seq 1 $nclients ); do
     ./docker/launch_client.sh \
         --client-startup-json ./startup.json \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee output \
+        2>&1 | tee outdir/client-$i.out \
         &
     echo -e "\tclient #$i launched"
 done

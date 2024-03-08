@@ -19,6 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
+  CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
@@ -185,7 +186,7 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(nproc)
+          nclients=2
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
@@ -273,7 +274,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $(nproc)
+          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
@@ -289,6 +290,19 @@ jobs:
           nsides = "${{ matrix.nsides }}"
           assert len(pydict) == nsides.count(":")
           '
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
 
       - name: reco-icetray logs
         if: always()
@@ -351,12 +365,25 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          timeout 240 ./local-scan.sh $(nproc)  || true
+          timeout 240 ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
           set -x
           # check for fails
           find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
 
 
   test-run-realistic:
@@ -432,7 +459,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $(nproc)
+          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
@@ -447,6 +474,19 @@ jobs:
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
 
       - name: reco-icetray logs
         if: always()
