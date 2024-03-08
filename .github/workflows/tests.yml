@@ -144,7 +144,7 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           tool-cache: 'true'
       - uses: actions/checkout@v3
@@ -253,7 +253,7 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           tool-cache: 'true'
       - uses: actions/checkout@v3
@@ -346,7 +346,7 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           tool-cache: 'true'
       - uses: actions/checkout@v3
@@ -440,7 +440,7 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           tool-cache: 'true'
       - uses: actionhippie/swap-space@v1
