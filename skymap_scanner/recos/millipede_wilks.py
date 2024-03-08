@@ -209,13 +209,13 @@ class MillipedeWilks(RecoInterface):
             ShowerRegularization=1e-14,
             ExcludedDOMs=ExcludedDOMs,
             PartialExclusion=True,
-            ReadoutWindow=self.pulsesName_cleaned+'TimeRange',
+            ReadoutWindow=self.pulsesName_cleaned + 'TimeRange',
             Pulses=self.pulsesName_cleaned,
             BinSigma=2,
             MinTimeWidth=25,
             RelUncertainty=1)
 
-        tray.AddService('I3GSLRandomServiceFactory','I3RandomService')
+        tray.AddService('I3GSLRandomServiceFactory', 'I3RandomService')
 
         tray.context['isimplex'] = lilliput.IMinuitMinimizer(
             MaxIterations=2000,
