@@ -185,7 +185,7 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(( $_CLIENTS_PER_CPU * $(nproc) ))
+          nclients=$(nproc)
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
@@ -230,7 +230,6 @@ jobs:
           0.65,
         ]
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -274,7 +273,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh
+          ./local-scan.sh $(nproc)
 
       - name: check no nsides skipped
         run: |
@@ -308,7 +307,6 @@ jobs:
     needs: test-build-docker
     runs-on: ubuntu-latest
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -353,7 +351,7 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          timeout 240 ./local-scan.sh  || true
+          timeout 240 ./local-scan.sh $(nproc)  || true
       - name: look at stderrfiles
         run: |
           set -x
@@ -384,7 +382,6 @@ jobs:
             eventfile: hese_event_01.json
 
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -435,7 +432,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh
+          ./local-scan.sh $(nproc)
 
       - name: test output against known result (.json)
         run: |
