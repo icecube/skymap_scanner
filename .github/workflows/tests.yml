@@ -281,6 +281,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 10  # on average max~=5min
         run: |
           set -x
           source tests/env-vars.sh
@@ -358,6 +359,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 10  # on average ~6min
         run: |
           set -x
           source tests/env-vars.sh
@@ -439,6 +441,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 35  # on average max~=26min
         run: |
           set -x
           lscpu
@@ -532,6 +535,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 15  # on average max~=7min
         run: |
           source tests/env-vars.sh
 
