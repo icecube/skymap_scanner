@@ -14,6 +14,23 @@ if [[ $(basename `pwd`) != "launch_scripts" ]]; then
 fi
 
 
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: local-scan.sh N_CLIENTS OUTPUT_DIR"
+    exit 1
+fi
+if [[ "$1" != +([[:digit:]]) ]]; then
+    echo "N_CLIENTS must be a number: $1"
+    exit 2
+fi
+nclients="$1"
+if [ ! -d $(dirname $2) ]; then
+    echo "Directory Not Found: $(dirname $1)"
+    exit 2
+fi
+outdir="$2"
+mkdir -p "$outdir"
+
+
 if [ -z "$SKYSCAN_CACHE_DIR" ] || [ -z "$SKYSCAN_OUTPUT_DIR" ] || [ -z "$SKYSCAN_DEBUG_DIR" ]; then
     echo "required env vars: SKYSCAN_CACHE_DIR, SKYSCAN_OUTPUT_DIR, SKYSCAN_DEBUG_DIR"
     # will fail in mkdirs below...
@@ -40,6 +57,7 @@ fi
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
+    2>&1 | tee "$outdir"/server.out \
     &
 server_pid=$!
 
@@ -49,14 +67,13 @@ server_pid=$!
 
 
 # Launch Clients
-clients_per_cpu=${_CLIENTS_PER_CPU:-"1"}
-nclients=$(( $clients_per_cpu * $(nproc) ))
 echo "Launching $nclients clients"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"}  # 30 mins
 for i in $( seq 1 $nclients ); do
     ./docker/launch_client.sh \
         --client-startup-json ./startup.json \
         --debug-directory $SKYSCAN_DEBUG_DIR \
+        2>&1 | tee "$outdir"/client-$i.out \
         &
     echo -e "\tclient #$i launched"
 done
