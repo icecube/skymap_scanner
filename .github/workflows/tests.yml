@@ -360,7 +360,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
-        timeout-minutes: 10  # on average ~6min
+        timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
           set -x
           source tests/env-vars.sh
@@ -371,7 +371,9 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
+          # since SKYSCAN_CRASH_DUMMY_PROBABILITY<1, this step will go forever
+          #   so, stop it after some time and chek that it has stderrfiles
+          timeout 240 ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
           set -x
