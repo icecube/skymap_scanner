@@ -57,7 +57,7 @@ fi
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
-    2>&1 | tee outdir/server.out \
+    2>&1 | tee "$outdir"/server.out \
     &
 server_pid=$!
 
@@ -73,7 +73,7 @@ for i in $( seq 1 $nclients ); do
     ./docker/launch_client.sh \
         --client-startup-json ./startup.json \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee outdir/client-$i.out \
+        2>&1 | tee "$outdir"/client-$i.out \
         &
     echo -e "\tclient #$i launched"
 done
