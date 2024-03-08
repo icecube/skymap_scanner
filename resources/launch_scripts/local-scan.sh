@@ -47,12 +47,6 @@ else
 fi
 
 
-# wait for rabbitmq to finish set up  # TODO: is there a smarter way to do this?
-date -R --utc
-sleep 60
-date -R --utc
-
-
 # Launch Server
 ./docker/launch_server.sh \
     --reco-algo $_RECO_ALGO \
