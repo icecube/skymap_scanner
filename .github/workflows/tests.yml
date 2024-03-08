@@ -93,6 +93,8 @@ jobs:
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
+          git_committer_name: ${{ env.BOT_NAME }}
+          git_committer_email: ${{ env.BOT_EMAIL }}
           dockerfile_nametags: Dockerfile:icecube/skymap_scanner:latest
 
 
