@@ -411,7 +411,6 @@ jobs:
         # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
-
     env:
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
