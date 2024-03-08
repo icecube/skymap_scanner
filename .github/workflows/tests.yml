@@ -365,12 +365,16 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          timeout 240 ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
       - name: look at stderrfiles
         run: |
           set -x
           # check for fails
-          find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c
+          stderrfiles=$(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c)
+          echo $stderrfiles
+          if [ -z "${stderrfiles}" ]; then
+              exit 1
+          fi
 
       - name: central server stdout/stderr
         if: always()
