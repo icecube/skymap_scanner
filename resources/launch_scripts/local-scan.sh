@@ -28,6 +28,7 @@ if [ ! -d $(dirname $2) ]; then
     exit 2
 fi
 outdir="$2"
+mkdir -p "$outdir"
 
 
 if [ -z "$SKYSCAN_CACHE_DIR" ] || [ -z "$SKYSCAN_OUTPUT_DIR" ] || [ -z "$SKYSCAN_DEBUG_DIR" ]; then
