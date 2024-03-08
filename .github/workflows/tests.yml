@@ -117,23 +117,6 @@ jobs:
           tags: icecube/skymap_scanner:local
 
 
-  test-build-docker-pulsar:
-    needs: test-build-docker
-    runs-on: ubuntu-latest
-    steps:
-      - uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: 'true'
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
-        with:
-          context: .
-          cache-from: type=gha
-          file: Dockerfile_pulsar
-          tags: icecube/skymap_scanner:local-pulsar
-
-
   test-run-singularity-dummy-reco:
     needs: test-build-docker
     runs-on: ubuntu-latest
@@ -607,7 +590,6 @@ jobs:
               py-setup,
               py-dependencies,
               test-build-docker,
-              test-build-docker-pulsar,
               test-run-singularity-dummy-reco,
               test-file-staging,
               test-run-nsides-thresholds-dummy,
