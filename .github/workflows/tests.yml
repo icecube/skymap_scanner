@@ -91,6 +91,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
+        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           dockerfile_nametags: Dockerfile:icecube/skymap_scanner:latest
 
