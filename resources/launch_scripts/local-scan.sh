@@ -47,7 +47,10 @@ else
 fi
 
 
-sleep 60  # wait for rabbitmq to finish set up  # TODO: is there a smarter way to do this?
+# wait for rabbitmq to finish set up  # TODO: is there a smarter way to do this?
+date -R --utc
+sleep 60
+date -R --utc
 
 
 # Launch Server
