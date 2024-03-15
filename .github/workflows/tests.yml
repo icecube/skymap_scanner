@@ -19,6 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
+  CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
@@ -43,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.2
 
   # flake8:
   #   runs-on: ubuntu-latest
@@ -67,19 +68,30 @@ jobs:
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
   py-setup:
-    # needs: [wait-for-tests]  # NOTE: this would be needed if enabling "all tests to pass" branch protection
     runs-on: ubuntu-latest
     steps:
-      - uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: checkout
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v2.9
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
+        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+        with:
+          git_committer_name: ${{ env.BOT_NAME }}
+          git_committer_email: ${{ env.BOT_EMAIL }}
+          base-keywords: IceCube
+
+  py-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jlumbroso/free-disk-space@main  # need space for images to build
+        with:
+          tool-cache: 'true'
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
           git_committer_name: ${{ env.BOT_NAME }}
@@ -104,24 +116,6 @@ jobs:
           cache-to: type=gha,mode=min
           file: Dockerfile
           tags: icecube/skymap_scanner:local
-
-
-  test-build-docker-pulsar:
-    needs: test-build-docker
-    runs-on: ubuntu-latest
-    steps:
-      - uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
-        with:
-          context: .
-          cache-from: type=gha
-          file: Dockerfile_pulsar
-          tags: icecube/skymap_scanner:local-pulsar
 
 
   test-run-singularity-dummy-reco:
@@ -150,10 +144,9 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -193,7 +186,7 @@ jobs:
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=$(( $_CLIENTS_PER_CPU * $(nproc) ))
+          nclients=2
           echo "Launching $nclients clients"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
@@ -238,7 +231,6 @@ jobs:
           0.65,
         ]
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -261,6 +253,9 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+        with:
+          tool-cache: 'true'
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -272,6 +267,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 10  # on average max~=5min
         run: |
           set -x
           source tests/env-vars.sh
@@ -281,7 +277,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh
+          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
@@ -297,6 +293,19 @@ jobs:
           nsides = "${{ matrix.nsides }}"
           assert len(pydict) == nsides.count(":")
           '
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
 
       - name: reco-icetray logs
         if: always()
@@ -315,7 +324,6 @@ jobs:
     needs: test-build-docker
     runs-on: ubuntu-latest
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -338,6 +346,9 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+        with:
+          tool-cache: 'true'
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -349,6 +360,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
           set -x
           source tests/env-vars.sh
@@ -359,12 +371,31 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          timeout 240 ./local-scan.sh  || true
+          # since SKYSCAN_CRASH_DUMMY_PROBABILITY<1, this step will go forever
+          #   so, stop it after some time and chek that it has stderrfiles
+          timeout 240 ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
           set -x
           # check for fails
-          find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c
+          stderrfiles=$(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c)
+          echo $stderrfiles
+          if [ -z "${stderrfiles}" ]; then
+              exit 1
+          fi
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
 
 
   test-run-realistic:
@@ -388,9 +419,7 @@ jobs:
         # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
-
     env:
-      _CLIENTS_PER_CPU: 1  # there isn't any improvement when >1
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_BROKER_AUTH: password  # using this would override password in address
     services:
@@ -413,10 +442,9 @@ jobs:
         - 5672:5672
         - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           tool-cache: 'true'
-          large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
@@ -431,6 +459,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 35  # on average max~=26min
         run: |
           set -x
           lscpu
@@ -441,7 +470,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh
+          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
@@ -456,6 +485,19 @@ jobs:
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
 
       - name: reco-icetray logs
         if: always()
@@ -524,6 +566,7 @@ jobs:
           tags: icecube/skymap_scanner:local
           load: true
       - name: run
+        timeout-minutes: 15  # on average max~=7min
         run: |
           source tests/env-vars.sh
 
@@ -593,8 +636,8 @@ jobs:
     needs: [
               mypy,
               py-setup,
+              py-dependencies,
               test-build-docker,
-              test-build-docker-pulsar,
               test-run-singularity-dummy-reco,
               test-file-staging,
               test-run-nsides-thresholds-dummy,

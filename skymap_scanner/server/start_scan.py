@@ -422,6 +422,7 @@ async def _send_pixels(
                     cfg.MSG_KEY_PFRAME: pframe,
                 }
             )
+            LOGGER.debug(f"sent message M#{i} {pframe_tuple(pframe)}")
             sent_pixvars.add(SentPixelVariation.from_pframe(pframe))
 
     # check if anything was actually processed
