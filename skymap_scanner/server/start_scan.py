@@ -132,7 +132,7 @@ class PixelsToReco:
         self.ang_dist = 3.5
 
         if self.reco.get_use_online_ra_dec():
-            for particle_name in self.reco.get_particle_name_possibilities():
+            for particle_name in self.reco.particle_name_possibilities:
                 if particle_name in p_frame.keys():
                     online_dir = p_frame[particle_name].dir
                     self.online_ra_dec = astro.dir_to_equa(
