@@ -407,7 +407,8 @@ jobs:
         reco_algo: [
           millipede_original,
           millipede_wilks,
-          splinempe
+          splinempe,
+          splinempe_pointed
         ]
         eventfile: [
           hese_event_01.json,
@@ -418,6 +419,8 @@ jobs:
         exclude:
         # splinempe should not run on HESE
           - reco_algo: splinempe
+            eventfile: hese_event_01.json
+          - reco_algo: splinempe_pointed
             eventfile: hese_event_01.json
     env:
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
@@ -548,11 +551,14 @@ jobs:
             [
               millipede_original,
               millipede_wilks,
-              splinempe
+              splinempe,
+              splinempe_pointed
             ]
         exclude:
         # splinempe should not run on HESE
           - reco_algo: splinempe
+            dir: "JSON"
+          - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
       - uses: actions/checkout@v3
