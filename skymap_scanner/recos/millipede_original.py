@@ -96,7 +96,7 @@ class MillipedeOriginal(RecoInterface):
         self.rotate_vertex = False
         self.refine_time = False
         self.add_fallback_position = False
-        self.get_use_online_ra_dec = False
+        self.use_online_ra_dec = False
 
     def get_use_online_ra_dec(self):
         return self.use_online_ra_dec
