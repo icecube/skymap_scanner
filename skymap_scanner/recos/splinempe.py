@@ -11,7 +11,7 @@ from icecube.icetray import I3Units  # type: ignore[import]
 # NOTE: icecube module imports are required to make IceTray modules and services available.
 from icecube import (  # type: ignore[import]  # noqa: F401
     dataclasses,
-    DomTools,splinempe.py
+    DomTools,
     frame_object_diff,
     gulliver,
     gulliver_modules,
