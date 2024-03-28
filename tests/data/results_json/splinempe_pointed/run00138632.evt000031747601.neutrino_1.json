@@ -1,0 +1,27 @@
+{
+    "nside-1": {
+        "columns": [
+            "index",
+            "llh",
+            "E_in",
+            "E_tot"
+        ],
+        "data": [
+            [
+                6,
+                1370.4553241836998,
+                NaN,
+                NaN
+            ]
+        ],
+        "metadata": {
+            "nside": 1,
+            "complete": true,
+            "run_id": 138632,
+            "event_id": 31747601,
+            "event_type": "neutrino",
+            "mjd": 60280.71416774572,
+            "is_real_event": true
+        }
+    }
+}

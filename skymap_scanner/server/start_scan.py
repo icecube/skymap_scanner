@@ -126,6 +126,22 @@ class PixelsToReco:
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 
+        # Attributes necessary for the pointed scan with splinempe_pointed.
+        # If the reco isn't splinempe_pointed, they don't affect the scanner.
+        self.online_ra_dec = None
+        self.ang_dist = 3.5
+
+        if self.reco.get_use_online_ra_dec():
+            particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
+            for particle_name in particle_name_possibilities:
+                if particle_name in p_frame.keys():
+                    online_dir = p_frame[particle_name].dir
+                    self.online_ra_dec = astro.dir_to_equa(
+                        online_dir.zenith,
+                        online_dir.azimuth,
+                        self.event_header.start_time.mod_julian_day_double
+                    )
+
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
@@ -163,7 +179,13 @@ class PixelsToReco:
         # find pixels to refine
         LOGGER.info(f"Looking for refinements for {nside_subprogression}...")
         #
-        pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, nside_subprogression)
+        pixels_to_refine = choose_pixels_to_reconstruct(
+            self.nsides_dict,
+            nside_subprogression,
+            ang_dist=self.ang_dist,
+            coord_ra_dec=self.online_ra_dec,
+        )
+        self.online_ra_dec = None
         LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
         #
         pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))

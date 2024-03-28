@@ -52,12 +52,16 @@ class MillipedeWilks(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
+        self.use_online_ra_dec = False
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variations.
         """
         return VertexGenerator.point()
+    
+    def get_use_online_ra_dec(self):
+        return self.use_online_ra_dec
 
     def setup_reco(self):
         datastager = self.get_datastager()
