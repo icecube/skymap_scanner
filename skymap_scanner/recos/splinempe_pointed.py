@@ -1,3 +1,7 @@
+"""IceTray segment for a pointed splinempe reco."""
+
+# mypy: ignore-errors
+
 from splinempe import SplineMPE
 from icecube import astro
 from icecube.icetray import I3Frame
