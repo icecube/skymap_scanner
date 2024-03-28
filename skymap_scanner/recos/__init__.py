@@ -67,12 +67,6 @@ class RecoInterface(ABC):
     def get_use_online_ra_dec() -> bool:
         """Returns a boll whether to use online_ra_dec to point the scan."""
         pass
-        
-    @staticmethod
-    @abstractmethod
-    def get_particle_name_possibilities() -> List[str]:
-        """Returns a list of possible particle names to retrieve online_ra_dec."""
-        pass
 
     @abstractmethod
     def prepare_frames(self, tray, name, **kwargs) -> None:
