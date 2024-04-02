@@ -20,6 +20,7 @@ except ImportError: # type: ignore[import]
     I3Position = Any
     I3Frame = Any
 
+from . import splinempe_pointed
 # Redundant imports are used to declare symbols exported by the module.
 from .common.vertex_gen import VertexGenerator as VertexGenerator
 
