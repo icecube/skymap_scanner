@@ -2,10 +2,10 @@
 
 # mypy: ignore-errors
 
-from splinempe import SplineMPE
-from icecube import astro
-from icecube.icetray import I3Frame
-from typing import List
+from splinempe import SplineMPE     # type: ignore[import]
+from icecube import astro           # type: ignore[import]
+from icecube.icetray import I3Frame # type: ignore[import]
+from typing import List             # type: ignore[import]
 
 class SplineMPE_pointed(SplineMPE):
 
