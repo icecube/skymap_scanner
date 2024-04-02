@@ -119,7 +119,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
             raise UnsupportedRecoAlgoException(name) from e
         raise  # something when wrong AFTER accessing sub-module
 
-def get_online_ra_dec(p_frame: I3Frame) -> tuple[numpy.ndarray]:
+def get_online_ra_dec(p_frame: I3Frame) -> tuple[float, float]:
     particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
     for particle_name in particle_name_possibilities:
         if particle_name in p_frame.keys():
