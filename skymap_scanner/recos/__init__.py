@@ -15,7 +15,7 @@ from ..utils.data_handling import DataStager
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
-    from icecube import astro
+    from icecube import astro # type: ignore[import]
 except ImportError: # type: ignore[import]
     I3Position = Any
     I3Frame = Any
