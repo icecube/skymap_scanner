@@ -15,7 +15,8 @@ from ..utils.data_handling import DataStager
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
-except ImportError:
+    from icecube import astro
+except ImportError: # type: ignore[import]
     I3Position = Any
     I3Frame = Any
 
@@ -119,7 +120,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
             raise UnsupportedRecoAlgoException(name) from e
         raise  # something when wrong AFTER accessing sub-module
 
-def get_online_ra_dec(reco_algo: RecoInterface, p_frame: I3Frame) -> tuple(numpy.ndarray):
+def get_online_ra_dec(reco_algo: RecoInterface, p_frame: I3Frame) -> tuple[numpy.ndarray]:
 
     online_ra_dec = None
     
