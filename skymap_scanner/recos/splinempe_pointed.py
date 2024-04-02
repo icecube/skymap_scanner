@@ -2,12 +2,12 @@
 
 # mypy: ignore-errors
 
-from splinempe import SplineMPE     # type: ignore[import]
-from icecube import astro           # type: ignore[import]
-from icecube.icetray import I3Frame # type: ignore[import]
-from typing import List             # type: ignore[import]
+from . import splinempe  
+from icecube import astro           
+from icecube.icetray import I3Frame
+from typing import List             
 
-class SplineMPE_pointed(SplineMPE):
+class SplineMPE_pointed(splinempe.SplineMPE):
 
     def __init__(self):
         super().__init__()
