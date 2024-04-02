@@ -123,7 +123,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
 def get_online_ra_dec(
         reco_algo: RecoInterface, 
         p_frame: I3Frame
-    ) -> float | Union[tuple[float, float], None]:
+    ) -> tuple[float, Union[tuple[float, float]]]:
 
     ang_dist = 3.5
     online_ra_dec = None
