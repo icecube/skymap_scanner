@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 import importlib
+import numpy
 import pkgutil
 from typing import TYPE_CHECKING, Any, Dict, List
 
@@ -18,6 +19,7 @@ except ImportError:
     I3Position = Any
     I3Frame = Any
 
+from . import splinempe_pointed
 # Redundant imports are used to declare symbols exported by the module.
 from .common.vertex_gen import VertexGenerator as VertexGenerator
 
@@ -116,3 +118,20 @@ def get_reco_spline_requirements(name: str) -> List[str]:
             # checking this in 'except' allows us to use 'from e'
             raise UnsupportedRecoAlgoException(name) from e
         raise  # something when wrong AFTER accessing sub-module
+
+def get_online_ra_dec(reco_algo: RecoInterface, p_frame: I3Frame) -> tuple(numpy.ndarray):
+
+    online_ra_dec = None
+    
+    if isinstance(reco_algo, splinempe_pointed.SplineMPE_pointed):
+        particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
+        for particle_name in particle_name_possibilities:
+            if particle_name in p_frame.keys():
+                online_dir = p_frame[particle_name].dir
+                online_ra_dec = astro.dir_to_equa(
+                    online_dir.zenith,
+                    online_dir.azimuth,
+                    p_frame["I3EventHeader"].start_time.mod_julian_day_double
+                )
+        
+    return online_ra_dec

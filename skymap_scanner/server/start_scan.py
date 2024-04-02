@@ -128,19 +128,8 @@ class PixelsToReco:
 
         # Attributes necessary for the pointed scan with splinempe_pointed.
         # If the reco isn't splinempe_pointed, they don't affect the scanner.
-        self.online_ra_dec = None
         self.ang_dist = 3.5
-
-        if isinstance(self.reco, splinempe_pointed.SplineMPE_pointed):
-            particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
-            for particle_name in particle_name_possibilities:
-                if particle_name in p_frame.keys():
-                    online_dir = p_frame[particle_name].dir
-                    self.online_ra_dec = astro.dir_to_equa(
-                        online_dir.zenith,
-                        online_dir.azimuth,
-                        self.event_header.start_time.mod_julian_day_double
-                    )
+        self.online_ra_dec = recos.get_online_ra_dec(self.reco, p_frame)
 
 
     @staticmethod
