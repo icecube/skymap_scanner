@@ -33,7 +33,6 @@ class Dummy(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = False
-        self.use_online_ra_dec = False
 
     def setup_reco(self):
         pass
@@ -42,9 +41,6 @@ class Dummy(RecoInterface):
     def get_vertex_variations() -> List[dataclasses.I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
         return VertexGenerator.point()
-    
-    def get_use_online_ra_dec(self):
-        return self.use_online_ra_dec
 
     @staticmethod
     @icetray.traysegment

@@ -62,12 +62,6 @@ class RecoInterface(ABC):
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
         pass
 
-    @staticmethod
-    @abstractmethod
-    def get_use_online_ra_dec() -> bool:
-        """Returns a boll whether to use online_ra_dec to point the scan."""
-        pass
-
     @abstractmethod
     def prepare_frames(self, tray, name, **kwargs) -> None:
         pass

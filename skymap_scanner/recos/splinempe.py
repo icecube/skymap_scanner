@@ -73,7 +73,6 @@ class SplineMPE(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
-        self.use_online_ra_dec = False
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -268,9 +267,6 @@ class SplineMPE(RecoInterface):
 
     def get_vertex_variations(self):
         return VertexGenerator.cylinder()
-    
-    def get_use_online_ra_dec(self):
-        return self.use_online_ra_dec
 
     def setup_reco(self) -> None:
         datastager = self.get_datastager()

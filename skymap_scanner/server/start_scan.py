@@ -28,7 +28,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..recos import RecoInterface
+from ..recos import RecoInterface, splinempe_pointed
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
@@ -131,7 +131,7 @@ class PixelsToReco:
         self.online_ra_dec = None
         self.ang_dist = 3.5
 
-        if self.reco.get_use_online_ra_dec():
+        if isinstance(self.reco, splinempe_pointed.SplineMPE_pointed):
             particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
             for particle_name in particle_name_possibilities:
                 if particle_name in p_frame.keys():
