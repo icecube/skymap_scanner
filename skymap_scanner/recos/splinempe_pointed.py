@@ -5,7 +5,8 @@
 from . import splinempe  
 from icecube import astro           
 from icecube.icetray import I3Frame
-from typing import Final, List             
+from typing import Final, List
+from . import RecoInterface       
 
 class SplineMPE_pointed(splinempe.SplineMPE):
 
