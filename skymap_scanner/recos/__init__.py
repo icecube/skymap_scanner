@@ -120,13 +120,13 @@ def get_reco_spline_requirements(name: str) -> List[str]:
         raise  # something when wrong AFTER accessing sub-module
 
 def get_online_ra_dec(p_frame: I3Frame) -> tuple[numpy.ndarray]:
-        particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
-        for particle_name in particle_name_possibilities:
-            if particle_name in p_frame.keys():
-                online_dir = p_frame[particle_name].dir
-                online_ra_dec = astro.dir_to_equa(
-                    online_dir.zenith,
-                    online_dir.azimuth,
-                    p_frame["I3EventHeader"].start_time.mod_julian_day_double
-                )
+    particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
+    for particle_name in particle_name_possibilities:
+        if particle_name in p_frame.keys():
+            online_dir = p_frame[particle_name].dir
+            online_ra_dec = astro.dir_to_equa(
+                online_dir.zenith,
+                online_dir.azimuth,
+                p_frame["I3EventHeader"].start_time.mod_julian_day_double
+            )
     return online_ra_dec
