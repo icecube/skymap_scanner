@@ -28,7 +28,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..recos import RecoInterface, splinempe_pointed, get_online_ra_dec
+from ..recos import RecoInterface, get_online_ra_dec
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
@@ -128,11 +128,7 @@ class PixelsToReco:
 
         # Attributes necessary for the pointed scan with splinempe_pointed.
         # If the reco isn't splinempe_pointed, they don't affect the scanner.
-        self.ang_dist = 3.5
-        self.online_ra_dec = None
-        
-        if isinstance(self.reco, splinempe_pointed.SplineMPE_pointed):
-            self.online_ra_dec = get_online_ra_dec(p_frame)
+        self.ang_dist, self.reco_algo = get_online_ra_dec(self.reco, p_frame)
 
 
     @staticmethod

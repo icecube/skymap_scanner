@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import importlib
 import numpy
 import pkgutil
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -119,14 +119,22 @@ def get_reco_spline_requirements(name: str) -> List[str]:
             raise UnsupportedRecoAlgoException(name) from e
         raise  # something when wrong AFTER accessing sub-module
 
-def get_online_ra_dec(p_frame: I3Frame) -> tuple[float, float]:
-    particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
-    for particle_name in particle_name_possibilities:
-        if particle_name in p_frame.keys():
-            online_dir = p_frame[particle_name].dir
-            online_ra_dec = astro.dir_to_equa(
-                online_dir.zenith,
-                online_dir.azimuth,
-                p_frame["I3EventHeader"].start_time.mod_julian_day_double
-            )
-    return online_ra_dec
+def get_online_ra_dec(
+        reco_algo: RecoInterface, 
+        p_frame: I3Frame
+    ) -> float | Union[tuple[float, float], None]:
+
+    ang_dist = 3.5
+    online_ra_dec = None
+    
+    if isinstance(reco_algo, splinempe_pointed.SplineMPE_pointed):
+        particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
+        for particle_name in particle_name_possibilities:
+            if particle_name in p_frame.keys():
+                online_dir = p_frame[particle_name].dir
+                online_ra_dec = astro.dir_to_equa(
+                    online_dir.zenith,
+                    online_dir.azimuth,
+                    p_frame["I3EventHeader"].start_time.mod_julian_day_double
+                )
+    return ang_dist, online_ra_dec
