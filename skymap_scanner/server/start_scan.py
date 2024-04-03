@@ -128,7 +128,7 @@ class PixelsToReco:
 
         # Attributes necessary for the pointed scan with splinempe_pointed.
         # If the reco isn't splinempe_pointed, they don't affect the scanner.
-        self.ang_dist, self.reco_algo = get_online_ra_dec(self.reco, p_frame)
+        self.ang_dist, self.online_ra_dec = get_online_ra_dec(self.reco, p_frame)
 
 
     @staticmethod
