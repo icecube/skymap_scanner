@@ -17,8 +17,7 @@ class SplineMPE_pointed(splinempe.SplineMPE):
 
 def get_pointing_info(
     p_frame: Optional[I3Frame]
-) -> Tuple[float, Union[Tuple[float, float], None]]:
-    ang_dist = 3.5
+) -> Union[Tuple[float, float], None]:
     particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
     for particle_name in particle_name_possibilities:
         if particle_name in p_frame.keys():
@@ -28,6 +27,6 @@ def get_pointing_info(
                 online_dir.azimuth,
                 p_frame["I3EventHeader"].start_time.mod_julian_day_double
             )
-    return ang_dist, online_ra_dec
+    return online_ra_dec
 
 RECO_CLASS: Final[type[RecoInterface]] = SplineMPE_pointed
