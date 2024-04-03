@@ -80,7 +80,6 @@ class RecoInterface(ABC):
         """Performs the reconstruction."""
         pass
 
-    @abstractmethod
     def get_pointing_info(
         self, 
         p_frame: I3Frame
@@ -88,7 +87,8 @@ class RecoInterface(ABC):
         ang_dist = 3.5
         online_ra_dec = None
         if self.use_pointing:
-            for particle_name in type(self).particle_name_possibilities:
+            particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
+            for particle_name in particle_name_possibilities:
                 if particle_name in p_frame.keys():
                     online_dir = p_frame[particle_name].dir
                     online_ra_dec = astro.dir_to_equa(

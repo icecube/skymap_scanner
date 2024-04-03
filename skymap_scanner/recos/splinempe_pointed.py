@@ -12,8 +12,6 @@ from . import RecoInterface
 
 class SplineMPE_pointed(splinempe.SplineMPE):
 
-    particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
-
     def __init__(self):
         super().__init__()
         self.use_pointing = True
