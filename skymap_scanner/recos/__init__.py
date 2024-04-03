@@ -38,6 +38,7 @@ class RecoInterface(ABC):
     rotate_vertex: bool
     refine_time: bool
     add_fallback_position: bool
+    use_pointing: bool
 
     # List of spline filenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
@@ -78,6 +79,16 @@ class RecoInterface(ABC):
     def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
         """Performs the reconstruction."""
         pass
+
+    @abstractmethod
+    def get_pointing_info(
+        self, 
+        p_frame: I3Frame
+    ) -> Tuple[float, Union[Tuple[float, float], None]]:
+        if self.use_pointing:
+            pass
+        else:
+            return 3.5, None
  
     @staticmethod
     @abstractmethod

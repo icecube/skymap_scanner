@@ -33,6 +33,7 @@ class Dummy(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = False
+        self.use_pointing = False
 
     def setup_reco(self):
         pass

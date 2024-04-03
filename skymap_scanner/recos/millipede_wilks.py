@@ -52,6 +52,7 @@ class MillipedeWilks(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
+        self.use_pointing = False
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
