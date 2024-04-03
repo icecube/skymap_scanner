@@ -16,8 +16,8 @@ class SplineMPE_pointed(splinempe.SplineMPE):
         super().__init__()
 
 def get_pointing_info(
-    p_frame: Optional[I3Frame]
-) -> Union[Tuple[float, float], None]:
+    p_frame: I3Frame
+) -> Tuple[float, float]:
     particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
     for particle_name in particle_name_possibilities:
         if particle_name in p_frame.keys():
