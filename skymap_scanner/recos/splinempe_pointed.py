@@ -18,19 +18,4 @@ class SplineMPE_pointed(splinempe.SplineMPE):
         super().__init__()
         self.use_pointing = True
 
-    def get_pointing_info(
-        self,
-        p_frame: I3Frame
-    ) -> Tuple[float, Union[Tuple[float, float], None]]:
-        ang_dist = 3.5
-        for particle_name in type(self).particle_name_possibilities:
-            if particle_name in p_frame.keys():
-                online_dir = p_frame[particle_name].dir
-                online_ra_dec = astro.dir_to_equa(
-                    online_dir.zenith,
-                    online_dir.azimuth,
-                    p_frame["I3EventHeader"].start_time.mod_julian_day_double
-                )
-        return ang_dist, online_ra_dec
-
 RECO_CLASS: Final[type[RecoInterface]] = SplineMPE_pointed
