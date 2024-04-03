@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 import importlib
-import numpy
 import pkgutil
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
