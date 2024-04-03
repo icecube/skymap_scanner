@@ -87,8 +87,7 @@ class RecoInterface(ABC):
     ) -> Tuple[float, Union[Tuple[float, float], None]]:
         if self.use_pointing:
             pass
-        else:
-            return 3.5, None
+        return 3.5, None
  
     @staticmethod
     @abstractmethod
