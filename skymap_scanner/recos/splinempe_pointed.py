@@ -2,10 +2,7 @@
 
 # mypy: ignore-errors
  
-from typing import Final, Tuple, Union
-
-from icecube.icetray import I3Frame
-from icecube import astro
+from typing import Final
 
 from . import splinempe 
 from . import RecoInterface       
