@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import importlib
 import numpy
 import pkgutil
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -123,7 +123,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
 def get_online_ra_dec(
         reco_algo: RecoInterface, 
         p_frame: I3Frame
-    ) -> Tuple[float, Tuple[float, float] | None]:
+    ) -> Tuple[float, Union[Tuple[float, float], None]]:
 
     ang_dist = 3.5
     online_ra_dec = None
