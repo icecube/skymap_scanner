@@ -85,6 +85,7 @@ class RecoInterface(ABC):
         self, 
         p_frame: I3Frame
     ) -> Tuple[float, Union[Tuple[float, float], None]]:
+        """Retrieves the direction and opening angle for a pointed scan, if the reco needs it"""
         ang_dist = 3.5
         online_ra_dec = None
         if self.use_pointing:
