@@ -36,7 +36,7 @@ class RecoInterface(ABC):
 
     name: str = __name__
     ang_dist: float = 3.5
-    online_ra_dec: None
+    online_ra_dec: Union[None, List[str], Tuple[float,float]] = None
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
     refine_time: bool
