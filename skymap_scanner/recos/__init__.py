@@ -126,12 +126,13 @@ def set_online_ra_dec(
 ) -> Tuple[float, float]:
     """Retrieves the direction for a pointed scan"""
     online_ra_dec = None
-    for particle_name in particle_name_possibilities:
-        if particle_name in p_frame.keys():
-            online_dir = p_frame[particle_name].dir
-            online_ra_dec = astro.dir_to_equa(
-                online_dir.zenith,
-                online_dir.azimuth,
-                p_frame["I3EventHeader"].start_time.mod_julian_day_double
-            )
+    if isinstance(particle_name_possibilities, List):
+        for particle_name in particle_name_possibilities:
+            if particle_name in p_frame.keys():
+                online_dir = p_frame[particle_name].dir
+                online_ra_dec = astro.dir_to_equa(
+                    online_dir.zenith,
+                    online_dir.azimuth,
+                    p_frame["I3EventHeader"].start_time.mod_julian_day_double
+                )
     return online_ra_dec
