@@ -171,7 +171,6 @@ class PixelsToReco:
             ang_dist=self.reco.ang_dist,
             coord_ra_dec=self.online_ra_dec,
         )
-        self.online_ra_dec = None
         LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
         #
         pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))
