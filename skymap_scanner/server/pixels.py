@@ -183,7 +183,7 @@ def choose_pixels_to_reconstruct(
     Some of the pixel returned may have previously been generated.
     """
     # special case if we have a given coordinate, select pixels only at first nside
-    if coord_ra_dec and isinstance(nside_progression, dict):
+    if coord_ra_dec and len(nside_progression) == 1 :
         LOGGER.debug(f"Getting pixels around {coord_ra_dec}...")
         # scan only at max_nside around given coordinate
         return choose_pixels_to_reconstruct_around_coord(
