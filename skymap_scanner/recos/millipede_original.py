@@ -96,7 +96,6 @@ class MillipedeOriginal(RecoInterface):
         self.rotate_vertex = False
         self.refine_time = False
         self.add_fallback_position = False
-        self.use_pointing = False
 
     def setup_reco(self):
         datastager = self.get_datastager()

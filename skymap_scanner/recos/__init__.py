@@ -35,11 +35,12 @@ class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
     name: str = __name__
+    ang_dist: 3.5
+    online_ra_dec: None
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
     refine_time: bool
     add_fallback_position: bool
-    use_pointing: bool
 
     # List of spline filenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
@@ -80,25 +81,6 @@ class RecoInterface(ABC):
     def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
         """Performs the reconstruction."""
         pass
-
-    def get_pointing_info(
-        self, 
-        p_frame: I3Frame
-    ) -> Tuple[float, Union[Tuple[float, float], None]]:
-        """Retrieves the direction and opening angle for a pointed scan, if the reco needs it"""
-        ang_dist = 3.5
-        online_ra_dec = None
-        if self.use_pointing:
-            particle_name_possibilities = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
-            for particle_name in particle_name_possibilities:
-                if particle_name in p_frame.keys():
-                    online_dir = p_frame[particle_name].dir
-                    online_ra_dec = astro.dir_to_equa(
-                        online_dir.zenith,
-                        online_dir.azimuth,
-                        p_frame["I3EventHeader"].start_time.mod_julian_day_double
-                    )
-        return ang_dist, online_ra_dec
  
     @staticmethod
     @abstractmethod
@@ -137,3 +119,18 @@ def get_reco_spline_requirements(name: str) -> List[str]:
             # checking this in 'except' allows us to use 'from e'
             raise UnsupportedRecoAlgoException(name) from e
         raise  # something when wrong AFTER accessing sub-module
+
+def set_online_ra_dec(
+    particle_name_possibilities: List[str],
+    p_frame: I3Frame
+) -> Tuple[float, float]:
+    """Retrieves the direction for a pointed scan"""
+    for particle_name in particle_name_possibilities:
+        if particle_name in p_frame.keys():
+            online_dir = p_frame[particle_name].dir
+            online_ra_dec = astro.dir_to_equa(
+                online_dir.zenith,
+                online_dir.azimuth,
+                p_frame["I3EventHeader"].start_time.mod_julian_day_double
+            )
+    return online_ra_dec

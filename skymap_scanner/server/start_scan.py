@@ -28,7 +28,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..recos import RecoInterface
+from ..recos import RecoInterface, set_online_ra_dec
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
@@ -126,7 +126,8 @@ class PixelsToReco:
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 
-        self.ang_dist, self.online_ra_dec = self.reco.get_pointing_info(p_frame)
+        if self.reco.online_ra_dec is not None:
+            self.reco.online_ra_dec = set_online_ra_dec(self.reco.online_ra_dec, p_frame)
 
 
     @staticmethod
@@ -168,8 +169,8 @@ class PixelsToReco:
         pixels_to_refine = choose_pixels_to_reconstruct(
             self.nsides_dict,
             nside_subprogression,
-            ang_dist=self.ang_dist,
-            coord_ra_dec=self.online_ra_dec,
+            ang_dist=self.reco.ang_dist,
+            coord_ra_dec=self.reco.online_ra_dec,
         )
         self.online_ra_dec = None
         LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
