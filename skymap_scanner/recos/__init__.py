@@ -35,7 +35,7 @@ class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
     name: str = __name__
-    ang_dist: 3.5
+    ang_dist: float = 3.5
     online_ra_dec: None
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
