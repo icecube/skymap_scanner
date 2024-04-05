@@ -123,7 +123,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
 def set_online_ra_dec(
     particle_name_possibilities: Union[List[str], None],
     p_frame: I3Frame
-) -> Tuple[float, float]:
+) -> Union[Tuple[float, float], None]:
     """Retrieves the direction for a pointed scan"""
     online_ra_dec = None
     if isinstance(particle_name_possibilities, List):
