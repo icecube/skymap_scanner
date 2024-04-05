@@ -126,8 +126,7 @@ class PixelsToReco:
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 
-        if self.reco.online_ra_dec is not None:
-            self.reco.online_ra_dec = set_online_ra_dec(self.reco.online_ra_dec, p_frame)
+        self.online_ra_dec = set_online_ra_dec(self.reco.online_dir_names, p_frame)
 
 
     @staticmethod
@@ -170,9 +169,9 @@ class PixelsToReco:
             self.nsides_dict,
             nside_subprogression,
             ang_dist=self.reco.ang_dist,
-            coord_ra_dec=self.reco.online_ra_dec,
+            coord_ra_dec=self.online_ra_dec,
         )
-        self.reco.online_ra_dec = None
+        self.online_ra_dec = None
         LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
         #
         pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))

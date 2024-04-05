@@ -36,7 +36,7 @@ class RecoInterface(ABC):
 
     name: str = __name__
     ang_dist: float = 3.5
-    online_ra_dec: Union[None, List[str], Tuple[float,float]] = None
+    online_dir_names: Union[None, List[str]] = None
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
     refine_time: bool
@@ -121,10 +121,11 @@ def get_reco_spline_requirements(name: str) -> List[str]:
         raise  # something when wrong AFTER accessing sub-module
 
 def set_online_ra_dec(
-    particle_name_possibilities: List[str],
+    particle_name_possibilities: Union[List[str], None],
     p_frame: I3Frame
 ) -> Tuple[float, float]:
     """Retrieves the direction for a pointed scan"""
+    online_ra_dec = None
     for particle_name in particle_name_possibilities:
         if particle_name in p_frame.keys():
             online_dir = p_frame[particle_name].dir
