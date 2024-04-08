@@ -13,4 +13,4 @@ class SplineMPEPointed(splinempe.SplineMPE):
         super().__init__()
         self.pointing_dir_names = ["OnlineL2_SplineMPE", "l2_online_SplineMPE"]
 
-RECO_CLASS: Final[type[RecoInterface]] = SplineMPE_pointed
+RECO_CLASS: Final[type[RecoInterface]] = SplineMPEpointed
