@@ -7,7 +7,7 @@ from typing import Final
 from . import splinempe 
 from . import RecoInterface       
 
-class SplineMPE_pointed(splinempe.SplineMPE):
+class SplineMPEPointed(splinempe.SplineMPE):
 
     def __init__(self):
         super().__init__()
