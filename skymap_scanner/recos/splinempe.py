@@ -430,5 +430,4 @@ class SplineMPE(RecoInterface):
             energy=frame["splinempe-reco"].energy,
         )
 
-
 RECO_CLASS: Final[type[RecoInterface]] = SplineMPE

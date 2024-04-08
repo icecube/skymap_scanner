@@ -126,19 +126,19 @@ def find_pixels_to_refine(
     return [x for x in pixels_to_refine]
 
 
-def choose_pixels_to_reconstruct_around_MCtruth(
+def choose_pixels_to_reconstruct_around_coord(
     nsides_dict: NSidesDict,
-    mc_ra_dec: Tuple[float, float],
+    coord_ra_dec: Tuple[float, float],
     nside: int,
     angular_dist: float = 2.*numpy.pi/180.,
 ) -> Set[Tuple[icetray.I3Int, icetray.I3Int]]:
-    ra, dec = mc_ra_dec
+    ra, dec = coord_ra_dec
 
-    # MC true pixel
-    true_pix = healpy.ang2pix(nside, numpy.pi/2.-dec, ra)
+    # pixel of central coordinate
+    coord_pix = healpy.ang2pix(nside, numpy.pi/2.-dec, ra)
 
-    # true pixel dir
-    x0,y0,z0 = healpy.pix2vec(nside, true_pix)
+    # coord pixel dir
+    x0,y0,z0 = healpy.pix2vec(nside, coord_pix)
 
     # all possible pixels
     x1,y1,z1 = healpy.pix2vec(nside, numpy.asarray(list(range(healpy.nside2npix(nside)))))
@@ -172,7 +172,7 @@ def choose_pixels_to_reconstruct(
     nsides_dict: NSidesDict,
     nside_progression: NSideProgression,
     ang_dist: float = 2.,
-    mc_ra_dec: Optional[Tuple[float, float]] = None,
+    coord_ra_dec: Optional[Tuple[float, float]] = None,
 ) -> Set[Tuple[icetray.I3Int, icetray.I3Int]]:
     """Get more pixels to reconstruct/refine.
 
@@ -182,13 +182,13 @@ def choose_pixels_to_reconstruct(
 
     Some of the pixel returned may have previously been generated.
     """
-    # special case if we have MC truth
-    if mc_ra_dec:
-        LOGGER.debug("Getting pixels around MC truth...")
-        # scan only at max_nside around the true minimum
-        return choose_pixels_to_reconstruct_around_MCtruth(
+    # special case if we have a given coordinate, select pixels only at first nside
+    if coord_ra_dec and len(nside_progression) == 1 :
+        LOGGER.debug(f"Getting pixels around {coord_ra_dec}...")
+        # scan only at max_nside around given coordinate
+        return choose_pixels_to_reconstruct_around_coord(
             nsides_dict,
-            mc_ra_dec=mc_ra_dec,
+            coord_ra_dec=coord_ra_dec,
             nside=nside_progression.max_nside,  # use final nside
             angular_dist=ang_dist*numpy.pi/180.
         )

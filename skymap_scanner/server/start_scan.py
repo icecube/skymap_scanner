@@ -28,7 +28,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
 from .. import recos
-from ..recos import RecoInterface
+from ..recos import RecoInterface, set_pointing_ra_dec
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import (
@@ -126,6 +126,8 @@ class PixelsToReco:
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 
+        self.pointing_ra_dec = set_pointing_ra_dec(self.reco.pointing_dir_names, p_frame)
+
 
     @staticmethod
     def refine_vertex_time(vertex, time, direction, pulses, omgeo):
@@ -163,7 +165,12 @@ class PixelsToReco:
         # find pixels to refine
         LOGGER.info(f"Looking for refinements for {nside_subprogression}...")
         #
-        pixels_to_refine = choose_pixels_to_reconstruct(self.nsides_dict, nside_subprogression)
+        pixels_to_refine = choose_pixels_to_reconstruct(
+            self.nsides_dict,
+            nside_subprogression,
+            ang_dist=self.reco.ang_dist,
+            coord_ra_dec=self.pointing_ra_dec,
+        )
         LOGGER.info(f"Chose {len(pixels_to_refine)} pixels.")
         #
         pixels_to_refine = set(p for p in pixels_to_refine if not pixel_already_sent(p))
