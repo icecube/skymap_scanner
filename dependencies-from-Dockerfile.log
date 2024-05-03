@@ -33,7 +33,7 @@ decorator==4.4.2
 defusedxml==0.7.1
 docutils==0.20.1
 et-xmlfile==1.0.1
-ewms-pilot==0.18.7
+ewms-pilot==0.19.0
 fonttools==4.29.1
 fs==2.4.12
 gast==0.5.2
@@ -245,7 +245,7 @@ scipy==1.8.0
 setuptools==59.6.0
 six==1.16.0
 skymap-scanner
-├── ewms-pilot [required: Any, installed: 0.18.7]
+├── ewms-pilot [required: Any, installed: 0.19.0]
 │   ├── htchirp [required: Any, installed: 3.0]
 │   ├── htcondor [required: Any, installed: 23.6.1]
 │   └── oms-mqclient [required: Any, installed: 2.4.10]
