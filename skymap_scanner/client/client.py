@@ -95,7 +95,6 @@ def main() -> None:
             ftype_to_subproc=".pkl",
             ftype_from_subproc=".pkl",
             timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-            timeout_outgoing=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
             timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
             debug_dir=args.debug_directory,
             task_timeout=cfg.ENV.EWMS_PILOT_TASK_TIMEOUT,
