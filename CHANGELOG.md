@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.20.1 (2024-05-03)
+
+### Other
+
+* Remove Unused Pilot Timeout Value ([#266](https://github.com/icecube/skymap_scanner/issues/266)) ([`6a01445`](https://github.com/icecube/skymap_scanner/commit/6a014452c6afd48e8e469f41ec26d0bda6fe72a5))
+
 ## v3.20.0 (2024-04-08)
 
 
