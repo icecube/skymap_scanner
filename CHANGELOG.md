@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.20.2 (2024-06-04)
+
+### Other
+
+* Patch for an inconsistency introduced in #264 ([#267](https://github.com/icecube/skymap_scanner/issues/267)) ([`5270bf1`](https://github.com/icecube/skymap_scanner/commit/5270bf1dab12cb5135ef7753505d667d522e7171))
+
 ## v3.20.1 (2024-05-03)
 
 ### Other
