@@ -264,7 +264,7 @@ skymap-scanner
 │       └── typing_extensions [required: Any, installed: 4.12.2]
 ├── iminuit [required: Any, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
-├── numpy [required: Any, installed: 1.21.5]
+├── numpy [required: <2.0.0, installed: 1.21.5]
 ├── oms-mqclient [required: ==2.4.10, installed: 2.4.10]
 │   └── wipac-dev-tools [required: Any, installed: 1.10.6]
 │       ├── requests [required: Any, installed: 2.25.1]
