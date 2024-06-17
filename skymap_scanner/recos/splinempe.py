@@ -422,8 +422,8 @@ class SplineMPE(RecoInterface):
             llh=frame[
                 "splinempe-reco" + "FitParams"
             ].logl,  # FitParams is hardcoded (where?)
-            reco_losses_inside=np.nan,
-            reco_losses_total=np.nan,
+            reco_losses_inside=np.NaN,
+            reco_losses_total=np.NaN,
             posvar_id=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["splinempe-reco"].pos,
             time=frame["splinempe-reco"].time,
