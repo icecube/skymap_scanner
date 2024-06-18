@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.20.3 (2024-06-18)
+
+### Other
+
+* Pin `ewms-pilot`, `oms-mqclient`, `numpy` ([#268](https://github.com/icecube/skymap_scanner/issues/268)) ([`8eae50d`](https://github.com/icecube/skymap_scanner/commit/8eae50d1b789473e6207f4767eaa9b1c827f2f36))
+
 ## v3.20.2 (2024-06-04)
 
 ### Other
