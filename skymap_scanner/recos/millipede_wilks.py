@@ -141,7 +141,7 @@ class MillipedeWilks(RecoInterface):
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
-            BrightDOMThreshold=2,
+            BrightDOMThreshold=4,
             BadDomsList='BadDomsList',
             CalibrationErrata='CalibrationErrata',
             SaturationWindows='SaturationWindows'
@@ -213,7 +213,7 @@ class MillipedeWilks(RecoInterface):
             Pulses=self.pulsesName_cleaned,
             BinSigma=2,
             MinTimeWidth=25,
-            RelUncertainty=1)
+            RelUncertainty=0.3)
 
         tray.AddService('I3GSLRandomServiceFactory', 'I3RandomService')
 
