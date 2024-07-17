@@ -17,7 +17,7 @@ beniget==0.4.1
 Bottleneck==1.3.2
 breathe==4.35.0
 Brotli==1.0.9
-cachetools==5.3.3
+cachetools==5.4.0
 certifi==2020.6.20
 cffi==1.15.0
 chardet==4.0.0
@@ -39,7 +39,7 @@ fs==2.4.12
 gast==0.5.2
 healpy==1.15.0
 htchirp==3.0
-htcondor==23.7.2
+htcondor==23.8.1
 html5lib==1.1
 hypothesis==6.36.0
 icecube-skyreader==1.2.9
@@ -137,7 +137,7 @@ urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
 wipac-dev-tools==1.10.6
-wipac-rest-tools==1.7.5
+wipac-rest-tools==1.7.6
 xlwt==1.3.0
 zipp==1.0.0
 ########################################################################
@@ -212,9 +212,9 @@ pexpect==4.8.0
 pickleshare==0.7.5
 pika==1.3.2
 Pillow==9.0.1
-pipdeptree==2.23.0
+pipdeptree==2.23.1
 ├── packaging [required: >=23.1, installed: 24.1]
-└── pip [required: >=23.1.2, installed: 24.0]
+└── pip [required: >=23.1.2, installed: 24.1.2]
 pluggy==0.13.0
 ply==3.11
 prompt-toolkit==3.0.28
@@ -246,7 +246,7 @@ six==1.16.0
 skymap-scanner
 ├── ewms-pilot [required: ==0.19.0, installed: 0.19.0]
 │   ├── htchirp [required: Any, installed: 3.0]
-│   ├── htcondor [required: Any, installed: 23.7.2]
+│   ├── htcondor [required: Any, installed: 23.8.1]
 │   └── oms-mqclient [required: Any, installed: 2.4.10]
 │       └── wipac-dev-tools [required: Any, installed: 1.10.6]
 │           ├── requests [required: Any, installed: 2.25.1]
@@ -273,8 +273,8 @@ skymap-scanner
 ├── wipac-dev-tools [required: Any, installed: 1.10.6]
 │   ├── requests [required: Any, installed: 2.25.1]
 │   └── typing_extensions [required: Any, installed: 4.12.2]
-└── wipac-rest-tools [required: Any, installed: 1.7.5]
-    ├── cachetools [required: Any, installed: 5.3.3]
+└── wipac-rest-tools [required: Any, installed: 1.7.6]
+    ├── cachetools [required: Any, installed: 5.4.0]
     ├── PyJWT [required: !=2.6.0, installed: 2.8.0]
     ├── qrcode [required: Any, installed: 7.4.2]
     │   ├── pypng [required: Any, installed: 0.20220715.0]
