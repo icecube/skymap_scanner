@@ -23,19 +23,19 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
-
+    """Establish connections to message queues."""
     to_clients_queue = mq.Queue(
-        cfg.ENV.SKYSCAN_BROKER_CLIENT,
-        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
-        name=f"to-clients-{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}",
-        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
+        cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_TYPE,
+        address=cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS,
+        name=cfg.ENV.SKYSCAN_MQ_TOCLIENT,
+        auth_token=cfg.ENV.SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
     )
     from_clients_queue = mq.Queue(
-        cfg.ENV.SKYSCAN_BROKER_CLIENT,
-        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
-        name=f"from-clients-{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}",
-        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
+        cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,
+        address=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS,
+        name=cfg.ENV.SKYSCAN_MQ_FROMCLIENT,
+        auth_token=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN,
         timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
 
