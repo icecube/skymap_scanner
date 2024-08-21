@@ -531,7 +531,10 @@ jobs:
           load: true
       - name: run
         run: |
+          source tests/env-vars.sh
+          
           docker run --rm -i \
+            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python tests/file_staging.py
 
