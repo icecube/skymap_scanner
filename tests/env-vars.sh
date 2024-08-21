@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex  # file is sourced so turn off at end
 
+export SKYSCAN_SKYDRIVER_SCAN_ID=$( uuidgen )
+
 # export SKYSCAN_CACHE_DIR=$PWD/cache-dir -- rely on user value
 # export SKYSCAN_OUTPUT_DIR=$PWD/output-dir -- rely on user value
 export SKYSCAN_BROKER_CLIENT=${SKYSCAN_BROKER_CLIENT:-"rabbitmq"}
