@@ -54,7 +54,7 @@ jobs:
   #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
-    needs: [py-versions]
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -141,8 +141,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
@@ -183,7 +183,7 @@ jobs:
             --simulated-event \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
           nclients=2
@@ -250,8 +250,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
@@ -343,8 +343,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
@@ -417,7 +417,7 @@ jobs:
           138632_31747601.json
         ]
         exclude:
-        # splinempe should not run on HESE
+          # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
           - reco_algo: splinempe_pointed
@@ -442,8 +442,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
@@ -548,14 +548,14 @@ jobs:
           "JSON",
         ]
         reco_algo:
-            [
-              millipede_original,
-              millipede_wilks,
-              splinempe,
-              splinempe_pointed
-            ]
+          [
+            millipede_original,
+            millipede_wilks,
+            splinempe,
+            splinempe_pointed
+          ]
         exclude:
-        # splinempe should not run on HESE
+          # splinempe should not run on HESE
           - reco_algo: splinempe
             dir: "JSON"
           - reco_algo: splinempe_pointed
@@ -638,31 +638,31 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-      # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
+    # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
     needs: [
-              mypy,
-              py-setup,
-              py-dependencies,
-              test-build-docker,
-              test-run-singularity-dummy-reco,
-              test-file-staging,
-              test-run-nsides-thresholds-dummy,
-              test-run-crash-dummy,
-              test-run-realistic,
-              test-run-single-pixel
-           ]
+      mypy,
+      py-setup,
+      py-dependencies,
+      test-build-docker,
+      test-run-singularity-dummy-reco,
+      test-file-staging,
+      test-run-nsides-thresholds-dummy,
+      test-run-crash-dummy,
+      test-run-realistic,
+      test-run-single-pixel
+    ]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-    - name: Python Semantic Release
-      uses: python-semantic-release/python-semantic-release@v7.34.6
-      with:
-        git_committer_name: ${{ env.BOT_NAME }}
-        git_committer_email: ${{ env.BOT_EMAIL }}
-        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        # repository_username: __token__
-        # repository_password: ${{ secrets.PYPI_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v7.34.6
+        with:
+          git_committer_name: ${{ env.BOT_NAME }}
+          git_committer_email: ${{ env.BOT_EMAIL }}
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          # repository_username: __token__
+          # repository_password: ${{ secrets.PYPI_TOKEN }}

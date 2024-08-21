@@ -63,7 +63,7 @@ server_pid=$!
 
 
 # Wait for startup.json
-./wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+./wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
 
 
 # Launch Clients
