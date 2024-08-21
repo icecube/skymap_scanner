@@ -17,7 +17,7 @@ beniget==0.4.1
 Bottleneck==1.3.2
 breathe==4.35.0
 Brotli==1.0.9
-cachetools==5.3.3
+cachetools==5.5.0
 certifi==2020.6.20
 cffi==1.15.0
 chardet==4.0.0
@@ -39,13 +39,13 @@ fs==2.4.12
 gast==0.5.2
 healpy==1.15.0
 htchirp==3.0
-htcondor==23.7.2
+htcondor==23.9.6
 html5lib==1.1
 hypothesis==6.36.0
-icecube-skyreader==1.2.9
+icecube-skyreader==1.2.11
 idna==3.3
 imagesize==1.4.1
-iminuit==2.26.0
+iminuit==2.28.0
 importlib-metadata==4.6.4
 iniconfig==1.1.1
 ipython==7.31.1
@@ -88,7 +88,7 @@ py==1.10.0
 pycparser==2.21
 pyerfa==2.0.0.1
 Pygments==2.17.2
-PyJWT==2.8.0
+PyJWT==2.9.0
 PyMySQL==1.0.2
 pyparsing==2.4.7
 pypng==0.20220715.0
@@ -136,8 +136,8 @@ urllib3==2.2.2
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
-wipac-dev-tools==1.10.6
-wipac-rest-tools==1.7.5
+wipac-dev-tools==1.12.0
+wipac-rest-tools==1.7.8
 xlwt==1.3.0
 zipp==1.0.0
 ########################################################################
@@ -212,9 +212,9 @@ pexpect==4.8.0
 pickleshare==0.7.5
 pika==1.3.2
 Pillow==9.0.1
-pipdeptree==2.23.0
+pipdeptree==2.23.1
 ├── packaging [required: >=23.1, installed: 24.1]
-└── pip [required: >=23.1.2, installed: 24.0]
+└── pip [required: >=23.1.2, installed: 24.2]
 pluggy==0.13.0
 ply==3.11
 prompt-toolkit==3.0.28
@@ -246,36 +246,37 @@ six==1.16.0
 skymap-scanner
 ├── ewms-pilot [required: ==0.19.0, installed: 0.19.0]
 │   ├── htchirp [required: Any, installed: 3.0]
-│   ├── htcondor [required: Any, installed: 23.7.2]
+│   ├── htcondor [required: Any, installed: 23.9.6]
 │   └── oms-mqclient [required: Any, installed: 2.4.10]
-│       └── wipac-dev-tools [required: Any, installed: 1.10.6]
+│       └── wipac-dev-tools [required: Any, installed: 1.12.0]
 │           ├── requests [required: Any, installed: 2.25.1]
 │           └── typing_extensions [required: Any, installed: 4.12.2]
 ├── healpy [required: Any, installed: 1.15.0]
-├── icecube-skyreader [required: Any, installed: 1.2.9]
+├── icecube-skyreader [required: Any, installed: 1.2.11]
 │   ├── astropy [required: Any, installed: 5.0.2]
 │   ├── healpy [required: Any, installed: 1.15.0]
 │   ├── matplotlib [required: Any, installed: 3.5.1]
 │   ├── meander [required: Any, installed: 0.0.3]
 │   ├── numpy [required: Any, installed: 1.21.5]
 │   ├── pandas [required: Any, installed: 1.3.5]
-│   └── wipac-dev-tools [required: Any, installed: 1.10.6]
+│   ├── scipy [required: Any, installed: 1.8.0]
+│   └── wipac-dev-tools [required: Any, installed: 1.12.0]
 │       ├── requests [required: Any, installed: 2.25.1]
 │       └── typing_extensions [required: Any, installed: 4.12.2]
-├── iminuit [required: Any, installed: 2.26.0]
+├── iminuit [required: Any, installed: 2.28.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
 ├── oms-mqclient [required: ==2.4.10, installed: 2.4.10]
-│   └── wipac-dev-tools [required: Any, installed: 1.10.6]
+│   └── wipac-dev-tools [required: Any, installed: 1.12.0]
 │       ├── requests [required: Any, installed: 2.25.1]
 │       └── typing_extensions [required: Any, installed: 4.12.2]
 ├── scipy [required: Any, installed: 1.8.0]
-├── wipac-dev-tools [required: Any, installed: 1.10.6]
+├── wipac-dev-tools [required: Any, installed: 1.12.0]
 │   ├── requests [required: Any, installed: 2.25.1]
 │   └── typing_extensions [required: Any, installed: 4.12.2]
-└── wipac-rest-tools [required: Any, installed: 1.7.5]
-    ├── cachetools [required: Any, installed: 5.3.3]
-    ├── PyJWT [required: !=2.6.0, installed: 2.8.0]
+└── wipac-rest-tools [required: Any, installed: 1.7.8]
+    ├── cachetools [required: Any, installed: 5.5.0]
+    ├── PyJWT [required: !=2.6.0, installed: 2.9.0]
     ├── qrcode [required: Any, installed: 7.4.2]
     │   ├── pypng [required: Any, installed: 0.20220715.0]
     │   └── typing_extensions [required: Any, installed: 4.12.2]
@@ -284,7 +285,7 @@ skymap-scanner
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
     ├── tornado [required: Any, installed: 6.4.1]
     ├── urllib3 [required: >=2.0.4, installed: 2.2.2]
-    └── wipac-dev-tools [required: Any, installed: 1.10.6]
+    └── wipac-dev-tools [required: Any, installed: 1.12.0]
         ├── requests [required: Any, installed: 2.25.1]
         └── typing_extensions [required: Any, installed: 4.12.2]
 sortedcontainers==2.1.0
