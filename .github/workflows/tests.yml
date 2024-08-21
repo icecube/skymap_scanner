@@ -613,6 +613,8 @@ jobs:
 
       - name: test output against known result (.pkl)
         run: |
+          source tests/env-vars.sh
+          
           ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # need icecube for depickling, so docker container needed
