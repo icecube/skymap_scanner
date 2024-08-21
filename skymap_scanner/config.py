@@ -1,6 +1,5 @@
 """Configuration constants."""
 
-
 import dataclasses as dc
 import logging
 from pathlib import Path
@@ -45,9 +44,7 @@ DEFAULT_GCD_DIR = LOCAL_GCD_DATA_SOURCES[0]
 #   we put the complete path in LOCAL_GCD_DATA_SOURCES and use no subdir.
 LOCAL_GCD_SUBDIR = ""
 
-REMOTE_GCD_DATA_SOURCE: Final[
-    str
-] = "http://prod-exe.icecube.wisc.edu/baseline_gcds"
+REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_gcds"
 
 
 # physics strings
@@ -112,6 +109,16 @@ COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 class EnvConfig:
     """For storing environment variables, typed."""
 
+    #
+    # REQUIRED
+    #
+
+    SKYSCAN_SKYDRIVER_SCAN_ID: str  # globally unique ID
+
+    #
+    # OPTIONAL
+    #
+
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
@@ -146,7 +153,6 @@ class EnvConfig:
     # SKYDRIVER VARS
     SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
-    SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
 
     # LOGGING VARS
     SKYSCAN_LOG: str = "INFO"

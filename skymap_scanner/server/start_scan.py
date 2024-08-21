@@ -1,6 +1,5 @@
 """The Skymap Scanner Server."""
 
-
 # pylint: disable=invalid-name,import-error
 # fmt:quotes-ok
 
@@ -26,8 +25,17 @@ from icecube import (  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .. import config as cfg
-from .. import recos
+from .collector import Collector, ExtraRecoPixelVariationException
+from .pixels import choose_pixels_to_reconstruct
+from .reporter import Reporter
+from .utils import (
+    NSideProgression,
+    fetch_event_contents_from_file,
+    fetch_event_contents_from_skydriver,
+    get_mqclient_connections,
+    kill_switch_check_from_skydriver,
+)
+from .. import config as cfg, recos
 from ..recos import RecoInterface, set_pointing_ra_dec
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
@@ -36,15 +44,6 @@ from ..utils.pixel_classes import (
     RecoPixelVariation,
     SentPixelVariation,
     pframe_tuple,
-)
-from .collector import Collector, ExtraRecoPixelVariationException
-from .pixels import choose_pixels_to_reconstruct
-from .reporter import Reporter
-from .utils import (
-    NSideProgression,
-    fetch_event_contents_from_file,
-    fetch_event_contents_from_skydriver,
-    kill_switch_check_from_skydriver,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -319,7 +318,6 @@ class PixelsToReco:
 
 # fmt: on
 async def scan(
-    scan_id: str,
     reco_algo: str,
     event_metadata: EventMetadata,
     nsides_dict: Optional[NSidesDict],
@@ -352,7 +350,6 @@ async def scan(
     )
 
     reporter = Reporter(
-        scan_id,
         global_start_time,
         nsides_dict,
         len(pixeler.pos_variations),
@@ -514,27 +511,16 @@ async def _serve_and_collect(
 
 def write_startup_json(
     client_startup_json: Path,
-    event_metadata: EventMetadata,
-    nside_progression: NSideProgression,
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
-) -> str:
+) -> None:
     """Write startup JSON file for client-spawning.
 
     Return the scan_id string.
     """
-    if cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID:
-        scan_id = cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID
-    else:
-        scan_id = (
-            f"{event_metadata.event_id}-"
-            f"{'-'.join(f'{n}:{x}' for n,x in nside_progression.items())}-"
-            f"{int(time.time())}"
-        )
-
     json_dict = {
-        "scan_id": scan_id,
-        "mq_basename": scan_id,
+        "scan_id": cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
+        "mq_basename": cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
         "baseline_GCD_file": baseline_GCD_file,
         "GCDQp_packet": json.loads(
             full_event_followup.frame_packet_to_i3live_json(
@@ -548,8 +534,6 @@ def write_startup_json(
     LOGGER.info(
         f"Startup JSON: {client_startup_json} ({client_startup_json.stat().st_size} bytes)"
     )
-
-    return json_dict["scan_id"]  # type: ignore[no-any-return]
 
 
 def main() -> None:
@@ -710,30 +694,15 @@ def main() -> None:
 
     # write startup files for client-spawning
     LOGGER.info("Writing startup JSON...")
-    scan_id = write_startup_json(
+    write_startup_json(
         args.client_startup_json,
-        event_metadata,
-        args.nside_progression,
         state_dict[cfg.STATEDICT_BASELINE_GCD_FILE],
         state_dict[cfg.STATEDICT_GCDQP_PACKET],
     )
 
     # make mq connections
     LOGGER.info("Making MQClient queue connections...")
-    to_clients_queue = mq.Queue(
-        cfg.ENV.SKYSCAN_BROKER_CLIENT,
-        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
-        name=f"to-clients-{scan_id}",
-        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
-    )
-    from_clients_queue = mq.Queue(
-        cfg.ENV.SKYSCAN_BROKER_CLIENT,
-        address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
-        name=f"from-clients-{scan_id}",
-        auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
-        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
-    )
+    to_clients_queue, from_clients_queue = get_mqclient_connections()
 
     # create background thread for checking whether to abort -- fire & forget
     threading.Thread(
@@ -745,7 +714,6 @@ def main() -> None:
     # go!
     asyncio.run(
         scan(
-            scan_id=scan_id,
             reco_algo=args.reco_algo,
             event_metadata=event_metadata,
             nsides_dict=state_dict.get(cfg.STATEDICT_NSIDES),
