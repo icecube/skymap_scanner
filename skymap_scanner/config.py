@@ -127,17 +127,17 @@ class EnvConfig:
 
     # BROKER/MQ VARS
     #
-    # to-client queue -- see __post_init__() for defaults/overrides
-    SKYSCAN_MQ_TOCLIENT: str = ""  # name of the queue
-    SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: str = ""  # auth token for queue
-    SKYSCAN_MQ_TOCLIENT_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
-    SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
+    # to-client queue
+    SKYSCAN_MQ_TOCLIENT: str = ""  # see __post_init__() for default
+    SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: str = os.getenv("SKYSCAN_BROKER_AUTH", "")
+    SKYSCAN_MQ_TOCLIENT_BROKER_TYPE: str = os.getenv("SKYSCAN_BROKER_CLIENT", "")
+    SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: str = os.getenv("SKYSCAN_BROKER_ADDRESS", "")
     #
-    # from-client queue -- see __post_init__() for defaults/overrides
-    SKYSCAN_MQ_FROMCLIENT: str = ""  # name of the queue
-    SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: str = ""  # auth token for queue
-    SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
-    SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
+    # from-client queue
+    SKYSCAN_MQ_FROMCLIENT: str = ""  # see __post_init__() for default
+    SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: str = os.getenv("SKYSCAN_BROKER_AUTH", "")
+    SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE: str = os.getenv("SKYSCAN_BROKER_CLIENT", "")
+    SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: str = os.getenv("SKYSCAN_BROKER_ADDRESS", "")
 
     # TIMEOUTS
     #
@@ -186,16 +186,6 @@ class EnvConfig:
             )
 
         # backward-compatible defaults/overrides
-        # -> override from a broader setting
-        if val := os.getenv("SKYSCAN_BROKER_AUTH"):
-            object.__setattr__(self, "SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN", val)
-            object.__setattr__(self, "SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN", val)
-        if val := os.getenv("SKYSCAN_BROKER_CLIENT"):
-            object.__setattr__(self, "SKYSCAN_MQ_TOCLIENT_BROKER_TYPE", val)
-            object.__setattr__(self, "SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE", val)
-        if val := os.getenv("SKYSCAN_BROKER_ADDRESS"):
-            object.__setattr__(self, "SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS", val)
-            object.__setattr__(self, "SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS", val)
         # -> use basename logic, then use this value in other parts of scanner
         if not self.SKYSCAN_MQ_TOCLIENT:
             object.__setattr__(
