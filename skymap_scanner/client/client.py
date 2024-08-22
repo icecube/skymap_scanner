@@ -1,17 +1,16 @@
 """The Client service."""
 
-
 import argparse
 import asyncio
 import json
 import logging
 from pathlib import Path
-from ..utils.data_handling import get_gcd_datastager
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
+from ..utils.data_handling import get_gcd_datastager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,12 +83,13 @@ def main() -> None:
     LOGGER.info(
         f"Starting up a Skymap Scanner client for event: {startup_json_dict['mq_basename']=}"
     )
+    LOGGER.info("Done.")
     asyncio.run(
         ewms_pilot.consume_and_reply(
             cmd=cmd,
-            broker_client=cfg.ENV.SKYSCAN_BROKER_CLIENT,
-            broker_address=cfg.ENV.SKYSCAN_BROKER_ADDRESS,
-            auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
+            broker_client=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,  # was SKYSCAN_BROKER_CLIENT
+            broker_address=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS,  # was SKYSCAN_BROKER_ADDRESS
+            auth_token=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN,  # was SKYSCAN_BROKER_AUTH
             queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
             ftype_to_subproc=".pkl",
@@ -100,4 +100,3 @@ def main() -> None:
             task_timeout=cfg.ENV.EWMS_PILOT_TASK_TIMEOUT,
         )
     )
-    LOGGER.info("Done.")
