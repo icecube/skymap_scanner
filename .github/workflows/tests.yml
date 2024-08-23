@@ -579,11 +579,6 @@ jobs:
         run: |
           source tests/env-vars.sh
 
-          # grab the GCDQp_packet key and throw into a file
-          jq '.GCDQp_packet' \
-            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
-            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
-
           # move python file to subdir to make bindings simpler
           cp tests/data/reco_pixel_pkls/get_toclient_msg_pkl.py \
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
@@ -610,8 +605,7 @@ jobs:
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
             --in-pkl /local/pkls/in.pkl \
-            --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
-            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
+            --client-startup-json tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
             --out-pkl /local/pkls/out.pkl
 
       - name: test output against known result (.pkl)
