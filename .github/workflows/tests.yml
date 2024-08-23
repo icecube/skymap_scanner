@@ -256,7 +256,7 @@ jobs:
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
-          set -xus
+          set -x
           source tests/env-vars.sh
           export _RECO_ALGO=dummy
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
