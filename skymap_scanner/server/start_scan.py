@@ -514,13 +514,8 @@ def write_startup_json(
     baseline_GCD_file: str,
     GCDQp_packet: List[icetray.I3Frame],
 ) -> None:
-    """Write startup JSON file for client-spawning.
-
-    Return the scan_id string.
-    """
+    """Write startup JSON file for client-spawning."""
     json_dict = {
-        "scan_id": cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
-        "mq_basename": cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
         "baseline_GCD_file": baseline_GCD_file,
         "GCDQp_packet": json.loads(
             full_event_followup.frame_packet_to_i3live_json(

@@ -1,10 +1,10 @@
 """Reco a single pixel."""
 
-
 # pylint: skip-file
 
 import argparse
 import datetime
+import json
 import logging
 import os
 import pickle
@@ -25,8 +25,8 @@ from icecube.frame_object_diff.segments import (  # type: ignore[import-not-foun
 from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .. import config as cfg
-from .. import recos
+from skymap_scanner.utils.data_handling import get_gcd_datastager
+from .. import config as cfg, recos
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -244,33 +244,36 @@ def main() -> None:
         ),
     )
 
-    # extra "physics" args
+    # startup.json
     parser.add_argument(
-        "--gcdqp-packet-json",
-        dest="GCDQp_packet_json",
-        required=True,
-        help="a JSON file containing the GCDQp_packet (list of I3Frames)",
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).is_file(),
-            FileNotFoundError(x),
+        "--client-startup-json",
+        help=(
+            "The filepath to the JSON file with data needed to reco "
+            "(contains baseline_GCD_file and GCDQp_packet)"
         ),
-    )
-    parser.add_argument(
-        "--baseline-gcd-file",
-        dest="baseline_GCD_file",
-        required=True,
-        help="the baseline GCD file",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            Path(x).is_file(),
-            FileNotFoundError(x),
+            Path(x).parent.is_dir(),
+            NotADirectoryError(Path(x).parent),
         ),
     )
 
     args = parser.parse_args()
     cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
+
+    # read startup.json
+    with open(args.client_startup_json, "rb") as f:
+        startup_json_dict = json.load(f)
+
+    # stage file(s)
+    datastager = get_gcd_datastager()
+    baseline_gcd_file = Path(startup_json_dict["baseline_GCD_file"])
+    datastager.stage_files([baseline_gcd_file.name])
+    baseline_gcd_file = Path(datastager.get_filepath(baseline_gcd_file.name))
+    # check if baseline GCD file is reachable
+    if not baseline_gcd_file.exists():
+        raise FileNotFoundError(baseline_gcd_file)
 
     # get PFrame
     with open(args.in_pkl, "rb") as f:
@@ -279,17 +282,16 @@ def main() -> None:
         pframe = msg[cfg.MSG_KEY_PFRAME]
 
     # get GCDQp_packet
-    with open(args.GCDQp_packet_json, "r") as f:
-        GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
-            f.read(), pnf_framing=False
-        )
+    GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
+        startup_json_dict[cfg.STATEDICT_GCDQP_PACKET], pnf_framing=False
+    )
 
     # go!
     reco_pixel(
         reco_algo,
         pframe,
         GCDQp_packet,
-        str(args.baseline_GCD_file),
+        str(baseline_gcd_file),
         args.out_pkl,
     )
     LOGGER.info("Done reco'ing pixel.")
