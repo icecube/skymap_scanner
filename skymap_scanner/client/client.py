@@ -52,7 +52,7 @@ def main() -> None:
         "python -m skymap_scanner.client.reco_icetray "
         " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
         " --out-pkl {{OUTFILE}}"  # ^^^
-        f" --client-startup-json {args.client_startup_file}"
+        f" --client-startup-json {args.client_startup_json}"
     )
 
     # go!
