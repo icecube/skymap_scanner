@@ -283,7 +283,8 @@ def main() -> None:
 
     # get GCDQp_packet
     GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
-        startup_json_dict[cfg.STATEDICT_GCDQP_PACKET], pnf_framing=False
+        json.dumps(startup_json_dict[cfg.STATEDICT_GCDQP_PACKET]),
+        pnf_framing=False,
     )
 
     # go!
