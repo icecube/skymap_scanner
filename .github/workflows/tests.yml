@@ -119,7 +119,6 @@ jobs:
 
 
   test-run-singularity-dummy-reco:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_BROKER_ADDRESS: user1:password@localhost/test
@@ -216,7 +215,6 @@ jobs:
 
 
   test-run-nsides-thresholds-dummy:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -321,7 +319,6 @@ jobs:
 
 
   test-run-crash-dummy:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_BROKER_ADDRESS: user1@localhost/test
@@ -399,7 +396,6 @@ jobs:
 
 
   test-run-realistic:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -516,7 +512,6 @@ jobs:
 
 
   test-file-staging:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -540,7 +535,6 @@ jobs:
 
 
   test-run-single-pixel:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
