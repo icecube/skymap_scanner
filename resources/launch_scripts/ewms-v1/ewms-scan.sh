@@ -7,6 +7,9 @@ set -ex
 #
 ########################################################################
 
+########################################################################
+# handle cl args
+
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "Usage: ewms-scan.sh N_CLIENTS EWMS_URL SKYSCAN_TAG"
     exit 1
@@ -36,13 +39,26 @@ fi
 
 export SKYSCAN_SKYDRIVER_SCAN_ID=$( uuidgen )
 
+check_and_export_env() {
+    if [ -z "${!1}" ]; then
+        echo "ERROR: Environment variable '$1' is not set."
+        exit 2
+    fi
+    export "$1"
+}
+
+check_and_export_env S3_URL
+check_and_export_env S3_ACCESS_KEY_ID
+check_and_export_env S3_SECRET_KEY
+check_and_export_env S3_BUCKET
+
+export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json"  # no dots allowed
+
 
 ########################################################################
 # S3: Generate the GET pre-signed URL  -- server will post here later, ewms needs it now
 
 echo "Connecting to S3 to get pre-signed GET URL..."
-
-S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json"  # no dots allowed
 
 S3_OBJECT_URL=$(python3 -c '
 import os, boto3
@@ -52,7 +68,7 @@ s3_client = boto3.client(
     "us-east-1",
     endpoint_url=os.environ["S3_URL"],
     aws_access_key_id=os.environ["S3_ACCESS_KEY_ID"],
-    aws_secret_access_key=os.environ["TMS_S3_SECRET_KEY"],
+    aws_secret_access_key=os.environ["S3_SECRET_KEY"],
 )
 
 # get GET url
@@ -75,8 +91,6 @@ echo $S3_OBJECT_URL
 
 echo "Requesting to EWMS..."
 
-# TODO - ADD INIT TO GET S3 STARTUP JSON
-
 POST_REQ=$(cat <<EOF
 {
     "public_queue_aliases": ["to-client-queue", "from-client-queue"],
@@ -86,13 +100,13 @@ POST_REQ=$(cat <<EOF
             "input_queue_aliases": ["to-client-queue"],
             "output_queue_aliases": ["from-client-queue"],
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
-            "task_args": "python -m skymap_scanner.client.reco_icetray --in-pkl {{INFILE}} --out-pkl {{OUTFILE}} --client-startup-json \$INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR/startup.json",
+            "task_args": "python -m skymap_scanner.client.reco_icetray --in-pkl {{INFILE}} --out-pkl {{OUTFILE}} --client-startup-json \$EWMS_TASK_DATA_HUB_DIR/startup.json",
+            "init_image": "alpine:latest",
+            "init_args": "while ! curl -f -o \$EWMS_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo 'Retrying...'; sleep 15; done",
             "n_workers": $N_CLIENTS,
             "pilot_config": {
                 "image": "latest",
                 "environment": {
-                    "EWMS_PILOT_TASK_IMAGE": "alpine:latest",
-                    "EWMS_PILOT_TASK_ARGS": "while ! curl -f -o \$INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo 'Retrying...'; sleep 15; done",
                     "EWMS_PILOT_TASK_TIMEOUT": "3600",
                 },
                 "input_files": [],
@@ -212,7 +226,7 @@ s3_client = boto3.client(
     "us-east-1",
     endpoint_url=os.environ["S3_URL"],
     aws_access_key_id=os.environ["S3_ACCESS_KEY_ID"],
-    aws_secret_access_key=os.environ["TMS_S3_SECRET_KEY"],
+    aws_secret_access_key=os.environ["S3_SECRET_KEY"],
 )
 
 # POST
