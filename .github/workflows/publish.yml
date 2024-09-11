@@ -10,7 +10,7 @@ on:
     inputs:
       platform:
         description: 'Platform'
-        default: 'linux/amd64,linux/arm64/v8'
+        default: ''
         required: false
   delete:
 
@@ -67,7 +67,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - 
+    -
       name: Push Docker Image X86_64
       # if: ${{ arch != 'arm' }}
       uses: docker/build-push-action@v3
@@ -78,7 +78,7 @@ jobs:
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
 
-    # - 
+    # -
     #   name: Push Docker Image
     #   if: ${{ arch == 'arm' }}
     #   uses: docker/build-push-action@v3
