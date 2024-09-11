@@ -10,7 +10,7 @@ on:
     inputs:
       platform:
         description: 'Platform'
-        default: ''
+        default: 'linux/amd64'
         required: false
   delete:
 
