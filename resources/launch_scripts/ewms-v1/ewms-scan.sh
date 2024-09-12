@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 
 ########################################################################
 #
@@ -26,7 +26,7 @@ if [[ "$N_CLIENTS" != +([[:digit:]]) ]]; then
     exit 2
 fi
 
-if [ "$( curl -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/icecube/skymap_scanner/tags/$SKYSCAN_TAG/" )" -eq 200 ]; then
+if [ "$( curl --fail-with-body -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/icecube/skymap_scanner/tags/$SKYSCAN_TAG/" )" -eq 200 ]; then
     echo "Tag found on Docker Hub: $SKYSCAN_TAG"
 else
     echo "ERROR: Tag not found on Docker Hub: $SKYSCAN_TAG"
@@ -58,7 +58,7 @@ export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json"  # no dots all
 ########################################################################
 # S3: Generate the GET pre-signed URL  -- server will post here later, ewms needs it now
 
-echo "Connecting to S3 to get pre-signed GET URL..."
+echo && echo "Connecting to S3 to get pre-signed GET URL..."
 
 S3_OBJECT_URL=$(python3 -c '
 import os, boto3
@@ -89,7 +89,7 @@ echo $S3_OBJECT_URL
 ########################################################################
 # request workers on ewms
 
-echo "Requesting to EWMS..."
+echo && echo "Requesting to EWMS..."
 
 POST_REQ=$(cat <<EOF
 {
@@ -102,22 +102,22 @@ POST_REQ=$(cat <<EOF
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client.reco_icetray --in-pkl {{INFILE}} --out-pkl {{OUTFILE}} --client-startup-json \$EWMS_TASK_DATA_HUB_DIR/startup.json",
             "init_image": "alpine:latest",
-            "init_args": "while ! curl -f -o \$EWMS_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo 'Retrying...'; sleep 15; done",
+            "init_args": "while ! curl --fail-with-body -o \$EWMS_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo 'Retrying...'; sleep 15; done",
             "n_workers": $N_CLIENTS,
             "pilot_config": {
                 "image": "latest",
                 "environment": {
-                    "EWMS_PILOT_TASK_TIMEOUT": "3600",
+                    "EWMS_PILOT_TASK_TIMEOUT": "3600"
                 },
-                "input_files": [],
+                "input_files": []
             },
             "worker_config": {
-                "do_transfer_worker_stdouterr": True,
+                "do_transfer_worker_stdouterr": true,
                 "max_worker_runtime": 600,
                 "n_cores": 1,
                 "priority": 99,
                 "worker_disk": "512M",
-                "worker_memory": "512M",
+                "worker_memory": "512M"
             }
         }
     ]
@@ -134,7 +134,8 @@ if ! echo "$POST_REQ" | jq empty; then
 fi
 
 # Make POST request with the multiline JSON data
-POST_RESP=$( curl -X POST -H "Content-Type: application/json" -d "$POST_REQ" "${EWMS_URL}/v0/workflows" )
+echo "requesting workflow..."
+POST_RESP=$( curl --fail-with-body -X POST -H "Content-Type: application/json" -d "$POST_REQ" "${EWMS_URL}/v0/workflows" )
 echo "$POST_RESP"
 
 WORKFLOW_ID=$( echo "$POST_RESP" | jq -r '.workflow.workflow_id' )
@@ -145,12 +146,12 @@ QUEUE_FROMCLIENT=$( echo "$POST_RESP" | jq -r '.task_directives[0].output_queues
 ########################################################################
 # get queue connection info
 
-echo "Getting MQ info..."
+echo && echo "Getting MQ info..."
 
 # Loop until mqprofiles is not empty and all "is_activated" fields are true
 mqprofiles="[]"
 while :; do
-    response=$( curl -s -X GET "${EWMS_URL}/v0/mqs/workflows/${WORKFLOW_ID}/mq-profiles/public" )
+    response=$( curl --fail-with-body -s -X GET "${EWMS_URL}/v0/mqs/workflows/${WORKFLOW_ID}/mq-profiles/public" )
     echo $response
 
     mqprofiles=$(echo "$response" | jq '.mqprofiles')
@@ -188,7 +189,7 @@ export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$( echo "$mqprofile_fromclient" | jq
 # start server
 set -x
 
-echo "Starting local scanner server..."
+echo && echo "Starting local scanner server..."
 
 SCANNER_SERVER_DIR="./scan-dir-$SKYSCAN_SKYDRIVER_SCAN_ID/"
 mkdir $SCANNER_SERVER_DIR
@@ -216,7 +217,7 @@ export S3_FILE_TO_UPLOAD="$SCANNER_SERVER_DIR/startup.json"
 ########################################################################
 # get startup.json -> put in S3
 
-echo "Uploading file ($S3_FILE_TO_UPLOAD) to S3..."
+echo && echo "Uploading file ($S3_FILE_TO_UPLOAD) to S3..."
 
 out=$(python3 -c '
 import os, boto3
@@ -250,7 +251,7 @@ echo $out
 ########################################################################
 # wait for scan to finish
 
-echo "Waiting for scan to finish..."
+echo && echo "Waiting for scan to finish..."
 
 # dump all content, then dump new content in realtime
 tail -n +1 -f "$SCANNER_SERVER_DIR/server.out" &
@@ -261,4 +262,5 @@ wait $server_pid
 ########################################################################
 # look at result
 
+echo && echo "The results:"
 ls "$SCANNER_SERVER_DIR/results/"
