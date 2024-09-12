@@ -538,6 +538,14 @@ def main() -> None:
         nside, ext = val.split(":")
         return int(nside), int(ext)
 
+    def _mkdir_if_not_exists(val: str, is_file: bool = False) -> Path:
+        fpath = Path(val)
+        if is_file:
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            fpath.mkdir(parents=True, exist_ok=True)
+        return fpath
+
     parser = argparse.ArgumentParser(
         description=(
             "Start up server to serve pixels to clients and save pixel-reconstructions "
@@ -552,33 +560,21 @@ def main() -> None:
         "--client-startup-json",
         required=True,
         help="The filepath to save the JSON needed to spawn clients (the parent directory must already exist)",
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).parent.is_dir(),
-            NotADirectoryError(Path(x).parent),
-        ),
+        type=lambda x: _mkdir_if_not_exists(x, is_file=True),
     )
     parser.add_argument(
         "-c",
         "--cache-dir",
         required=True,
         help="The cache directory to use",
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).is_dir(),
-            NotADirectoryError(x),
-        ),
+        type=lambda x: _mkdir_if_not_exists(x),
     )
     parser.add_argument(
         "-o",
         "--output-dir",
         default=None,
         help="The directory to write out the .npz file",
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).is_dir(),
-            NotADirectoryError(x),
-        ),
+        type=lambda x: _mkdir_if_not_exists(x),
     )
 
     # "physics" args
