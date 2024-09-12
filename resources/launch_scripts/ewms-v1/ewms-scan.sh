@@ -91,7 +91,7 @@ echo $S3_OBJECT_URL
 
 echo && echo "Requesting to EWMS..."
 
-POST_REQ=$(cat <<EOF
+export POST_REQ=$(cat <<EOF
 {
     "public_queue_aliases": ["to-client-queue", "from-client-queue"],
     "tasks": [
@@ -135,39 +135,59 @@ fi
 
 # Make POST request with the multiline JSON data
 echo "requesting workflow..."
-POST_RESP=$( curl --fail-with-body -X POST -H "Content-Type: application/json" -d "$POST_REQ" "${EWMS_URL}/v0/workflows" )
+POST_RESP=$(python3 -c '
+import os, rest_tools, json, pathlib
+rc = rest_tools.client.SavedDeviceGrantAuth(
+    "https://ewms-dev.icecube.aq",
+    token_url="https://keycloak.icecube.wisc.edu/auth/realms/IceCube",
+    filename=str(pathlib.Path("~/device-refresh-token").expanduser().resolve()),
+    client_id="ewms-dev-public",
+    retries=0,
+)
+res = rc.request_seq("POST", "/v0/workflows", json.loads(os.environ["POST_REQ"]))
+print(json.dumps(res))
+')
+
 echo "$POST_RESP"
 
-WORKFLOW_ID=$( echo "$POST_RESP" | jq -r '.workflow.workflow_id' )
+export WORKFLOW_ID=$( echo "$POST_RESP" | jq -r '.workflow.workflow_id' )
+echo $WORKFLOW_ID
 QUEUE_TOCLIENT=$( echo "$POST_RESP" | jq -r '.task_directives[0].input_queues[0]' )
+echo $QUEUE_TOCLIENT
 QUEUE_FROMCLIENT=$( echo "$POST_RESP" | jq -r '.task_directives[0].output_queues[0]' )
+echo $QUEUE_FROMCLIENT
 
 
 ########################################################################
 # get queue connection info
 
 echo && echo "Getting MQ info..."
+mqprofiles=$(python3 -c '
+import os, rest_tools, pathlib, time, json
+rc = rest_tools.client.SavedDeviceGrantAuth(
+    "https://ewms-dev.icecube.aq",
+    token_url="https://keycloak.icecube.wisc.edu/auth/realms/IceCube",
+    filename=str(pathlib.Path("~/device-refresh-token").expanduser().resolve()),
+    client_id="ewms-dev-public",
+    retries=0,
+)
 
-# Loop until mqprofiles is not empty and all "is_activated" fields are true
-mqprofiles="[]"
-while :; do
-    response=$( curl --fail-with-body -s -X GET "${EWMS_URL}/v0/mqs/workflows/${WORKFLOW_ID}/mq-profiles/public" )
-    echo $response
+workflow_id = os.environ["WORKFLOW_ID"]
+mqprofiles: list[dict] = []
+# loop until mqprofiles is not empty and all "is_activated" fields are true
+while not (mqprofiles and all(m["is_activated"] for m in mqprofiles)):
+    time.sleep(10)
+    mqprofiles = (
+        rc.request_seq(
+            "GET",
+            f"/v0/mqs/workflows/{workflow_id}/mq-profiles/public",
+        )
+    )["mqprofiles"]
 
-    mqprofiles=$(echo "$response" | jq '.mqprofiles')
+print(json.dumps(mqprofiles))
+')
 
-    # Check if mqprofiles is not empty and all "is_activated" are true
-    activated=$( echo "$mqprofiles" | jq 'length > 0 and all(.[]; .is_activated == true)' )
-
-    if [[ "$activated" == "true" ]]; then
-        echo "All queues are activated."
-        break
-    else
-        echo "Queues are not ready, waiting..."
-    fi
-
-    sleep 10
-done
+echo "$mqprofiles"
 
 # map mqprofiles from the queue names
 mqprofile_toclient=$( echo "$mqprofiles" | jq --arg mqid "$QUEUE_TOCLIENT" '.[] | select(.mqid == $mqid)' )
@@ -187,29 +207,32 @@ export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$( echo "$mqprofile_fromclient" | jq
 
 ########################################################################
 # start server
-set -x
 
 echo && echo "Starting local scanner server..."
 
-SCANNER_SERVER_DIR="./scan-dir-$SKYSCAN_SKYDRIVER_SCAN_ID/"
+SCANNER_SERVER_DIR="./scan-dir-$WORKFLOW_ID/"
 mkdir $SCANNER_SERVER_DIR
 
-docker run --network="host" --rm -i \
+set -x  # let's see this command
+sudo docker run --network="host" --rm -i \
     $DOCKERMOUNT_ARGS \
     --mount type=bind,source=$( realpath $SCANNER_SERVER_DIR ),target=/local/$( basename $SCANNER_SERVER_DIR ) \
     $( env | grep '^SKYSCAN_' | awk '$0="--env "$0' ) \
     $( env | grep '^EWMS_' | awk '$0="--env "$0' ) \
-    icecube/skymap_scanner:$SKYSCAN_TAG \
+    icecube/skymap_scanner:${SKYSCAN_SERVER_TAG:-$SKYSCAN_TAG} \
     python -m skymap_scanner.server \
     --client-startup-json /local/$( basename $SCANNER_SERVER_DIR )/startup.json \
     --cache-dir /local/$( basename $SCANNER_SERVER_DIR )/cache-dir/ \
     --output-dir /local/$( basename $SCANNER_SERVER_DIR )/results/ \
     --reco-algo dummy \
-    --event-file /local/$( basename $SCANNER_SERVER_DIR )/event-file --real-event \
+    --event-file /local/tests/data/realtime_events/run00136766-evt000007637140-GOLD.pkl --real-event \
     --nsides 1:0 \
     > "$SCANNER_SERVER_DIR/server.out" 2>&1 \
     &
 server_pid=$!
+set +x
+
+sleep 3  # for stdout ordering
 
 export S3_FILE_TO_UPLOAD="$SCANNER_SERVER_DIR/startup.json"
 
@@ -217,10 +240,31 @@ export S3_FILE_TO_UPLOAD="$SCANNER_SERVER_DIR/startup.json"
 ########################################################################
 # get startup.json -> put in S3
 
+echo && echo "Waiting for file $S3_FILE_TO_UPLOAD..."
+
+# wait until the file exists (with a timeout)
+found="false"
+endtime=$(date -ud "120 seconds" +%s)  # wait this long
+while [[ $(date -u +%s) -le $endtime ]]; do
+    if [[ -e "$S3_FILE_TO_UPLOAD" ]]; then
+        echo "Success, file found!"
+        found="true"
+        break
+    fi
+    echo "waiting for file..."
+    echo "ls: $SCANNER_SERVER_DIR"
+    ls "$SCANNER_SERVER_DIR"
+    sleep 5
+done
+if [[ "$found" != "true" ]]; then
+    echo "ERROR: file not found: $S3_FILE_TO_UPLOAD"
+    exit 1
+fi
+
 echo && echo "Uploading file ($S3_FILE_TO_UPLOAD) to S3..."
 
 out=$(python3 -c '
-import os, boto3
+import os, boto3, requests, pathlib
 
 s3_client = boto3.client(
     "s3",
@@ -235,7 +279,8 @@ upload_details = s3_client.generate_presigned_post(
     os.environ["S3_BUCKET"],
     os.environ["S3_OBJECT_DEST_FILE"]
 )
-with open(os.environ["S3_FILE_TO_UPLOAD"], "rb") as f:
+filepath = pathlib.Path(os.environ["S3_FILE_TO_UPLOAD"])
+with open(filepath, "rb") as f:
     response = requests.post(
         upload_details["url"],
         data=upload_details["fields"],
