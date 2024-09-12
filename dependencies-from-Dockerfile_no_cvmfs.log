@@ -132,7 +132,7 @@ typing_extensions==4.12.2
 ufoLib2==0.13.1
 unicodedata2==14.0.0
 UNKNOWN @ file:///root/nuflux-2.0.4
-urllib3==2.2.2
+urllib3==2.2.3
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
@@ -284,7 +284,7 @@ skymap-scanner
     ├── requests-futures [required: Any, installed: 1.0.1]
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
     ├── tornado [required: Any, installed: 6.4.1]
-    ├── urllib3 [required: >=2.0.4, installed: 2.2.2]
+    ├── urllib3 [required: >=2.0.4, installed: 2.2.3]
     └── wipac-dev-tools [required: Any, installed: 1.12.0]
         ├── requests [required: Any, installed: 2.25.1]
         └── typing_extensions [required: Any, installed: 4.12.2]
