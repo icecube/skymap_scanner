@@ -102,7 +102,7 @@ export POST_REQ=$(cat <<EOF
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client.reco_icetray --in-pkl {{INFILE}} --out-pkl {{OUTFILE}} --client-startup-json \$EWMS_TASK_DATA_HUB_DIR/startup.json",
             "init_image": "alpine:latest",
-            "init_args": "while ! curl --fail-with-body -o \$EWMS_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo 'Retrying...'; sleep 15; done",
+            "init_args": "while ! curl --fail-with-body -o \"\$EWMS_TASK_DATA_HUB_DIR/startup.json\" \"$S3_OBJECT_URL\"; do echo 'Retrying...'; sleep 15; done",
             "n_workers": $N_CLIENTS,
             "pilot_config": {
                 "image": "latest",
