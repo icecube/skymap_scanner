@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 import logging
+import pickle
 import random
 import threading
 import time
@@ -399,10 +400,12 @@ async def _send_pixels(
         ):
             LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
-                {
-                    cfg.MSG_KEY_RECO_ALGO: reco_algo,
-                    cfg.MSG_KEY_PFRAME: pframe,
-                }
+                pickle.dumps(
+                    {
+                        cfg.MSG_KEY_RECO_ALGO: reco_algo,
+                        cfg.MSG_KEY_PFRAME: pframe,
+                    }
+                )
             )
             LOGGER.debug(f"sent message M#{i} {pframe_tuple(pframe)}")
             sent_pixvars.add(SentPixelVariation.from_pframe(pframe))
