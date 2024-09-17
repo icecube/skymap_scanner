@@ -400,12 +400,10 @@ async def _send_pixels(
         ):
             LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
-                pickle.dumps(
-                    {
-                        cfg.MSG_KEY_RECO_ALGO: reco_algo,
-                        cfg.MSG_KEY_PFRAME: pframe,
-                    }
-                )
+                {
+                    cfg.MSG_KEY_RECO_ALGO: reco_algo,
+                    cfg.MSG_KEY_PFRAME: pickle.dumps(pframe),
+                }
             )
             LOGGER.debug(f"sent message M#{i} {pframe_tuple(pframe)}")
             sent_pixvars.add(SentPixelVariation.from_pframe(pframe))
@@ -474,14 +472,13 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
+                    reco_pixel_variation = pickle.loads(msg["reco_pixel_variation"])
+                    if not isinstance(reco_pixel_variation, RecoPixelVariation):
                         raise ValueError(
-                            f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
+                            f"Message key 'reco_pixel_variation' is not {RecoPixelVariation}: {type(reco_pixel_variation)}"
                         )
                     try:
-                        await collector.collect(
-                            msg["reco_pixel_variation"], msg["runtime"]
-                        )
+                        await collector.collect(reco_pixel_variation, msg["runtime"])
                     except ExtraRecoPixelVariationException as e:
                         LOGGER.error(e)
 
