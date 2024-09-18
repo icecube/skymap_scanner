@@ -53,7 +53,7 @@ if startup:
     dockermount_args += f"--mount type=bind,source={os.path.dirname(startup)},target=/local/startup "
     py_args += f"--client-startup-json /local/startup/{os.path.basename(startup)} "
 
-print(f"{dockermofwfunt_args}#{py_args}")
+print(f"{dockermount_args}#{py_args}")
 ')
 DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
 PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
