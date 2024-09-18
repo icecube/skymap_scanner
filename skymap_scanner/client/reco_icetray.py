@@ -3,6 +3,7 @@
 # pylint: skip-file
 
 import argparse
+import base64
 import datetime
 import json
 import logging
@@ -106,7 +107,7 @@ def reco_pixel(
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
-    out_json: Path,
+    out_pkl: Path,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -165,27 +166,33 @@ def reco_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if out_json.exists():  # check in case the tray is re-writing this file
-            raise FileExistsError(out_json)
-        save_to_disk_cache(frame, out_json.parent)
-        with open(out_json, "w") as f:
+        if out_pkl.exists():  # check in case the tray is re-writing this file
+            raise FileExistsError(out_pkl)
+        save_to_disk_cache(frame, out_pkl.parent)
+        with open(out_pkl, "w") as f:
             LOGGER.info(
                 f"Dumping reco {pframe_tuple(frame)}: "
-                f"{frame_for_logging(frame)} to {out_json}."
+                f"{frame_for_logging(frame)} to {out_pkl}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
             reco_pixel_variation = RecoPixelVariation.from_i3frame(
                 frame, geometry, reco_algo
             )
             LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
-            json.dump(
-                {
-                    "reco_pixel_variation": pickle.dumps(reco_pixel_variation),
-                    # can't trust the clocks running in containers, but we can trust the relative time
-                    "runtime": time.time() - start_time,
-                },
-                f,
-            )
+            with open(out_pkl, "w") as f:
+                f.write(
+                    base64.b64encode(
+                        pickle.dumps(
+                            {
+                                "reco_pixel_variation": pickle.dumps(
+                                    reco_pixel_variation
+                                ),
+                                # can't trust the clocks running in containers, but we can trust the relative time
+                                "runtime": time.time() - start_time,
+                            }
+                        )
+                    )
+                )
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
@@ -202,11 +209,11 @@ def reco_pixel(
 
     # Check Output #####################################################
 
-    if not out_json.exists():
+    if not out_pkl.exists():
         raise FileNotFoundError(
-            f"Out file was not written {pframe_tuple(pframe)}: {out_json}"
+            f"Out file was not written {pframe_tuple(pframe)}: {out_pkl}"
         )
-    return out_json
+    return out_pkl
 
 
 # fmt: on
@@ -215,8 +222,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Perform reconstruction on a pixel "
-            "by reading `--in-json FILE` and writing result to "
-            "`--out-json FILE`."
+            "by reading `--in-pkl FILE` and writing result to "
+            "`--out-pkl FILE`."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -224,9 +231,9 @@ def main() -> None:
 
     # input/output args
     parser.add_argument(
-        "--in-json",
+        "--in-pkl",
         required=True,
-        help="a json file containing the pixel to reconstruct",
+        help="a file containing the pixel to reconstruct",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
             Path(x).is_file(),
@@ -234,9 +241,9 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--out-json",
+        "--out-pkl",
         required=True,
-        help="a json file to write the reconstruction to",
+        help="a file to write the reconstruction to",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
             not Path(x).exists(),  # want to not exist
@@ -276,8 +283,8 @@ def main() -> None:
         raise FileNotFoundError(baseline_gcd_file)
 
     # get PFrame
-    with open(args.in_json) as f:
-        msg = json.load(f)
+    with open(args.in_pkl) as f:
+        msg = pickle.loads(base64.b64decode(f.read()))
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = pickle.loads(msg[cfg.MSG_KEY_PFRAME])
 
@@ -293,7 +300,7 @@ def main() -> None:
         pframe,
         GCDQp_packet,
         str(baseline_gcd_file),
-        args.out_json,
+        args.out_pkl,
     )
     LOGGER.info("Done reco'ing pixel.")
 

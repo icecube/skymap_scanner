@@ -50,8 +50,8 @@ def main() -> None:
 
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
-        " --in-json {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
-        " --out-json {{OUTFILE}}"  # ^^^
+        " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
+        " --out-pkl {{OUTFILE}}"  # ^^^
         f" --client-startup-json {args.client_startup_json}"
     )
 
