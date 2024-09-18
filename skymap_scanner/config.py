@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 from typing import Final, List
 
-import ewms_pilot
 import mqclient
 from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 
@@ -202,7 +201,6 @@ def configure_loggers() -> None:
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         future_third_parties=["google", "pika"],
         specialty_loggers={
-            ewms_pilot.pilot.LOGGER: ENV.SKYSCAN_EWMS_PILOT_LOG,  # type: ignore[attr-defined, dict-item]
             mqclient.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
         },
     )
