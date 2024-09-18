@@ -9,11 +9,14 @@ set -e
 #
 ########################################################################
 
-
 # Get & transform arguments that are files/dirs for docker-mounting
 # yes, this is simpler than a bash-native solution
 export ARGS="$*" # all of the arguments stuck together into a single string
 echo $ARGS
+
+#######################################################################################
+# assemble docker args
+
 DOCKER_PY_ARGS=$(python3 -c '
 import os
 py_args = os.getenv("ARGS")
@@ -61,20 +64,11 @@ print(f"{dockermount_args}#{py_args}")
 DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
 PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 
-
+#######################################################################################
+# Run
 set -x
 
-
-# Figure pull policy
-if [[ ${SKYSCAN_DOCKER_PULL_ALWAYS:-"1"} == "0" ]]; then
-    pull_policy=""
-else
-    pull_policy="--pull=always"
-fi
-
-
-# Run
-docker run --network="host" $pull_policy --rm -i \
+docker run --network="host" --rm \
     $DOCKERMOUNT_ARGS \
     --env PY_COLORS=1 \
     $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
