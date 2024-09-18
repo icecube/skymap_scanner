@@ -213,8 +213,8 @@ set -x # let's see this command
 sudo docker run --network="host" --rm -i \
     $DOCKERMOUNT_ARGS \
     --mount type=bind,source=$(realpath $SCANNER_SERVER_DIR),target=/local/$(basename $SCANNER_SERVER_DIR) \
-    $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
-    $(env | grep '^EWMS_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+    $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
     icecube/skymap_scanner:${SKYSCAN_SERVER_TAG:-$SKYSCAN_TAG} \
     python -m skymap_scanner.server \
     --client-startup-json /local/$(basename $SCANNER_SERVER_DIR)/startup.json \

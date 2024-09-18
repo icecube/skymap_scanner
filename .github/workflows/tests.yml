@@ -513,7 +513,7 @@ jobs:
           source tests/env-vars.sh
           
           docker run --rm -i \
-            $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
             icecube/skymap_scanner:local \
             python tests/file_staging.py
 
@@ -562,7 +562,7 @@ jobs:
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
             icecube/skymap_scanner:local \
             python /local/pkls/get_toclient_msg_pkl.py \
             --pframe-pkl /local/pkls/pframe.pkl \
@@ -575,7 +575,7 @@ jobs:
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
             --in-pkl /local/pkls/in.pkl \
@@ -593,7 +593,7 @@ jobs:
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
             icecube/skymap_scanner:local \
             python tests/compare_reco_pixel_pkl.py \
             --actual /local/pkls/out.pkl \
