@@ -21,23 +21,22 @@ fi
 
 # now, validate...
 
-if [[ "$N_CLIENTS" != +([[:digit:]]) ]]; then
+if [[ $N_CLIENTS != +([[:digit:]]) ]]; then
     echo "N_CLIENTS must be a number: $N_CLIENTS"
     exit 2
 fi
 
-if [ "$( curl --fail-with-body -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/icecube/skymap_scanner/tags/$SKYSCAN_TAG/" )" -eq 200 ]; then
+if [ "$(curl --fail-with-body -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/icecube/skymap_scanner/tags/$SKYSCAN_TAG/")" -eq 200 ]; then
     echo "Tag found on Docker Hub: $SKYSCAN_TAG"
 else
     echo "ERROR: Tag not found on Docker Hub: $SKYSCAN_TAG"
     exit 2
 fi
 
-
 ########################################################################
 # set up env vars
 
-export SKYSCAN_SKYDRIVER_SCAN_ID=$( uuidgen )
+export SKYSCAN_SKYDRIVER_SCAN_ID=$(uuidgen)
 
 check_and_export_env() {
     if [ -z "${!1}" ]; then
@@ -52,8 +51,7 @@ check_and_export_env S3_ACCESS_KEY_ID
 check_and_export_env S3_SECRET_KEY
 check_and_export_env S3_BUCKET
 
-export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json"  # no dots allowed
-
+export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json" # no dots allowed
 
 ########################################################################
 # S3: Generate the GET pre-signed URL  -- server will post here later, ewms needs it now
@@ -85,13 +83,13 @@ print(get_url)
 
 echo $S3_OBJECT_URL
 
-
 ########################################################################
 # request workers on ewms
 
 echo && echo "Requesting to EWMS..."
 
-export POST_REQ=$(cat <<EOF
+export POST_REQ=$(
+    cat <<EOF
 {
     "public_queue_aliases": ["to-client-queue", "from-client-queue"],
     "tasks": [
@@ -150,13 +148,12 @@ print(json.dumps(res))
 
 echo "$POST_RESP"
 
-export WORKFLOW_ID=$( echo "$POST_RESP" | jq -r '.workflow.workflow_id' )
+export WORKFLOW_ID=$(echo "$POST_RESP" | jq -r '.workflow.workflow_id')
 echo $WORKFLOW_ID
-QUEUE_TOCLIENT=$( echo "$POST_RESP" | jq -r '.task_directives[0].input_queues[0]' )
+QUEUE_TOCLIENT=$(echo "$POST_RESP" | jq -r '.task_directives[0].input_queues[0]')
 echo $QUEUE_TOCLIENT
-QUEUE_FROMCLIENT=$( echo "$POST_RESP" | jq -r '.task_directives[0].output_queues[0]' )
+QUEUE_FROMCLIENT=$(echo "$POST_RESP" | jq -r '.task_directives[0].output_queues[0]')
 echo $QUEUE_FROMCLIENT
-
 
 ########################################################################
 # get queue connection info
@@ -190,20 +187,19 @@ print(json.dumps(mqprofiles))
 echo "$mqprofiles"
 
 # map mqprofiles from the queue names
-mqprofile_toclient=$( echo "$mqprofiles" | jq --arg mqid "$QUEUE_TOCLIENT" '.[] | select(.mqid == $mqid)' )
-mqprofile_fromclient=$( echo "$mqprofiles" | jq --arg mqid "$QUEUE_FROMCLIENT" '.[] | select(.mqid == $mqid)' )
+mqprofile_toclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_TOCLIENT" '.[] | select(.mqid == $mqid)')
+mqprofile_fromclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_FROMCLIENT" '.[] | select(.mqid == $mqid)')
 
 # set env vars for vals from the mqprofiles
-export SKYSCAN_MQ_TOCLIENT=$( echo "$mqprofile_toclient" | jq -r '.mqid' )
-export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$( echo "$mqprofile_toclient" | jq -r '.auth_token' )
-export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=$( echo "$mqprofile_toclient" | jq -r '.broker_type' )
-export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=$( echo "$mqprofile_toclient" | jq -r '.broker_address' )
+export SKYSCAN_MQ_TOCLIENT=$(echo "$mqprofile_toclient" | jq -r '.mqid')
+export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$(echo "$mqprofile_toclient" | jq -r '.auth_token')
+export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=$(echo "$mqprofile_toclient" | jq -r '.broker_type')
+export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=$(echo "$mqprofile_toclient" | jq -r '.broker_address')
 #
-export SKYSCAN_MQ_FROMCLIENT=$( echo "$mqprofile_fromclient" | jq -r '.mqid' )
-export SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN=$( echo "$mqprofile_fromclient" | jq -r '.auth_token' )
-export SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE=$( echo "$mqprofile_fromclient" | jq -r '.broker_type' )
-export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$( echo "$mqprofile_fromclient" | jq -r '.broker_address' )
-
+export SKYSCAN_MQ_FROMCLIENT=$(echo "$mqprofile_fromclient" | jq -r '.mqid')
+export SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN=$(echo "$mqprofile_fromclient" | jq -r '.auth_token')
+export SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE=$(echo "$mqprofile_fromclient" | jq -r '.broker_type')
+export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$(echo "$mqprofile_fromclient" | jq -r '.broker_address')
 
 ########################################################################
 # start server
@@ -213,29 +209,28 @@ echo && echo "Starting local scanner server..."
 SCANNER_SERVER_DIR="./scan-dir-$WORKFLOW_ID/"
 mkdir $SCANNER_SERVER_DIR
 
-set -x  # let's see this command
+set -x # let's see this command
 sudo docker run --network="host" --rm -i \
     $DOCKERMOUNT_ARGS \
-    --mount type=bind,source=$( realpath $SCANNER_SERVER_DIR ),target=/local/$( basename $SCANNER_SERVER_DIR ) \
-    $( env | grep '^SKYSCAN_' | awk '$0="--env "$0' ) \
-    $( env | grep '^EWMS_' | awk '$0="--env "$0' ) \
+    --mount type=bind,source=$(realpath $SCANNER_SERVER_DIR),target=/local/$(basename $SCANNER_SERVER_DIR) \
+    $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+    $(env | grep '^EWMS_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
     icecube/skymap_scanner:${SKYSCAN_SERVER_TAG:-$SKYSCAN_TAG} \
     python -m skymap_scanner.server \
-    --client-startup-json /local/$( basename $SCANNER_SERVER_DIR )/startup.json \
-    --cache-dir /local/$( basename $SCANNER_SERVER_DIR )/cache-dir/ \
-    --output-dir /local/$( basename $SCANNER_SERVER_DIR )/results/ \
+    --client-startup-json /local/$(basename $SCANNER_SERVER_DIR)/startup.json \
+    --cache-dir /local/$(basename $SCANNER_SERVER_DIR)/cache-dir/ \
+    --output-dir /local/$(basename $SCANNER_SERVER_DIR)/results/ \
     --reco-algo dummy \
     --event-file /local/tests/data/realtime_events/run00136766-evt000007637140-GOLD.pkl --real-event \
     --nsides 1:0 \
-    > "$SCANNER_SERVER_DIR/server.out" 2>&1 \
+    >"$SCANNER_SERVER_DIR/server.out" 2>&1 \
     &
 server_pid=$!
 set +x
 
-sleep 3  # for stdout ordering
+sleep 3 # for stdout ordering
 
 export S3_FILE_TO_UPLOAD="$SCANNER_SERVER_DIR/startup.json"
-
 
 ########################################################################
 # get startup.json -> put in S3
@@ -244,9 +239,9 @@ echo && echo "Waiting for file $S3_FILE_TO_UPLOAD..."
 
 # wait until the file exists (with a timeout)
 found="false"
-endtime=$(date -ud "120 seconds" +%s)  # wait this long
+endtime=$(date -ud "120 seconds" +%s) # wait this long
 while [[ $(date -u +%s) -le $endtime ]]; do
-    if [[ -e "$S3_FILE_TO_UPLOAD" ]]; then
+    if [[ -e $S3_FILE_TO_UPLOAD ]]; then
         echo "Success, file found!"
         found="true"
         break
@@ -256,7 +251,7 @@ while [[ $(date -u +%s) -le $endtime ]]; do
     ls "$SCANNER_SERVER_DIR"
     sleep 5
 done
-if [[ "$found" != "true" ]]; then
+if [[ $found != "true" ]]; then
     echo "ERROR: file not found: $S3_FILE_TO_UPLOAD"
     exit 1
 fi
@@ -292,7 +287,6 @@ print(str(response.content))
 
 echo $out
 
-
 ########################################################################
 # wait for scan to finish
 
@@ -302,7 +296,6 @@ echo && echo "Waiting for scan to finish..."
 tail -n +1 -f "$SCANNER_SERVER_DIR/server.out" &
 
 wait $server_pid
-
 
 ########################################################################
 # look at result

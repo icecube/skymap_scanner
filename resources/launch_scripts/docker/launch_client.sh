@@ -74,7 +74,7 @@ export EWMS_PILOT_TIMEOUT_QUEUE_INCOMING="$SKYSCAN_MQ_TIMEOUT_TO_CLIENTS"
 
 docker run --network="host" --rm \
     --shm-size=6gb \
-    $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+    $(env | grep '^EWMS_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
     --env _EWMS_PILOT_CONTAINER_PLATFORM="docker" \
     ghcr.io/observation-management-service/ewms-pilot:latest
 
@@ -82,8 +82,8 @@ docker run --network="host" --rm \
 #    --shm-size=6gb \
 #    $DOCKERMOUNT_ARGS \
 #    --env PY_COLORS=1 \
-#    $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-#    $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+#    $(env | grep '^SKYSCAN_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
+#    $(env | grep '^EWMS_' | awk -F= '{print "--env", $1"=\"" $2 "\""}') \
 #    --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
 #    icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
 #    python -m skymap_scanner.client \
