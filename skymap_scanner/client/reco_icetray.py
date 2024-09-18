@@ -3,7 +3,6 @@
 # pylint: skip-file
 
 import argparse
-import base64
 import datetime
 import json
 import logging
@@ -27,6 +26,7 @@ from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from skymap_scanner.utils.data_handling import get_gcd_datastager
+from skymap_scanner.utils.messages import MessageData
 from .. import config as cfg, recos
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
@@ -181,16 +181,12 @@ def reco_pixel(
             LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
             with open(out_pkl, "w") as f:
                 f.write(
-                    base64.b64encode(
-                        pickle.dumps(
-                            {
-                                "reco_pixel_variation": pickle.dumps(
-                                    reco_pixel_variation
-                                ),
-                                # can't trust the clocks running in containers, but we can trust the relative time
-                                "runtime": time.time() - start_time,
-                            }
-                        )
+                    MessageData.encode(
+                        {
+                            "reco_pixel_variation": pickle.dumps(reco_pixel_variation),
+                            # can't trust the clocks running in containers, but we can trust the relative time
+                            "runtime": time.time() - start_time,
+                        }
                     )
                 )
 
@@ -284,9 +280,9 @@ def main() -> None:
 
     # get PFrame
     with open(args.in_pkl) as f:
-        msg = pickle.loads(base64.b64decode(f.read()))
-        reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
-        pframe = pickle.loads(msg[cfg.MSG_KEY_PFRAME])
+        data = MessageData.decode(f.read())
+        reco_algo = data[cfg.MSG_KEY_RECO_ALGO]
+        pframe = pickle.loads(data[cfg.MSG_KEY_PFRAME])
 
     # get GCDQp_packet
     GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(

@@ -5,10 +5,8 @@
 
 import argparse
 import asyncio
-import base64
 import json
 import logging
-import pickle
 import random
 import threading
 import time
@@ -41,6 +39,7 @@ from .. import config as cfg, recos
 from ..recos import RecoInterface, set_pointing_ra_dec
 from ..utils import extract_json_message
 from ..utils.load_scan_state import get_baseline_gcd_frames
+from ..utils.messages import MessageData
 from ..utils.pixel_classes import (
     NSidesDict,
     RecoPixelVariation,
@@ -401,13 +400,11 @@ async def _send_pixels(
         ):
             LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
-                base64.b64encode(
-                    pickle.dumps(
-                        {
-                            cfg.MSG_KEY_RECO_ALGO: reco_algo,
-                            cfg.MSG_KEY_PFRAME: pframe,
-                        }
-                    )
+                MessageData.encode(
+                    {
+                        cfg.MSG_KEY_RECO_ALGO: reco_algo,
+                        cfg.MSG_KEY_PFRAME: pframe,
+                    }
                 )
             )
             LOGGER.debug(f"sent message M#{i} {pframe_tuple(pframe)}")
@@ -477,7 +474,7 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    msg = pickle.loads(base64.b64decode(msg))
+                    msg = MessageData.decode(msg)
                     if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
                         raise ValueError(
                             f"Message key 'reco_pixel_variation' is not {RecoPixelVariation}: "
