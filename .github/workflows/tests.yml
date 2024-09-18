@@ -86,7 +86,7 @@ jobs:
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for images to build
         with:
-          tool-cache: 'true'
+          docker-images: false
       - name: checkout
         uses: actions/checkout@v3
         with:
@@ -143,7 +143,7 @@ jobs:
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actions/checkout@v3
       - uses: docker/build-push-action@v6
         with:
@@ -249,7 +249,7 @@ jobs:
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actions/checkout@v3
       - uses: docker/build-push-action@v6
         with:
@@ -339,7 +339,7 @@ jobs:
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actions/checkout@v3
       - uses: docker/build-push-action@v6
         with:
@@ -435,7 +435,7 @@ jobs:
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
