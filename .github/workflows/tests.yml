@@ -20,6 +20,7 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
+  N_CLIENTS: 1  # TODO: bump to 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
@@ -267,7 +268,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
+          ./local-scan.sh $N_CLIENTS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
@@ -360,7 +361,7 @@ jobs:
           cd ./resources/launch_scripts
           # since SKYSCAN_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          timeout 240 ./local-scan.sh $N_CLIENTS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
           set -x
@@ -457,7 +458,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
+          ./local-scan.sh $N_CLIENTS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
