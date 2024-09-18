@@ -1,5 +1,5 @@
 <!--- Top of README Badges (automated) --->
-[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/icecube/skymap_scanner?include_prereleases)](https://github.com/icecube/skymap_scanner/) [![Lines of code](https://img.shields.io/tokei/lines/github/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/) [![GitHub issues](https://img.shields.io/github/issues/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen) 
+[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/icecube/skymap_scanner?include_prereleases)](https://github.com/icecube/skymap_scanner/) [![Lines of code](https://img.shields.io/tokei/lines/github/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/) [![GitHub issues](https://img.shields.io/github/issues/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen)
 <!--- End of README Badges (automated) --->
 
 # Skymap Scanner v3
@@ -20,9 +20,9 @@ Build `Dockerfile_pulsar` for a pulsar container.
 Env variables
 
 ```
-# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
-export SKYSCAN_BROKER_ADDRESS=<hostname>/<vhost>
-export SKYSCAN_BROKER_AUTH=<token>
+# export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=rabbitmq  # rabbitmq is the default so env var is not needed
+export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=<hostname>/<vhost>
+export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=<token>
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
 export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
@@ -40,9 +40,9 @@ pip install .[rabbitmq]
 Env variables
 
 ```
-export SKYSCAN_BROKER_CLIENT=pulsar
-export SKYSCAN_BROKER_ADDRESS=<ip address>
-export SKYSCAN_BROKER_AUTH=<token>
+export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=pulsar
+export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=<ip address>
+export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=<token>
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
 export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
@@ -70,9 +70,9 @@ The server can be launched from anywhere with a stable network connection. You c
 ###### Environment Variables
 
 ```
-export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
-# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
-export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=BROKER_ADDRESS
+# export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=rabbitmq  # rabbitmq is the default so env var is not needed
+export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
 
@@ -120,16 +120,16 @@ export EWMS_PILOT_TASK_TIMEOUT=1200
 
 #### 2. Launch Each Client
 
-The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `SKYSCAN_BROKER_ADDRESS` and `BROKER_AUTH` as the server, and the path to the client-startup json file created by the server.
+The client jobs can submitted via HTCondor from sub-2. Running the script below should create a condor submit file requesting the number of workers specified. You'll need to give it the same `SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS` and `BROKER_AUTH` as the server, and the path to the client-startup json file created by the server.
 
 ##### Figure Your Args
 
 ###### Environment Variables
 
 ```
-export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
-# export SKYSCAN_BROKER_CLIENT=rabbitmq  # rabbitmq is the default so env var is not needed
-export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=BROKER_ADDRESS
+# export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=rabbitmq  # rabbitmq is the default so env var is not needed
+export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$(cat ~/skyscan-broker.token)  # obfuscated for security
 export EWMS_PILOT_QUARANTINE_TIME=1200  # helps decrease condor blackhole nodes
 export EWMS_PILOT_TASK_TIMEOUT=1200
 ```
@@ -196,9 +196,9 @@ This will pull all the events in the i3 file into `run*.evt*.json` which can be 
 For now, it's easy to scale up using the command line. Multiple server instances can be run simultaneously and a separate submit file created for each one. To run `N` servers in parallel
 
 ```
-export SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS
-export SKYSCAN_BROKER_CLIENT=rabbitmq
-export SKYSCAN_BROKER_AUTH=$(cat ~/skyscan-broker.token)  # obfuscated for security
+export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=BROKER_ADDRESS
+export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=rabbitmq
+export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$(cat ~/skyscan-broker.token)  # obfuscated for security
 ls *.json | xargs -n1 -PN -I{} bash -c 'mkdir /path/to/json/{} && python -m skymap_scanner.server --client-startup-json /path/to/json/{}/client-startup.json --cache-dir /path/to/cache --output-dir /path/to/out --reco-algo RECO_ALGO --event-file /path/to/data/{}'
 ```
 
@@ -212,7 +212,7 @@ ls /scratch/$USER/run*.condor | head -nN | xargs -I{} condor_submit {}
 executable = /bin/sh 
 arguments = /usr/local/icetray/env-shell.sh python -m skymap_scanner.client --client-startup-json ./client-startup.json
 +SingularityImage = "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:x.y.z"
-environment = "SKYSCAN_BROKER_AUTH=AUTHTOKEN SKYSCAN_BROKER_ADDRESS=BROKER_ADDRESS EWMS_PILOT_TASK_TIMEOUT=1200 EWMS_PILOT_QUARANTINE_TIME=1200"
+environment = "SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=AUTHTOKEN SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=BROKER_ADDRESS EWMS_PILOT_TASK_TIMEOUT=1200 EWMS_PILOT_QUARANTINE_TIME=1200"
 Requirements = HAS_CVMFS_icecube_opensciencegrid_org && has_avx
 output = /scratch/$USER/UID.out
 error = /scratch/$USER/UID.err

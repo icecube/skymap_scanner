@@ -2,7 +2,6 @@
 
 import dataclasses as dc
 import logging
-import os
 from pathlib import Path
 from typing import Final, List
 
@@ -116,6 +115,18 @@ class EnvConfig:
 
     SKYSCAN_SKYDRIVER_SCAN_ID: str  # globally unique ID
 
+    # to-client queue
+    SKYSCAN_MQ_TOCLIENT: str
+    SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: str
+    SKYSCAN_MQ_TOCLIENT_BROKER_TYPE: str
+    SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: str
+    #
+    # from-client queue
+    SKYSCAN_MQ_FROMCLIENT: str
+    SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: str
+    SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE: str
+    SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: str
+
     #
     # OPTIONAL
     #
@@ -124,20 +135,6 @@ class EnvConfig:
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
     SKYSCAN_KILL_SWITCH_CHECK_INTERVAL: int = 5 * 60
-
-    # BROKER/MQ VARS
-    #
-    # to-client queue
-    SKYSCAN_MQ_TOCLIENT: str = ""  # see __post_init__() for default
-    SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: str = os.getenv("SKYSCAN_BROKER_AUTH", "")
-    SKYSCAN_MQ_TOCLIENT_BROKER_TYPE: str = os.getenv("SKYSCAN_BROKER_CLIENT", "")
-    SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: str = os.getenv("SKYSCAN_BROKER_ADDRESS", "")
-    #
-    # from-client queue
-    SKYSCAN_MQ_FROMCLIENT: str = ""  # see __post_init__() for default
-    SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: str = os.getenv("SKYSCAN_BROKER_AUTH", "")
-    SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE: str = os.getenv("SKYSCAN_BROKER_CLIENT", "")
-    SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: str = os.getenv("SKYSCAN_BROKER_ADDRESS", "")
 
     # TIMEOUTS
     #
@@ -183,21 +180,6 @@ class EnvConfig:
         if self.SKYSCAN_RESULT_INTERVAL_SEC <= 0:
             raise ValueError(
                 f"Env Var: SKYSCAN_RESULT_INTERVAL_SEC is not positive: {self.SKYSCAN_RESULT_INTERVAL_SEC}"
-            )
-
-        # backward-compatible defaults/overrides
-        # -> use basename logic, then use this value in other parts of scanner
-        if not self.SKYSCAN_MQ_TOCLIENT:
-            object.__setattr__(
-                self,
-                "SKYSCAN_MQ_TOCLIENT",
-                f"to-clients-{self.SKYSCAN_SKYDRIVER_SCAN_ID}",
-            )
-        if not self.SKYSCAN_MQ_FROMCLIENT:
-            object.__setattr__(
-                self,
-                "SKYSCAN_MQ_FROMCLIENT",
-                f"from-clients-{self.SKYSCAN_SKYDRIVER_SCAN_ID}",
             )
 
 

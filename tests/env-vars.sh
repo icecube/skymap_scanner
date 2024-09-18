@@ -5,8 +5,15 @@ export SKYSCAN_SKYDRIVER_SCAN_ID=$(uuidgen)
 
 # export SKYSCAN_CACHE_DIR=$PWD/cache-dir -- rely on user value
 # export SKYSCAN_OUTPUT_DIR=$PWD/output-dir -- rely on user value
-export SKYSCAN_BROKER_CLIENT=${SKYSCAN_BROKER_CLIENT:-"rabbitmq"}
-# note=auth env vars are in job(s)
+
+# to-client queue
+export SKYSCAN_MQ_TOCLIENT="to-clients-$SKYSCAN_SKYDRIVER_SCAN_ID"
+export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=${SKYSCAN_MQ_TOCLIENT_BROKER_TYPE:-"rabbitmq"}
+#
+# from-client queue
+export SKYSCAN_MQ_FROMCLIENT="from-clients-$SKYSCAN_SKYDRIVER_SCAN_ID"
+export SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE=${SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE:-"rabbitmq"}
+# note: address & auth env vars are in ci job(s)
 
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-600}
 export EWMS_PILOT_DUMP_SUBPROC_OUTPUT=${EWMS_PILOT_DUMP_SUBPROC_OUTPUT:-"True"}
