@@ -31,7 +31,7 @@ def main():
     # Do we need to support "bare" pframes pickles at all?
     # For the moment, this is a workaround.
 
-    assert "pframe" in pframe
+    assert "pframe" in pframe  # BREAKPOINT
 
     if "pframe" in pframe:
         # Effectively this is equivalent to copying the file.
