@@ -37,9 +37,8 @@ from .utils import (
 )
 from .. import config as cfg, recos
 from ..recos import RecoInterface, set_pointing_ra_dec
-from ..utils import extract_json_message
+from ..utils import extract_json_message, messages
 from ..utils.load_scan_state import get_baseline_gcd_frames
-from ..utils.messages import MessageData
 from ..utils.pixel_classes import (
     NSidesDict,
     RecoPixelVariation,
@@ -400,7 +399,7 @@ async def _send_pixels(
         ):
             LOGGER.info(f"Sending message M#{i} {pframe_tuple(pframe)}...")
             await pub.send(
-                MessageData.encode(
+                messages.IOSerialization.encode(
                     {
                         cfg.MSG_KEY_RECO_ALGO: reco_algo,
                         cfg.MSG_KEY_PFRAME: pframe,
@@ -474,7 +473,7 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    msg = MessageData.decode(msg)
+                    msg = messages.IOSerialization.decode(msg)
                     if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
                         raise ValueError(
                             f"Message key 'reco_pixel_variation' is not {RecoPixelVariation}: "

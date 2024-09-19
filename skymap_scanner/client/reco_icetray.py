@@ -1,7 +1,5 @@
 """Reco a single pixel."""
 
-# pylint: skip-file
-
 import argparse
 import datetime
 import json
@@ -25,9 +23,9 @@ from icecube.frame_object_diff.segments import (  # type: ignore[import-not-foun
 from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from skymap_scanner.utils.data_handling import get_gcd_datastager
-from skymap_scanner.utils.messages import MessageData
 from .. import config as cfg, recos
+from ..utils import messages
+from ..utils.data_handling import get_gcd_datastager
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -181,7 +179,7 @@ def reco_pixel(
             LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
             with open(out_pkl, "w") as f:
                 f.write(
-                    MessageData.encode(
+                    messages.IOSerialization.encode(
                         {
                             "reco_pixel_variation": pickle.dumps(reco_pixel_variation),
                             # can't trust the clocks running in containers, but we can trust the relative time
@@ -280,7 +278,7 @@ def main() -> None:
 
     # get PFrame
     with open(args.in_pkl) as f:
-        data = MessageData.decode(f.read())
+        data = messages.IOSerialization.decode(f.read())
         reco_algo = data[cfg.MSG_KEY_RECO_ALGO]
         pframe = pickle.loads(data[cfg.MSG_KEY_PFRAME])
 

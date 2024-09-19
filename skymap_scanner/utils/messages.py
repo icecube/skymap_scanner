@@ -5,8 +5,8 @@ import pickle
 from typing import Any
 
 
-class MessageData:
-    """Handling for message data."""
+class IOSerialization:
+    """Handling for serializing/deserializing message data for I/O."""
 
     @staticmethod
     def encode(data: Any) -> str:
