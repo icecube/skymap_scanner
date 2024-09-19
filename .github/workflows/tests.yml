@@ -175,6 +175,7 @@ jobs:
             --client-startup-json ./startup.json \
             --nsides 1:0 \
             --simulated-event \
+            2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/server.out \
             &
 
           ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
@@ -189,6 +190,7 @@ jobs:
               python -m skymap_scanner.client \
               --client-startup-json ./startup.json \
               --debug-directory $SKYSCAN_DEBUG_DIR \
+              2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/client-$i.out \
               &
             echo -e "\tclient #$i launched"
           done
@@ -203,7 +205,21 @@ jobs:
           ls $SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
-      - name: broker docker logs
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: client worker \#1 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
+      - name: client worker \#2 stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
+
+      - name: rabbitmq logs
         if: always()
         run: |
           docker logs rabbitmq
@@ -305,7 +321,7 @@ jobs:
           tree $SKYSCAN_DEBUG_DIR
           find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
-      - name: broker docker logs
+      - name: rabbitmq logs
         if: always()
         run: |
           docker logs rabbitmq
@@ -494,7 +510,7 @@ jobs:
           tree $SKYSCAN_DEBUG_DIR
           find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
-      - name: broker docker logs
+      - name: rabbitmq logs
         if: always()
         run: |
           docker logs rabbitmq
