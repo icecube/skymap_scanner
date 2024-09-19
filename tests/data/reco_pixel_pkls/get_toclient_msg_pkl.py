@@ -30,6 +30,9 @@ def main():
     # When extracting the debug .pkl from ewms-pilot, the in- pickles already contain the full message.
     # Do we need to support "bare" pframes pickles at all?
     # For the moment, this is a workaround.
+
+    # assert "pframe" in pframe
+
     if "pframe" in pframe:
         # Effectively this is equivalent to copying the file.
         with open(args.pframe_pkl.parent / "in.pkl", "wb") as f:
