@@ -82,11 +82,18 @@ export EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN="$SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN"
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE="$SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE"
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS"
 
-docker run --network="host" --rm \
-    --shm-size=6gb \
-    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
-    --env _EWMS_PILOT_CONTAINER_PLATFORM="docker" \
-    ghcr.io/observation-management-service/ewms-pilot:latest
+ENV="pyenv-pilot-$(uuidgen)"
+virtualenv --python python3 "$ENV"
+. "$ENV"/bin/activate
+pip install --upgrade pip
+pip install ewms-pilot
+python -m ewms_pilot
+
+#docker run --network="host" --rm \
+#    --shm-size=6gb \
+#    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
+#    --env _EWMS_PILOT_CONTAINER_PLATFORM="docker" \
+#    ghcr.io/observation-management-service/ewms-pilot:latest
 
 #docker run --network="host" --rm \
 #    --shm-size=6gb \
