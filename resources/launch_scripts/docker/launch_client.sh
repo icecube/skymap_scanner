@@ -83,6 +83,7 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE="$SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS"
 
 ENV="pyenv-pilot-$(uuidgen)"
+pip install virtualenv
 virtualenv --python python3 "$ENV"
 . "$ENV"/bin/activate
 pip install --upgrade pip
