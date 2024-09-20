@@ -27,4 +27,5 @@ with open(Path(OUT_PKL_FPATH).parent / "out.json", "w") as f:
             "runtime": msg["runtime"],
         },
         f,
+        indent=4,
     )
