@@ -584,11 +584,6 @@ jobs:
             tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
             tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
 
-          # move python file to subdir to make bindings simpler
-          cp tests/data/reco_pixel_single/convert_out_pkl.py \
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
-          
-          
           pframe='pframe.pkl'
           
           # create the in.pkl
@@ -598,7 +593,7 @@ jobs:
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
-            python /local/test-data/get_toclient_msg_pkl.py \
+            python /local/test-data/get_toclient_msg_infile.py \
             --pframe-pkl /local/test-data/$pframe \
             --reco-algo ${{ matrix.reco_algo }}
           hexdump -C tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/$pframe
