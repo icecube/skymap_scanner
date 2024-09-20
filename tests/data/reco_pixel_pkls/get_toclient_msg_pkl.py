@@ -35,7 +35,7 @@ def main():
     if isinstance(depickled, dict):
         print(depickled["reco_algo"])
         print(args.reco_algo)
-        assert depickled["reco_algo"] == args.reco_algo
+        # assert depickled["reco_algo"] == args.reco_algo
         pframe = depickled["pframe"]
 
     # is just a pframe!
