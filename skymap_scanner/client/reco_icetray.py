@@ -7,7 +7,6 @@ import datetime
 import json
 import logging
 import os
-import pickle
 import time
 from pathlib import Path
 from typing import Any, List, Union
@@ -275,10 +274,10 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get PFrame
-    with open(args.infile, "rb") as f:
-        msg = pickle.load(f)
+    with open(args.infile, "r") as f:
+        msg = json.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
-        pframe = msg[cfg.MSG_KEY_PFRAME_PKL_B64]
+        pframe = messages.Serialization.decode_pkl_b64(msg[cfg.MSG_KEY_PFRAME_PKL_B64])
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_json, "r") as f:
