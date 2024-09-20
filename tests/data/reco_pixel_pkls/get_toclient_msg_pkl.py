@@ -44,6 +44,7 @@ def main():
                 "reco_algo": args.reco_algo,
             },
             f,
+            indent=4,
         )
 
 
