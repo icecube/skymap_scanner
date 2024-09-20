@@ -537,7 +537,7 @@ jobs:
 
 
   test-run-single-pixel:
-    needs: test-build-docker
+    #    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
