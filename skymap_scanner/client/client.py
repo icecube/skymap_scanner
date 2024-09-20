@@ -1,17 +1,16 @@
 """The Client service."""
 
-
 import argparse
 import asyncio
 import json
 import logging
 from pathlib import Path
-from ..utils.data_handling import get_gcd_datastager
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
+from ..utils.data_handling import get_gcd_datastager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -74,8 +73,8 @@ def main() -> None:
 
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
-        " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
-        " --out-pkl {{OUTFILE}}"  # ^^^
+        " --infile {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
+        " --outfile {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {baseline_gcd_file}"
     )

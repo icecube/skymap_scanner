@@ -106,7 +106,7 @@ def reco_pixel(
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
-    out_pkl: Path,
+    outfile: Path,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -165,13 +165,13 @@ def reco_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if out_pkl.exists():  # check in case the tray is re-writing this file
-            raise FileExistsError(out_pkl)
-        save_to_disk_cache(frame, out_pkl.parent)
-        with open(out_pkl, "w") as f:
+        if outfile.exists():  # check in case the tray is re-writing this file
+            raise FileExistsError(outfile)
+        save_to_disk_cache(frame, outfile.parent)
+        with open(outfile, "w") as f:
             LOGGER.info(
                 f"Dumping reco {pframe_tuple(frame)}: "
-                f"{frame_for_logging(frame)} to {out_pkl}."
+                f"{frame_for_logging(frame)} to {outfile}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
             reco_pixel_variation = RecoPixelVariation.from_i3frame(
@@ -204,11 +204,11 @@ def reco_pixel(
 
     # Check Output #####################################################
 
-    if not out_pkl.exists():
+    if not outfile.exists():
         raise FileNotFoundError(
-            f"Out file was not written {pframe_tuple(pframe)}: {out_pkl}"
+            f"Out file was not written {pframe_tuple(pframe)}: {outfile}"
         )
-    return out_pkl
+    return outfile
 
 
 # fmt: on
@@ -217,8 +217,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Perform reconstruction on a pixel "
-            "by reading `--in-pkl FILE` and writing result to "
-            "`--out-pkl FILE`."
+            "by reading `--infile FILE` and writing result to "
+            "`--outfile FILE`."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -226,9 +226,9 @@ def main() -> None:
 
     # input/output args
     parser.add_argument(
-        "--in-pkl",
+        "--infile",
         required=True,
-        help="a pkl file containing the pixel to reconstruct",
+        help="a file containing the pixel to reconstruct",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
             Path(x).is_file(),
@@ -236,9 +236,9 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--out-pkl",
+        "--outfile",
         required=True,
-        help="a pkl file to write the reconstruction to",
+        help="a file to write the reconstruction to",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
             not Path(x).exists(),  # want to not exist
@@ -275,7 +275,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get PFrame
-    with open(args.in_pkl, "rb") as f:
+    with open(args.infile, "rb") as f:
         msg = pickle.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = msg[cfg.MSG_KEY_PFRAME_PKL_B64]
@@ -292,7 +292,7 @@ def main() -> None:
         pframe,
         GCDQp_packet,
         str(args.baseline_GCD_file),
-        args.out_pkl,
+        args.outfile,
     )
     LOGGER.info("Done reco'ing pixel.")
 
