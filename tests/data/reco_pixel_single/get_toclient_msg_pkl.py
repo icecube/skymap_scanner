@@ -37,6 +37,8 @@ def main():
         print(args.reco_algo)
         # assert depickled["reco_algo"] == args.reco_algo
         pframe = depickled["pframe"]
+    else:
+        pframe = depickled
 
     # is just a pframe!
     with open(args.pframe_pkl.parent / "in.json", "w") as f:
