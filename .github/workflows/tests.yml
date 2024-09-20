@@ -588,7 +588,7 @@ jobs:
           cp tests/data/reco_pixel_single/convert_out_pkl.py \
             tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
           
-          outfile='1660761707.623653.out.pkl'
+          outfile='1660759716.46013.out.pkl'
 
           # create the in.pkl
           docker run --network="host" --rm -i \
