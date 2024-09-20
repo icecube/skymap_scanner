@@ -576,6 +576,7 @@ jobs:
       - name: run
         timeout-minutes: 15  # on average max~=7min
         run: |
+          set -e
           source tests/env-vars.sh
 
           # grab the GCDQp_packet key and throw into a file
