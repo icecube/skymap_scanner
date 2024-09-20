@@ -274,18 +274,21 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # get PFrame
+    LOGGER.info(f"Reading {args.infile}...")
     with open(args.infile, "r") as f:
         msg = json.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = messages.Serialization.decode_pkl_b64(msg[cfg.MSG_KEY_PFRAME_PKL_B64])
 
     # get GCDQp_packet
+    LOGGER.info(f"Reading {args.GCDQp_packet_json}...")
     with open(args.GCDQp_packet_json, "r") as f:
         GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
             f.read(), pnf_framing=False
         )
 
     # go!
+    LOGGER.info(f"Starting {reco_algo}...")
     reco_pixel(
         reco_algo,
         pframe,
