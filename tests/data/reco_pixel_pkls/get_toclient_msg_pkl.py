@@ -40,7 +40,7 @@ def main():
     with open(args.pframe_pkl.parent / "in.json", "w") as f:
         json.dump(
             {
-                "pframe": base64.b64encode(pickle.dumps(pframe)).decode(),
+                "pframe_pkl_b64": base64.b64encode(pickle.dumps(pframe)).decode(),
                 "reco_algo": args.reco_algo,
             },
             f,
