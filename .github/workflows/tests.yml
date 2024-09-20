@@ -562,8 +562,6 @@ jobs:
             dir: "JSON"
     steps:
       - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
@@ -588,29 +586,7 @@ jobs:
           cp tests/data/reco_pixel_single/convert_out_pkl.py \
             tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
           
-          outfile='1660759716.46013.out.pkl'
-
-          # create the in.pkl
-          docker run --network="host" --rm -i \
-            --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
-            --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:local \
-            python /local/test-data/convert_out_pkl.py \
-            /local/test-data/$outfile
-
-          hexdump -C tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/$outfile
-          cat tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json
-          
-          # push
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json || true
-          git commit -m "<bot> add out.json" || true
-          (git push && exit 0) || true
-          
-          # run
+          # run reco
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
@@ -621,9 +597,9 @@ jobs:
             --infile /local/test-data/in.json \
             --gcdqp-packet-json /local/test-data/GCDQp_packet.json \
             --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
-            --outfile /local/test-data/out.json
+            --outfile /local/test-data/out-actual.json
 
-      - name: test output against known result (.pkl)
+      - name: test output against known result
         run: |
           ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
@@ -634,9 +610,9 @@ jobs:
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
-            python tests/compare_reco_pixel_pkl.py \
-            --actual /local/test-data/out.json \
-            --expected /local/test-data/$(basename $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.out.json)) \
+            python tests/compare_reco_pixel_single.py \
+            --actual /local/test-data/out-actual.json \
+            --expected /local/test-data/out.json \
             --diff-out-dir /local/test-data/ \
             --assert \
             || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
