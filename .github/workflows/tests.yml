@@ -585,7 +585,7 @@ jobs:
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
 
           # move python file to subdir to make bindings simpler
-          cp tests/data/reco_pixel_pkls/get_toclient_msg_pkl.py \
+          cp tests/data/reco_pixel_pkls/convert_out_pkl.py \
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # create the in.pkl
@@ -595,18 +595,17 @@ jobs:
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
-            python /local/pkls/get_toclient_msg_pkl.py \
-            --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo ${{ matrix.reco_algo }}
+            python /local/pkls/convert_out_pkl.py \
+            /local/pkls/pixel.out.pkl
 
-          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.pkl
-          cat tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json
+          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/pixel.out.pkl
+          cat tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json
           
           # push
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json || true
-          git commit -m "<bot> add in.json" || true
+          git add . || true
+          git commit -m "<bot> add out.json" || true
           (git push && exit 0) || true
           
           # run
