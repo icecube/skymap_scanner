@@ -1,10 +1,10 @@
 """Reco a single pixel."""
 
-
 # pylint: skip-file
 
 import argparse
 import datetime
+import json
 import logging
 import os
 import pickle
@@ -25,8 +25,8 @@ from icecube.frame_object_diff.segments import (  # type: ignore[import-not-foun
 from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .. import config as cfg
-from .. import recos
+from .. import config as cfg, recos
+from ..utils import messages
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -168,9 +168,9 @@ def reco_pixel(
         if out_pkl.exists():  # check in case the tray is re-writing this file
             raise FileExistsError(out_pkl)
         save_to_disk_cache(frame, out_pkl.parent)
-        with open(out_pkl, "wb") as f:
+        with open(out_pkl, "w") as f:
             LOGGER.info(
-                f"Pickle-dumping reco {pframe_tuple(frame)}: "
+                f"Dumping reco {pframe_tuple(frame)}: "
                 f"{frame_for_logging(frame)} to {out_pkl}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
@@ -178,11 +178,13 @@ def reco_pixel(
                 frame, geometry, reco_algo
             )
             LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
-            pickle.dump(
+            json.dump(
                 {
-                    "reco_pixel_variation": reco_pixel_variation,
+                    cfg.MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: messages.Serialization.encode_pkl_b64(
+                        reco_pixel_variation
+                    ),
                     # can't trust the clocks running in containers, but we can trust the relative time
-                    "runtime": time.time() - start_time,
+                    cfg.MSG_KEY_RUNTIME: time.time() - start_time,
                 },
                 f,
             )
@@ -276,7 +278,7 @@ def main() -> None:
     with open(args.in_pkl, "rb") as f:
         msg = pickle.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
-        pframe = msg[cfg.MSG_KEY_PFRAME]
+        pframe = msg[cfg.MSG_KEY_PFRAME_PKL_B64]
 
     # get GCDQp_packet
     with open(args.GCDQp_packet_json, "r") as f:
