@@ -588,7 +588,7 @@ jobs:
           cp tests/data/reco_pixel_pkls/convert_out_pkl.py \
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
           
-          outfile=$(find . -name "*.out.pkl" | head -n 1 | basename)
+          outfile=$(find tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }} -name "*.out.pkl" | head -n 1 | basename)
 
           # create the in.pkl
           docker run --network="host" --rm -i \
