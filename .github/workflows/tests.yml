@@ -587,6 +587,8 @@ jobs:
           # move python file to subdir to make bindings simpler
           cp tests/data/reco_pixel_pkls/convert_out_pkl.py \
             tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
+          
+          outfile=$(find . -name "*.out.pkl" | head -n 1 | basename)
 
           # create the in.pkl
           docker run --network="host" --rm -i \
@@ -596,9 +598,9 @@ jobs:
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python /local/pkls/convert_out_pkl.py \
-            /local/pkls/pix.out.pkl
+            /local/pkls/$outfile
 
-          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/pix.out.pkl
+          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/$outfile
           cat tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json
           
           # push
