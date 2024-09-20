@@ -604,7 +604,7 @@ jobs:
           # push
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add . || true
+          git add tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json || true
           git commit -m "<bot> add out.json" || true
           (git push && exit 0) || true
           
