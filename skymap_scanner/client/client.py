@@ -45,7 +45,7 @@ def main() -> None:
         "--debug-directory",
         default="",
         type=argparse_tools.create_dir,
-        help="a directory to write all the incoming/outgoing .pkl files "
+        help="a directory to write all the incoming/outgoing files "
         "(useful for debugging)",
     )
 
