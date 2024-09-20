@@ -81,22 +81,22 @@ jobs:
           git_committer_email: ${{ env.BOT_EMAIL }}
           base-keywords: IceCube
 
-  py-dependencies:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for images to build
-        with:
-          tool-cache: 'true'
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
-        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
-        with:
-          git_committer_name: ${{ env.BOT_NAME }}
-          git_committer_email: ${{ env.BOT_EMAIL }}
-          dockerfile_nametags: Dockerfile:icecube/skymap_scanner:latest
+  #  py-dependencies:
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - uses: jlumbroso/free-disk-space@main  # need space for images to build
+  #        with:
+  #          tool-cache: 'true'
+  #      - name: checkout
+  #        uses: actions/checkout@v3
+  #        with:
+  #          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+  #      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
+  #        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+  #        with:
+  #          git_committer_name: ${{ env.BOT_NAME }}
+  #          git_committer_email: ${{ env.BOT_EMAIL }}
+  #          dockerfile_nametags: Dockerfile:icecube/skymap_scanner:latest
 
 
   #############################################################################
@@ -652,7 +652,7 @@ jobs:
     needs: [
       mypy,
       py-setup,
-      py-dependencies,
+      #      py-dependencies,
       #      test-build-docker,
       #      test-run-singularity-dummy-reco,
       #      test-file-staging,
