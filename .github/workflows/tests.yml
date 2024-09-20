@@ -562,6 +562,8 @@ jobs:
             dir: "JSON"
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
@@ -600,6 +602,8 @@ jobs:
           cat tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json
           
           # push
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           git add tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json || true
           git commit -m "<bot> add in.json" || true
           (git push && exit 0) || true
