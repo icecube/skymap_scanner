@@ -9,6 +9,7 @@ from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 from compare_scan_results import compare_then_exit
+from skymap_scanner.config import MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64
 from skymap_scanner.utils import to_skyscan_result
 from skymap_scanner.utils.messages import Serialization
 from skymap_scanner.utils.pixel_classes import RecoPixelFinal
@@ -61,7 +62,7 @@ def main():
             msg = json.load(f)
 
         pixfin = RecoPixelFinal.from_recopixelvariation(
-            Serialization.decode_pkl_b64(msg["reco_pixel_variation"])
+            Serialization.decode_pkl_b64(msg[MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64])
         )
         return to_skyscan_result.from_nsides_dict(
             {pixfin.nside: {pixfin.pixel_id: pixfin}},
