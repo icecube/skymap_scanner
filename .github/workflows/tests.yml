@@ -596,9 +596,9 @@ jobs:
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python /local/pkls/convert_out_pkl.py \
-            /local/pkls/pixel.out.pkl
+            /local/pkls/pix.out.pkl
 
-          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/pixel.out.pkl
+          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/pix.out.pkl
           cat tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json
           
           # push
