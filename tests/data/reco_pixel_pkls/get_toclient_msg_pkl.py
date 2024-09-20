@@ -33,6 +33,8 @@ def main():
     # Do we need to support "bare" pframes pickles at all?
     # For the moment, this is a workaround.
     if isinstance(depickled, dict):
+        print(depickled["reco_algo"])
+        print(args.reco_algo)
         assert depickled["reco_algo"] == args.reco_algo
         pframe = depickled["pframe"]
 
