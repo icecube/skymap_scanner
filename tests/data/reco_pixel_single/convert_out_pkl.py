@@ -13,7 +13,7 @@ from pathlib import Path
 from icecube.dataclasses import I3Position  # type: ignore[import]  # noqa: F401
 from icecube.icetray import I3Frame  # type: ignore[import]  # noqa: F401
 
-OUT_PKL_FPATH = sys.argv[1]  # "/local/pkls/1660761104.474899.out.pkl"
+OUT_PKL_FPATH = sys.argv[1]  # "/local/test-data/1660761104.474899.out.pkl"
 with open(OUT_PKL_FPATH, "rb") as f:
     msg = pickle.load(f)
     print(msg)
