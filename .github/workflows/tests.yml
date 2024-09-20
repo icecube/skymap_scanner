@@ -590,7 +590,7 @@ jobs:
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/conversion_scripts),target=/local/conversion_scripts \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/conversion_scripts),target=/local/conversion_scripts \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
