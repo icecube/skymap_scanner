@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.20.4 (2024-09-22)
+
+### Other
+
+* Pin iminuit ([#272](https://github.com/icecube/skymap_scanner/issues/272)) ([`3c9060b`](https://github.com/icecube/skymap_scanner/commit/3c9060b439f7bf4047e321a53845f8864449ace7))
+
 ## v3.20.3 (2024-06-18)
 
 ### Other
