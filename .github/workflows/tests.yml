@@ -570,13 +570,8 @@ jobs:
         run: |
           set -e
           source tests/env-vars.sh
-
-          # grab the GCDQp_packet key and throw into a file
-          jq '.GCDQp_packet' \
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
           
-          # run reco
+          # run reco directly
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
@@ -585,8 +580,7 @@ jobs:
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
             --infile /local/test-data/in.json \
-            --gcdqp-packet-json /local/test-data/GCDQp_packet.json \
-            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
+            --client-startup-json /local/test-data/startup.json \
             --outfile /local/test-data/out-actual.json
 
       - name: test output against known result
