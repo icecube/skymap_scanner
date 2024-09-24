@@ -178,7 +178,7 @@ jobs:
             2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/server.out \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
           nclients=2
@@ -568,56 +568,47 @@ jobs:
       - name: run
         timeout-minutes: 15  # on average max~=7min
         run: |
+          set -e
           source tests/env-vars.sh
 
-          # move python file to subdir to make bindings simpler
-          cp tests/data/reco_pixel_pkls/get_toclient_msg_pkl.py \
-            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
-
-          # create the in.pkl
+          # grab the GCDQp_packet key and throw into a file
+          jq '.GCDQp_packet' \
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
+          
+          # run reco
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
-            --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            icecube/skymap_scanner:local \
-            python /local/pkls/get_toclient_msg_pkl.py \
-            --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo ${{ matrix.reco_algo }}
-
-          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.pkl
-
-          # run
-          docker run --network="host" --rm -i \
-            --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
-            --in-pkl /local/pkls/in.pkl \
-            --client-startup-json tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
-            --out-pkl /local/pkls/out.pkl
+            --infile /local/test-data/in.json \
+            --gcdqp-packet-json /local/test-data/GCDQp_packet.json \
+            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
+            --outfile /local/test-data/out-actual.json
 
-      - name: test output against known result (.pkl)
+      - name: test output against known result
         run: |
           source tests/env-vars.sh
           
           ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
+          ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # need icecube for depickling, so docker container needed
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
             icecube/skymap_scanner:local \
-            python tests/compare_reco_pixel_pkl.py \
-            --actual /local/pkls/out.pkl \
-            --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.out.pkl)) \
-            --diff-out-dir /local/pkls/ \
+            python tests/compare_reco_pixel_single.py \
+            --actual /local/test-data/out-actual.json \
+            --expected /local/test-data/out.json \
+            --diff-out-dir /local/test-data/ \
             --assert \
-            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
+            || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
 
 
   #############################################################################

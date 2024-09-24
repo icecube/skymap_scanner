@@ -1,16 +1,18 @@
-"""Testing script for comparing two reco pixel outputs (.pkl files)."""
+"""Testing script for comparing two reco pixel outfiles."""
 
 import argparse
+import json
 import logging
-import pickle
 from pathlib import Path
 
-from skymap_scanner.utils import to_skyscan_result
-from skymap_scanner.utils.pixel_classes import RecoPixelFinal
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 from compare_scan_results import compare_then_exit
+from skymap_scanner.config import MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64
+from skymap_scanner.utils import to_skyscan_result
+from skymap_scanner.utils.messages import Serialization
+from skymap_scanner.utils.pixel_classes import RecoPixelFinal
 
 
 def main():
@@ -26,14 +28,14 @@ def main():
     parser.add_argument(
         "-a",
         "--actual",
-        help="The first (actual) pkl file",
+        help="The first (actual) outfile",
         required=True,
         type=Path,
     )
     parser.add_argument(
         "-e",
         "--expected",
-        help="The second (expected) pkl file",
+        help="The second (expected) outfile",
         required=True,
         type=Path,
     )
@@ -54,19 +56,21 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    def load_from_out_pkl(out_pkl_fpath: Path) -> SkyScanResult:
-        """Load a SkyScanResult from the "out" pkl file."""
-        with open(out_pkl_fpath, "rb") as f:
-            msg = pickle.load(f)
+    def load_from_outfile(outfile_fpath: Path) -> SkyScanResult:
+        """Load a SkyScanResult from the outfile."""
+        with open(outfile_fpath, "r") as f:
+            msg = json.load(f)
 
-        pixfin = RecoPixelFinal.from_recopixelvariation(msg["reco_pixel_variation"])
+        pixfin = RecoPixelFinal.from_recopixelvariation(
+            Serialization.decode_pkl_b64(msg[MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64])
+        )
         return to_skyscan_result.from_nsides_dict(
             {pixfin.nside: {pixfin.pixel_id: pixfin}},
             is_complete=True,
         )
 
-    actual = load_from_out_pkl(args.actual)
-    expected = load_from_out_pkl(args.expected)
+    actual = load_from_outfile(args.actual)
+    expected = load_from_outfile(args.expected)
 
     compare_then_exit(
         actual,

@@ -5,7 +5,6 @@ import datetime
 import json
 import logging
 import os
-import pickle
 import time
 from pathlib import Path
 from typing import Any, List, Union
@@ -25,7 +24,6 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg, recos
 from ..utils import messages
-from ..utils.data_handling import get_gcd_datastager
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -105,7 +103,7 @@ def reco_pixel(
     pframe: icetray.I3Frame,
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
-    out_pkl: Path,
+    outfile: Path,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -164,29 +162,29 @@ def reco_pixel(
         if frame.Stop != icetray.I3Frame.Physics:
             LOGGER.debug("frame.Stop is not Physics")
             return
-        if out_pkl.exists():  # check in case the tray is re-writing this file
-            raise FileExistsError(out_pkl)
-        save_to_disk_cache(frame, out_pkl.parent)
-        with open(out_pkl, "w") as f:
+        if outfile.exists():  # check in case the tray is re-writing this file
+            raise FileExistsError(outfile)
+        save_to_disk_cache(frame, outfile.parent)
+        with open(outfile, "w") as f:
             LOGGER.info(
                 f"Dumping reco {pframe_tuple(frame)}: "
-                f"{frame_for_logging(frame)} to {out_pkl}."
+                f"{frame_for_logging(frame)} to {outfile}."
             )
             geometry = get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet)[0]
             reco_pixel_variation = RecoPixelVariation.from_i3frame(
                 frame, geometry, reco_algo
             )
             LOGGER.info(f"RecoPixelFinal: {reco_pixel_variation}")
-            with open(out_pkl, "w") as f:
-                f.write(
-                    messages.IOSerialization.encode(
-                        {
-                            "reco_pixel_variation": pickle.dumps(reco_pixel_variation),
-                            # can't trust the clocks running in containers, but we can trust the relative time
-                            "runtime": time.time() - start_time,
-                        }
-                    )
-                )
+            json.dump(
+                {
+                    cfg.MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: messages.Serialization.encode_pkl_b64(
+                        reco_pixel_variation
+                    ),
+                    # can't trust the clocks running in containers, but we can trust the relative time
+                    cfg.MSG_KEY_RUNTIME: time.time() - start_time,
+                },
+                f,
+            )
 
     tray.AddModule(writeout_reco, "writeout_reco")
 
@@ -203,11 +201,11 @@ def reco_pixel(
 
     # Check Output #####################################################
 
-    if not out_pkl.exists():
+    if not outfile.exists():
         raise FileNotFoundError(
-            f"Out file was not written {pframe_tuple(pframe)}: {out_pkl}"
+            f"Out file was not written {pframe_tuple(pframe)}: {outfile}"
         )
-    return out_pkl
+    return outfile
 
 
 # fmt: on
@@ -216,8 +214,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Perform reconstruction on a pixel "
-            "by reading `--in-pkl FILE` and writing result to "
-            "`--out-pkl FILE`."
+            "by reading `--infile FILE` and writing result to "
+            "`--outfile FILE`."
         ),
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -225,7 +223,7 @@ def main() -> None:
 
     # input/output args
     parser.add_argument(
-        "--in-pkl",
+        "--infile",
         required=True,
         help="a file containing the pixel to reconstruct",
         type=lambda x: argparse_tools.validate_arg(
@@ -235,7 +233,7 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--out-pkl",
+        "--outfile",
         required=True,
         help="a file to write the reconstruction to",
         type=lambda x: argparse_tools.validate_arg(
@@ -281,6 +279,11 @@ def main() -> None:
         data = messages.IOSerialization.decode(f.read())
         reco_algo = data[cfg.MSG_KEY_RECO_ALGO]
         pframe = pickle.loads(data[cfg.MSG_KEY_PFRAME])
+    LOGGER.info(f"Reading {args.infile}...")
+    with open(args.infile, "r") as f:
+        msg = json.load(f)
+        reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
+        pframe = messages.Serialization.decode_pkl_b64(msg[cfg.MSG_KEY_PFRAME_PKL_B64])
 
     # get GCDQp_packet
     GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
@@ -289,12 +292,13 @@ def main() -> None:
     )
 
     # go!
+    LOGGER.info(f"Starting {reco_algo}...")
     reco_pixel(
         reco_algo,
         pframe,
         GCDQp_packet,
         str(baseline_gcd_file),
-        args.out_pkl,
+        args.outfile,
     )
     LOGGER.info("Done reco'ing pixel.")
 

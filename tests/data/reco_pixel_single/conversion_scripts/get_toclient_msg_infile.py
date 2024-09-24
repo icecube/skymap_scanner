@@ -1,6 +1,8 @@
 """Recreate the from-server / to-client message from a pframe."""
 
 import argparse
+import base64
+import json
 import pickle
 from pathlib import Path
 
@@ -25,18 +27,29 @@ def main():
     args = parser.parse_args()
 
     with open(args.pframe_pkl, "rb") as f:
-        pframe = pickle.load(f)
+        depickled = pickle.load(f)
 
     # When extracting the debug .pkl from ewms-pilot, the in- pickles already contain the full message.
     # Do we need to support "bare" pframes pickles at all?
     # For the moment, this is a workaround.
-    if "pframe" in pframe:
-        # Effectively this is equivalent to copying the file.
-        with open(args.pframe_pkl.parent / "in.pkl", "wb") as f:
-            pickle.dump(pframe, f)
+    if isinstance(depickled, dict):
+        print(depickled["reco_algo"])
+        print(args.reco_algo)
+        # assert depickled["reco_algo"] == args.reco_algo
+        pframe = depickled["pframe"]
     else:
-        with open(args.pframe_pkl.parent / "in.pkl", "wb") as f:
-            pickle.dump({"pframe": pframe, "reco_algo": args.reco_algo}, f)
+        pframe = depickled
+
+    # is just a pframe!
+    with open(args.pframe_pkl.parent / "in.json", "w") as f:
+        json.dump(
+            {
+                "pframe_pkl_b64": base64.b64encode(pickle.dumps(pframe)).decode(),
+                "reco_algo": args.reco_algo,
+            },
+            f,
+            indent=4,
+        )
 
 
 if __name__ == "__main__":

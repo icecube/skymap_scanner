@@ -70,7 +70,10 @@ STATEDICT_NSIDES: Final = "nsides"
 STATEDICT_INPUT_PULSES: Final = "input_pulses_name"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
-MSG_KEY_PFRAME: Final = "pframe"
+MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
+#
+MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: Final = "reco_pixel_variation_pkl_b64"
+MSG_KEY_RUNTIME: Final = "runtime"
 
 BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
 SOURCE_BASELINE_GCD_METADATA = "original_base_GCD_for_diff_filename.txt"
