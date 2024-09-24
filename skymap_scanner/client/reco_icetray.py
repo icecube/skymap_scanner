@@ -24,6 +24,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg, recos
 from ..utils import messages
+from ..utils.data_handling import get_gcd_datastager
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
