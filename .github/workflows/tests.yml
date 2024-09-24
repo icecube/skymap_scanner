@@ -19,6 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
+  DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_CLIENTS: 1  # TODO: bump to 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
@@ -113,7 +114,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
 
 
   test-run-singularity-dummy-reco:
@@ -150,13 +151,13 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
       - name: build singularity image
         run: |
-          sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner:local
+          sudo singularity build skymap_scanner.sif docker-daemon://$DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
       - name: run singularity container
         run: |
@@ -272,7 +273,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
@@ -362,7 +363,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
       - name: run
         timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
@@ -461,7 +462,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
       - name: run
         timeout-minutes: 35  # on average max~=26min
         run: |
@@ -524,14 +525,14 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
       - name: run
         run: |
           source tests/env-vars.sh
           
           docker run --rm -i \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            icecube/skymap_scanner:local \
+            $DOCKER_IMAGE_TAG \
             python tests/file_staging.py
 
 
@@ -564,7 +565,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: $DOCKER_IMAGE_TAG
       - name: run
         timeout-minutes: 15  # on average max~=7min
         run: |
@@ -577,7 +578,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            icecube/skymap_scanner:local \
+            $DOCKER_IMAGE_TAG \
             python -m skymap_scanner.client.reco_icetray \
             --infile /local/test-data/in.json \
             --client-startup-json /local/test-data/startup.json \
@@ -596,7 +597,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            icecube/skymap_scanner:local \
+            $DOCKER_IMAGE_TAG \
             python tests/compare_reco_pixel_single.py \
             --actual /local/test-data/out-actual.json \
             --expected /local/test-data/out.json \

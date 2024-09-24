@@ -62,7 +62,7 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 # Run client on ewms pilot
 set -x
 
-export EWMS_PILOT_TASK_IMAGE="skyscan:local"
+export EWMS_PILOT_TASK_IMAGE=$DOCKER_IMAGE_TAG
 export EWMS_PILOT_TASK_ARGS='python -m skymap_scanner.client.reco_icetray --in-pkl {{INFILE}} --out-pkl {{OUTFILE}} --client-startup-json $EWMS_TASK_DATA_HUB_DIR/startup.json'
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
