@@ -683,7 +683,7 @@ def main() -> None:
     cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    # nsides
+    # nsides -- the class needs the whole list to validate, so this logic can't be outsourced to argparse's `type=`
     args.nside_progression = NSideProgression(args.nside_progression)
 
     # check if Baseline GCD directory is reachable (also checks default value)
