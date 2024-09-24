@@ -42,7 +42,7 @@ hypothesis==6.36.0
 icecube-skyreader==1.2.11
 idna==3.3
 imagesize==1.4.1
-iminuit==2.29.1
+iminuit==2.26.0
 importlib-metadata==4.6.4
 iniconfig==1.1.1
 ipython==7.31.1
@@ -254,7 +254,7 @@ skymap-scanner
 │   └── wipac-dev-tools [required: Any, installed: 1.12.1]
 │       ├── requests [required: Any, installed: 2.25.1]
 │       └── typing_extensions [required: Any, installed: 4.12.2]
-├── iminuit [required: Any, installed: 2.29.1]
+├── iminuit [required: <2.27.0, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
 ├── oms-mqclient [required: Any, installed: 2.6.0]
