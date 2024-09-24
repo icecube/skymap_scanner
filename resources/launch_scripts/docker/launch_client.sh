@@ -87,8 +87,8 @@ pip install virtualenv
 virtualenv --python python3 "$ENV"
 . "$ENV"/bin/activate
 pip install --upgrade pip
-pip install ewms-pilot
-python -m ewms_pilot[rabbitmq]
+pip install ewms-pilot[rabbitmq]
+python -m ewms_pilot
 
 #docker run --network="host" --rm \
 #    --shm-size=6gb \
