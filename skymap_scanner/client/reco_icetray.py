@@ -276,10 +276,6 @@ def main() -> None:
         raise FileNotFoundError(baseline_gcd_file)
 
     # get PFrame
-    with open(args.in_pkl) as f:
-        data = messages.IOSerialization.decode(f.read())
-        reco_algo = data[cfg.MSG_KEY_RECO_ALGO]
-        pframe = pickle.loads(data[cfg.MSG_KEY_PFRAME])
     LOGGER.info(f"Reading {args.infile}...")
     with open(args.infile, "r") as f:
         msg = json.load(f)
