@@ -20,9 +20,10 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   #
-  DOCKER_IMAGE_ARTIFACT_DIR: /tmp
-  DOCKER_IMAGE_ARTIFACT_TAR: skyscan_image.tar
   DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
+  DOCKER_IMAGE_ARTIFACT_DIR: /tmp
+  DOCKER_IMAGE_ARTIFACT_TAR: skyscan_docker.tar
+  DOCKER_IMAGE_ARTIFACT_NAME_PREFIX: skyscan_docker
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_CLIENTS: 1  # TODO: bump to 2
@@ -122,7 +123,7 @@ jobs:
           outputs: type=docker,dest=${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
           retention-days: 1
           overwrite: true
@@ -162,7 +163,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
       - run: |
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
@@ -288,7 +289,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
       - run: |
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
@@ -382,7 +383,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
       - run: |
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
@@ -485,7 +486,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
       - run: |
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
@@ -552,7 +553,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
       - run: |
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
@@ -596,7 +597,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
       - run: |
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
