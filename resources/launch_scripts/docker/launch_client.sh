@@ -90,6 +90,9 @@ export EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN="$SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN"
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE="$SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE"
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS"
 
+# TODO - remove, this should go into the pilot
+mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
+
 ENV="$(dirname $tmp_rootdir)/pyenv-$(basename $tmp_rootdir)"
 pip install virtualenv
 virtualenv --python python3 "$ENV"
