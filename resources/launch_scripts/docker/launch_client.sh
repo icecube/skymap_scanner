@@ -62,9 +62,11 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 # Run client on ewms pilot
 set -x
 
+# establish root path
 tmp_rootdir="$(pwd)/pilot-$(uuidgen)"
 mkdir $tmp_rootdir
 cd $tmp_rootdir
+export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 
 # TODO - remove, this should go into the pilot
 datahub="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
@@ -72,12 +74,10 @@ mkdir -p "$datahub"
 
 # task image, args, env
 export EWMS_PILOT_TASK_IMAGE=$DOCKER_IMAGE_TAG
-# TODO - add {{DATAHUB}} to pilot, we should (and won't always) know where the datahub is
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $datahub/startup.json"
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
-export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 
 # file types -- controls intermittent serialization
 export EWMS_PILOT_INFILE_EXT="JSON"
