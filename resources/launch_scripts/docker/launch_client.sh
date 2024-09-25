@@ -67,7 +67,7 @@ mkdir $tmp_rootdir
 cd $tmp_rootdir
 
 export EWMS_PILOT_TASK_IMAGE=$DOCKER_IMAGE_TAG
-export EWMS_PILOT_TASK_ARGS='python -m skymap_scanner.client.reco_icetray --in-pkl {{INFILE}} --out-pkl {{OUTFILE}} --client-startup-json $EWMS_TASK_DATA_HUB_DIR/startup.json'
+export EWMS_PILOT_TASK_ARGS='python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $EWMS_TASK_DATA_HUB_DIR/startup.json'
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
