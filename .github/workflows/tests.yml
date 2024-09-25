@@ -19,7 +19,11 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
+  #
+  DOCKER_IMAGE_ARTIFACT_DIR: /tmp
+  DOCKER_IMAGE_ARTIFACT_TAR: skyscan_image.tar
   DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
+  #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_CLIENTS: 1  # TODO: bump to 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
@@ -105,7 +109,7 @@ jobs:
   #############################################################################
 
 
-  test-build-docker:
+  build-docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -113,14 +117,17 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
-          file: Dockerfile
+          file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          outputs: type=docker,dest=${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
 
 
   test-run-singularity-dummy-reco:
-    needs: test-build-docker
+    needs: build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1:password@localhost/test
@@ -150,14 +157,14 @@ jobs:
         with:
           docker-images: false
       - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
-          load: true
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
+      - run: |
+          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
+          docker image ls -a
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
@@ -233,7 +240,7 @@ jobs:
 
 
   test-run-nsides-thresholds-dummy:
-    needs: test-build-docker
+    needs: build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -339,7 +346,7 @@ jobs:
 
 
   test-run-crash-dummy:
-    needs: test-build-docker
+    needs: build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
@@ -418,7 +425,7 @@ jobs:
 
 
   test-run-realistic:
-    needs: test-build-docker
+    needs: build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -536,7 +543,7 @@ jobs:
 
 
   test-file-staging:
-    needs: test-build-docker
+    needs: build-docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -559,7 +566,7 @@ jobs:
 
 
   test-run-single-pixel:
-    needs: test-build-docker
+    needs: build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -645,7 +652,7 @@ jobs:
       mypy,
       py-setup,
       py-dependencies,
-      test-build-docker,
+      build-docker,
       test-run-singularity-dummy-reco,
       test-file-staging,
       test-run-nsides-thresholds-dummy,
