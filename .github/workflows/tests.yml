@@ -112,6 +112,8 @@ jobs:
 
   build-docker:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false  # don't make .dockerbuild artifact (this is an extra artifact, *not* the image)
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
