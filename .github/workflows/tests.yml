@@ -19,7 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
-  DOCKER_IMAGE_TAG: ${{ env.DOCKER_IMAGE_TAG }}
+  DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_CLIENTS: 1  # TODO: bump to 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
