@@ -19,7 +19,7 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
-  DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
+  DOCKER_IMAGE_TAG: ${{ env.DOCKER_IMAGE_TAG }}
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_CLIENTS: 1  # TODO: bump to 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
@@ -156,7 +156,7 @@ jobs:
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
           load: true
       - uses: eWaterCycle/setup-apptainer@v2
         with:
@@ -282,7 +282,7 @@ jobs:
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         timeout-minutes: 10  # on average max~=5min
@@ -376,7 +376,7 @@ jobs:
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
@@ -479,7 +479,7 @@ jobs:
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         timeout-minutes: 35  # on average max~=26min
@@ -546,7 +546,7 @@ jobs:
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         run: |
@@ -590,7 +590,7 @@ jobs:
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         timeout-minutes: 15  # on average max~=7min
