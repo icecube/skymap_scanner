@@ -124,6 +124,8 @@ jobs:
         with:
           name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
+          retention-days: 1
+          overwrite: true
 
 
   test-run-singularity-dummy-reco:
