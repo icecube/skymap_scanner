@@ -72,7 +72,10 @@ json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' 
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
-#
+
+# file types -- controls intermittent serialization
+export EWMS_PILOT_INFILE_EXT="JSON"
+export EWMS_PILOT_OUTFILE_EXT="JSON"
 
 # to-client queue
 export EWMS_PILOT_QUEUE_INCOMING="$SKYSCAN_MQ_TOCLIENT"
