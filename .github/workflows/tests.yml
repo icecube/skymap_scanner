@@ -285,14 +285,14 @@ jobs:
         with:
           docker-images: false
       - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
-          load: true
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
+      - run: |
+          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
+          docker image ls -a
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
@@ -379,14 +379,14 @@ jobs:
         with:
           docker-images: false
       - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
-          load: true
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
+      - run: |
+          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
+          docker image ls -a
       - name: run
         timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
@@ -482,14 +482,14 @@ jobs:
         with:
           size: 10G
       - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
-          load: true
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
+      - run: |
+          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
+          docker image ls -a
       - name: run
         timeout-minutes: 35  # on average max~=26min
         run: |
@@ -549,14 +549,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
-          load: true
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
+      - run: |
+          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
+          docker image ls -a
       - name: run
         run: |
           source tests/env-vars.sh
@@ -593,14 +593,14 @@ jobs:
             dir: "JSON"
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
-          load: true
+          name: ${{ env.DOCKER_IMAGE_TAG }}:${{ github.sha }}
+          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
+      - run: |
+          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
+          docker image ls -a
       - name: run
         timeout-minutes: 15  # on average max~=7min
         run: |
