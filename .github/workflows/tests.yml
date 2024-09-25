@@ -659,15 +659,9 @@ jobs:
     ]
     runs-on: ubuntu-latest
     steps:
-      - name: Delete Artifact
-        uses: actions/github-script@v7
+      - uses: geekyeggo/delete-artifact@v5
         with:
-          script: |
-            github.rest.actions.deleteArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: ${{ needs.build-docker.outputs.artifact-id }}
-            });
+          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
 
 
   #############################################################################
