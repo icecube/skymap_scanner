@@ -43,15 +43,15 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.2
 
   # flake8:
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v3
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
   #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
@@ -62,8 +62,8 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
@@ -89,7 +89,7 @@ jobs:
         with:
           docker-images: false
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
@@ -108,15 +108,19 @@ jobs:
   test-build-docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
           file: Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
 
 
   test-run-singularity-dummy-reco:
+    needs: test-build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1:password@localhost/test
@@ -145,12 +149,15 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: icecube/skymap_scanner:local
+          load: true
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
@@ -226,6 +233,7 @@ jobs:
 
 
   test-run-nsides-thresholds-dummy:
+    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -267,12 +275,15 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: icecube/skymap_scanner:local
+          load: true
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
@@ -328,6 +339,7 @@ jobs:
 
 
   test-run-crash-dummy:
+    needs: test-build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
@@ -357,12 +369,15 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: icecube/skymap_scanner:local
+          load: true
       - name: run
         timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
@@ -403,6 +418,7 @@ jobs:
 
 
   test-run-realistic:
+    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -456,12 +472,15 @@ jobs:
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: icecube/skymap_scanner:local
+          load: true
       - name: run
         timeout-minutes: 35  # on average max~=26min
         run: |
@@ -517,14 +536,18 @@ jobs:
 
 
   test-file-staging:
+    needs: test-build-docker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: icecube/skymap_scanner:local
+          load: true
       - name: run
         run: |
           source tests/env-vars.sh
@@ -536,6 +559,7 @@ jobs:
 
 
   test-run-single-pixel:
+    needs: test-build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -559,12 +583,15 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
           file: Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: icecube/skymap_scanner:local
+          load: true
       - name: run
         timeout-minutes: 15  # on average max~=7min
         run: |
@@ -629,7 +656,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
