@@ -25,7 +25,7 @@ if [ ! -d $(dirname $2) ]; then
     echo "Directory Not Found: $(dirname $1)"
     exit 2
 fi
-outdir="$2"
+outdir="$(realpath $2)"
 mkdir -p "$outdir"
 
 if [ -z "$SKYSCAN_CACHE_DIR" ] || [ -z "$SKYSCAN_OUTPUT_DIR" ] || [ -z "$SKYSCAN_DEBUG_DIR" ]; then
@@ -61,14 +61,17 @@ export CI_SKYSCAN_STARTUP_JSON="$(realpath "./startup.json")"
 ./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON $WAIT_FOR_STARTUP_JSON
 
 # Launch Clients
+launch_client_dir=$(realpath "./docker/")
 echo "Launching $nclients clients"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"} # 30 mins
 for i in $(seq 1 $nclients); do
-    mkdir -p "$outdir"/client-$i/
-    ./docker/launch_client.sh \
+    dir="$outdir/client-$i/"
+    mkdir -p $dir
+    cd $dir
+    $launch_client_dir/launch_client.sh \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee "$outdir"/client-$i/client-$i.out \
+        2>&1 | tee $dir/client-$i.out \
         &
     echo -e "\tclient #$i launched"
 done

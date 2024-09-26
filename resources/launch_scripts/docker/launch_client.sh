@@ -63,7 +63,7 @@ PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 set -x
 
 # establish root path
-tmp_rootdir="$CI_TEST_RUN_STDOUT_STDERR_DIR/pilot-$(uuidgen)"
+tmp_rootdir="$(pwd)/pilot-$(uuidgen)"
 mkdir $tmp_rootdir
 cd $tmp_rootdir
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
