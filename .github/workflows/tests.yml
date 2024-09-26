@@ -233,9 +233,9 @@ jobs:
       - name: client worker \#1 stdout/stderr
         if: always()
         run: |
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -337,8 +337,8 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -432,8 +432,8 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -542,8 +542,8 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
