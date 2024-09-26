@@ -73,6 +73,8 @@ datahub="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 mkdir -p "$datahub"
 datahub_in_task="/ewms-pilot-data/data-hub"
 
+cp $CI_SKYSCAN_STARTUP_JSON $datahub
+
 # task image, args, env
 export EWMS_PILOT_TASK_IMAGE=$DOCKER_IMAGE_TAG
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $datahub_in_task/startup.json"
