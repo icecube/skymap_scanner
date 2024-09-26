@@ -64,10 +64,11 @@ export CI_SKYSCAN_STARTUP_JSON="$(realpath "./startup.json")"
 echo "Launching $nclients clients"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"} # 30 mins
 for i in $(seq 1 $nclients); do
+    mkdir -p "$outdir"/client-$i/
     ./docker/launch_client.sh \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee "$outdir"/client-$i.out \
+        2>&1 | tee "$outdir"/client-$i/client-$i.out \
         &
     echo -e "\tclient #$i launched"
 done
