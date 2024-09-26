@@ -237,10 +237,11 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
-        if: always()
+        if: always() && env.N_CLIENTS == '2'
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/client-2.out | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
 
       - name: rabbitmq logs
         if: always()
@@ -340,10 +341,11 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
-        if: always()
+        if: always() && env.N_CLIENTS == '2'
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/client-2.out | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
 
       - name: reco-icetray logs
         if: always()
@@ -435,10 +437,11 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
-        if: always()
+        if: always() && env.N_CLIENTS == '2'
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/client-2.out | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
 
 
   test-run-realistic:
@@ -545,10 +548,11 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
       - name: client worker \#2 stdout/stderr
-        if: always()
+        if: always() && env.N_CLIENTS == '2'
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/client-2.out | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
 
       - name: reco-icetray logs
         if: always()
