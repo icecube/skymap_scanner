@@ -87,7 +87,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for images to build
         with:
           docker-images: false
-          large-packages: false  # would save 4.8GiB but takes O(mins)
       - name: checkout
         uses: actions/checkout@v3
         with:
@@ -148,7 +147,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-          large-packages: false  # would save 4.8GiB but takes O(mins)
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -258,7 +256,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-          large-packages: false  # would save 4.8GiB but takes O(mins)
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -352,7 +349,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-          large-packages: false  # would save 4.8GiB but takes O(mins)
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -452,7 +448,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-          large-packages: false  # would save 4.8GiB but takes O(mins)
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
