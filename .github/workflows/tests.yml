@@ -129,6 +129,7 @@ jobs:
           path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
           retention-days: 1
           overwrite: true
+          compression-level: 0  # no compression, we delete at end of workflow
 
 
   test-run-singularity-dummy-reco:
