@@ -233,7 +233,7 @@ jobs:
         if: always()
         run: |
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-          tree .
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -333,7 +333,7 @@ jobs:
         if: always()
         run: |
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-          tree .
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -425,7 +425,7 @@ jobs:
         if: always()
         run: |
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-          tree .
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -532,7 +532,7 @@ jobs:
         if: always()
         run: |
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-          tree .
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
