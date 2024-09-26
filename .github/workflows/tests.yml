@@ -234,12 +234,13 @@ jobs:
       - name: client worker \#1 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* | cat
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
 
       - name: rabbitmq logs
@@ -336,13 +337,13 @@ jobs:
       - name: client worker \#1 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* | cat
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
 
       - name: reco-icetray logs
@@ -431,13 +432,13 @@ jobs:
       - name: client worker \#1 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* | cat
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
 
 
@@ -541,13 +542,13 @@ jobs:
       - name: client worker \#1 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* | cat
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
-          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/
+          tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/pilot-*
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2/* | cat
 
       - name: reco-icetray logs
