@@ -68,7 +68,7 @@ mkdir $tmp_rootdir
 cd $tmp_rootdir
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 
-# TODO - remove, this should go into the pilot
+# TODO - remove, this should go into the pilot w/ {{DATAHUB}}
 datahub="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 mkdir -p "$datahub"
 datahub_in_task="/ewms-pilot-data/data-hub"
