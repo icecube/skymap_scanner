@@ -20,7 +20,7 @@ export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=${SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRE
 
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-600}
 
-export EWMS_PILOT_KEEP_ALL_TASK_FILES: True # don't delete stderr/stdout files
+export EWMS_PILOT_KEEP_ALL_TASK_FILES="True" # don't delete stderr/stdout files
 
 # export SKYSCAN_DEBUG_DIR=debug-pkl-dir -- rely on user value
 export SKYSCAN_MQ_TIMEOUT_TO_CLIENTS=${SKYSCAN_MQ_TIMEOUT_TO_CLIENTS:-5}
