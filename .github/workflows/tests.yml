@@ -236,7 +236,7 @@ jobs:
         run: |
           tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -339,7 +339,7 @@ jobs:
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
           tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -434,7 +434,7 @@ jobs:
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
           tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
@@ -544,7 +544,7 @@ jobs:
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/client-1.out | cat
           tree $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/pilot-*
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/*/ewms-pilot-data -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1/* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
       - name: client worker \#2 stdout/stderr
         if: always()
         run: |
