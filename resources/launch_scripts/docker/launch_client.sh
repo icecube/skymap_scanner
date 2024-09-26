@@ -71,10 +71,11 @@ export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 # TODO - remove, this should go into the pilot
 datahub="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 mkdir -p "$datahub"
+datahub_in_task="/ewms-pilot-data/data-hub"
 
 # task image, args, env
 export EWMS_PILOT_TASK_IMAGE=$DOCKER_IMAGE_TAG
-export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $datahub/startup.json"
+export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $datahub_in_task/startup.json"
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
