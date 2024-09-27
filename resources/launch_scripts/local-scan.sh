@@ -42,6 +42,8 @@ else
     arg_predictive_scanning_threshold="--predictive-scanning-threshold $_PREDICTIVE_SCANNING_THRESHOLD"
 fi
 
+declare -A pidmap # map of background pids to wait on
+
 # Launch Server
 ./docker/launch_server.sh \
     --reco-algo $_RECO_ALGO \
@@ -54,7 +56,7 @@ fi
     --real-event \
     2>&1 | tee "$outdir"/server.out \
     &
-server_pid=$!
+pidmap["$!"]="central server"
 
 # Wait for startup.json
 export CI_SKYSCAN_STARTUP_JSON="$(realpath "./startup.json")"
@@ -73,10 +75,19 @@ for i in $(seq 1 $nworkers); do
         --debug-directory $SKYSCAN_DEBUG_DIR \
         2>&1 | tee $dir/pilot.out \
         &
+    pidmap["$!"]="worker #$i"
     echo -e "\tworker #$i launched"
 done
 
-# Wait for scan
-# -- we don't actually care about the workers, if they fail or not
-# -- if all the workers fail, then the sever times out and we can look at worker logs
-wait $server_pid
+# Wait for scan components to finish
+while [ ${#pidmap[@]} -gt 0 ]; do
+    # Wait for the first finished process
+    if ! finished_pid=$(wait -n); then
+        echo "ERROR: component '${pidmap[$finished_pid]}' failed"
+        sleep 5                          # May need to wait for output files to be written
+        kill "${!pidmap[@]}" 2>/dev/null # kill all
+        exit 1
+    fi
+    # Remove the finished PID from the associative array
+    unset pidmap["$finished_pid"]
+done

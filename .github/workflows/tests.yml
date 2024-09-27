@@ -357,12 +357,6 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
-      - name: reco-icetray logs
-        if: always()
-        run: |
-          sudo apt install tree
-          tree $SKYSCAN_DEBUG_DIR
-          find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
       - name: rabbitmq logs
         if: always()
@@ -573,13 +567,6 @@ jobs:
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
-      - name: reco-icetray logs
-        if: always()
-        run: |
-          sudo apt install tree
-          tree $SKYSCAN_DEBUG_DIR
-          find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
       - name: rabbitmq logs
         if: always()
