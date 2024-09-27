@@ -425,8 +425,8 @@ jobs:
           set -x
           # check for fails/errors
           
-          error_type_1='PilotSubprocessError\(.*Subprocess completed with exit code 1: KeyError: .intentional crash-dummy error.'
-          error_type_2='TimeoutError\(.*subprocess timed out after 15s'
+          error_type_1='intentional crash-dummy error'
+          error_type_2='subprocess timed out after'
           pattern="$error_type_1|$error_type_2"
           
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
