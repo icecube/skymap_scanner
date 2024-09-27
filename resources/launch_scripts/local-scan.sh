@@ -54,7 +54,7 @@ declare -A pidmap # map of background pids to wait on
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
-    >>"$outdir"/server.out 2>&1 \
+    2>&1 | tee "$outdir"/server.out \
     &
 pidmap["$!"]="central server"
 
