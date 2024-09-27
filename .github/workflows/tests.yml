@@ -233,7 +233,7 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients (instances) \#1 stdouts/stderrs
+      - name: worker clients (task instances) \#1 stdouts/stderrs
         if: always()
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -242,7 +242,7 @@ jobs:
         if: always() && env.N_WORKERS == '2'
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients (instances) \#2 stdouts/stderrs
+      - name: worker clients (task instances) \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -342,7 +342,7 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients (instances) \#1 stdouts/stderrs
+      - name: worker clients (task instances) \#1 stdouts/stderrs
         if: always()
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -351,7 +351,7 @@ jobs:
         if: always() && env.N_WORKERS == '2'
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients (instances) \#2 stdouts/stderrs
+      - name: worker clients (task instances) \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -443,7 +443,7 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients (instances) \#1 stdouts/stderrs
+      - name: worker clients (task instances) \#1 stdouts/stderrs
         if: always()
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -452,7 +452,7 @@ jobs:
         if: always() && env.N_WORKERS == '2'
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients (instances) \#2 stdouts/stderrs
+      - name: worker clients (task instances) \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -559,7 +559,7 @@ jobs:
         if: always()
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients (instances) \#1 stdouts/stderrs
+      - name: worker clients (task instances) \#1 stdouts/stderrs
         if: always()
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
@@ -568,7 +568,7 @@ jobs:
         if: always() && env.N_WORKERS == '2'
         run: |
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients (instances) \#2 stdouts/stderrs
+      - name: worker clients (task instances) \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
