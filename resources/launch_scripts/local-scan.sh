@@ -71,7 +71,7 @@ for i in $(seq 1 $nworkers); do
     $launch_scripts_dir/launch_worker.sh \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee $dir/pilot-$i.out \
+        2>&1 | tee $dir/pilot.out \
         &
     echo -e "\tworker #$i launched"
 done

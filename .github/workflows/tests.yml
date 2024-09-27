@@ -232,7 +232,7 @@ jobs:
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-1.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker tasks \#1 stdouts/stderrs
         if: always()
         run: |
@@ -241,7 +241,7 @@ jobs:
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-2.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker tasks \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
@@ -341,7 +341,7 @@ jobs:
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-1.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker tasks \#1 stdouts/stderrs
         if: always()
         run: |
@@ -350,7 +350,7 @@ jobs:
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-2.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker tasks \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
@@ -442,7 +442,7 @@ jobs:
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-1.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker tasks \#1 stdouts/stderrs
         if: always()
         run: |
@@ -451,7 +451,7 @@ jobs:
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-2.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker tasks \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
@@ -558,7 +558,7 @@ jobs:
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-1.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker tasks \#1 stdouts/stderrs
         if: always()
         run: |
@@ -567,7 +567,7 @@ jobs:
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-2.out | cat
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker tasks \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
