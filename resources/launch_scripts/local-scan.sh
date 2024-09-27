@@ -96,7 +96,7 @@ for pid in "${reversed_pids[@]}"; do
     exit_status=$?
     if [[ $exit_status -ne 0 ]]; then
         echo "ERROR: component '${pidmap[$pid]}' failed with status $exit_status"
-        sleep 5                          # May need to wait for output files to be written
+        sleep 10                         # May need to wait for output files to be written
         kill "${!pidmap[@]}" 2>/dev/null # kill all
         exit 1
     else
