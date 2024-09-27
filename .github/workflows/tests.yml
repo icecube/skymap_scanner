@@ -423,10 +423,16 @@ jobs:
       - name: look at stderrfiles
         run: |
           set -x
-          # check for fails
-          stderrfiles=$(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c)
-          echo $stderrfiles
-          if [ -z "${stderrfiles}" ]; then
+          # check for fails/errors
+          
+          error_type_1='PilotSubprocessError\(.*Subprocess completed with exit code 1: KeyError: .intentional crash-dummy error.'
+          error_type_2='TimeoutError\(.*subprocess timed out after 15s'
+          pattern="$error_type_1|$error_type_2"
+          
+          if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
+              echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
+          else
+              echo "No matches found."
               exit 1
           fi
 
