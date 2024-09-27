@@ -1,13 +1,13 @@
 """IceTray segment for a dummy reco (will crash w/in a given probability)."""
 
-
 import random
+import time
 from typing import Final
 
 from icecube import icetray  # type: ignore[import]  # noqa: F401
 
-from ..config import ENV
 from . import RecoInterface, dummy
+from ..config import ENV
 
 
 class CrashDummy(dummy.Dummy):
@@ -31,6 +31,7 @@ class CrashDummy(dummy.Dummy):
                 logger.debug(f"crashing with '{fail}'")
                 if fail == "infinite-loop":
                     while True:  # to infinity!
+                        time.sleep(1)
                         continue
                 elif fail == "error":
                     raise KeyError("intentional crash-dummy error")
