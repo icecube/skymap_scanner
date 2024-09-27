@@ -76,7 +76,7 @@ datahub_in_task="/ewms-pilot-data/data-hub"
 cp $CI_SKYSCAN_STARTUP_JSON $datahub
 
 # task image, args, env
-export EWMS_PILOT_TASK_IMAGE=$DOCKER_IMAGE_TAG
+export EWMS_PILOT_TASK_IMAGE="--shm-size=6gb $DOCKER_IMAGE_TAG" # TODO - remove hacky arg injection
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $datahub_in_task/startup.json"
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
