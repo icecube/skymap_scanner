@@ -54,7 +54,7 @@ declare -A pidmap # map of background pids to wait on
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
-    2>&1 | tee "$outdir"/server.out \
+    >>"$outdir"/server.out 2>&1 \
     &
 pidmap["$!"]="central server"
 
@@ -73,7 +73,7 @@ for i in $(seq 1 $nworkers); do
     $launch_scripts_dir/launch_worker.sh \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee $dir/pilot.out \
+        >>$dir/pilot.out 2>&1 \
         &
     pidmap["$!"]="worker #$i"
     echo -e "\tworker #$i launched"
