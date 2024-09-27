@@ -85,18 +85,21 @@ echo "Dumping pidmap:"
 for pid in "${!pidmap[@]}"; do
     echo "PID: $pid, Identifier: ${pidmap[$pid]}"
 done
-while [ ${#pidmap[@]} -gt 0 ]; do
-    sleep 5
-    # Wait for the first finished process
-    if ! finished_pid=$(wait -n); then
-        echo "$finished_pid"
-        echo "ERROR: component '${pidmap[$finished_pid]}' failed"
+
+# Wait for all background processes to complete, looping in reverse order
+pids=("${!pid_map[@]}")                                              # get keys
+reversed_pids=($(for pid in "${pids[@]}"; do echo $pid; done | tac)) # reverse key order
+for pid in "${reversed_pids[@]}"; do
+    set -x
+    wait $pid
+    set +x
+    exit_status=$?
+    if [[ $exit_status -ne 0 ]]; then
+        echo "ERROR: component '${pidmap[$pid]}' failed with status $exit_status"
         sleep 5                          # May need to wait for output files to be written
         kill "${!pidmap[@]}" 2>/dev/null # kill all
         exit 1
     else
-        echo "$finished_pid"
-        echo "SUCCESS: component '${pidmap[$finished_pid]}' completed successfully"
-        unset pidmap["$finished_pid"] # remove the finished PID from the associative array
+        echo "SUCCESS: component '${pidmap[$pid]}' completed successfully"
     fi
 done
