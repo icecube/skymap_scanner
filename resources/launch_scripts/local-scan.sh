@@ -82,6 +82,7 @@ done
 # Wait for scan components to finish
 set +x
 while [ ${#pidmap[@]} -gt 0 ]; do
+    sleep 5
     # Wait for the first finished process
     if ! finished_pid=$(wait -n); then
         echo "ERROR: component '${pidmap[$finished_pid]}' failed"
