@@ -80,6 +80,7 @@ for i in $(seq 1 $nworkers); do
 done
 
 # Wait for scan components to finish
+set +x
 while [ ${#pidmap[@]} -gt 0 ]; do
     # Wait for the first finished process
     if ! finished_pid=$(wait -n); then
