@@ -87,7 +87,7 @@ for pid in "${!pidmap[@]}"; do
 done
 
 # Wait for all background processes to complete, looping in reverse order
-pids=("${!pid_map[@]}")                                              # get keys
+pids=("${!pidmap[@]}")                                               # get keys
 reversed_pids=($(for pid in "${pids[@]}"; do echo $pid; done | tac)) # reverse key order
 for pid in "${reversed_pids[@]}"; do
     set -x
@@ -103,3 +103,5 @@ for pid in "${reversed_pids[@]}"; do
         echo "SUCCESS: component '${pidmap[$pid]}' completed successfully"
     fi
 done
+
+echo "All components finished successfully"
