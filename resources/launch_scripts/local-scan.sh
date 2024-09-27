@@ -3,7 +3,7 @@ set -ex
 
 ########################################################################
 #
-# Runs a scanner instance (server & clients) all on the same machine
+# Runs a scanner instance (server & workers) all on the same machine
 #
 ########################################################################
 
@@ -13,14 +13,14 @@ if [[ $(basename $(pwd)) != "launch_scripts" ]]; then
 fi
 
 if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "Usage: local-scan.sh N_CLIENTS OUTPUT_DIR"
+    echo "Usage: local-scan.sh N_WORKERS OUTPUT_DIR"
     exit 1
 fi
 if [[ $1 != +([[:digit:]]) ]]; then
-    echo "N_CLIENTS must be a number: $1"
+    echo "N_WORKERS must be a number: $1"
     exit 2
 fi
-nclients="$1"
+nworkers="$1"
 if [ ! -d $(dirname $2) ]; then
     echo "Directory Not Found: $(dirname $1)"
     exit 2
@@ -61,14 +61,14 @@ export CI_SKYSCAN_STARTUP_JSON="$(realpath "./startup.json")"
 ./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON $WAIT_FOR_STARTUP_JSON
 
 # Launch Workers that each run a Pilot which each run Skyscan Clients
-launch_client_dir=$(realpath "./docker/")
-echo "Launching $nclients workers"
+launch_scripts_dir=$(realpath "./docker/")
+echo "Launching $nworkers workers"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"} # 30 mins
-for i in $(seq 1 $nclients); do
+for i in $(seq 1 $nworkers); do
     dir="$outdir/worker-$i/"
     mkdir -p $dir
     cd $dir
-    $launch_client_dir/launch_client.sh \
+    $launch_scripts_dir/launch_worker.sh \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --debug-directory $SKYSCAN_DEBUG_DIR \
         2>&1 | tee $dir/pilot-$i.out \
@@ -77,6 +77,6 @@ for i in $(seq 1 $nclients); do
 done
 
 # Wait for scan
-# -- we don't actually care about the clients, if they fail or not
-# -- if all the clients fail, then the sever times out and we can look at client logs
+# -- we don't actually care about the workers, if they fail or not
+# -- if all the workers fail, then the sever times out and we can look at worker logs
 wait $server_pid

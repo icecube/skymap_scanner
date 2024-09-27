@@ -3,7 +3,7 @@ set -e
 
 ########################################################################
 #
-# Runs a scanner instance (server) and request to EWMS for clients
+# Runs a scanner instance (server) and request to EWMS for workers
 #
 ########################################################################
 
@@ -11,18 +11,18 @@ set -e
 # handle cl args
 
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-    echo "Usage: ewms-scan.sh N_CLIENTS EWMS_URL SKYSCAN_TAG"
+    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG"
     exit 1
 else
-    N_CLIENTS="$1"
+    N_WORKERS="$1"
     EWMS_URL="$2"
     SKYSCAN_TAG="$3"
 fi
 
 # now, validate...
 
-if [[ $N_CLIENTS != +([[:digit:]]) ]]; then
-    echo "N_CLIENTS must be a number: $N_CLIENTS"
+if [[ $N_WORKERS != +([[:digit:]]) ]]; then
+    echo "N_WORKERS must be a number: $N_WORKERS"
     exit 2
 fi
 
@@ -101,7 +101,7 @@ export POST_REQ=$(
             "task_args": "python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json \$EWMS_TASK_DATA_HUB_DIR/startup.json",
             "init_image": "alpine:latest",
             "init_args": "while ! curl --fail-with-body -o \"\$EWMS_TASK_DATA_HUB_DIR/startup.json\" \"$S3_OBJECT_URL\"; do echo 'Retrying...'; sleep 15; done",
-            "n_workers": $N_CLIENTS,
+            "n_workers": $N_WORKERS,
             "pilot_config": {
                 "image": "latest",
                 "environment": {

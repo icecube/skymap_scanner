@@ -3,7 +3,7 @@ set -e
 
 ########################################################################
 #
-# Launch a Skymap Scanner client
+# Launch a Skymap Scanner worker
 #
 # Pass in the arguments as if this were just the python sub-module
 #
@@ -59,7 +59,7 @@ DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
 PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
 
 #######################################################################################
-# Run client on ewms pilot
+# Run worker on ewms pilot
 set -x
 
 # establish root path

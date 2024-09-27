@@ -26,7 +26,7 @@ env:
   DOCKER_IMAGE_ARTIFACT_NAME_PREFIX: skyscan_docker
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
-  N_CLIENTS: 1  # TODO: bump to 2
+  N_WORKERS: 1  # TODO: bump to 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
@@ -197,26 +197,26 @@ jobs:
             2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/server.out \
             &
 
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
+          ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
 
           # Launch Clients
-          nclients=2
-          echo "Launching $nclients clients"
+          nworkers=2
+          echo "Launching $nworkers workers"
           mkdir $SKYSCAN_DEBUG_DIR
           export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
-          for i in $( seq 1 $nclients ); do
+          for i in $( seq 1 $nworkers ); do
             singularity run skymap_scanner.sif \
               python -m skymap_scanner.client \
               --client-startup-json ./startup.json \
               --debug-directory $SKYSCAN_DEBUG_DIR \
-              2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/client-$i/client-$i.out \
+              2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/worker-$i/worker-$i.out \
               &
-            echo -e "\tclient #$i launched"
+            echo -e "\tworker #$i launched"
           done
 
           wait -n  # for server
-          for i in $( seq 1 $nclients ); do
-            wait -n  # for client
+          for i in $( seq 1 $nworkers ); do
+            wait -n  # for worker
           done
       - name: look at results file (.npz)
         run: |
@@ -317,7 +317,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $N_CLIENTS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
@@ -424,7 +424,7 @@ jobs:
           cd ./resources/launch_scripts
           # since SKYSCAN_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh $N_CLIENTS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
           set -x
@@ -535,7 +535,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $N_CLIENTS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
