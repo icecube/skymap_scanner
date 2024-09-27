@@ -81,6 +81,10 @@ done
 
 # Wait for scan components to finish
 set +x
+echo "Dumping pidmap:"
+for pid in "${!pidmap[@]}"; do
+    echo "PID: $pid, Identifier: ${pidmap[$pid]}"
+done
 while [ ${#pidmap[@]} -gt 0 ]; do
     sleep 5
     # Wait for the first finished process
@@ -91,7 +95,6 @@ while [ ${#pidmap[@]} -gt 0 ]; do
         exit 1
     else
         echo "SUCCESS: component '${pidmap[$finished_pid]}' completed successfully"
+        unset pidmap["$finished_pid"] # remove the finished PID from the associative array
     fi
-    # Remove the finished PID from the associative array
-    unset pidmap["$finished_pid"]
 done
