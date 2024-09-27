@@ -89,6 +89,8 @@ while [ ${#pidmap[@]} -gt 0 ]; do
         sleep 5                          # May need to wait for output files to be written
         kill "${!pidmap[@]}" 2>/dev/null # kill all
         exit 1
+    else
+        echo "SUCCESS: component '${pidmap[$finished_pid]}' completed successfully"
     fi
     # Remove the finished PID from the associative array
     unset pidmap["$finished_pid"]
