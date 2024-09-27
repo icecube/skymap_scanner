@@ -60,20 +60,20 @@ server_pid=$!
 export CI_SKYSCAN_STARTUP_JSON="$(realpath "./startup.json")"
 ./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON $WAIT_FOR_STARTUP_JSON
 
-# Launch Clients
+# Launch Workers that each run a Pilot which each run Skyscan Clients
 launch_client_dir=$(realpath "./docker/")
-echo "Launching $nclients clients"
+echo "Launching $nclients workers"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"} # 30 mins
 for i in $(seq 1 $nclients); do
-    dir="$outdir/client-$i/"
+    dir="$outdir/worker-$i/"
     mkdir -p $dir
     cd $dir
     $launch_client_dir/launch_client.sh \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --debug-directory $SKYSCAN_DEBUG_DIR \
-        2>&1 | tee $dir/client-$i.out \
+        2>&1 | tee $dir/pilot-$i.out \
         &
-    echo -e "\tclient #$i launched"
+    echo -e "\tworker #$i launched"
 done
 
 # Wait for scan
