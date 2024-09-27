@@ -89,11 +89,13 @@ while [ ${#pidmap[@]} -gt 0 ]; do
     sleep 5
     # Wait for the first finished process
     if ! finished_pid=$(wait -n); then
+        echo "$finished_pid"
         echo "ERROR: component '${pidmap[$finished_pid]}' failed"
         sleep 5                          # May need to wait for output files to be written
         kill "${!pidmap[@]}" 2>/dev/null # kill all
         exit 1
     else
+        echo "$finished_pid"
         echo "SUCCESS: component '${pidmap[$finished_pid]}' completed successfully"
         unset pidmap["$finished_pid"] # remove the finished PID from the associative array
     fi
