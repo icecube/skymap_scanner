@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v3.21.0 (2024-09-30)
+
+### Other
+
+* Cleanup tests/data ([#274](https://github.com/icecube/skymap_scanner/issues/274)) ([`7624d91`](https://github.com/icecube/skymap_scanner/commit/7624d9141ba36acfd0e40b424f26658482d96fe4))
+
+## v3.20.4 (2024-09-22)
+
+### Other
+
+* Pin iminuit ([#272](https://github.com/icecube/skymap_scanner/issues/272)) ([`3c9060b`](https://github.com/icecube/skymap_scanner/commit/3c9060b439f7bf4047e321a53845f8864449ace7))
+
 ## v3.20.3 (2024-06-18)
 
 ### Other
