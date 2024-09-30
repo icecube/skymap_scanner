@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.21.0 (2024-09-30)
+
+### Other
+
+* Cleanup tests/data ([#274](https://github.com/icecube/skymap_scanner/issues/274)) ([`7624d91`](https://github.com/icecube/skymap_scanner/commit/7624d9141ba36acfd0e40b424f26658482d96fe4))
+
 ## v3.20.4 (2024-09-22)
 
 ### Other
