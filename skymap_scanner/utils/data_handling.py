@@ -1,6 +1,5 @@
 """data_handling.py."""
 
-
 import logging
 import subprocess
 from pathlib import Path
@@ -91,7 +90,7 @@ class DataStager:
         except FileNotFoundError:
             filepath = self.staging_path / filename
             if filepath.is_file():
-                LOGGER.info("File {filename} available at {filepath}.")
+                LOGGER.info(f"File {filename} available at {filepath}.")
                 return str(filepath)
             else:
                 raise FileNotFoundError(

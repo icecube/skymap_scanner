@@ -1,6 +1,5 @@
 """The Skymap Scanner Server."""
 
-
 # pylint: disable=invalid-name,import-error
 # fmt:quotes-ok
 
@@ -26,17 +25,6 @@ from icecube import (  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .. import config as cfg
-from .. import recos
-from ..recos import RecoInterface, set_pointing_ra_dec
-from ..utils import extract_json_message
-from ..utils.load_scan_state import get_baseline_gcd_frames
-from ..utils.pixel_classes import (
-    NSidesDict,
-    RecoPixelVariation,
-    SentPixelVariation,
-    pframe_tuple,
-)
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
@@ -45,6 +33,16 @@ from .utils import (
     fetch_event_contents_from_file,
     fetch_event_contents_from_skydriver,
     kill_switch_check_from_skydriver,
+)
+from .. import config as cfg, recos
+from ..recos import RecoInterface, set_pointing_ra_dec
+from ..utils import extract_json_message, messages
+from ..utils.load_scan_state import get_baseline_gcd_frames
+from ..utils.pixel_classes import (
+    NSidesDict,
+    RecoPixelVariation,
+    SentPixelVariation,
+    pframe_tuple,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -404,7 +402,9 @@ async def _send_pixels(
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
-                    cfg.MSG_KEY_PFRAME: pframe,
+                    cfg.MSG_KEY_PFRAME_PKL_B64: messages.Serialization.encode_pkl_b64(
+                        pframe
+                    ),
                 }
             )
             LOGGER.debug(f"sent message M#{i} {pframe_tuple(pframe)}")
@@ -474,13 +474,17 @@ async def _serve_and_collect(
             collected_all_sent = False
             async with from_clients_queue.open_sub() as sub:  # re-open to avoid inactivity timeout (applicable for rabbitmq)
                 async for msg in sub:
-                    if not isinstance(msg["reco_pixel_variation"], RecoPixelVariation):
+                    reco_pixel_variation = messages.Serialization.decode_pkl_b64(
+                        msg[cfg.MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64]
+                    )
+                    if not isinstance(reco_pixel_variation, RecoPixelVariation):
                         raise ValueError(
-                            f"Message not {RecoPixelVariation}: {type(msg['reco_pixel_variation'])}"
+                            f"Message not {RecoPixelVariation}: {type(reco_pixel_variation)}"
                         )
                     try:
                         await collector.collect(
-                            msg["reco_pixel_variation"], msg["runtime"]
+                            reco_pixel_variation,
+                            msg[cfg.MSG_KEY_RUNTIME],
                         )
                     except ExtraRecoPixelVariationException as e:
                         LOGGER.error(e)
@@ -679,7 +683,7 @@ def main() -> None:
     cfg.configure_loggers()
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
-    # nsides
+    # nsides -- the class needs the whole list to validate, so this logic can't be outsourced to argparse's `type=`
     args.nside_progression = NSideProgression(args.nside_progression)
 
     # check if Baseline GCD directory is reachable (also checks default value)

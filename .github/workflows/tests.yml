@@ -54,7 +54,7 @@ jobs:
   #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
-    needs: [py-versions]
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -86,7 +86,7 @@ jobs:
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for images to build
         with:
-          tool-cache: 'true'
+          docker-images: false
       - name: checkout
         uses: actions/checkout@v3
         with:
@@ -141,12 +141,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -250,12 +250,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -343,12 +343,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
@@ -417,7 +417,7 @@ jobs:
           138632_31747601.json
         ]
         exclude:
-        # splinempe should not run on HESE
+          # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
           - reco_algo: splinempe_pointed
@@ -442,12 +442,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
         ports:
-        - 5672:5672
-        - 15672:15672
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
-          tool-cache: 'true'
+          docker-images: false
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
@@ -548,14 +548,14 @@ jobs:
           "JSON",
         ]
         reco_algo:
-            [
-              millipede_original,
-              millipede_wilks,
-              splinempe,
-              splinempe_pointed
-            ]
+          [
+            millipede_original,
+            millipede_wilks,
+            splinempe,
+            splinempe_pointed
+          ]
         exclude:
-        # splinempe should not run on HESE
+          # splinempe should not run on HESE
           - reco_algo: splinempe
             dir: "JSON"
           - reco_algo: splinempe_pointed
@@ -574,60 +574,44 @@ jobs:
       - name: run
         timeout-minutes: 15  # on average max~=7min
         run: |
+          set -e
           source tests/env-vars.sh
 
           # grab the GCDQp_packet key and throw into a file
           jq '.GCDQp_packet' \
-            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
-            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
-
-          # move python file to subdir to make bindings simpler
-          cp tests/data/reco_pixel_pkls/get_toclient_msg_pkl.py \
-            tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
-
-          # create the in.pkl
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
+          
+          # run reco
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
-            --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:local \
-            python /local/pkls/get_toclient_msg_pkl.py \
-            --pframe-pkl /local/pkls/pframe.pkl \
-            --reco-algo ${{ matrix.reco_algo }}
-
-          hexdump -C tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.pkl
-
-          # run
-          docker run --network="host" --rm -i \
-            --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
             python -m skymap_scanner.client.reco_icetray \
-            --in-pkl /local/pkls/in.pkl \
-            --gcdqp-packet-json /local/pkls/GCDQp_packet.json \
-            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
-            --out-pkl /local/pkls/out.pkl
+            --infile /local/test-data/in.json \
+            --gcdqp-packet-json /local/test-data/GCDQp_packet.json \
+            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
+            --outfile /local/test-data/out-actual.json
 
-      - name: test output against known result (.pkl)
+      - name: test output against known result
         run: |
-          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
+          ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # need icecube for depickling, so docker container needed
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/pkls \
+            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
             icecube/skymap_scanner:local \
-            python tests/compare_reco_pixel_pkl.py \
-            --actual /local/pkls/out.pkl \
-            --expected /local/pkls/$(basename $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.out.pkl)) \
-            --diff-out-dir /local/pkls/ \
+            python tests/compare_reco_pixel_single.py \
+            --actual /local/test-data/out-actual.json \
+            --expected /local/test-data/out.json \
+            --diff-out-dir /local/test-data/ \
             --assert \
-            || (cat $(ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
+            || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
 
 
   #############################################################################
@@ -638,31 +622,31 @@ jobs:
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-      # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
+    # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
     needs: [
-              mypy,
-              py-setup,
-              py-dependencies,
-              test-build-docker,
-              test-run-singularity-dummy-reco,
-              test-file-staging,
-              test-run-nsides-thresholds-dummy,
-              test-run-crash-dummy,
-              test-run-realistic,
-              test-run-single-pixel
-           ]
+      mypy,
+      py-setup,
+      py-dependencies,
+      test-build-docker,
+      test-run-singularity-dummy-reco,
+      test-file-staging,
+      test-run-nsides-thresholds-dummy,
+      test-run-crash-dummy,
+      test-run-realistic,
+      test-run-single-pixel
+    ]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-    - name: Python Semantic Release
-      uses: python-semantic-release/python-semantic-release@v7.34.6
-      with:
-        git_committer_name: ${{ env.BOT_NAME }}
-        git_committer_email: ${{ env.BOT_EMAIL }}
-        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        # repository_username: __token__
-        # repository_password: ${{ secrets.PYPI_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v7.34.6
+        with:
+          git_committer_name: ${{ env.BOT_NAME }}
+          git_committer_email: ${{ env.BOT_EMAIL }}
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          # repository_username: __token__
+          # repository_password: ${{ secrets.PYPI_TOKEN }}

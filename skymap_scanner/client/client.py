@@ -1,17 +1,16 @@
 """The Client service."""
 
-
 import argparse
 import asyncio
 import json
 import logging
 from pathlib import Path
-from ..utils.data_handling import get_gcd_datastager
 
 import ewms_pilot
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg
+from ..utils.data_handling import get_gcd_datastager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ def main() -> None:
         "--debug-directory",
         default="",
         type=argparse_tools.create_dir,
-        help="a directory to write all the incoming/outgoing .pkl files "
+        help="a directory to write all the incoming/outgoing files "
         "(useful for debugging)",
     )
 
@@ -74,8 +73,8 @@ def main() -> None:
 
     cmd = (
         "python -m skymap_scanner.client.reco_icetray "
-        " --in-pkl {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
-        " --out-pkl {{OUTFILE}}"  # ^^^
+        " --infile {{INFILE}}"  # no f-string b/c want to preserve '{{..}}'
+        " --outfile {{OUTFILE}}"  # ^^^
         " --gcdqp-packet-json GCDQp_packet.json"
         f" --baseline-gcd-file {baseline_gcd_file}"
     )
@@ -92,8 +91,8 @@ def main() -> None:
             auth_token=cfg.ENV.SKYSCAN_BROKER_AUTH,
             queue_incoming=f"to-clients-{startup_json_dict['mq_basename']}",
             queue_outgoing=f"from-clients-{startup_json_dict['mq_basename']}",
-            ftype_to_subproc=".pkl",
-            ftype_from_subproc=".pkl",
+            ftype_to_subproc=".json",
+            ftype_from_subproc=".json",
             timeout_incoming=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
             timeout_wait_for_first_message=cfg.ENV.SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
             debug_dir=args.debug_directory,
