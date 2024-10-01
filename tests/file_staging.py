@@ -39,7 +39,7 @@ for file_list in [local_file_list, remote_file_list, invalid_file_list]:
 
 # ensure that filepaths can be retrieved for all local files
 local_filepaths: Dict[str, str] = dict()
-for filename in Local_File_List:
+for filename in local_file_list:
     logger.debug(f"Testing local file: {filename}.")
     local_filepaths[filename] = datastager.get_local_filepath(filename)
     assert local_filepaths[filename] == datastager.get_filepath(filename)
