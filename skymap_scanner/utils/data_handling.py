@@ -69,10 +69,9 @@ class DataStager:
         # Step 1: Download the file
         attempt = 0
         while True:
-            if attempt:
+            attempt += 1
+            if attempt > 1:
                 backoff_sleep(attempt)
-            else:
-                attempt += 1
             # get
             try:
                 response = requests.get(

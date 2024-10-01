@@ -2,9 +2,8 @@ import logging
 import subprocess
 from typing import Dict
 
-
-from skymap_scanner.utils.data_handling import DataStager
 from skymap_scanner import config as cfg
+from skymap_scanner.utils.data_handling import DataStager
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -40,7 +39,7 @@ for file_list in [local_file_list, remote_file_list, invalid_file_list]:
 
 # ensure that filepaths can be retrieved for all local files
 local_filepaths: Dict[str, str] = dict()
-for filename in local_file_list:
+for filename in Local_File_List:
     logger.debug(f"Testing local file: {filename}.")
     local_filepaths[filename] = datastager.get_local_filepath(filename)
     assert local_filepaths[filename] == datastager.get_filepath(filename)
