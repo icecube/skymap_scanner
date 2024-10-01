@@ -1,9 +1,11 @@
 """data_handling.py."""
 
 import logging
-import subprocess
+import time
 from pathlib import Path
 from typing import List
+
+import requests
 
 from .. import config as cfg
 
@@ -41,12 +43,12 @@ class DataStager:
                     LOGGER.debug("File is available on staging path.")
                 else:
                     LOGGER.debug("Staging from HTTP source.")
-                    self.fetch_file(basename)
+                    self.download_file(basename)
 
             else:
                 LOGGER.debug(f"File {basename} is available at {filepath}.")
 
-    def fetch_file(self, basename: str):
+    def download_file(self, basename: str):
         """Retrieves a file from the HTTP source.
 
         Args:
@@ -55,24 +57,51 @@ class DataStager:
         Raises:
             RuntimeError: if the file retrieval fails.
         """
-        local_destination_path = self.staging_path / basename
-        http_source_path = f"{self.remote_path}/{basename}"
-        # not sure why we use the -O pattern here
-        cmd = [
-            "wget",
-            "-nv",
-            "-t",
-            "5",
-            "-O",
-            str(local_destination_path),
-            http_source_path,
-        ]
+        dest = self.staging_path / basename
+        url = f"{self.remote_path}/{basename}"
 
-        subprocess.run(cmd, check=True)
+        def backoff_sleep(attempt: int):
+            """Sleep with exponential backoff."""
+            sleep_duration = 2**attempt  # Exponential backoff: 2, 4, 8 seconds...
+            LOGGER.info(f"Retrying file download in {sleep_duration} seconds...")
+            time.sleep(sleep_duration)
 
-        if not local_destination_path.is_file():
+        # Step 1: Download the file
+        attempt = 0
+        while True:
+            if attempt:
+                backoff_sleep(attempt)
+            else:
+                attempt += 1
+            # get
+            try:
+                response = requests.get(
+                    url,
+                    stream=True,
+                    timeout=cfg.REMOTE_DATA_DOWNLOAD_TIMEOUT,
+                )
+                response.raise_for_status()  # Check if the request was successful (2xx)
+                break
+            except requests.exceptions.RequestException as e:
+                if attempt > cfg.REMOTE_DATA_DOWNLOAD_RETRIES:  # 'attempt' is 1-indexed
+                    raise RuntimeError(
+                        f"Download failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: {e}"
+                    ) from e
+
+        # Step 2: Write the file
+        try:
+            with open(dest, "wb") as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+        except IOError as e:
+            raise RuntimeError(f"File download failed during file write: {e}") from e
+
+        # Step 3: Ensure the file was created successfully
+        if dest.is_file():
+            LOGGER.debug(f"File successfully created at {dest}.")
+        else:
             raise RuntimeError(
-                f"Subprocess `wget` succeeded but the resulting file is invalid:\n-> {cmd}"
+                f"File download failed during file write (file invalid):\n-> {dest}."
             )
 
     def get_filepath(self, filename: str) -> str:

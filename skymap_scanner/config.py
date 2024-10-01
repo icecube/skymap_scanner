@@ -25,6 +25,9 @@ LOCAL_DATA_SOURCES: Final[List[Path]] = [
 # HTTP source to download data from.
 REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
 
+REMOTE_DATA_DOWNLOAD_RETRIES: Final[int] = 3
+REMOTE_DATA_DOWNLOAD_TIMEOUT: Final[int] = 15
+
 # Local ephemeral directory to stage files.
 LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
 
