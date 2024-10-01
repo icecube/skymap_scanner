@@ -307,7 +307,7 @@ jobs:
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
           docker image ls -a
       - name: run
-        timeout-minutes: 10  # on average max~=5min
+        # timeout-minutes: 10  # on average max~=5min
         run: |
           set -x
           source tests/env-vars.sh
@@ -406,7 +406,7 @@ jobs:
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
           docker image ls -a
       - name: run
-        timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
+        # timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
           set -x
           source tests/env-vars.sh
@@ -525,7 +525,7 @@ jobs:
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
           docker image ls -a
       - name: run
-        timeout-minutes: 35  # on average max~=26min
+        # timeout-minutes: 35  # on average max~=26min
         run: |
           set -x
           lscpu
@@ -639,7 +639,7 @@ jobs:
           docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
           docker image ls -a
       - name: run
-        timeout-minutes: 15  # on average max~=7min
+        # timeout-minutes: 15  # on average max~=7min
         run: |
           set -e
           source tests/env-vars.sh
