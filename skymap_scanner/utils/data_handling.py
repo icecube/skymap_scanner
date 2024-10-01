@@ -101,7 +101,7 @@ class DataStager:
             LOGGER.debug(f"File successfully created at {dest}.")
         else:
             raise RuntimeError(
-                f"File download failed during file write (file invalid):\n-> {dest}."
+                f"File download failed during file write (file is invalid):\n-> {dest}."
             )
 
     def get_filepath(self, filename: str) -> str:
