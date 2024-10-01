@@ -1,5 +1,6 @@
 """data_handling.py."""
 
+import itertools
 import logging
 import time
 from pathlib import Path
@@ -67,9 +68,7 @@ class DataStager:
             time.sleep(sleep_duration)
 
         # Step 1: Download the file
-        attempt = 0
-        while True:
-            attempt += 1
+        for attempt in itertools.count(1):
             if attempt > 1:
                 backoff_sleep(attempt)
             # get
