@@ -116,6 +116,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
 
 
   test-run-singularity-dummy-reco:
@@ -155,6 +156,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
@@ -288,6 +290,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
       - name: run
         # timeout-minutes: 10  # on average max~=5min
         run: |
@@ -384,6 +387,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
       - name: run
         # timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
@@ -500,6 +504,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
       - name: run
         # timeout-minutes: 35  # on average max~=26min
         run: |
@@ -567,6 +572,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
       - name: run
         run: |
           source tests/env-vars.sh
@@ -608,6 +614,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
+          load: true
       - name: run
         # timeout-minutes: 15  # on average max~=7min
         run: |
