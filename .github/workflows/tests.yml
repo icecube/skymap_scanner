@@ -21,9 +21,6 @@ env:
   BOT_EMAIL: developers@icecube.wisc.edu
   #
   DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
-  DOCKER_IMAGE_ARTIFACT_DIR: /tmp
-  DOCKER_IMAGE_ARTIFACT_TAR: skyscan_docker.tar
-  DOCKER_IMAGE_ARTIFACT_NAME_PREFIX: skyscan_docker
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 1  # TODO: bump to 2
@@ -109,10 +106,8 @@ jobs:
   #############################################################################
 
 
-  build-docker:
+  test-build-docker:
     runs-on: ubuntu-latest
-    env:
-      DOCKER_BUILD_RECORD_UPLOAD: false  # don't make .dockerbuild artifact (this is an extra artifact, *not* the image)
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -121,17 +116,9 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.DOCKER_IMAGE_TAG }}
-          outputs: type=docker,dest=${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}/${{ env.DOCKER_IMAGE_ARTIFACT_TAR }}
-          retention-days: 1
-          overwrite: true
 
 
   test-run-singularity-dummy-reco:
-    needs: build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1:password@localhost/test
@@ -163,13 +150,11 @@ jobs:
           docker-images: false
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/download-artifact@v4
+      - uses: docker/build-push-action@v6
         with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
-      - run: |
-          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
-          docker image ls -a
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
@@ -255,7 +240,6 @@ jobs:
 
 
   test-run-nsides-thresholds-dummy:
-    needs: build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -299,13 +283,11 @@ jobs:
           docker-images: false
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/download-artifact@v4
+      - uses: docker/build-push-action@v6
         with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
-      - run: |
-          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
-          docker image ls -a
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
       - name: run
         # timeout-minutes: 10  # on average max~=5min
         run: |
@@ -365,7 +347,6 @@ jobs:
 
 
   test-run-crash-dummy:
-    needs: build-docker
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
@@ -398,13 +379,11 @@ jobs:
           docker-images: false
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/download-artifact@v4
+      - uses: docker/build-push-action@v6
         with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
-      - run: |
-          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
-          docker image ls -a
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
       - name: run
         # timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
         run: |
@@ -461,7 +440,6 @@ jobs:
 
 
   test-run-realistic:
-    needs: build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -517,13 +495,11 @@ jobs:
           size: 10G
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/download-artifact@v4
+      - uses: docker/build-push-action@v6
         with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
-      - run: |
-          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
-          docker image ls -a
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
       - name: run
         # timeout-minutes: 35  # on average max~=26min
         run: |
@@ -582,18 +558,15 @@ jobs:
 
 
   test-file-staging:
-    needs: build-docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/download-artifact@v4
+      - uses: docker/build-push-action@v6
         with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
-      - run: |
-          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
-          docker image ls -a
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
       - name: run
         run: |
           source tests/env-vars.sh
@@ -605,7 +578,6 @@ jobs:
 
 
   test-run-single-pixel:
-    needs: build-docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -631,13 +603,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/download-artifact@v4
+      - uses: docker/build-push-action@v6
         with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
-          path: ${{ env.DOCKER_IMAGE_ARTIFACT_DIR }}
-      - run: |
-          docker load --input $DOCKER_IMAGE_ARTIFACT_DIR/$DOCKER_IMAGE_ARTIFACT_TAR
-          docker image ls -a
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
       - name: run
         # timeout-minutes: 15  # on average max~=7min
         run: |
@@ -676,28 +646,6 @@ jobs:
             --diff-out-dir /local/test-data/ \
             --assert \
             || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
-  
-
-  remove-docker:
-    # NOTE: technically, this is not needed since the retention is set to 1 day, but we don't want to keep around too many images
-    if: always()
-    needs: [
-      mypy,
-      py-setup,
-      py-dependencies,
-      build-docker,
-      test-run-singularity-dummy-reco,
-      test-file-staging,
-      test-run-nsides-thresholds-dummy,
-      test-run-crash-dummy,
-      test-run-realistic,
-      test-run-single-pixel
-    ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: geekyeggo/delete-artifact@v5
-        with:
-          name: ${{ env.DOCKER_IMAGE_ARTIFACT_NAME_PREFIX }}_${{ github.sha }}
 
 
   #############################################################################
@@ -713,14 +661,13 @@ jobs:
       mypy,
       py-setup,
       py-dependencies,
-      build-docker,
+      test-build-docker,
       test-run-singularity-dummy-reco,
       test-file-staging,
       test-run-nsides-thresholds-dummy,
       test-run-crash-dummy,
       test-run-realistic,
       test-run-single-pixel,
-      remove-docker
     ]
     runs-on: ubuntu-latest
     concurrency: release
