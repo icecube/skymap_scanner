@@ -73,7 +73,7 @@ datahub="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 mkdir -p "$datahub"
 datahub_in_task="/ewms-pilot-data/data-hub"
 
-cp $CI_SKYSCAN_STARTUP_JSON $datahub
+cp $CI_SKYSCAN_STARTUP_JSON $datahub # TODO - after testing this with {{DATAHUB}}, use EWMS_PILOT_EXTERNAL_DIRECTORIES
 
 # task image, args, env
 export EWMS_PILOT_TASK_IMAGE="$DOCKER_IMAGE_TAG"
