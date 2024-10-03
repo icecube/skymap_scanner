@@ -44,13 +44,16 @@ fi
 
 declare -A pidmap # map of background pids to wait on
 
+export CI_SKYSCAN_STARTUP_JSON="$(pwd)/dir-for-startup-json/startup.json" # export for launch_worker.sh
+mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
+
 # Launch Server
 ./docker/launch_server.sh \
     --reco-algo $_RECO_ALGO \
     --event-file $_EVENTS_FILE \
     --cache-dir $SKYSCAN_CACHE_DIR \
     --output-dir $SKYSCAN_OUTPUT_DIR \
-    --client-startup-json ./startup.json \
+    --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
@@ -59,7 +62,6 @@ declare -A pidmap # map of background pids to wait on
 pidmap["$!"]="central server"
 
 # Wait for startup.json
-export CI_SKYSCAN_STARTUP_JSON="$(realpath "./startup.json")"
 ./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON $WAIT_FOR_STARTUP_JSON
 
 # Launch Workers that each run a Pilot which each run Skyscan Clients

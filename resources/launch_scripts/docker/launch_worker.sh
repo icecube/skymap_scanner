@@ -68,14 +68,14 @@ mkdir $tmp_rootdir
 cd $tmp_rootdir
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 
-# TODO - use EWMS_PILOT_EXTERNAL_DIRECTORIES
-datahub="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
-mkdir -p "$datahub"
-cp $CI_SKYSCAN_STARTUP_JSON $datahub
+# mark startup.json's dir to be bind-mounted into the task container (by the pilot)
+# -> check that the dir only has one file, otherwise we may end up binding extra dirs
+python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_STARTUP_JSON"])) == ["startup.json"]'
+export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
 # task image, args, env
 export EWMS_PILOT_TASK_IMAGE="$DOCKER_IMAGE_TAG"
-export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json {{DATA_HUB}}/startup.json"
+export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
