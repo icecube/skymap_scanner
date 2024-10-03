@@ -21,13 +21,18 @@ python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_S
 export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
 # task image, args, env
-export EWMS_PILOT_TASK_IMAGE="$DOCKER_IMAGE_TAG"
+if [ -n "$_RUN_THIS_SINGULARITY_IMAGE" ]; then
+    export EWMS_PILOT_TASK_IMAGE="$_RUN_THIS_SINGULARITY_IMAGE"
+    export _EWMS_PILOT_CONTAINER_PLATFORM="apptainer"
+else
+    export EWMS_PILOT_TASK_IMAGE="$DOCKER_IMAGE_TAG"
+    export _EWMS_PILOT_CONTAINER_PLATFORM="docker" # NOTE: technically not needed b/c this is the default value
+    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
+fi
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
 json_var=$(env | grep '^SKYSCAN_' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
-
-export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb" # this only needed in ci--the infra would set this in prod
 
 # file types -- controls intermittent serialization
 export EWMS_PILOT_INFILE_EXT="JSON"

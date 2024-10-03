@@ -166,45 +166,16 @@ jobs:
           ls -lh skymap_scanner.sif
       - name: run singularity container
         run: |
+          set -x
           source tests/env-vars.sh
+          export _RUN_THIS_SINGULARITY_IMAGE="$(realpath skymap_scanner.sif)"
+          export _RECO_ALGO=dummy
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+          export _NSIDES="1:0"
+          
+          cd ./resources/launch_scripts
+          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
-          mkdir $SKYSCAN_CACHE_DIR
-          mkdir $SKYSCAN_OUTPUT_DIR
-
-          # Launch Server
-          singularity run skymap_scanner.sif \
-            python -m skymap_scanner.server \
-            --reco-algo dummy \
-            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --output-dir $SKYSCAN_OUTPUT_DIR \
-            --client-startup-json ./startup.json \
-            --nsides 1:0 \
-            --simulated-event \
-            2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/server.out \
-            &
-
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $WAIT_FOR_STARTUP_JSON
-
-          # Launch Clients
-          nworkers=2
-          echo "Launching $nworkers workers"
-          mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
-          for i in $( seq 1 $nworkers ); do
-            singularity run skymap_scanner.sif \
-              python -m skymap_scanner.client \
-              --client-startup-json ./startup.json \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
-              2>&1 | tee "$CI_TEST_RUN_STDOUT_STDERR_DIR"/worker-$i/worker-$i.out \
-              &
-            echo -e "\tworker #$i launched"
-          done
-
-          wait -n  # for server
-          for i in $( seq 1 $nworkers ); do
-            wait -n  # for worker
-          done
       - name: look at results file (.npz)
         run: |
           ls .

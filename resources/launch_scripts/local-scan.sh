@@ -59,27 +59,43 @@ mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 ########################################################################
 # Launch Server
 
-docker run --network="host" --rm \
-    --mount type=bind,source="$(dirname "$_EVENTS_FILE")",target=/local/event,readonly \
-    --mount type=bind,source="$SKYSCAN_CACHE_DIR",target=/local/cache \
-    --mount type=bind,source="$SKYSCAN_OUTPUT_DIR",target=/local/output \
-    --mount type=bind,source="$(dirname "$CI_SKYSCAN_STARTUP_JSON")",target=/local/startup \
-    --env PY_COLORS=1 \
-    $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
-    --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
-    icecube/skymap_scanner:"${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"}" \
-    python -m skymap_scanner.server \
-    --reco-algo $_RECO_ALGO \
-    --event-file "/local/event/$(basename "$_EVENTS_FILE")" \
-    --cache-dir /local/cache \
-    --output-dir /local/output \
-    --client-startup-json "/local/startup/$(basename $CI_SKYSCAN_STARTUP_JSON)" \
-    --nsides $_NSIDES \
-    $arg_predictive_scanning_threshold \
-    --real-event \
-    2>&1 | tee "$outdir"/server.out \
-    &
+if [ -n "$_RUN_THIS_SINGULARITY_IMAGE" ]; then
+    # SINGULARITY
+    singularity run "$_RUN_THIS_SINGULARITY_IMAGE" \
+        python -m skymap_scanner.server \
+        --reco-algo $_RECO_ALGO \
+        --event-file $_EVENTS_FILE \
+        --cache-dir $SKYSCAN_CACHE_DIR \
+        --output-dir $SKYSCAN_OUTPUT_DIR \
+        --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
+        --nsides $_NSIDES \
+        --simulated-event \
+        2>&1 | tee "$outdir"/server.out \
+        &
+else
+    # DOCKER
+    docker run --network="host" --rm \
+        --mount type=bind,source="$(dirname "$_EVENTS_FILE")",target=/local/event,readonly \
+        --mount type=bind,source="$SKYSCAN_CACHE_DIR",target=/local/cache \
+        --mount type=bind,source="$SKYSCAN_OUTPUT_DIR",target=/local/output \
+        --mount type=bind,source="$(dirname "$CI_SKYSCAN_STARTUP_JSON")",target=/local/startup \
+        --env PY_COLORS=1 \
+        $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+        $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
+        --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
+        icecube/skymap_scanner:"${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"}" \
+        python -m skymap_scanner.server \
+        --reco-algo $_RECO_ALGO \
+        --event-file "/local/event/$(basename "$_EVENTS_FILE")" \
+        --cache-dir /local/cache \
+        --output-dir /local/output \
+        --client-startup-json "/local/startup/$(basename $CI_SKYSCAN_STARTUP_JSON)" \
+        --nsides $_NSIDES \
+        $arg_predictive_scanning_threshold \
+        --real-event \
+        2>&1 | tee "$outdir"/server.out \
+        &
+fi
 pidmap["$!"]="central server"
 
 ########################################################################
@@ -90,7 +106,7 @@ pidmap["$!"]="central server"
 ########################################################################
 # Launch Workers that each run a Pilot which each run Skyscan Clients
 
-launch_scripts_dir=$(realpath "./docker/")
+launch_scripts_dir=$(pwd)
 echo "Launching $nworkers workers"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"} # 30 mins
 for i in $(seq 1 $nworkers); do
