@@ -12,6 +12,9 @@ if [[ $(basename $(pwd)) != "launch_scripts" ]]; then
     exit 1
 fi
 
+########################################################################
+# Validate args
+
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "Usage: local-scan.sh N_WORKERS OUTPUT_DIR"
     exit 1
@@ -28,6 +31,9 @@ fi
 outdir="$(realpath $2)"
 mkdir -p "$outdir"
 
+########################################################################
+# Check required env vars
+
 if [ -z "$SKYSCAN_CACHE_DIR" ] || [ -z "$SKYSCAN_OUTPUT_DIR" ] || [ -z "$SKYSCAN_DEBUG_DIR" ]; then
     echo "required env vars: SKYSCAN_CACHE_DIR, SKYSCAN_OUTPUT_DIR, SKYSCAN_DEBUG_DIR"
     # will fail in mkdirs below...
@@ -35,6 +41,9 @@ fi
 mkdir $SKYSCAN_CACHE_DIR
 mkdir $SKYSCAN_OUTPUT_DIR
 mkdir $SKYSCAN_DEBUG_DIR
+
+########################################################################
+# Misc setup
 
 if [ -z "$_PREDICTIVE_SCANNING_THRESHOLD" ]; then
     arg_predictive_scanning_threshold=""
@@ -47,13 +56,25 @@ declare -A pidmap # map of background pids to wait on
 export CI_SKYSCAN_STARTUP_JSON="$(pwd)/dir-for-startup-json/startup.json" # export for launch_worker.sh
 mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
+########################################################################
 # Launch Server
-./docker/launch_server.sh \
+
+docker run --network="host" --rm \
+    --mount type=bind,source="$(dirname "$_EVENTS_FILE")",target=/local/event,readonly \
+    --mount type=bind,source="$SKYSCAN_CACHE_DIR",target=/local/cache \
+    --mount type=bind,source="$SKYSCAN_OUTPUT_DIR",target=/local/output \
+    --mount type=bind,source="$(dirname "$CI_SKYSCAN_STARTUP_JSON")",target=/local/startup \
+    --env PY_COLORS=1 \
+    $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
+    --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
+    icecube/skymap_scanner:"${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"}" \
+    python -m skymap_scanner.server \
     --reco-algo $_RECO_ALGO \
-    --event-file $_EVENTS_FILE \
-    --cache-dir $SKYSCAN_CACHE_DIR \
-    --output-dir $SKYSCAN_OUTPUT_DIR \
-    --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
+    --event-file "/local/event/$(basename "$_EVENTS_FILE")" \
+    --cache-dir /local/cache \
+    --output-dir /local/output \
+    --client-startup-json "/local/startup/$(basename $CI_SKYSCAN_STARTUP_JSON)" \
     --nsides $_NSIDES \
     $arg_predictive_scanning_threshold \
     --real-event \
@@ -61,10 +82,14 @@ mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
     &
 pidmap["$!"]="central server"
 
+########################################################################
 # Wait for startup.json
+
 ./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON $WAIT_FOR_STARTUP_JSON
 
+########################################################################
 # Launch Workers that each run a Pilot which each run Skyscan Clients
+
 launch_scripts_dir=$(realpath "./docker/")
 echo "Launching $nworkers workers"
 export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-"1800"} # 30 mins
@@ -77,14 +102,18 @@ for i in $(seq 1 $nworkers); do
     echo -e "\tworker #$i launched"
 done
 
+########################################################################
 # Wait for scan components to finish
+
 set +x
 echo "Dumping pidmap:"
 for pid in "${!pidmap[@]}"; do
     echo "PID: $pid, Identifier: ${pidmap[$pid]}"
 done
 
+########################################################################
 # Wait for all background processes to complete, looping in reverse order
+
 pids=("${!pidmap[@]}")                                               # get keys
 reversed_pids=($(for pid in "${pids[@]}"; do echo $pid; done | tac)) # reverse key order
 for pid in "${reversed_pids[@]}"; do
