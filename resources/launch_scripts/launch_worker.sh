@@ -22,7 +22,9 @@ export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
 # task image, args, env
 if [ -n "$_RUN_THIS_SINGULARITY_IMAGE" ]; then
-    export EWMS_PILOT_TASK_IMAGE="$_RUN_THIS_SINGULARITY_IMAGE"
+    # place a duplicate of the file b/c the pilot transforms this into another format, so there are issues w/ parallelizing
+    export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_RUN_THIS_SINGULARITY_IMAGE")"
+    cp "$_RUN_THIS_SINGULARITY_IMAGE" "$EWMS_PILOT_TASK_IMAGE"
     export _EWMS_PILOT_CONTAINER_PLATFORM="apptainer"
 else
     export EWMS_PILOT_TASK_IMAGE="$DOCKER_IMAGE_TAG"
