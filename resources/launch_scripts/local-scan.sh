@@ -72,11 +72,7 @@ for i in $(seq 1 $nworkers); do
     dir="$outdir/worker-$i/"
     mkdir -p $dir
     cd $dir
-    $launch_scripts_dir/launch_worker.sh \
-        --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
-        --debug-directory $SKYSCAN_DEBUG_DIR \
-        >>$dir/pilot.out 2>&1 \
-        &
+    $launch_scripts_dir/launch_worker.sh >>$dir/pilot.out 2>&1 &
     pidmap["$!"]="worker #$i"
     echo -e "\tworker #$i launched"
 done

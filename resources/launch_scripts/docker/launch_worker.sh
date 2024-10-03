@@ -1,66 +1,13 @@
 #!/bin/bash
-set -e
+set -ex
 
 ########################################################################
 #
 # Launch a Skymap Scanner worker
 #
-# Pass in the arguments as if this were just the python sub-module
+# Run worker on ewms pilot
 #
 ########################################################################
-
-# Get & transform arguments that are files/dirs for docker-mounting
-# yes, this is simpler than a bash-native solution
-export ARGS="$*" # all of the arguments stuck together into a single string
-echo $ARGS
-
-#######################################################################################
-# assemble docker args
-
-DOCKER_PY_ARGS=$(python3 -c '
-import os
-py_args = os.getenv("ARGS")
-
-def extract_opt_path(py_args, opt):
-    if opt not in py_args:
-        return py_args, None
-    before, after = py_args.split(opt, 1)
-    before, after = before.strip(), after.strip()
-    if " " in after:
-        val, after = after.split(" ", 1)
-    else:  # for arg at end of string
-        val, after = after, ""
-    if val:
-        return f"{before} {after}", os.path.abspath(val)
-    return f"{before} {after}", None
-
-py_args, debug_dir = extract_opt_path(py_args, "--debug-directory")
-py_args, gcd = extract_opt_path(py_args, "--gcd-dir")
-py_args, startup = extract_opt_path(py_args, "--client-startup-json")
-
-dockermount_args = ""
-py_args += " "
-
-if debug_dir:
-    dockermount_args += f"--mount type=bind,source={debug_dir},target=/local/debug "
-    py_args += f"--debug-directory /local/debug "
-if gcd:
-    dockermount_args += f"--mount type=bind,source={gcd},target=/local/gcd,readonly "
-    #
-    # NOTE: WE ARE NOT FORWARDING THIS ARG TO THE SCRIPT B/C ITS PASSED WITHIN THE STARTUP.JSON
-    #
-if startup:
-    dockermount_args += f"--mount type=bind,source={os.path.dirname(startup)},target=/local/startup "
-    py_args += f"--client-startup-json /local/startup/{os.path.basename(startup)} "
-
-print(f"{dockermount_args}#{py_args}")
-')
-DOCKERMOUNT_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $1}')"
-PY_ARGS="$(echo $DOCKER_PY_ARGS | awk -F "#" '{print $2}')"
-
-#######################################################################################
-# Run worker on ewms pilot
-set -x
 
 # establish pilot's root path
 tmp_rootdir="$(pwd)/pilot-$(uuidgen)"
@@ -106,20 +53,3 @@ virtualenv --python python3 "$ENV"
 pip install --upgrade pip
 pip install ewms-pilot[rabbitmq]
 python -m ewms_pilot
-
-#docker run --network="host" --rm \
-#    --shm-size=6gb \
-#    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
-#    --env _EWMS_PILOT_CONTAINER_PLATFORM="docker" \
-#    ghcr.io/observation-management-service/ewms-pilot:latest
-
-#docker run --network="host" --rm \
-#    --shm-size=6gb \
-#    $DOCKERMOUNT_ARGS \
-#    --env PY_COLORS=1 \
-#    $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-#    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
-#    --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
-#    icecube/skymap_scanner:${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"} \
-#    python -m skymap_scanner.client \
-#    $PY_ARGS
