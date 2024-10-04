@@ -33,7 +33,7 @@ export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=${SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRE
 # -> worker/client/pilot
 export EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE=${EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE:-60}
 export EWMS_PILOT_TIMEOUT_QUEUE_INCOMING=${EWMS_PILOT_TIMEOUT_QUEUE_INCOMING:-5}
-export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-$((60 * 10))} # TODO - adjust
+export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-$((60 * 10))} # TODO - adjust / add option to pilot to not exit on task timeouts (just nack)
 # -> server
 export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=${SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS:-$((60 * 10))} # just need a big value -- only used to detect MIA workers (it isn't important in a successful scan)
 # other/misc
