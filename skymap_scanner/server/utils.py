@@ -29,7 +29,7 @@ def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
         address=cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS,
         name=cfg.ENV.SKYSCAN_MQ_TOCLIENT,
         auth_token=cfg.ENV.SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN,
-        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_TO_CLIENTS,
+        # timeout=-1,  # NOTE: this mq only sends messages so no timeout needed
     )
     from_clients_queue = mq.Queue(
         cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,

@@ -34,13 +34,13 @@ mkdir -p "$outdir"
 ########################################################################
 # Check required env vars
 
-if [ -z "$SKYSCAN_CACHE_DIR" ] || [ -z "$SKYSCAN_OUTPUT_DIR" ] || [ -z "$SKYSCAN_DEBUG_DIR" ]; then
-    echo "required env vars: SKYSCAN_CACHE_DIR, SKYSCAN_OUTPUT_DIR, SKYSCAN_DEBUG_DIR"
-    # will fail in mkdirs below...
+if [ -z "$CI_SKYSCAN_CACHE_DIR" ] || [ -z "$CI_SKYSCAN_OUTPUT_DIR" ] || [ -z "$CI_SKYSCAN_DEBUG_DIR" ]; then
+    echo "required env vars: CI_SKYSCAN_CACHE_DIR, CI_SKYSCAN_OUTPUT_DIR, CI_SKYSCAN_DEBUG_DIR"
+    exit 2
 fi
-mkdir $SKYSCAN_CACHE_DIR
-mkdir $SKYSCAN_OUTPUT_DIR
-mkdir $SKYSCAN_DEBUG_DIR
+mkdir $CI_SKYSCAN_CACHE_DIR
+mkdir $CI_SKYSCAN_OUTPUT_DIR
+mkdir $CI_SKYSCAN_DEBUG_DIR
 
 ########################################################################
 # Misc setup
@@ -65,8 +65,8 @@ if [ -n "$_RUN_THIS_SINGULARITY_IMAGE" ]; then
         python -m skymap_scanner.server \
         --reco-algo $_RECO_ALGO \
         --event-file $_EVENTS_FILE \
-        --cache-dir $SKYSCAN_CACHE_DIR \
-        --output-dir $SKYSCAN_OUTPUT_DIR \
+        --cache-dir $CI_SKYSCAN_CACHE_DIR \
+        --output-dir $CI_SKYSCAN_OUTPUT_DIR \
         --client-startup-json $CI_SKYSCAN_STARTUP_JSON \
         --nsides $_NSIDES \
         --simulated-event \
@@ -76,14 +76,13 @@ else
     # DOCKER
     docker run --network="host" --rm \
         --mount type=bind,source="$(dirname "$_EVENTS_FILE")",target=/local/event,readonly \
-        --mount type=bind,source="$SKYSCAN_CACHE_DIR",target=/local/cache \
-        --mount type=bind,source="$SKYSCAN_OUTPUT_DIR",target=/local/output \
+        --mount type=bind,source="$CI_SKYSCAN_CACHE_DIR",target=/local/cache \
+        --mount type=bind,source="$CI_SKYSCAN_OUTPUT_DIR",target=/local/output \
         --mount type=bind,source="$(dirname "$CI_SKYSCAN_STARTUP_JSON")",target=/local/startup \
         --env PY_COLORS=1 \
         $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
         $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
-        --env "EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-900}" \
-        icecube/skymap_scanner:"${SKYSCAN_DOCKER_IMAGE_TAG:-"latest"}" \
+        "$CI_DOCKER_IMAGE_TAG" \
         python -m skymap_scanner.server \
         --reco-algo $_RECO_ALGO \
         --event-file "/local/event/$(basename "$_EVENTS_FILE")" \
@@ -101,7 +100,7 @@ pidmap["$!"]="central server"
 ########################################################################
 # Wait for startup.json
 
-./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON $WAIT_FOR_STARTUP_JSON
+./wait_for_file.sh $CI_SKYSCAN_STARTUP_JSON 60
 
 ########################################################################
 # Launch Workers that each run a Pilot which each run Skyscan Clients

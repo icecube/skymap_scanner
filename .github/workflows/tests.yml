@@ -20,14 +20,14 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   #
-  DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
+  CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
-  SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
-  SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
-  SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
+  CI_SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
+  CI_SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
+  CI_SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
   # see source tests/env-vars.sh
 
 
@@ -115,7 +115,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
 
 
@@ -155,14 +155,14 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
       - name: build singularity image
         run: |
-          sudo singularity build skymap_scanner.sif docker-daemon://$DOCKER_IMAGE_TAG
+          sudo singularity build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
       - name: run singularity container
         run: |
@@ -179,8 +179,8 @@ jobs:
       - name: look at results file (.npz)
         run: |
           ls .
-          ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
+          ls $CI_SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
       - name: central server stdout/stderr
@@ -260,7 +260,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         # timeout-minutes: 10  # on average max~=5min
@@ -277,9 +277,9 @@ jobs:
 
       - name: check no nsides skipped
         run: |
-          ls $SKYSCAN_OUTPUT_DIR
+          ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
-          export outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           python3 -c '
           import json
@@ -357,7 +357,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         # timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
@@ -474,7 +474,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         # timeout-minutes: 35  # on average max~=26min
@@ -492,9 +492,9 @@ jobs:
 
       - name: test output against known result (.json)
         run: |
-          ls $SKYSCAN_OUTPUT_DIR
+          ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
-          outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           cat $outfile
           pip install .  # don't need icecube, so no docker container needed
@@ -542,7 +542,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         run: |
@@ -550,7 +550,7 @@ jobs:
           
           docker run --rm -i \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $DOCKER_IMAGE_TAG \
+            $CI_DOCKER_IMAGE_TAG \
             python tests/file_staging.py
 
 
@@ -584,7 +584,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         # timeout-minutes: 15  # on average max~=7min
@@ -598,7 +598,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $DOCKER_IMAGE_TAG \
+            $CI_DOCKER_IMAGE_TAG \
             python -m skymap_scanner.client.reco_icetray \
             --infile /local/test-data/in.json \
             --client-startup-json /local/test-data/startup.json \
@@ -617,7 +617,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
             $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $DOCKER_IMAGE_TAG \
+            $CI_DOCKER_IMAGE_TAG \
             python tests/compare_reco_pixel_single.py \
             --actual /local/test-data/out-actual.json \
             --expected /local/test-data/out.json \
