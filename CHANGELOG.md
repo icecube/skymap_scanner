@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.21.1 (2024-10-02)
+
+### Other
+
+* Implement Retries and Timeout for File Download ([#275](https://github.com/icecube/skymap_scanner/issues/275)) ([`c3b0755`](https://github.com/icecube/skymap_scanner/commit/c3b075546e3dae910765dfa58de592a2e0f21910))
+
 ## v3.21.0 (2024-09-30)
 
 ### Other
