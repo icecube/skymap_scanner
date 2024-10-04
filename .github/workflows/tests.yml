@@ -263,7 +263,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 10  # on average max~=5min
+        timeout-minutes: 12  # on average max~=8.5min
         run: |
           set -x
           source tests/env-vars.sh
@@ -360,7 +360,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
+        timeout-minutes: 12  # on average ~9min  # yes, `timeout` is used below but this is insurance
         run: |
           set -x
           source tests/env-vars.sh
@@ -477,7 +477,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 35  # on average max~=26min
+        timeout-minutes: 45  # on average max~=35min
         run: |
           set -x
           lscpu
@@ -587,7 +587,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 15  # on average max~=7min
+        timeout-minutes: 10  # on average max~=5min
         run: |
           set -e
           source tests/env-vars.sh
