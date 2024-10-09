@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 from typing import Final, List
 
-import ewms_pilot
 import mqclient
 from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 
@@ -115,41 +114,44 @@ COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 class EnvConfig:
     """For storing environment variables, typed."""
 
+    #
+    # REQUIRED
+    #
+
+    SKYSCAN_SKYDRIVER_SCAN_ID: str  # globally unique ID
+
+    # to-client queue
+    SKYSCAN_MQ_TOCLIENT: str
+    SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: str
+    SKYSCAN_MQ_TOCLIENT_BROKER_TYPE: str
+    SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: str
+    #
+    # from-client queue
+    SKYSCAN_MQ_FROMCLIENT: str
+    SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: str
+    SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE: str
+    SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: str
+
+    #
+    # OPTIONAL
+    #
+
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
     SKYSCAN_KILL_SWITCH_CHECK_INTERVAL: int = 5 * 60
 
-    # BROKER/MQ VARS
-    SKYSCAN_BROKER_CLIENT: str = "rabbitmq"
-    SKYSCAN_BROKER_ADDRESS: str = ""  # broker / mq address
-    SKYSCAN_BROKER_AUTH: str = ""  # broker / mq auth token
-
     # TIMEOUTS
-    #
-    # seconds -- how long client waits between receiving pixels before thinking event scan is 100% done
-    #  - set to `max(reco duration) + max(subsequent iteration startup time)`
-    #  - think about starved clients
-    #  - normal expiration scenario: the scan is done, no more pixels to scan (alternative: manually kill client process)
-    SKYSCAN_MQ_TIMEOUT_TO_CLIENTS: int = 60 * 30  # 30 mins
     #
     # seconds -- how long server waits before thinking all clients are dead
     #  - set to duration of first reco + client launch (condor)
     #  - important if clients launch *AFTER* server
     #  - normal expiration scenario: all clients died (bad condor submit file), otherwise never (server knows when all recos are done)
     SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 3 * 24 * 60 * 60  # 3 days
-    #
-    # seconds -- how long client waits before first message (set to duration of server startup)
-    #  - important if clients launch *BEFORE* server
-    #  - normal expiration scenario: server died (ex: tried to read corrupted event file), otherwise never
-    SKYSCAN_MQ_CLIENT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE: int = 60 * 60  # 60 mins
-
-    EWMS_PILOT_TASK_TIMEOUT: int = 60 * 30
 
     # SKYDRIVER VARS
     SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
-    SKYSCAN_SKYDRIVER_SCAN_ID: str = ""  # globally unique suffix for queue names
 
     # LOGGING VARS
     SKYSCAN_LOG: str = "INFO"
@@ -192,7 +194,6 @@ def configure_loggers() -> None:
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         future_third_parties=["google", "pika"],
         specialty_loggers={
-            ewms_pilot.pilot.LOGGER: ENV.SKYSCAN_EWMS_PILOT_LOG,  # type: ignore[attr-defined, dict-item]
             mqclient.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
         },
     )

@@ -1,6 +1,5 @@
 """Contains a class for reporting progress and result for a scan."""
 
-
 import bisect
 import dataclasses as dc
 import datetime as dt
@@ -16,11 +15,11 @@ from typing import Any, Callable, Dict, List, Optional
 from rest_tools.client import RestClient
 from skyreader import EventMetadata, SkyScanResult
 
+from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 from .. import config as cfg
 from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
-from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 
 LOGGER = logging.getLogger(__name__)
 
@@ -217,7 +216,6 @@ class Reporter:
 
     def __init__(
         self,
-        scan_id: str,
         global_start_time: float,
         nsides_dict: NSidesDict,
         n_posvar: int,
@@ -228,8 +226,6 @@ class Reporter:
     ) -> None:
         """
         Arguments:
-            `scan_id`
-                - the unique id of this scan
             `global_start_time`
                 - the start time (epoch) of the entire scan
             `nsides_dict`
@@ -254,7 +250,6 @@ class Reporter:
         self.is_event_scan_done = False
         self.predictive_scanning_threshold = predictive_scanning_threshold
 
-        self.scan_id = scan_id
         self.global_start = global_start_time
         self.nsides_dict = nsides_dict
 
@@ -590,7 +585,7 @@ class Reporter:
             "last_updated": str(dt.datetime.fromtimestamp(int(time.time()))),
         }
         scan_metadata = {
-            "scan_id": self.scan_id,
+            "scan_id": cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
             "nside_progression": self.nside_progression,
             "position_variations": self.n_posvar,
         }
@@ -604,7 +599,11 @@ class Reporter:
         }
 
         # skydriver
-        sd_args = dict(method="PATCH", path=f"/scan/{self.scan_id}/manifest", args=body)
+        sd_args = dict(
+            method="PATCH",
+            path=f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest",
+            args=body,
+        )
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
             await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
         elif self.is_event_scan_done and self.skydriver_rc_urgent:
@@ -628,7 +627,11 @@ class Reporter:
 
         # skydriver
         body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
-        sd_args = dict(method="PUT", path=f"/scan/{self.scan_id}/result", args=body)
+        sd_args = dict(
+            method="PUT",
+            path=f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/result",
+            args=body,
+        )
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
             await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
         elif self.is_event_scan_done and self.skydriver_rc_urgent:
