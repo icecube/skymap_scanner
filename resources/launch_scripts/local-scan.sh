@@ -157,7 +157,7 @@ for ((i = 0; i < ${#pids[@]}; i++)); do
     set -x
     wait -n # wait for the FIRST to finish
     exit_status=$?
-    set +x
+    #set +x
     sleep 5 # for our logs
 
     # find the finished process PID by checking jobs
