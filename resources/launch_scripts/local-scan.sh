@@ -130,7 +130,7 @@ done
 # Wait for all background processes to complete, looping in reverse order
 
 pids=("${!pidmap[@]}")                                               # get keys
-reversed_pids=($(for pid in "${pids[@]}"; do echo $pid; done | tac)) # reverse key order
+reversed_pids=($(for pid in "${pids[@]}"; do echo $pid; done | tac)) # reverse key order, workers first
 for pid in "${reversed_pids[@]}"; do
     set -x
     wait $pid
