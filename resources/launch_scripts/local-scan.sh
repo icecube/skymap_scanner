@@ -129,20 +129,47 @@ done
 ########################################################################
 # Wait for all background processes to complete, looping in reverse order
 
-pids=("${!pidmap[@]}")                                               # get keys
-reversed_pids=($(for pid in "${pids[@]}"; do echo $pid; done | tac)) # reverse key order, workers first
-for pid in "${reversed_pids[@]}"; do
+# helper function to find the finished process
+find_finished_pid() {
+    local running_pids=("$@")
+    local is_running
+    for pid in "${pids[@]}"; do
+        is_running=false
+        local running_pid
+        for running_pid in "${running_pids[@]}"; do
+            if [[ $pid == "$running_pid" ]]; then
+                is_running=true
+                break
+            fi
+        done
+        if ! $is_running; then
+            echo "$pid"
+            return
+        fi
+    done
+}
+
+# Loop over the number of background tasks -- each time, we'll wait on the FIRST to finish
+pids=("${!pidmap[@]}") # get keys
+for ((i = 0; i < ${#pids[@]}; i++)); do
     set -x
-    wait $pid
-    set +x
+    wait -n # wait for the FIRST to finish
     exit_status=$?
-    if [[ $exit_status -ne 0 ]]; then
-        echo "ERROR: component '${pidmap[$pid]}' failed with status $exit_status"
-        sleep 10                         # May need to wait for output files to be written
-        kill "${!pidmap[@]}" 2>/dev/null # kill all
+    set +x
+
+    # find the finished process PID by checking jobs
+    running_pids=($(jobs -pr))
+    finished_pid=$(find_finished_pid "${running_pids[@]}")
+    echo "Process $finished_pid (${pidmap[$finished_pid]}) finished with $exit_status."
+
+    # check if that proc failed
+    if [ $exit_status -ne 0 ]; then
+        echo "ERROR: A process exited with status $exit_status. Exiting and killing remaining processes."
+        # Kill all remaining background processes
+        for pid in "${pids[@]}"; do
+            kill "$pid" 2>/dev/null
+        done
         exit 1
-    else
-        echo "SUCCESS: component '${pidmap[$pid]}' completed successfully"
     fi
 done
 
