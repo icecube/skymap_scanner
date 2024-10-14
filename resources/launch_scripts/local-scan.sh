@@ -152,10 +152,12 @@ find_finished_pid() {
 # Loop over the number of background tasks -- each time, we'll wait on the FIRST to finish
 pids=("${!pidmap[@]}") # get keys
 for ((i = 0; i < ${#pids[@]}; i++)); do
+    sleep 10
     set -x
     wait -n # wait for the FIRST to finish
     exit_status=$?
     set +x
+    sleep 5 # for our logs
 
     # find the finished process PID by checking jobs
     running_pids=($(jobs -pr))
@@ -167,8 +169,10 @@ for ((i = 0; i < ${#pids[@]}; i++)); do
         echo "ERROR: A process exited with status $exit_status. Exiting and killing remaining processes."
         # Kill all remaining background processes
         for pid in "${pids[@]}"; do
+            sleep 1
             kill "$pid" 2>/dev/null
         done
+        sleep 10 # for proc logs
         exit 1
     fi
 done
