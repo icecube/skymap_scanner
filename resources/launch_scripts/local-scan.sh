@@ -150,6 +150,7 @@ find_finished_pid() {
 }
 
 # Loop over the number of background tasks -- each time, we'll wait on the FIRST to finish
+echo "Waiting on components..."
 pids=("${!pidmap[@]}") # get keys
 for ((i = 0; i < ${#pids[@]}; i++)); do
     sleep 10
