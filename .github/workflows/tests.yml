@@ -516,7 +516,7 @@ jobs:
           ')
           
           adjusted_int_value=$(awk '{printf "%d\n", $1}' <<< "$(echo "$value * 1.1" | bc)")
-          echo "$adjusted_int_value"
+          echo "$value * 1.1 = $adjusted_int_value"
           echo "EWMS_PILOT_TASK_TIMEOUT=$adjusted_int_value" >> $GITHUB_ENV
 
       - name: run
