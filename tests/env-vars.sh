@@ -33,9 +33,10 @@ export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=${SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRE
 # -> worker/client/pilot
 export EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE=${EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE:-60}
 export EWMS_PILOT_TIMEOUT_QUEUE_INCOMING=${EWMS_PILOT_TIMEOUT_QUEUE_INCOMING:-5}
-export EWMS_PILOT_TASK_TIMEOUT=${EWMS_PILOT_TASK_TIMEOUT:-$((1 * 10))} # $((60 * 10))} # TODO - adjust / add option to pilot to not exit on task timeouts (just nack)
+# export EWMS_PILOT_TASK_TIMEOUT -> this is very specific to the task, set it in a ci step
 export EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR=${EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR:-"True"}
 export EWMS_PILOT_OKAY_ERRORS=${EWMS_PILOT_OKAY_ERRORS:-"TimeoutError"} # this is a space-delimited list
+#      ^^^ in production, we run O(1k) cpus so a slow reco will be delivered to a new cpu, here we have to be more conservative. So, let the local workers retry the reco
 #      ^^^ if EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR=false (or similar: no, 0, etc.), then this var is ignored
 # -> server
 export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=${SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS:-$((60 * 10))} # just need a big value -- only used to detect MIA workers (it isn't important in a successful scan)
