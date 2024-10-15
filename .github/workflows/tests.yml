@@ -476,48 +476,6 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
-      - name: set 'EWMS_PILOT_TASK_TIMEOUT' for reco algo + event file
-        run: |
-          export RECO_ALGO=${{ matrix.reco_algo }}
-          export EVENT_FILE=${{ matrix.eventfile }}
-          
-          # NOTE: these values were determined by 1 stddev above the median (the max val of 2 workers)
-          value=$(python -c '
-          import os
-          hese_event = "hese_event_01.json"
-          gold_event = "run00136766-evt000007637140-GOLD.pkl"
-          bronze_event = "run00136662-evt000035405932-BRONZE.pkl"
-          generic_event = "138632_31747601.json"
-          lookup = {
-              "millipede_original": {
-                  hese_event: 185,
-                  gold_event: 195,
-                  bronze_event: 165,
-                  generic_event: 195,
-              },
-              "millipede_wilks": {
-                  hese_event: 130,
-                  gold_event: 280,
-                  bronze_event: 190,
-                  generic_event: 245,
-              },
-              "splinempe": {
-                  gold_event: 55,
-                  bronze_event: 25,
-                  generic_event: 35,
-              },
-              "splinempe_pointed": {
-                  gold_event: 35,
-                  bronze_event: 35,
-                  generic_event: 35,
-              }
-          }
-          print(lookup[os.environ["RECO_ALGO"]][os.environ["EVENT_FILE"]])
-          ')
-          
-          adjusted_int_value=$(awk '{printf "%d\n", $1}' <<< "$(echo "$value * 1.1" | bc)")
-          echo "$value * 1.1 = $adjusted_int_value"
-          echo "EWMS_PILOT_TASK_TIMEOUT=$adjusted_int_value" >> $GITHUB_ENV
 
       - name: run
         timeout-minutes: 45  # on average max~=35min
