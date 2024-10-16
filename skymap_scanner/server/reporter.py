@@ -538,7 +538,7 @@ class Reporter:
                         * cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
                     )
                 )
-                * n_recos_left  # (rec/recos) * (recos/1) -> sec
+                * n_recos_left  # (sec/recos) * (recos/1) -> sec
             )
             proc_stats["predictions"] = {
                 "time left": str(dt.timedelta(seconds=int(time_left))),
