@@ -185,13 +185,14 @@ while not (mqprofiles and all(m["is_activated"] for m in mqprofiles)):
 print(json.dumps(mqprofiles))
 ')
 
-echo "$mqprofiles"
+echo "MQ info: $mqprofiles"
 
 # map mqprofiles from the queue names
 mqprofile_toclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_TOCLIENT" '.[] | select(.mqid == $mqid)')
 mqprofile_fromclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_FROMCLIENT" '.[] | select(.mqid == $mqid)')
 
 # set env vars for vals from the mqprofiles
+set -x
 export SKYSCAN_MQ_TOCLIENT=$(echo "$mqprofile_toclient" | jq -r '.mqid')
 export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$(echo "$mqprofile_toclient" | jq -r '.auth_token')
 export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=$(echo "$mqprofile_toclient" | jq -r '.broker_type')
@@ -201,6 +202,7 @@ export SKYSCAN_MQ_FROMCLIENT=$(echo "$mqprofile_fromclient" | jq -r '.mqid')
 export SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN=$(echo "$mqprofile_fromclient" | jq -r '.auth_token')
 export SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE=$(echo "$mqprofile_fromclient" | jq -r '.broker_type')
 export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$(echo "$mqprofile_fromclient" | jq -r '.broker_address')
+set +x
 
 ########################################################################
 # start server
