@@ -182,8 +182,8 @@ class WorkerStatsCollection:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
 
-    def on_server_recent_reco_per_sec_rate(self, window_size: int) -> float:
-        """The reco/sec rate from server pov within a moving window."""
+    def on_server_recent_sec_per_reco_rate(self, window_size: int) -> float:
+        """The sec/reco rate from server pov within a moving window."""
 
         # look at a window, so don't use the first start time
         try:
@@ -196,9 +196,9 @@ class WorkerStatsCollection:
             nth_most_recent_start = self.aggregate.on_server_first_roundtrip_start()
             n_recos = len(self.aggregate.on_worker_runtimes)
 
-        return n_recos / (
+        return (
             self.aggregate.on_server_last_roundtrip_end() - nth_most_recent_start
-        )
+        ) / n_recos
 
     def ct_by_nside(self, nside: int) -> int:
         """Get length per given nside."""
@@ -532,13 +532,13 @@ class Reporter:
                 self.predicted_total_recos() - self.worker_stats_collection.total_ct
             )
             time_left = (  # this uses a moving window average
-                self.worker_stats_collection.on_server_recent_reco_per_sec_rate(
+                self.worker_stats_collection.on_server_recent_sec_per_reco_rate(
                     window_size=int(
                         self.worker_stats_collection.total_ct
                         * cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
                     )
                 )
-                / n_recos_left  # (recos/sec)*(1/recos) -> sec
+                * n_recos_left  # (rec/recos) * (recos/1) -> sec
             )
             proc_stats["predictions"] = {
                 "time left": str(dt.timedelta(seconds=int(time_left))),
