@@ -533,7 +533,7 @@ class Reporter:
             )
             time_left = (  # this uses a moving window average
                 self.worker_stats_collection.on_server_recent_sec_per_reco_rate(
-                    window_size=int(
+                    window_size=math.ceil(  # for small counts, use a larger window (instead of 1)
                         self.worker_stats_collection.total_ct
                         * cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
                     )
