@@ -54,6 +54,7 @@ REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_
 INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
     "2021a": "SplitUncleanedInIcePulses",
     "2023a": "SplitInIcePulses",
+    "2024a": "SplitInIcePulses",
 }
 DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
 
