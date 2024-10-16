@@ -9,7 +9,6 @@ import logging
 import math
 import statistics
 import time
-from collections import deque
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -38,25 +37,26 @@ class WorkerStats:
 
     def __init__(
         self,
-        worker_runtimes: Optional[List[float]] = None,
-        roundtrips: Optional[List[float]] = None,
-        on_server_roundtrip_start: float = float("inf"),
-        on_server_roundtrip_end: float = float("-inf"),
-        ends: Optional[List[float]] = None,
+        on_worker_runtimes: list[float],
+        on_server_roundtrips: list[float],
+        on_server_roundtrip_starts: list[float],
+        on_server_roundtrip_ends: list[float],
     ) -> None:
-        self.on_server_roundtrip_start = on_server_roundtrip_start
-        self.on_server_roundtrip_end = on_server_roundtrip_end
-
-        self.on_worker_runtimes: List[float] = (
-            worker_runtimes if worker_runtimes else []
-        )
+        self.on_worker_runtimes = on_worker_runtimes
         self.on_worker_runtimes.sort()  # speed up stats
         #
-        self.on_server_roundtrips: List[float] = roundtrips if roundtrips else []
+        self.on_server_roundtrips = on_server_roundtrips
         self.on_server_roundtrips.sort()  # speed up stats
         #
-        self.ends: List[float] = ends if ends else []
-        self.ends.sort()  # speed up stats
+        self.on_server_roundtrip_starts: List[float] = on_server_roundtrip_starts
+        self.on_server_roundtrip_starts.sort()  # speed up stats
+        self.on_server_first_roundtrip_start = lambda: min(
+            self.on_server_roundtrip_starts
+        )
+        #
+        self.on_server_roundtrip_ends = on_server_roundtrip_ends
+        self.on_server_roundtrip_ends.sort()  # speed up stats
+        self.on_server_last_roundtrip_end = lambda: max(self.on_server_roundtrip_ends)
 
         self.fastest_worker = lambda: min(self.on_worker_runtimes)
         self.fastest_roundtrip = lambda: min(self.on_server_roundtrips)
@@ -102,14 +102,12 @@ class WorkerStats:
             on_server_roundtrip_end - on_server_roundtrip_start,
         )
         bisect.insort(
-            self.ends,
+            self.on_server_roundtrip_starts,
+            on_server_roundtrip_start,
+        )
+        bisect.insort(
+            self.on_server_roundtrip_ends,
             on_server_roundtrip_end,
-        )
-        self.on_server_roundtrip_start = min(
-            self.on_server_roundtrip_start, on_server_roundtrip_start
-        )
-        self.on_server_roundtrip_end = max(
-            self.on_server_roundtrip_end, on_server_roundtrip_end
         )
         return self
 
@@ -147,16 +145,18 @@ class WorkerStats:
             },
             "wall time": {
                 "start": str(
-                    dt.datetime.fromtimestamp(int(self.on_server_roundtrip_start))
+                    dt.datetime.fromtimestamp(
+                        int(self.on_server_first_roundtrip_start())
+                    )
                 ),
                 "end": str(
-                    dt.datetime.fromtimestamp(int(self.on_server_roundtrip_end))
+                    dt.datetime.fromtimestamp(int(self.on_server_last_roundtrip_end()))
                 ),
                 "runtime": str(
                     dt.timedelta(
                         seconds=int(
-                            self.on_server_roundtrip_end
-                            - self.on_server_roundtrip_start
+                            self.on_server_last_roundtrip_end()
+                            - self.on_server_first_roundtrip_start()
                         )
                     )
                 ),
@@ -164,8 +164,8 @@ class WorkerStats:
                     dt.timedelta(
                         seconds=int(
                             (
-                                self.on_server_roundtrip_end
-                                - self.on_server_roundtrip_start
+                                self.on_server_last_roundtrip_end()
+                                - self.on_server_first_roundtrip_start()
                             )
                             / len(self.on_worker_runtimes)
                         )
@@ -181,7 +181,24 @@ class WorkerStatsCollection:
     def __init__(self) -> None:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
-        self.recent_runtimes = deque(maxlen=100)
+
+    def on_server_recent_reco_per_sec_rate(self, window_size: int) -> float:
+        """The reco/sec rate from server pov within a moving window."""
+
+        # look at a window, so don't use the first start time
+        try:
+            # psst, we know that this list is sorted, ascending
+            nth_most_recent_start = self._aggregate.on_server_roundtrip_starts[
+                -window_size
+            ]
+            n_recos = window_size
+        except IndexError:
+            nth_most_recent_start = self._aggregate.on_server_first_roundtrip_start()
+            n_recos = len(self._aggregate.on_worker_runtimes)
+
+        return n_recos / (
+            self._aggregate.on_server_last_roundtrip_end() - nth_most_recent_start
+        )
 
     def ct_by_nside(self, nside: int) -> int:
         """Get length per given nside."""
@@ -199,10 +216,8 @@ class WorkerStatsCollection:
 
     @property
     def first_roundtrip_start(self) -> float:
-        """O(n), n < 10."""
-        return min(
-            w.on_server_roundtrip_start for w in self._worker_stats_by_nside.values()
-        )
+        """Get the first roundtrip start time from server pov."""
+        return self._aggregate.on_server_first_roundtrip_start()
 
     def update(
         self,
@@ -215,14 +230,20 @@ class WorkerStatsCollection:
         self._aggregate = None  # clear
         try:
             worker_stats = self._worker_stats_by_nside[nside]
+            worker_stats.update(
+                on_worker_runtime,
+                on_server_roundtrip_start,
+                on_server_roundtrip_end,
+            )
         except KeyError:
-            worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
-        worker_stats.update(
-            on_worker_runtime,
-            on_server_roundtrip_start,
-            on_server_roundtrip_end,
-        )
-        self.recent_runtimes.append(on_worker_runtime)
+            worker_stats = self._worker_stats_by_nside[nside] = WorkerStats(
+                on_worker_runtimes=[on_worker_runtime],
+                on_server_roundtrips=[
+                    on_server_roundtrip_end - on_server_roundtrip_start
+                ],
+                on_server_roundtrip_starts=[on_server_roundtrip_start],
+                on_server_roundtrip_ends=[on_server_roundtrip_end],
+            )
         return len(worker_stats.on_worker_runtimes)
 
     @property
@@ -231,21 +252,20 @@ class WorkerStatsCollection:
         if not self._aggregate:
             instances = self._worker_stats_by_nside.values()
             if not instances:
-                return WorkerStats()
+                return WorkerStats([], [], [], [])
             self._aggregate = WorkerStats(
-                worker_runtimes=list(
+                on_worker_runtimes=list(
                     itertools.chain(*[i.on_worker_runtimes for i in instances])
                 ),
-                roundtrips=list(
+                on_server_roundtrips=list(
                     itertools.chain(*[i.on_server_roundtrips for i in instances])
                 ),
-                on_server_roundtrip_start=min(
-                    i.on_server_roundtrip_start for i in instances
+                on_server_roundtrip_starts=list(
+                    itertools.chain(*[i.on_server_roundtrip_starts for i in instances])
                 ),
-                on_server_roundtrip_end=max(
-                    i.on_server_roundtrip_end for i in instances
+                on_server_roundtrip_ends=list(
+                    itertools.chain(*[i.on_server_roundtrip_ends for i in instances])
                 ),
-                ends=list(itertools.chain(*[i.ends for i in instances])),
             )
         return self._aggregate
 
@@ -508,28 +528,29 @@ class Reporter:
             proc_stats["finished"] = True
         else:
             # MAKE PREDICTIONS
-            # NOTE: this is a simple mean, may want to visit more sophisticated methods
-            secs_predicted = elapsed_reco_server_walltime / (
-                self.worker_stats_collection.total_ct / self.predicted_total_recos()
+            n_recos_left = (
+                self.predicted_total_recos() - self.worker_stats_collection.total_ct
+            )
+            time_left = (  # this uses a moving window average
+                self.worker_stats_collection.on_server_recent_reco_per_sec_rate(
+                    window_size=int(
+                        self.worker_stats_collection.total_ct
+                        * cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
+                    )
+                )
+                * n_recos_left
             )
             proc_stats["predictions"] = {
-                "time left": str(
-                    dt.timedelta(
-                        seconds=int(secs_predicted - elapsed_reco_server_walltime)
-                    )
-                ),
+                "time left": str(dt.timedelta(seconds=int(time_left))),
                 "total runtime at finish": str(
-                    dt.timedelta(seconds=int(secs_predicted + startup_runtime))
-                ),
-                "total # of reconstructions": self.predicted_total_recos(),
-                "end": str(
-                    dt.datetime.fromtimestamp(
-                        int(
-                            time.time()
-                            + (secs_predicted - elapsed_reco_server_walltime)
+                    dt.timedelta(
+                        seconds=int(
+                            startup_runtime + elapsed_reco_server_walltime + time_left
                         )
                     )
                 ),
+                "total # of reconstructions": self.predicted_total_recos(),
+                "end": str(dt.datetime.fromtimestamp(int(time.time() + time_left))),
             }
 
         return proc_stats
@@ -588,7 +609,9 @@ class Reporter:
                 index = math.ceil(predicted_total * i) - 1
                 name = str(i)
             try:
-                when = self.worker_stats_collection.aggregate.ends[index]
+                when = self.worker_stats_collection.aggregate.on_server_roundtrip_ends[
+                    index
+                ]
                 timeline[name] = str(
                     dt.timedelta(seconds=int(when - self.global_start))
                 )
