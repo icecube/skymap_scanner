@@ -57,7 +57,7 @@ export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json" # no dots allo
 # S3: Generate the GET pre-signed URL  -- server will post here later, ewms needs it now
 
 echo && echo "Connecting to S3 to get pre-signed GET URL..."
-
+pip install boto3
 S3_OBJECT_URL=$(python3 -c '
 import os, boto3
 
@@ -133,6 +133,7 @@ fi
 
 # Make POST request with the multiline JSON data
 echo "requesting workflow..."
+pip install wipac-rest-tools
 POST_RESP=$(python3 -c '
 import os, rest_tools, json, pathlib
 rc = rest_tools.client.SavedDeviceGrantAuth(
