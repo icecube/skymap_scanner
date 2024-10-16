@@ -223,8 +223,8 @@ sudo docker run --network="host" --rm -i \
     --output-dir /local/$(basename $SCANNER_SERVER_DIR)/results/ \
     --reco-algo dummy \
     --event-file /local/tests/data/realtime_events/run00136766-evt000007637140-GOLD.pkl --real-event \
-    --nsides 1:0 \
-    >"$SCANNER_SERVER_DIR/server.out" 2>&1 \
+    --nsides 1:0 |
+    tee "$SCANNER_SERVER_DIR/server.out" 2>&1 \
     &
 server_pid=$!
 set +x
