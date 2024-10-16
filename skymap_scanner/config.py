@@ -137,7 +137,21 @@ class EnvConfig:
     #
 
     SKYSCAN_PROGRESS_INTERVAL_SEC: int = 1 * 60
-    SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO: float = 0.1
+    SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO: float = (
+        # The size of the sample window (a percentage of the collected/finished recos)
+        #   used to calculate the most recent runtime rate (sec/reco), then used to make
+        #   predictions for overall runtimes: i.e. amount of time left.
+        # Also, see SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN.
+        0.1
+    )
+    SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN: int = (
+        # NOTE: val should not be (too) below the num of workers (which is unknown, so make a good guess).
+        #   In other words, if val is too low, then the rate is not representative of the
+        #   worker-pool's concurrency; if val is too high, then the window is too large.
+        # This is only useful for the first `val/SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO`
+        #   num of recos, afterward the ratio is used.
+        100
+    )
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
     SKYSCAN_KILL_SWITCH_CHECK_INTERVAL: int = 5 * 60

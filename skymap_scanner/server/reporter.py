@@ -182,19 +182,26 @@ class WorkerStatsCollection:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
 
-    def on_server_recent_sec_per_reco_rate(self, window_size: int) -> float:
+    def on_server_recent_sec_per_reco_rate(self) -> float:
         """The sec/reco rate from server pov within a moving window."""
+        window_size = max(
+            int(
+                self.total_ct * cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
+            ),
+            cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN,
+        )
 
-        # look at a window, so don't use the first start time
         try:
-            # psst, we know that this list is sorted, ascending
+            # look at a window, so don't use the first start time
+            #   psst, we know that this list is sorted, ascending
             nth_most_recent_start = self.aggregate.on_server_roundtrip_starts[
                 -window_size
             ]
             n_recos = window_size
         except IndexError:
+            # not enough recos to sample, so take all of them
             nth_most_recent_start = self.aggregate.on_server_first_roundtrip_start()
-            n_recos = len(self.aggregate.on_worker_runtimes)
+            n_recos = self.total_ct
 
         return (
             self.aggregate.on_server_last_roundtrip_end() - nth_most_recent_start
@@ -532,12 +539,7 @@ class Reporter:
                 self.predicted_total_recos() - self.worker_stats_collection.total_ct
             )
             time_left = (  # this uses a moving window average
-                self.worker_stats_collection.on_server_recent_sec_per_reco_rate(
-                    window_size=math.ceil(  # for small counts, use a larger window (instead of 1)
-                        self.worker_stats_collection.total_ct
-                        * cfg.ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
-                    )
-                )
+                self.worker_stats_collection.on_server_recent_sec_per_reco_rate()
                 * n_recos_left  # (sec/recos) * (recos/1) -> sec
             )
             proc_stats["predictions"] = {
