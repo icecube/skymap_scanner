@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.21.2 (2024-10-16)
+
+### Other
+
+* Add version 2024a for input_pulses ([#276](https://github.com/icecube/skymap_scanner/issues/276)) ([`b444534`](https://github.com/icecube/skymap_scanner/commit/b444534a194181eda780b7ca62fb76df4f23b16f))
+
 ## v3.21.1 (2024-10-02)
 
 ### Other
