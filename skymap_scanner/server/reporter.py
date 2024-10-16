@@ -188,16 +188,16 @@ class WorkerStatsCollection:
         # look at a window, so don't use the first start time
         try:
             # psst, we know that this list is sorted, ascending
-            nth_most_recent_start = self._aggregate.on_server_roundtrip_starts[
+            nth_most_recent_start = self.aggregate.on_server_roundtrip_starts[
                 -window_size
             ]
             n_recos = window_size
         except IndexError:
-            nth_most_recent_start = self._aggregate.on_server_first_roundtrip_start()
-            n_recos = len(self._aggregate.on_worker_runtimes)
+            nth_most_recent_start = self.aggregate.on_server_first_roundtrip_start()
+            n_recos = len(self.aggregate.on_worker_runtimes)
 
         return n_recos / (
-            self._aggregate.on_server_last_roundtrip_end() - nth_most_recent_start
+            self.aggregate.on_server_last_roundtrip_end() - nth_most_recent_start
         )
 
     def ct_by_nside(self, nside: int) -> int:
@@ -217,7 +217,7 @@ class WorkerStatsCollection:
     @property
     def first_roundtrip_start(self) -> float:
         """Get the first roundtrip start time from server pov."""
-        return self._aggregate.on_server_first_roundtrip_start()
+        return self.aggregate.on_server_first_roundtrip_start()
 
     def update(
         self,
