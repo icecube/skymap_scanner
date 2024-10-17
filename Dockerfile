@@ -45,8 +45,7 @@ RUN mkdir -p /opt/i3-data/baseline_gcds && \
 #
 WORKDIR /local
 COPY . .
-# client-starter fails to install on architectures not supporting htcondor, so silently fail without the extra
-RUN pip install .[client-starter,rabbitmq] || pip install .[rabbitmq]
+RUN pip install .[rabbitmq]
 
 RUN pip freeze
 
