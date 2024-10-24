@@ -1,6 +1,6 @@
 ARG SKYMAP_SCANNER_VERSION=latest
 
-FROM icecube/skymap_scanner:$SKYMAP_SCANNER_VERSION as prod
+FROM icecube/skymap_scanner:$SKYMAP_SCANNER_VERSION AS prod
 
 
 RUN mkdir -p /opt/i3-data/baseline_gcds && \

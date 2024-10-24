@@ -3,7 +3,7 @@
 #
 ARG ICETRAY_VERSION=v1.9.1-ubuntu22.04-X64
 
-FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION as prod
+FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION AS prod
 
 RUN mkdir -p /opt/i3-data/baseline_gcds && \
     wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd http://prod-exe.icecube.wisc.edu/baseline_gcds/ && \
