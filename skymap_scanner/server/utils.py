@@ -1,6 +1,5 @@
 """Server-specific utils."""
 
-
 import asyncio
 import json
 import logging
@@ -12,11 +11,38 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import cachetools.func
+import mqclient as mq
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 
 from .. import config as cfg
 
 LOGGER = logging.getLogger(__name__)
+
+
+########################################################################################
+
+
+def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
+    """Establish connections to message queues."""
+    to_clients_queue = mq.Queue(
+        cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_TYPE,
+        address=cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS,
+        name=cfg.ENV.SKYSCAN_MQ_TOCLIENT,
+        auth_token=cfg.ENV.SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN,
+        # timeout=-1,  # NOTE: this mq only sends messages so no timeout needed
+    )
+    from_clients_queue = mq.Queue(
+        cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,
+        address=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS,
+        name=cfg.ENV.SKYSCAN_MQ_FROMCLIENT,
+        auth_token=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN,
+        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+    )
+
+    return to_clients_queue, from_clients_queue
+
+
+########################################################################################
 
 
 def connect_to_skydriver(urgent: bool) -> RestClient:
@@ -71,6 +97,9 @@ async def kill_switch_check_from_skydriver() -> None:
             os.kill(os.getpid(), signal.SIGINT)  # NOTE - sys.exit only exits thread
 
 
+########################################################################################
+
+
 async def fetch_event_contents_from_skydriver() -> Any:
     """Fetch event contents from SkyDriver."""
     skydriver_rc = connect_to_skydriver(urgent=True)
@@ -100,6 +129,9 @@ def fetch_event_contents_from_file(event_file: Optional[Path]) -> dict:
 
     LOGGER.info(f"Fetched event contents from file: {event_file}")
     return data
+
+
+########################################################################################
 
 
 def _is_pow_of_two(intval: int) -> bool:

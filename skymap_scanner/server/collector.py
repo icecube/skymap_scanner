@@ -1,6 +1,5 @@
 """The Skymap Scanner Server."""
 
-
 import itertools
 import logging
 import time
@@ -9,6 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy
 
+from .reporter import Reporter
 from .. import config as cfg
 from ..utils.pixel_classes import (
     NSidesDict,
@@ -17,7 +17,6 @@ from ..utils.pixel_classes import (
     RecoPixelVariation,
     SentPixelVariation,
 )
-from .reporter import Reporter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -218,7 +217,7 @@ class Collector:
     async def collect(
         self,
         reco_pixel_variation: RecoPixelVariation,
-        reco_runtime: float,
+        on_worker_runtime: float,
     ) -> None:
         """Cache RecoPixelVariation until we can save the pixel's best received
         reco (RecoPixelFinal)."""
@@ -276,9 +275,9 @@ class Collector:
         # report after potential save
         await self.reporter.record_reco(
             reco_pixel_variation.nside,
-            reco_runtime,
-            roundtrip_start=sent_pixvar.sent_time,
-            roundtrip_end=time.time(),
+            on_worker_runtime,
+            on_server_roundtrip_start=sent_pixvar.sent_time,
+            on_server_roundtrip_end=time.time(),
         )
 
     def has_collected_all_sent(self) -> bool:
