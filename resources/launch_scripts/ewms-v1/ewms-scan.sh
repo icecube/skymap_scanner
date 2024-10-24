@@ -100,7 +100,7 @@ export POST_REQ=$(
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json \$EWMS_TASK_DATA_HUB_DIR/startup.json",
             "init_image": "alpine:latest",
-            "init_args": "while ! curl --fail-with-body -o \"\$EWMS_TASK_DATA_HUB_DIR/startup.json\" \"$S3_OBJECT_URL\"; do echo 'Retrying...'; sleep 15; done",
+            "init_args": "while ! curl --fail-with-body -o \$EWMS_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo 'Retrying...'; sleep 15; done",
             "n_workers": $N_WORKERS,
             "pilot_config": {
                 "image": "latest",
@@ -157,6 +157,44 @@ QUEUE_FROMCLIENT=$(echo "$POST_RESP" | jq -r '.task_directives[0].output_queues[
 echo $QUEUE_FROMCLIENT
 
 ########################################################################
+# in the background, check if taskforces have changed
+
+check_taskforce_changes() {
+    local workflow_id=$1
+    local prev_resp=""
+
+    while true; do
+        sleep 60
+
+        # Step 1: Get taskforces associated with the workflow_id
+        local taskforces=$(python3 -c "
+import os, rest_tools, json, pathlib
+rc = rest_tools.client.SavedDeviceGrantAuth(
+    'https://ewms-dev.icecube.aq',
+    token_url='https://keycloak.icecube.wisc.edu/auth/realms/IceCube',
+    filename=str(pathlib.Path('~/device-refresh-token').expanduser().resolve()),
+    client_id='ewms-dev-public',
+    retries=0,
+)
+# Perform POST request to get taskforces by workflow_id
+res = rc.request_seq('POST', '/v0/query/taskforces', {'query':{'workflow_id': os.environ['WORKFLOW_ID']}})
+print(json.dumps(res))
+" WORKFLOW_ID=$workflow_id 2>/dev/null)
+
+        # Step 2: Compare the current taskforces response with the previous one
+        if [[ $taskforces != "$prev_resp" ]]; then
+            # If the response has changed, print it and update the previous response
+            echo "$taskforces" | jq . -M --indent 4 # Format JSON with 4 spaces
+            prev_resp="$taskforces"
+        fi
+    done
+}
+
+check_taskforce_changes "$WORKFLOW_ID" &
+bg_pid=$!
+trap 'kill $bg_pid 2>/dev/null' EXIT
+
+########################################################################
 # get queue connection info
 
 echo && echo "Getting MQ info..."
@@ -192,7 +230,6 @@ mqprofile_toclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_TOCLIENT" '.[] |
 mqprofile_fromclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_FROMCLIENT" '.[] | select(.mqid == $mqid)')
 
 # set env vars for vals from the mqprofiles
-set -x
 export SKYSCAN_MQ_TOCLIENT=$(echo "$mqprofile_toclient" | jq -r '.mqid')
 export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=$(echo "$mqprofile_toclient" | jq -r '.auth_token')
 export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=$(echo "$mqprofile_toclient" | jq -r '.broker_type')
@@ -202,7 +239,6 @@ export SKYSCAN_MQ_FROMCLIENT=$(echo "$mqprofile_fromclient" | jq -r '.mqid')
 export SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN=$(echo "$mqprofile_fromclient" | jq -r '.auth_token')
 export SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE=$(echo "$mqprofile_fromclient" | jq -r '.broker_type')
 export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$(echo "$mqprofile_fromclient" | jq -r '.broker_address')
-set +x
 
 ########################################################################
 # start server
@@ -212,12 +248,16 @@ echo && echo "Starting local scanner server..."
 SCANNER_SERVER_DIR="./scan-dir-$WORKFLOW_ID/"
 mkdir $SCANNER_SERVER_DIR
 
+# look at env vars before running
+env | grep '^SKYSCAN_' | sort || true
+env | grep '^EWMS_' | sort || true
+
 set -x # let's see this command
-sudo docker run --network="host" --rm -i \
+sudo -E docker run --network="host" --rm -i \
     $DOCKERMOUNT_ARGS \
     --mount type=bind,source=$(realpath $SCANNER_SERVER_DIR),target=/local/$(basename $SCANNER_SERVER_DIR) \
-    $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
-    $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
+    $(env | grep '^SKYSCAN_' | sort | cut -d'=' -f1 | sed 's/^/--env /') \
+    $(env | grep '^EWMS_' | sort | cut -d'=' -f1 | sed 's/^/--env /') \
     icecube/skymap_scanner:${SKYSCAN_SERVER_TAG:-$SKYSCAN_TAG} \
     python -m skymap_scanner.server \
     --client-startup-json /local/$(basename $SCANNER_SERVER_DIR)/startup.json \
