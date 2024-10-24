@@ -133,7 +133,7 @@ urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
 wipac-dev-tools==1.13.0
-wipac-rest-tools==1.8.0
+wipac-rest-tools==1.8.2
 xlwt==1.3.0
 zipp==1.0.0
 zstd==1.5.5.1
@@ -265,7 +265,7 @@ skymap-scanner
 ├── wipac-dev-tools [required: Any, installed: 1.13.0]
 │   ├── requests [required: Any, installed: 2.25.1]
 │   └── typing_extensions [required: Any, installed: 4.12.2]
-└── wipac-rest-tools [required: Any, installed: 1.8.0]
+└── wipac-rest-tools [required: Any, installed: 1.8.2]
     ├── cachetools [required: Any, installed: 5.5.0]
     ├── PyJWT [required: !=2.6.0, installed: 2.9.0]
     ├── qrcode [required: Any, installed: 8.0]
