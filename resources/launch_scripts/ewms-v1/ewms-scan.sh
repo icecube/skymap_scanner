@@ -105,7 +105,9 @@ export POST_REQ=$(
             "pilot_config": {
                 "tag": "${PILOT_TAG:-'latest'}",
                 "environment": {
-                    "EWMS_PILOT_TASK_TIMEOUT": "3600"
+                    "EWMS_PILOT_INIT_TIMEOUT": "60",
+                    "EWMS_PILOT_TASK_TIMEOUT": "3600",
+                    "EWMS_PILOT_CONTAINER_DEBUG": "True"
                 },
                 "input_files": []
             },
