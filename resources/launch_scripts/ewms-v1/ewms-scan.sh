@@ -100,14 +100,16 @@ export POST_REQ=$(
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json {{DATA_HUB}}/startup.json",
             "init_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
-            "init_args": "bash -c \"\"while ! curl --fail-with-body --max-time 10 -o {{DATA_HUB}}/startup.json $S3_OBJECT_URL; do echo retrying...; sleep 15; done\"\" ",
+            "init_args": "bash -c \"\"curl --fail-with-body --max-time 60 -o {{DATA_HUB}}/startup.json '$S3_OBJECT_URL'\"\" ",
             "n_workers": $N_WORKERS,
             "pilot_config": {
                 "tag": "${PILOT_TAG:-'latest'}",
                 "environment": {
                     "EWMS_PILOT_INIT_TIMEOUT": "60",
                     "EWMS_PILOT_TASK_TIMEOUT": "3600",
-                    "EWMS_PILOT_CONTAINER_DEBUG": "True"
+                    "EWMS_PILOT_CONTAINER_DEBUG": "True",
+                    "EWMS_PILOT_INFILE_EXT": ".json",
+                    "EWMS_PILOT_OUTFILE_EXT": ".json"
                 },
                 "input_files": []
             },
