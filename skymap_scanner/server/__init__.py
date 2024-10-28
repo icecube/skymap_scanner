@@ -4,6 +4,8 @@ import dataclasses as dc
 
 from wipac_dev_tools import from_environment_as_dataclass
 
+from .. import config as cfg
+
 
 #
 # Env var constants: set as constants & typecast
@@ -69,10 +71,10 @@ class EnvConfig:
     SKYSCAN_SKYDRIVER_AUTH: str = ""  # SkyDriver REST interface auth token
 
     # LOGGING VARS
-    SKYSCAN_LOG: str = "INFO"
-    SKYSCAN_LOG_THIRD_PARTY: str = "WARNING"
-    SKYSCAN_EWMS_PILOT_LOG: str = "INFO"
-    SKYSCAN_MQ_CLIENT_LOG: str = "INFO"
+    SKYSCAN_LOG: str = cfg.LOG_LEVEL_DEFAULT
+    SKYSCAN_LOG_THIRD_PARTY: str = cfg.LOG_THIRD_PARTY_LEVEL_DEFAULT
+    SKYSCAN_EWMS_PILOT_LOG: str = cfg.LOG_LEVEL_DEFAULT
+    SKYSCAN_MQ_CLIENT_LOG: str = cfg.LOG_LEVEL_DEFAULT
 
     # TESTING/DEBUG VARS
     SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)

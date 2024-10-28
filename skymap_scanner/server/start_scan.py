@@ -657,7 +657,16 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    cfg.configure_loggers()
+    logging_tools.set_level(
+        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        first_party_loggers=__name__.split(".", maxsplit=1)[0],
+        third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        future_third_parties=["google", "pika"],
+        specialty_loggers={
+            mqclient.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
+        },
+        formatter=logging_tools.WIPACDevToolsFormatter(),
+    )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # nsides -- the class needs the whole list to validate, so this logic can't be outsourced to argparse's `type=`

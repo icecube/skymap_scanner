@@ -259,7 +259,12 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    cfg.configure_loggers()
+    logging_tools.set_level(
+        os.getenv("SKYSCAN_LOG", cfg.LOG_LEVEL_DEFAULT),  # type: ignore[arg-type]
+        first_party_loggers=__name__.split(".", maxsplit=1)[0],
+        third_party_level=os.getenv("SKYSCAN_LOG", cfg.LOG_THIRD_PARTY_LEVEL_DEFAULT),  # type: ignore[arg-type]
+        formatter=logging_tools.WIPACDevToolsFormatter(),
+    )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # read startup.json
