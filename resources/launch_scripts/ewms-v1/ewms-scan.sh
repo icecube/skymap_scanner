@@ -98,9 +98,9 @@ export POST_REQ=$(
             "input_queue_aliases": ["to-client-queue"],
             "output_queue_aliases": ["from-client-queue"],
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
-            "task_args": "python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json \$EWMS_TASK_DATA_HUB_DIR/startup.json",
+            "task_args": "python -m skymap_scanner.client.reco_icetray --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json {{DATA_HUB}}/startup.json",
             "init_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
-            "init_args": "bash -c \"\"while ! curl --fail-with-body --max-time 10 -o \$EWMS_TASK_DATA_HUB_DIR/startup.json $S3_OBJECT_URL; do echo retrying...; sleep 15; done\"\" ",
+            "init_args": "bash -c \"\"while ! curl --fail-with-body --max-time 10 -o {{DATA_HUB}}/startup.json $S3_OBJECT_URL; do echo retrying...; sleep 15; done\"\" ",
             "n_workers": $N_WORKERS,
             "pilot_config": {
                 "tag": "${PILOT_TAG:-'latest'}",
