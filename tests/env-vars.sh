@@ -42,7 +42,7 @@ export EWMS_PILOT_OKAY_ERRORS=${EWMS_PILOT_OKAY_ERRORS:-"TimeoutError"} # this i
 export SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS=${SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS:-$((60 * 10))} # just need a big value -- only used to detect MIA workers (it isn't important in a successful scan)
 # other/misc
 # -> worker/client/pilot
-export SKYSCAN_MINI_TEST=${SKYSCAN_MINI_TEST:-'yes'}
+export _SKYSCAN_CI_MINI_TEST=${_SKYSCAN_CI_MINI_TEST:-'yes'}
 export SKYSCAN_LOG=${SKYSCAN_LOG:-"DEBUG"}
 export SKYSCAN_LOG_THIRD_PARTY=${SKYSCAN_LOG_THIRD_PARTY:-"INFO"}
 # -> worker/client/pilot

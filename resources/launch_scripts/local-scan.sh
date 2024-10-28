@@ -80,7 +80,7 @@ else
         --mount type=bind,source="$CI_SKYSCAN_OUTPUT_DIR",target=/local/output \
         --mount type=bind,source="$(dirname "$CI_SKYSCAN_STARTUP_JSON")",target=/local/startup \
         --env PY_COLORS=1 \
-        $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+        $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         $(env | grep '^EWMS_' | cut -d'=' -f1 | sed 's/^/--env /') \
         "$CI_DOCKER_IMAGE_TAG" \
         python -m skymap_scanner.server \

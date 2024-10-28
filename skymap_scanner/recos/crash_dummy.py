@@ -21,11 +21,10 @@ class CrashDummy(dummy.Dummy):
 
         def crash(frame):
             rand = random.random()
-            logger.debug(
-                f"crash probability: {os.getenv('SKYSCAN_CRASH_DUMMY_PROBABILITY')}"
-            )
+            prob = float(os.getenv("_SKYSCAN_CI_CRASH_DUMMY_PROBABILITY", 0.5))
+            logger.debug(f"crash probability: {prob}")
 
-            if rand < float(os.getenv("SKYSCAN_CRASH_DUMMY_PROBABILITY")):
+            if rand < prob:
                 logger.debug(f"crash! {rand=}")
 
                 # now, pick what to fail with

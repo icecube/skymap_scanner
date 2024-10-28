@@ -367,11 +367,11 @@ jobs:
           export _RECO_ALGO=crash_dummy
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="1:0 2:12 4:12"
-          export SKYSCAN_CRASH_DUMMY_PROBABILITY=0.75
+          export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          # since SKYSCAN_CRASH_DUMMY_PROBABILITY<1, this step will go forever
+          # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
           timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
@@ -550,7 +550,7 @@ jobs:
           source tests/env-vars.sh
           
           docker run --rm -i \
-            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
             $CI_DOCKER_IMAGE_TAG \
             python tests/file_staging.py
 
@@ -598,9 +598,9 @@ jobs:
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
             $CI_DOCKER_IMAGE_TAG \
-            python -m skymap_scanner.client.reco_icetray \
+            python -m skymap_scanner.client \
             --infile /local/test-data/in.json \
             --client-startup-json /local/test-data/startup.json \
             --outfile /local/test-data/out-actual.json
@@ -617,7 +617,7 @@ jobs:
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
             $CI_DOCKER_IMAGE_TAG \
             python tests/compare_reco_pixel_single.py \
             --actual /local/test-data/out-actual.json \
