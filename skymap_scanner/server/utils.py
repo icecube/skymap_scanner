@@ -14,7 +14,7 @@ import cachetools.func
 import mqclient as mq
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 
-from .. import config as cfg
+from . import ENV
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,18 +25,18 @@ LOGGER = logging.getLogger(__name__)
 def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
     """Establish connections to message queues."""
     to_clients_queue = mq.Queue(
-        cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_TYPE,
-        address=cfg.ENV.SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS,
-        name=cfg.ENV.SKYSCAN_MQ_TOCLIENT,
-        auth_token=cfg.ENV.SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN,
+        ENV.SKYSCAN_MQ_TOCLIENT_BROKER_TYPE,
+        address=ENV.SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS,
+        name=ENV.SKYSCAN_MQ_TOCLIENT,
+        auth_token=ENV.SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN,
         # timeout=-1,  # NOTE: this mq only sends messages so no timeout needed
     )
     from_clients_queue = mq.Queue(
-        cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,
-        address=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS,
-        name=cfg.ENV.SKYSCAN_MQ_FROMCLIENT,
-        auth_token=cfg.ENV.SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN,
-        timeout=cfg.ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+        ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,
+        address=ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS,
+        name=ENV.SKYSCAN_MQ_FROMCLIENT,
+        auth_token=ENV.SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN,
+        timeout=ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
 
     return to_clients_queue, from_clients_queue
@@ -49,16 +49,16 @@ def connect_to_skydriver(urgent: bool) -> RestClient:
     """Get REST client for SkyDriver depending on the urgency."""
     if urgent:
         return RestClient(
-            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=60.0,
             retries=CalcRetryFromWaittimeMax(waittime_max=1 * 60 * 60),
             # backoff_factor=0.3,
         )
     else:
         return RestClient(
-            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=10.0,
             retries=1,
             # backoff_factor=0.3,
@@ -76,7 +76,7 @@ async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
 
 async def kill_switch_check_from_skydriver() -> None:
     """Routinely check SkyDriver whether to continue the scan."""
-    if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         return
 
     logger = logging.getLogger("skyscan.kill_switch")
@@ -84,10 +84,10 @@ async def kill_switch_check_from_skydriver() -> None:
     skydriver_rc = connect_to_skydriver(urgent=False)
 
     while True:
-        await asyncio.sleep(cfg.ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
+        await asyncio.sleep(ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
 
         status = await skydriver_rc.request(
-            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
+            "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
         )
 
         if status["scan_state"].startswith("STOPPED__"):
@@ -105,7 +105,7 @@ async def fetch_event_contents_from_skydriver() -> Any:
     skydriver_rc = connect_to_skydriver(urgent=True)
 
     manifest = await skydriver_rc.request(
-        "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+        "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
     )
     LOGGER.info("Fetched event contents from SkyDriver")
     return manifest["event_i3live_json_dict"]

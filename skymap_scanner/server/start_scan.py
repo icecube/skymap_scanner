@@ -1,7 +1,6 @@
 """The Skymap Scanner Server."""
 
 # pylint: disable=invalid-name,import-error
-# fmt:quotes-ok
 
 import argparse
 import asyncio
@@ -25,6 +24,7 @@ from icecube import (  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
+from . import ENV
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
@@ -668,13 +668,13 @@ def main() -> None:
         raise NotADirectoryError(args.gcd_dir)
 
     # check output status
-    if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS and not args.output_dir:
+    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS and not args.output_dir:
         raise RuntimeError(
             "Must include either --output-dir or SKYSCAN_SKYDRIVER_ADDRESS (env var), "
             "otherwise you won't see your results!"
         )
     # read event file
-    if cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+    if ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         event_contents = asyncio.run(fetch_event_contents_from_skydriver())
     else:
         event_contents = fetch_event_contents_from_file(args.event_file)
