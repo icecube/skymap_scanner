@@ -5,8 +5,8 @@
 
 from typing import Final
 
-from . import RecoInterface, splinempe
-
+from . import splinempe
+from . import RecoInterface
 
 class SplineMPEPointed(splinempe.SplineMPE):
 

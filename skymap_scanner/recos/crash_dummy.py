@@ -1,5 +1,6 @@
 """IceTray segment for a dummy reco (will crash w/in a given probability)."""
 
+import os
 import random
 import time
 from typing import Final
@@ -21,9 +22,11 @@ class CrashDummy(dummy.Dummy):
 
         def crash(frame):
             rand = random.random()
-            logger.debug(f"crash probability: {ENV.SKYSCAN_CRASH_DUMMY_PROBABILITY=}")
+            logger.debug(
+                f"crash probability: {os.getenv('SKYSCAN_CRASH_DUMMY_PROBABILITY')}"
+            )
 
-            if rand < ENV.SKYSCAN_CRASH_DUMMY_PROBABILITY:
+            if rand < float(os.getenv("SKYSCAN_CRASH_DUMMY_PROBABILITY")):
                 logger.debug(f"crash! {rand=}")
 
                 # now, pick what to fail with
