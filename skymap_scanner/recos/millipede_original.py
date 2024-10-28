@@ -43,7 +43,7 @@ class MillipedeOriginal(RecoInterface):
         """
         variation_distance = 20.*I3Units.m
 
-        if cfg.ENV.SKYSCAN_MINI_TEST:
+        if os.getenv('SKYSCAN_MINI_TEST'):
             return VertexGenerator.mini_test(variation_distance=variation_distance)
         else:    
             return VertexGenerator.octahedron(radius=variation_distance)
