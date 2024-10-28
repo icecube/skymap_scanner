@@ -76,10 +76,6 @@ class EnvConfig:
     SKYSCAN_EWMS_PILOT_LOG: str = cfg.LOG_LEVEL_DEFAULT
     SKYSCAN_MQ_CLIENT_LOG: str = cfg.LOG_LEVEL_DEFAULT
 
-    # TESTING/DEBUG VARS
-    SKYSCAN_MINI_TEST: bool = False  # run minimal variations for testing (mini-scale)
-    SKYSCAN_CRASH_DUMMY_PROBABILITY: float = 0.5  # for reco algo: crash-dummy
-
     def __post_init__(self) -> None:
         """Check values."""
         if self.SKYSCAN_PROGRESS_INTERVAL_SEC <= 0:
