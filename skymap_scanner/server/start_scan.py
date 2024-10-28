@@ -663,7 +663,7 @@ def main() -> None:
         third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         future_third_parties=["google", "pika"],
         specialty_loggers={
-            mqclient.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
+            mq.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
         },
         formatter=logging_tools.WIPACDevToolsFormatter(),
     )

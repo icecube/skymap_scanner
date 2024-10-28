@@ -8,7 +8,6 @@ from typing import Final
 from icecube import icetray  # type: ignore[import]  # noqa: F401
 
 from . import RecoInterface, dummy
-from ..config import ENV
 
 
 class CrashDummy(dummy.Dummy):
