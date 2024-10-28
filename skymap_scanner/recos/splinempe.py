@@ -1,41 +1,25 @@
 """IceTray segment for a dummy reco."""
 
+# mypy: ignore-errors
+# fmt: off
 
 import datetime
+from typing import Final
+
 import numpy as np
-from typing import Final, List
-
-
-from icecube.icetray import I3Units  # type: ignore[import]
-
 # NOTE: icecube module imports are required to make IceTray modules and services available.
-from icecube import (  # type: ignore[import]  # noqa: F401
-    dataclasses,
-    DomTools,
-    frame_object_diff,
-    gulliver,
-    gulliver_modules,
-    icetray,
-    lilliput,
-    mue,
-    spline_reco,
-    photonics_service,
-    recclasses,
-    simclasses,
-    STTools,
-    VHESelfVeto,
-)
-
+from icecube import (dataclasses)  # type: ignore[import]  # noqa: F401
+from icecube.STTools.seededRT.configuration_services import \
+    I3DOMLinkSeededRTConfigurationService  # type: ignore[import]
 # Class bindings directly accessed by the python code are imported explicitly.
-from icecube.icetray import I3Frame, traysegment  # type: ignore[import]
-from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
+from icecube.icetray import I3Frame, I3Units, traysegment  # type: ignore[import]; type: ignore[import]
+from icecube.lilliput import i3minuit, scipymin  # type: ignore[import]
 from icecube.photonics_service import I3PhotoSplineService  # type: ignore[import]
-from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTConfigurationService  # type: ignore[import]
 
-from .. import config as cfg
-from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import mask_deepcore
+from .. import config as cfg
+from ..utils.pixel_classes import RecoPixelVariation
 
 
 class SplineMPE(RecoInterface):
