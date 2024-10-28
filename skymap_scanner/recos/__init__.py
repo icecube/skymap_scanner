@@ -1,9 +1,12 @@
 """Tools for conducting & representing a pixel reconstruction."""
 
-from abc import ABC, abstractmethod
+# mypy: ignore-errors
+# fmt: off
+
 import importlib
 import pkgutil
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from abc import ABC, abstractmethod
+from typing import Any, List, TYPE_CHECKING, Tuple, Union
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -81,7 +84,7 @@ class RecoInterface(ABC):
     def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
         """Performs the reconstruction."""
         pass
- 
+
     @staticmethod
     @abstractmethod
     def to_recopixelvariation(

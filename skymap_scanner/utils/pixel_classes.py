@@ -1,12 +1,10 @@
 """Classes for representing a pixel-like things in various forms."""
 
-
 import dataclasses as dc
 import time
 from typing import Any, Dict, Tuple
 
-from .. import config as cfg
-from .. import recos
+from .. import config as cfg, recos
 
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
