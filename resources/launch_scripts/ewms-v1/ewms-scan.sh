@@ -151,7 +151,7 @@ res = rc.request_seq("POST", "/v0/workflows", json.loads(os.environ["POST_REQ"])
 print(json.dumps(res))
 ')
 
-echo "$POST_RESP"
+echo "$POST_RESP" | jq . -M --indent 4 # Format JSON with 4 spaces
 
 export WORKFLOW_ID=$(echo "$POST_RESP" | jq -r '.workflow.workflow_id')
 echo $WORKFLOW_ID
@@ -227,7 +227,8 @@ while not (mqprofiles and all(m["is_activated"] for m in mqprofiles)):
 print(json.dumps(mqprofiles))
 ')
 
-echo "MQ info: $mqprofiles"
+echo "MQ info:"
+echo "$mqprofiles" | jq . -M --indent 4 # Format JSON with 4 spaces
 
 # map mqprofiles from the queue names
 mqprofile_toclient=$(echo "$mqprofiles" | jq --arg mqid "$QUEUE_TOCLIENT" '.[] | select(.mqid == $mqid)')
