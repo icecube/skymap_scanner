@@ -150,7 +150,6 @@ rc = rest_tools.client.SavedDeviceGrantAuth(
 res = rc.request_seq("POST", "/v0/workflows", json.loads(os.environ["POST_REQ"]))
 print(json.dumps(res))
 ')
-
 echo "$POST_RESP" | jq . -M --indent 4 # Format JSON with 4 spaces
 
 export WORKFLOW_ID=$(echo "$POST_RESP" | jq -r '.workflow.workflow_id')
@@ -161,17 +160,64 @@ QUEUE_FROMCLIENT=$(echo "$POST_RESP" | jq -r '.task_directives[0].output_queues[
 echo $QUEUE_FROMCLIENT
 
 ########################################################################
-# in the background, check if taskforces have changed
+# abort the workflow if things go wrong
 
-check_taskforce_changes() {
+abort() {
     local workflow_id=$1
-    local prev_resp=""
+    local resp=$(python3 -c "
+import os, rest_tools, json, pathlib
+rc = rest_tools.client.SavedDeviceGrantAuth(
+    'https://ewms-dev.icecube.aq',
+    token_url='https://keycloak.icecube.wisc.edu/auth/realms/IceCube',
+    filename=str(pathlib.Path('~/device-refresh-token').expanduser().resolve()),
+    client_id='ewms-dev-public',
+    retries=0,
+)
+workflow_id = os.environ['WORKFLOW_ID']
+res = rc.request_seq('POST', f'/v0/workflows/{workflow_id}/actions/abort')
+print(json.dumps(res))
+" WORKFLOW_ID=$workflow_id)
+    echo "$resp" | jq . -M --indent 4 # Format JSON with 4 spaces
+}
+
+trap 'abort $WORKFLOW_ID' ERR
+
+########################################################################
+# in the background, check if things on ewms have changed
+
+check_ewms_changes() {
+    local workflow_id=$1
+    local prev_wf_response=""
+    local prev_tf_response=""
 
     while true; do
-        sleep 60
+        sleep 15
 
-        # Step 1: Get taskforces associated with the workflow_id
-        local taskforces=$(python3 -c "
+        # Step 1: Get workflow associated with the workflow_id
+        local wf_resp=$(python3 -c "
+import os, rest_tools, json, pathlib
+rc = rest_tools.client.SavedDeviceGrantAuth(
+    'https://ewms-dev.icecube.aq',
+    token_url='https://keycloak.icecube.wisc.edu/auth/realms/IceCube',
+    filename=str(pathlib.Path('~/device-refresh-token').expanduser().resolve()),
+    client_id='ewms-dev-public',
+    retries=0,
+)
+# Perform POST request to get taskforces by workflow_id
+workflow_id = os.environ['WORKFLOW_ID']
+res = rc.request_seq('GET', f'/v0/workflows/{workflow_id}')
+print(json.dumps(res))
+" WORKFLOW_ID=$workflow_id 2>/dev/null)
+
+        # Step 2: Compare the current workflow response with the previous one
+        if [[ $wf_resp != "$prev_wf_response" ]]; then
+            # If the response has changed, print it and update the previous response
+            echo "$wf_resp" | jq . -M --indent 4 # Format JSON with 4 spaces
+            prev_wf_response="$wf_resp"
+        fi
+
+        # Step 3: Get taskforces associated with the workflow_id
+        local tf_resp=$(python3 -c "
 import os, rest_tools, json, pathlib
 rc = rest_tools.client.SavedDeviceGrantAuth(
     'https://ewms-dev.icecube.aq',
@@ -185,18 +231,18 @@ res = rc.request_seq('POST', '/v0/query/taskforces', {'query':{'workflow_id': os
 print(json.dumps(res))
 " WORKFLOW_ID=$workflow_id 2>/dev/null)
 
-        # Step 2: Compare the current taskforces response with the previous one
-        if [[ $taskforces != "$prev_resp" ]]; then
+        # Step 4: Compare the current taskforces response with the previous one
+        if [[ $tf_resp != "$prev_tf_response" ]]; then
             # If the response has changed, print it and update the previous response
-            echo "$taskforces" | jq . -M --indent 4 # Format JSON with 4 spaces
-            prev_resp="$taskforces"
+            echo "$tf_resp" | jq . -M --indent 4 # Format JSON with 4 spaces
+            prev_tf_response="$tf_resp"
         fi
     done
 }
 
-check_taskforce_changes "$WORKFLOW_ID" &
-bg_pid=$!
-trap 'kill $bg_pid 2>/dev/null' EXIT
+check_ewms_changes "$WORKFLOW_ID" &
+check_changes_pid=$!
+trap 'kill $check_changes_pid 2>/dev/null' EXIT
 
 ########################################################################
 # get queue connection info
@@ -226,7 +272,6 @@ while not (mqprofiles and all(m["is_activated"] for m in mqprofiles)):
 
 print(json.dumps(mqprofiles))
 ')
-
 echo "MQ info:"
 echo "$mqprofiles" | jq . -M --indent 4 # Format JSON with 4 spaces
 
@@ -332,7 +377,6 @@ with open(filepath, "rb") as f:
 print(f"Upload response: {response.status_code}")
 print(str(response.content))
 ')
-
 echo $out
 
 ########################################################################
@@ -349,4 +393,32 @@ wait $server_pid
 # look at result
 
 echo && echo "The results:"
+ls "$SCANNER_SERVER_DIR/results/"
+
+########################################################################
+# deactivate ewms workflow
+
+echo && echo "deactivating workflow..."
+
+POST_RESP=$(python3 -c "
+import os, rest_tools, json, pathlib
+rc = rest_tools.client.SavedDeviceGrantAuth(
+    'https://ewms-dev.icecube.aq',
+    token_url='https://keycloak.icecube.wisc.edu/auth/realms/IceCube',
+    filename=str(pathlib.Path('~/device-refresh-token').expanduser().resolve()),
+    client_id='ewms-dev-public',
+    retries=0,
+)
+workflow_id = os.environ['WORKFLOW_ID']
+res = rc.request_seq('POST', f'/v0/workflows/{workflow_id}/actions/finished')
+print(json.dumps(res))
+" WORKFLOW_ID=$workflow_id)
+echo "$POST_RESP" | jq . -M --indent 4 # Format JSON with 4 spaces
+sleep 120  # TODO - use smarter logic
+
+########################################################################
+# look at result
+
+echo && echo "The scan was a success!"
+echo "The results:"
 ls "$SCANNER_SERVER_DIR/results/"
