@@ -10,13 +10,14 @@ set -e
 ########################################################################
 # handle cl args
 
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG"
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG RECO_ALGO"
     exit 1
 else
     N_WORKERS="$1"
     EWMS_URL="$2"
     SKYSCAN_TAG="$3"
+    RECO_ALGO="$4"
 fi
 
 # now, validate...
@@ -56,7 +57,9 @@ export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json" # no dots allo
 ########################################################################
 # S3: Generate the GET pre-signed URL  -- server will post here later, ewms needs it now
 
-echo && echo "Connecting to S3 to get pre-signed GET URL..."
+echo "########################################################################################"
+echo "Connecting to S3 to get pre-signed GET URL..." && echo
+
 pip install boto3
 S3_OBJECT_URL=$(python3 -c '
 import os, boto3
@@ -86,7 +89,8 @@ echo $S3_OBJECT_URL
 ########################################################################
 # request workers on ewms
 
-echo && echo "Requesting to EWMS..."
+echo "########################################################################################"
+echo "Requesting to EWMS..." && echo
 
 export POST_REQ=$(
     cat <<EOF
@@ -211,6 +215,10 @@ print(json.dumps(res))
 
         # Step 2: Compare the current workflow response with the previous one
         if [[ $wf_resp != "$prev_wf_response" ]]; then
+            echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            echo "~~ The EWMS workflow object has updated:                                          ~~"
+            echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            date
             # If the response has changed, print it and update the previous response
             echo "$wf_resp" | jq . -M --indent 4 # Format JSON with 4 spaces
             prev_wf_response="$wf_resp"
@@ -233,6 +241,10 @@ print(json.dumps(res))
 
         # Step 4: Compare the current taskforces response with the previous one
         if [[ $tf_resp != "$prev_tf_response" ]]; then
+            echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            echo "~~ The EWMS taskforce object(s) have updated:                                 ~~"
+            echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            date
             # If the response has changed, print it and update the previous response
             echo "$tf_resp" | jq . -M --indent 4 # Format JSON with 4 spaces
             prev_tf_response="$tf_resp"
@@ -247,7 +259,9 @@ trap 'kill $check_changes_pid 2>/dev/null' EXIT
 ########################################################################
 # get queue connection info
 
-echo && echo "Getting MQ info..."
+echo "########################################################################################"
+echo "Getting MQ info..." && echo
+
 mqprofiles=$(python3 -c '
 import os, rest_tools, pathlib, time, json
 rc = rest_tools.client.SavedDeviceGrantAuth(
@@ -293,7 +307,8 @@ export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=$(echo "$mqprofile_fromclient" | jq 
 ########################################################################
 # start server
 
-echo && echo "Starting local scanner server..."
+echo "########################################################################################"
+echo "Starting local scanner server..." && echo
 
 SCANNER_SERVER_DIR="./scan-dir-$WORKFLOW_ID/"
 mkdir $SCANNER_SERVER_DIR
@@ -313,7 +328,7 @@ sudo -E docker run --network="host" --rm -i \
     --client-startup-json /local/$(basename $SCANNER_SERVER_DIR)/startup.json \
     --cache-dir /local/$(basename $SCANNER_SERVER_DIR)/cache-dir/ \
     --output-dir /local/$(basename $SCANNER_SERVER_DIR)/results/ \
-    --reco-algo dummy \
+    --reco-algo $RECO_ALGO \
     --event-file /local/tests/data/realtime_events/run00136766-evt000007637140-GOLD.pkl --real-event \
     --nsides 1:0 |
     tee "$SCANNER_SERVER_DIR/server.out" 2>&1 \
@@ -328,7 +343,8 @@ export S3_FILE_TO_UPLOAD="$SCANNER_SERVER_DIR/startup.json"
 ########################################################################
 # get startup.json -> put in S3
 
-echo && echo "Waiting for file $S3_FILE_TO_UPLOAD..."
+echo "########################################################################################"
+echo "Waiting for file $S3_FILE_TO_UPLOAD..." && echo
 
 # wait until the file exists (with a timeout)
 found="false"
@@ -382,23 +398,20 @@ echo $out
 ########################################################################
 # wait for scan to finish
 
-echo && echo "Waiting for scan to finish..."
+echo "########################################################################################"
+echo "Waiting for scan to finish..." && echo
 
 # dump all content, then dump new content in realtime
 tail -n +1 -f "$SCANNER_SERVER_DIR/server.out" &
 
 wait $server_pid
-
-########################################################################
-# look at result
-
-echo && echo "The results:"
-ls "$SCANNER_SERVER_DIR/results/"
+echo "The scan finished!"
 
 ########################################################################
 # deactivate ewms workflow
 
-echo && echo "deactivating workflow..."
+echo "########################################################################################"
+echo "Deactivating the workflow..." && echo
 
 POST_RESP=$(python3 -c "
 import os, rest_tools, json, pathlib
@@ -419,6 +432,8 @@ sleep 120  # TODO - use smarter logic
 ########################################################################
 # look at result
 
-echo && echo "The scan was a success!"
+echo "########################################################################################"
+echo "The scan was a success!" && echo
+
 echo "The results:"
 ls "$SCANNER_SERVER_DIR/results/"
