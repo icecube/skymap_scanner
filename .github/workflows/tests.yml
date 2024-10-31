@@ -118,7 +118,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
 
-  test-run-dummy-recos:
+  test-run-dummy:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -190,6 +190,8 @@ jobs:
           
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
               export _RUN_THIS_SINGULARITY_IMAGE="$(realpath skymap_scanner.sif)"
+          else
+              export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
           fi
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
@@ -769,7 +771,7 @@ jobs:
       py-setup,
       py-dependencies,
       test-build-docker,
-      test-run-dummy-recos,
+      test-run-dummy,
       test-run-singularity-dummy-reco,
       test-file-staging,
       test-run-nsides-thresholds-dummy,

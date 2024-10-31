@@ -314,15 +314,15 @@ SCANNER_SERVER_DIR="./scan-dir-$WORKFLOW_ID/"
 mkdir $SCANNER_SERVER_DIR
 
 # look at env vars before running
-env | grep '^SKYSCAN_' | sort || true
-env | grep '^EWMS_' | sort || true
+env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | sort || true
+env | grep -E '^(EWMS_|_EWMS_)' | sort || true
 
 set -x # let's see this command
 sudo -E docker run --network="host" --rm -i \
     $DOCKERMOUNT_ARGS \
     --mount type=bind,source=$(realpath $SCANNER_SERVER_DIR),target=/local/$(basename $SCANNER_SERVER_DIR) \
-    $(env | grep '^SKYSCAN_' | sort | cut -d'=' -f1 | sed 's/^/--env /') \
-    $(env | grep '^EWMS_' | sort | cut -d'=' -f1 | sed 's/^/--env /') \
+    $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | sort | cut -d'=' -f1 | sed 's/^/--env /') \
+    $(env | grep -E '^(EWMS_|_EWMS_)' | sort | cut -d'=' -f1 | sed 's/^/--env /') \
     icecube/skymap_scanner:${SKYSCAN_SERVER_TAG:-$SKYSCAN_TAG} \
     python -m skymap_scanner.server \
     --client-startup-json /local/$(basename $SCANNER_SERVER_DIR)/startup.json \
