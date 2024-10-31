@@ -118,6 +118,134 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
 
+  test-run-dummy-recos:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        reco_algo: [
+          "dummy",
+          "crash_dummy"
+        ]
+        container_platform: [
+          "docker",
+          "apptainer",
+        ]
+    env:
+      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
+      EWMS_PILOT_TASK_TIMEOUT: 5
+    services:
+      rabbitmq:
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+        image: bitnami/rabbitmq:3.11.15-debian-11-r0
+        env:
+          RABBITMQ_USERNAME: user1
+          RABBITMQ_PASSWORD: password
+          RABBITMQ_VHOST: test
+          BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
+        options: >-
+          --name rabbitmq
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5672:5672
+          - 15672:15672
+    steps:
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+        with:
+          docker-images: false
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.2
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: build apptainer (singularity) image
+        run: |
+          sudo singularity build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
+          ls -lh skymap_scanner.sif
+
+      - name: run
+        timeout-minutes: 15  # on average ~9min  # yes, `timeout` is used below but this is insurance
+        run: |
+          set -x
+          source tests/env-vars.sh
+          export _RECO_ALGO="${{ matrix.reco_algo }}"
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+          export _NSIDES="1:0 2:12 4:12"
+          
+          if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
+              export _RUN_THIS_SINGULARITY_IMAGE="$(realpath skymap_scanner.sif)"
+          fi
+          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
+              export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
+          fi
+          
+          cd ./resources/launch_scripts
+          # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
+          #   so, stop it after some time and chek that it has stderrfiles
+          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+
+      - if: ${{ matrix.reco_algo == 'crash_dummy' }}
+        name: look at stderrfiles
+        run: |
+          set -x
+          # check for fails/errors
+
+          error_type_1='intentional crash-dummy error'
+          error_type_2='subprocess timed out after'
+          pattern="$error_type_1|$error_type_2"
+
+          if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
+              echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
+          else
+              echo "No matches found."
+              exit 1
+          fi
+      - if: ${{ matrix.reco_algo == 'dummy' }}
+        name: look at results file (.npz)
+        run: |
+          ls .
+          ls $CI_SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
+          echo $outfile
+
+      - name: central server stdout/stderr
+        if: always()
+        run: |
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: worker pilot \#1 stdout/stderr
+        if: always()
+        run: |
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
+        if: always()
+        run: |
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+      - name: worker pilot \#2 stdout/stderr
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
   test-run-singularity-dummy-reco:
     runs-on: ubuntu-latest
@@ -641,6 +769,7 @@ jobs:
       py-setup,
       py-dependencies,
       test-build-docker,
+      test-run-dummy-recos,
       test-run-singularity-dummy-reco,
       test-file-staging,
       test-run-nsides-thresholds-dummy,
