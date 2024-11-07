@@ -10,8 +10,8 @@ set -e
 ########################################################################
 # handle cl args
 
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ]; then
-    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG RECO_ALGO N_SIDES"
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ]; then
+    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG RECO_ALGO N_SIDES PREDICTIVE_SCANNING_THRESHOLD"
     exit 1
 else
     N_WORKERS="$1"
@@ -19,12 +19,18 @@ else
     SKYSCAN_TAG="$3"
     RECO_ALGO="$4"
     N_SIDES="$5"
+    PREDICTIVE_SCANNING_THRESHOLD="$6"
 fi
 
 # now, validate...
 
 if [[ $N_WORKERS != +([[:digit:]]) ]]; then
-    echo "N_WORKERS must be a number: $N_WORKERS"
+    echo "ERROR: N_WORKERS must be a number: $N_WORKERS"
+    exit 2
+fi
+
+if ! [[ "$PREDICTIVE_SCANNING_THRESHOLD" == "1" || "$PREDICTIVE_SCANNING_THRESHOLD" =~ ^\.[0-9]+$ ]]; then
+    echo "ERROR: PREDICTIVE_SCANNING_THRESHOLD must be '1' or a decimal."
     exit 2
 fi
 
@@ -381,7 +387,8 @@ sudo -E docker run --network="host" --rm -i \
     --client-startup-json /local/$(basename $SCANNER_SERVER_DIR)/startup.json \
     --cache-dir /local/$(basename $SCANNER_SERVER_DIR)/cache-dir/ \
     --output-dir /local/$(basename $SCANNER_SERVER_DIR)/results/ \
-    --reco-algo $RECO_ALGO \
+    --reco-algo "$RECO_ALGO" \
+    --predictive-scanning-threshold "$PREDICTIVE_SCANNING_THRESHOLD" \
     --event-file /local/tests/data/realtime_events/run00136766-evt000007637140-GOLD.pkl --real-event \
     --nsides $N_SIDES |
     tee "$SCANNER_SERVER_DIR/server.out" 2>&1 \
