@@ -10,14 +10,15 @@ set -e
 ########################################################################
 # handle cl args
 
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
-    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG RECO_ALGO"
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ]; then
+    echo "Usage: ewms-scan.sh N_WORKERS EWMS_URL SKYSCAN_TAG RECO_ALGO N_SIDES"
     exit 1
 else
     N_WORKERS="$1"
     EWMS_URL="$2"
     SKYSCAN_TAG="$3"
     RECO_ALGO="$4"
+    N_SIDES="$5"
 fi
 
 # now, validate...
@@ -33,6 +34,15 @@ else
     echo "ERROR: Tag not found on Docker Hub: $SKYSCAN_TAG"
     exit 2
 fi
+
+########################################################################
+# set up python virtual environment
+
+ENV_NAME="skyscan_ewms_pyvenv"
+[ ! -d "$ENV_NAME" ] && virtualenv --python python3 "$ENV_NAME"
+source "$ENV_NAME"/bin/activate
+pip install --upgrade pip
+echo "Virtual environment '$ENV_NAME' is now active."
 
 ########################################################################
 # set up env vars
@@ -103,14 +113,18 @@ export POST_REQ=$(
             "output_queue_aliases": ["from-client-queue"],
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json {{DATA_HUB}}/startup.json",
+            "task_env": {"foo":"bar"},
             "init_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "init_args": "bash -c \"curl --fail-with-body --max-time 60 -o {{DATA_HUB}}/startup.json '$S3_OBJECT_URL'\" ",
+            "init_env": {"baz":"bat"},
             "n_workers": $N_WORKERS,
             "pilot_config": {
                 "tag": "${PILOT_TAG:-'latest'}",
                 "environment": {
                     "EWMS_PILOT_INIT_TIMEOUT": "60",
                     "EWMS_PILOT_TASK_TIMEOUT": "3600",
+                    "EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE": 240,
+                    "EWMS_PILOT_TIMEOUT_QUEUE_INCOMING": 120,
                     "EWMS_PILOT_CONTAINER_DEBUG": "True",
                     "EWMS_PILOT_INFILE_EXT": ".json",
                     "EWMS_PILOT_OUTFILE_EXT": ".json"
@@ -123,7 +137,8 @@ export POST_REQ=$(
                 "n_cores": 1,
                 "priority": 99,
                 "worker_disk": "512M",
-                "worker_memory": "512M"
+                "worker_memory": "512M",
+                "condor_requirements": "HAS_CVMFS_icecube_opensciencegrid_org && has_avx && has_avx2"
             }
         }
     ]
@@ -184,7 +199,10 @@ print(json.dumps(res))
     echo "$resp" | jq . -M --indent 4 # Format JSON with 4 spaces
 }
 
-trap 'abort $WORKFLOW_ID' ERR
+# trap 'echo "Script exited. Aborting workflow..."; abort $WORKFLOW_ID' EXIT -- not needed
+trap 'echo "An error occurred. Aborting workflow..."; abort $WORKFLOW_ID' ERR
+trap 'echo "Script interrupted by Ctrl+C. Aborting workflow..."; abort $WORKFLOW_ID' INT
+trap 'echo "Received SIGTERM. Aborting workflow..."; abort $WORKFLOW_ID' TERM
 
 ########################################################################
 # in the background, check if things on ewms have changed
@@ -254,7 +272,10 @@ print(json.dumps(res))
 
 check_ewms_changes "$WORKFLOW_ID" &
 check_changes_pid=$!
-trap 'kill $check_changes_pid 2>/dev/null' EXIT
+trap 'echo "Script exited. Cleaning up..."; kill $check_changes_pid 2>/dev/null' EXIT
+trap 'echo "An error occurred. Cleaning up..."; kill $check_changes_pid 2>/dev/null' ERR
+trap 'echo "Script interrupted by Ctrl+C. Cleaning up..."; kill $check_changes_pid 2>/dev/null' INT
+trap 'echo "Received SIGTERM. Cleaning up..."; kill $check_changes_pid 2>/dev/null' TERM
 
 ########################################################################
 # get queue connection info
@@ -330,7 +351,7 @@ sudo -E docker run --network="host" --rm -i \
     --output-dir /local/$(basename $SCANNER_SERVER_DIR)/results/ \
     --reco-algo $RECO_ALGO \
     --event-file /local/tests/data/realtime_events/run00136766-evt000007637140-GOLD.pkl --real-event \
-    --nsides 1:0 |
+    --nsides $N_SIDES |
     tee "$SCANNER_SERVER_DIR/server.out" 2>&1 \
     &
 server_pid=$!
