@@ -53,7 +53,7 @@ class EnvConfig:
         #   then, SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO is used.
         # NOTE: val should not be (too) below the num of workers (which is unknown, so make a good guess).
         #   In other words, if val is too low, then the rate is not representative of the
-        #   worker-pool's concurrency; if val is too high, then the window is too large.
+        #   worker-pool's concurrency; if val is TOO HIGH, then the window is TOO LARGE.
         100
     )
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
