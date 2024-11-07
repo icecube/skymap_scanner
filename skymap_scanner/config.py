@@ -1,13 +1,7 @@
 """Configuration constants."""
 
-import logging
 from pathlib import Path
 from typing import Final, List
-
-import mqclient
-from wipac_dev_tools import logging_tools
-
-# pylint:disable=invalid-name
 
 #
 # True constants
@@ -55,9 +49,9 @@ INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
     "2024a": "SplitInIcePulses",
 }
 DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
-
+#
 INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
-
+#
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
 OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
@@ -78,14 +72,18 @@ MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
 MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: Final = "reco_pixel_variation_pkl_b64"
 MSG_KEY_RUNTIME: Final = "runtime"
 
+# default filepaths
 BASELINE_GCD_FILENAME = "base_GCD_for_diff.i3"
 SOURCE_BASELINE_GCD_METADATA = "original_base_GCD_for_diff_filename.txt"
 GCDQp_FILENAME = "GCDQp.i3"
 
+# predictive scanning config
 PREDICTIVE_SCANNING_THRESHOLD_MIN = 0.1
 PREDICTIVE_SCANNING_THRESHOLD_MAX = 1.0
 PREDICTIVE_SCANNING_THRESHOLD_DEFAULT = 1.0
+COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
+# reporter config
 REPORTER_TIMELINE_PERCENTAGES = [
     0.1,
     0.2,
@@ -102,7 +100,6 @@ REPORTER_TIMELINE_PERCENTAGES = [
     0.99999,
     1.0,
 ]
-COLLECTOR_BASE_THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
 LOG_LEVEL_DEFAULT = "INFO"
