@@ -75,7 +75,7 @@ add_cleanup() {
     echo "Adding cleanup task for $trap_signal: '$new_cmd'"
 
     # Get the current trap for the specified signal, if any
-    existing_trap=$(trap -p "$trap_signal" | sed -E "s/trap -- '(.*)' $trap_signal/\1/")
+    existing_trap=$(trap -p "$trap_signal" | sed -E "s/^trap -- '(.*)' $trap_signal/\1/")
 
     # If empty -> set the new command, else append
     if [[ -z "$existing_trap" ]]; then
@@ -144,8 +144,10 @@ export POST_REQ=$(
             "output_queue_aliases": ["from-client-queue"],
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json {{DATA_HUB}}/startup.json",
+            "task_env": {"todo":"remove_this"},
             "init_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "init_args": "bash -c \"curl --fail-with-body --max-time 60 -o {{DATA_HUB}}/startup.json '$S3_OBJECT_URL'\" ",
+            "init_env": {"todo":"remove_this"},
             "n_workers": $N_WORKERS,
             "pilot_config": {
                 "tag": "${PILOT_TAG:-'latest'}",
