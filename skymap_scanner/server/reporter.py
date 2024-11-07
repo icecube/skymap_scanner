@@ -183,11 +183,23 @@ class WorkerStatsCollection:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
 
+    def get_runtime_prediction_technique(self) -> str:
+        """Get a human-readable string of what technique is used for predicting runtimes."""
+        if self.runtime_sample_window_size < self._runtime_sample_window_size_candidate:
+            return f"simple average over entire scan runtime"
+        else:
+            return f"simple moving average (window={self.runtime_sample_window_size})"
+
+    @property
+    def _runtime_sample_window_size_candidate(self) -> int:
+        """The window size that would be used if not for a minimum."""
+        return int(self.total_ct * ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)
+
     @property
     def runtime_sample_window_size(self) -> int:
         """The size of the window used for predicting runtimes."""
         return max(
-            int(self.total_ct * ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO),
+            self._runtime_sample_window_size_candidate,
             ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN,
         )
 
@@ -554,7 +566,7 @@ class Reporter:
                 ),
                 "total # of reconstructions": self.predicted_total_recos(),
                 "end": str(dt.datetime.fromtimestamp(int(time.time() + time_left))),
-                "technique": f"simple moving average (window={self.worker_stats_collection.runtime_sample_window_size})",
+                "technique": self.worker_stats_collection.get_runtime_prediction_technique(),
             }
 
         return proc_stats
