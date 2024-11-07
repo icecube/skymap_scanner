@@ -65,6 +65,37 @@ check_and_export_env S3_BUCKET
 export S3_OBJECT_DEST_FILE="${SKYSCAN_SKYDRIVER_SCAN_ID}-s3-json" # no dots allowed
 
 ########################################################################
+# trap tools -- what to do if things go wrong
+
+add_cleanup() {
+    local new_cmd="$1"
+    local trap_signal="$2"
+    local existing_trap
+
+    echo "Adding cleanup task for $trap_signal: '$new_cmd'"
+
+    # Get the current trap for the specified signal, if any
+    existing_trap=$(trap -p "$trap_signal" | sed -E "s/trap -- '(.*)' $trap_signal/\1/")
+
+    # If empty -> set the new command, else append
+    if [[ -z "$existing_trap" ]]; then
+        set -x
+        trap "$new_cmd" "$trap_signal"
+        set +x
+    else
+        set -x
+        trap "$existing_trap; $new_cmd" "$trap_signal"
+        set +x
+    fi
+}
+
+# add first cleanup actions
+add_cleanup 'echo "Handling cleanup for exit..."' EXIT
+add_cleanup 'echo "Handling cleanup for error..."' ERR
+add_cleanup 'echo "Handling cleanup for ctrl+C..."' INT
+add_cleanup 'echo "Handling cleanup for SIGTERM..."' TERM
+
+########################################################################
 # S3: Generate the GET pre-signed URL  -- server will post here later, ewms needs it now
 
 echo "################################################################################"
@@ -113,18 +144,16 @@ export POST_REQ=$(
             "output_queue_aliases": ["from-client-queue"],
             "task_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "task_args": "python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json {{DATA_HUB}}/startup.json",
-            "task_env": {"foo":"bar"},
             "init_image": "/cvmfs/icecube.opensciencegrid.org/containers/realtime/skymap_scanner:$SKYSCAN_TAG",
             "init_args": "bash -c \"curl --fail-with-body --max-time 60 -o {{DATA_HUB}}/startup.json '$S3_OBJECT_URL'\" ",
-            "init_env": {"baz":"bat"},
             "n_workers": $N_WORKERS,
             "pilot_config": {
                 "tag": "${PILOT_TAG:-'latest'}",
                 "environment": {
-                    "EWMS_PILOT_INIT_TIMEOUT": "60",
-                    "EWMS_PILOT_TASK_TIMEOUT": "3600",
-                    "EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE": 240,
-                    "EWMS_PILOT_TIMEOUT_QUEUE_INCOMING": 120,
+                    "EWMS_PILOT_INIT_TIMEOUT": $((1 * 60)),
+                    "EWMS_PILOT_TASK_TIMEOUT": $((1 * 60 * 60)),
+                    "EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE": $((2 * 60)),
+                    "EWMS_PILOT_TIMEOUT_QUEUE_INCOMING": $((5 * 60)),
                     "EWMS_PILOT_CONTAINER_DEBUG": "True",
                     "EWMS_PILOT_INFILE_EXT": ".json",
                     "EWMS_PILOT_OUTFILE_EXT": ".json"
@@ -133,11 +162,11 @@ export POST_REQ=$(
             },
             "worker_config": {
                 "do_transfer_worker_stdouterr": true,
-                "max_worker_runtime": 600,
+                "max_worker_runtime": $((2 * 60 * 60)),
                 "n_cores": 1,
                 "priority": 99,
                 "worker_disk": "512M",
-                "worker_memory": "512M",
+                "worker_memory": "8G",
                 "condor_requirements": "HAS_CVMFS_icecube_opensciencegrid_org && has_avx && has_avx2"
             }
         }
@@ -199,10 +228,10 @@ print(json.dumps(res))
     echo "$resp" | jq . -M --indent 4 # Format JSON with 4 spaces
 }
 
-# trap 'echo "Script exited. Aborting workflow..."; abort $WORKFLOW_ID' EXIT -- not needed
-trap 'echo "An error occurred. Aborting workflow..."; abort $WORKFLOW_ID' ERR
-trap 'echo "Script interrupted by Ctrl+C. Aborting workflow..."; abort $WORKFLOW_ID' INT
-trap 'echo "Received SIGTERM. Aborting workflow..."; abort $WORKFLOW_ID' TERM
+# add_cleanup 'abort $WORKFLOW_ID' EXIT -- not needed
+add_cleanup 'abort $WORKFLOW_ID' ERR
+add_cleanup 'abort $WORKFLOW_ID' INT
+add_cleanup 'abort $WORKFLOW_ID' TERM
 
 ########################################################################
 # in the background, check if things on ewms have changed
@@ -272,10 +301,10 @@ print(json.dumps(res))
 
 check_ewms_changes "$WORKFLOW_ID" &
 check_changes_pid=$!
-trap 'echo "Script exited. Cleaning up..."; kill $check_changes_pid 2>/dev/null' EXIT
-trap 'echo "An error occurred. Cleaning up..."; kill $check_changes_pid 2>/dev/null' ERR
-trap 'echo "Script interrupted by Ctrl+C. Cleaning up..."; kill $check_changes_pid 2>/dev/null' INT
-trap 'echo "Received SIGTERM. Cleaning up..."; kill $check_changes_pid 2>/dev/null' TERM
+add_cleanup 'kill $check_changes_pid 2>/dev/null' EXIT
+add_cleanup 'kill $check_changes_pid 2>/dev/null' ERR
+add_cleanup 'kill $check_changes_pid 2>/dev/null' INT
+add_cleanup 'kill $check_changes_pid 2>/dev/null' TERM
 
 ########################################################################
 # get queue connection info
@@ -458,3 +487,5 @@ echo "The scan was a success!" && echo
 
 echo "The results:"
 ls "$SCANNER_SERVER_DIR/results/"
+
+echo "Script finished."
