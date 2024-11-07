@@ -185,7 +185,10 @@ class WorkerStatsCollection:
 
     def get_runtime_prediction_technique(self) -> str:
         """Get a human-readable string of what technique is used for predicting runtimes."""
-        if self.runtime_sample_window_size < self._runtime_sample_window_size_candidate:
+        if (
+            self.runtime_sample_window_size
+            == ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN
+        ):
             return f"simple average over entire scan runtime"
         else:
             return f"simple moving average (window={self.runtime_sample_window_size})"
