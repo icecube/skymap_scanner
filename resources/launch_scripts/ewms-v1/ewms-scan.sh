@@ -212,6 +212,7 @@ echo $QUEUE_FROMCLIENT
 
 abort() {
     local workflow_id=$1
+    echo "ABORTING WORKFLOW..."
     local resp=$(python3 -c "
 import os, rest_tools, json, pathlib
 rc = rest_tools.client.SavedDeviceGrantAuth(
