@@ -54,7 +54,7 @@ class EnvConfig:
         # NOTE: val should not be (too) below the num of workers (which is unknown, so make a good guess).
         #   In other words, if val is too low, then the rate is not representative of the
         #   worker-pool's concurrency; if val is TOO HIGH, then the window is TOO LARGE.
-        100
+        500
     )
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
