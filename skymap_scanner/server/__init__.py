@@ -44,7 +44,7 @@ class EnvConfig:
         #   used to calculate the most recent runtime rate (sec/reco), then used to make
         #   predictions for overall runtimes: i.e. amount of time left.
         # Also, see SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN.
-        0.1
+        0.25
     )
     SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN: int = (
         # WARNING!
