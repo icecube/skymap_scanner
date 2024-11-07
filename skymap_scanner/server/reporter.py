@@ -189,7 +189,14 @@ class WorkerStatsCollection:
             self.runtime_sample_window_size
             == ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN
         ):
-            return f"simple average over entire scan runtime"
+            return (
+                f"simple average over entire scan runtime "
+                f"(a moving average with a window of "
+                f"{ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO} "
+                f"will be used after "
+                f"{int(ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN/ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)} "
+                f"recos have been received)"
+            )
         else:
             return f"simple moving average (window={self.runtime_sample_window_size})"
 
