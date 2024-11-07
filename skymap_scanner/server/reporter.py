@@ -183,20 +183,23 @@ class WorkerStatsCollection:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
 
-    def on_server_recent_sec_per_reco_rate(self) -> float:
-        """The sec/reco rate from server pov within a moving window."""
-        window_size = max(
+    @property
+    def runtime_sample_window_size(self) -> int:
+        """The size of the window used for predicting runtimes."""
+        return max(
             int(self.total_ct * ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO),
             ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN,
         )
 
+    def on_server_recent_sec_per_reco_rate(self) -> float:
+        """The sec/reco rate from server pov within a moving window."""
         try:
             # look at a window, so don't use the first start time
             #   psst, we know that this list is sorted, ascending
             nth_most_recent_start = self.aggregate.on_server_roundtrip_starts[
-                -window_size
+                -self.runtime_sample_window_size
             ]
-            n_recos = window_size
+            n_recos = self.runtime_sample_window_size
         except IndexError:
             # not enough recos to sample, so take all of them
             nth_most_recent_start = self.aggregate.on_server_first_roundtrip_start()
@@ -551,6 +554,7 @@ class Reporter:
                 ),
                 "total # of reconstructions": self.predicted_total_recos(),
                 "end": str(dt.datetime.fromtimestamp(int(time.time() + time_left))),
+                "technique": f"simple moving average (window={self.worker_stats_collection.runtime_sample_window_size})",
             }
 
         return proc_stats
