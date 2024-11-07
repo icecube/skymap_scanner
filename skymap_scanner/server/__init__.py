@@ -47,11 +47,13 @@ class EnvConfig:
         0.1
     )
     SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN: int = (
+        # WARNING!
+        #   THIS IS A MINIMUM!!! -- it's only useful for the first
+        #   `val/SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO` num of recos;
+        #   then, SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO is used.
         # NOTE: val should not be (too) below the num of workers (which is unknown, so make a good guess).
         #   In other words, if val is too low, then the rate is not representative of the
         #   worker-pool's concurrency; if val is too high, then the window is too large.
-        # This is only useful for the first `val/SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO`
-        #   num of recos, afterward the ratio is used.
         100
     )
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
