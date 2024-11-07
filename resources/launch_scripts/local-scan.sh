@@ -121,7 +121,7 @@ done
 # Wait for scan components to finish
 
 set +x
-echo "Dumping pidmap:"
+echo "pidmap:"
 for pid in "${!pidmap[@]}"; do
     echo "PID: $pid, Identifier: ${pidmap[$pid]}"
 done
