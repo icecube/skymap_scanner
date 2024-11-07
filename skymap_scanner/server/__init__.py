@@ -44,7 +44,7 @@ class EnvConfig:
         #   used to calculate the most recent runtime rate (sec/reco), then used to make
         #   predictions for overall runtimes: i.e. amount of time left.
         # Also, see SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN.
-        0.20
+        0.25
     )
     SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN: int = (
         # WARNING!
@@ -54,7 +54,7 @@ class EnvConfig:
         # NOTE: val should not be (too) below the num of workers (which is unknown, so make a good guess).
         #   In other words, if val is too low, then the rate is not representative of the
         #   worker-pool's concurrency; if val is TOO HIGH, then the window is TOO LARGE.
-        300
+        400
     )
     SKYSCAN_RESULT_INTERVAL_SEC: int = 2 * 60
 
