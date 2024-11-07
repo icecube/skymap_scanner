@@ -152,7 +152,7 @@ export POST_REQ=$(
                 "environment": {
                     "EWMS_PILOT_INIT_TIMEOUT": $((1 * 60)),
                     "EWMS_PILOT_TASK_TIMEOUT": $((1 * 60 * 60)),
-                    "EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE": $((2 * 60)),
+                    "EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE": $((10 * 60)),
                     "EWMS_PILOT_TIMEOUT_QUEUE_INCOMING": $((5 * 60)),
                     "EWMS_PILOT_CONTAINER_DEBUG": "True",
                     "EWMS_PILOT_INFILE_EXT": ".json",
