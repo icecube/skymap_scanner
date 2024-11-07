@@ -195,7 +195,7 @@ class WorkerStatsCollection:
                 f"{ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO} "
                 f"will be used after "
                 f"{int(ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN/ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)} "
-                f"recos have been received)"
+                f"recos have finished)"
             )
         else:
             return f"simple moving average (window={self.runtime_sample_window_size})"
