@@ -29,7 +29,7 @@ if [[ $N_WORKERS != +([[:digit:]]) ]]; then
     exit 2
 fi
 
-if ! [[ "$PREDICTIVE_SCANNING_THRESHOLD" == "1" || "$PREDICTIVE_SCANNING_THRESHOLD" =~ ^\.[0-9]+$ ]]; then
+if ! [[ "$PREDICTIVE_SCANNING_THRESHOLD" == "1" || "$PREDICTIVE_SCANNING_THRESHOLD" =~ ^(0?)\.[0-9]+$ ]]; then
     echo "ERROR: PREDICTIVE_SCANNING_THRESHOLD must be '1' or a decimal."
     exit 2
 fi
