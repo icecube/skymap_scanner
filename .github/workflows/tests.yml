@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@from-args-only
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.5
 
   # flake8:
   #   runs-on: ubuntu-latest
