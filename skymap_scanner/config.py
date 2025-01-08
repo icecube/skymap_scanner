@@ -104,3 +104,8 @@ REPORTER_TIMELINE_PERCENTAGES = [
 
 LOG_LEVEL_DEFAULT = "INFO"
 LOG_THIRD_PARTY_LEVEL_DEFAULT = "WARNING"
+
+
+#
+# NOTE: Env var constants have been moved to server/__init__.py and client/__init__.py
+#
