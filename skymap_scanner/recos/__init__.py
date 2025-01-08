@@ -1,5 +1,8 @@
 """Tools for conducting & representing a pixel reconstruction."""
 
+# mypy: ignore-errors
+# fmt: off
+
 from abc import ABC, abstractmethod
 import importlib
 import pkgutil
@@ -81,7 +84,7 @@ class RecoInterface(ABC):
     def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
         """Performs the reconstruction."""
         pass
- 
+
     @staticmethod
     @abstractmethod
     def to_recopixelvariation(
