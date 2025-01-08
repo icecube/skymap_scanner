@@ -1,8 +1,5 @@
 """Tools for conducting & representing a pixel reconstruction."""
 
-# mypy: ignore-errors
-# fmt: off
-
 from abc import ABC, abstractmethod
 import importlib
 import pkgutil
@@ -17,8 +14,8 @@ from ..utils.data_handling import DataStager
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
-    from icecube import astro  # type: ignore[import]
-except ImportError:  # type: ignore[import]
+    from icecube import astro # type: ignore[import]
+except ImportError: # type: ignore[import]
     I3Position = Any
     I3Frame = Any
 
@@ -84,11 +81,11 @@ class RecoInterface(ABC):
     def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
         """Performs the reconstruction."""
         pass
-
+ 
     @staticmethod
     @abstractmethod
     def to_recopixelvariation(
-            frame: I3Frame, geometry: I3Frame
+        frame: I3Frame, geometry: I3Frame
     ) -> "RecoPixelVariation":
         raise NotImplementedError()
 
@@ -123,10 +120,9 @@ def get_reco_spline_requirements(name: str) -> List[str]:
             raise UnsupportedRecoAlgoException(name) from e
         raise  # something when wrong AFTER accessing sub-module
 
-
 def set_pointing_ra_dec(
-        particle_name_possibilities: Union[List[str], None],
-        p_frame: I3Frame
+    particle_name_possibilities: Union[List[str], None],
+    p_frame: I3Frame
 ) -> Union[Tuple[float, float], None]:
     """Retrieves the direction for a pointed scan"""
     pointing_ra_dec = None
