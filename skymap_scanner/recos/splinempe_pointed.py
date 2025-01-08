@@ -1,12 +1,11 @@
 """IceTray segment for a pointed splinempe reco."""
 
 # mypy: ignore-errors
-# fmt: off
-
+ 
 from typing import Final
 
-from . import splinempe
-from . import RecoInterface
+from . import splinempe 
+from . import RecoInterface       
 
 class SplineMPEPointed(splinempe.SplineMPE):
 
