@@ -1,6 +1,7 @@
 """The Skymap Scanner Central Server."""
 
 import dataclasses as dc
+from pathlib import Path
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -21,18 +22,7 @@ class EnvConfig:
     #
 
     SKYSCAN_SKYDRIVER_SCAN_ID: str  # globally unique ID
-
-    # to-client queue
-    SKYSCAN_MQ_TOCLIENT: str
-    SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: str
-    SKYSCAN_MQ_TOCLIENT_BROKER_TYPE: str
-    SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: str
-    #
-    # from-client queue
-    SKYSCAN_MQ_FROMCLIENT: str
-    SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: str
-    SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE: str
-    SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: str
+    SKYSCAN_EWMS_JSON: Path  # json file containing mq info
 
     #
     # OPTIONAL

@@ -24,18 +24,22 @@ LOGGER = logging.getLogger(__name__)
 
 def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
     """Establish connections to message queues."""
+    with open(ENV.SKYSCAN_EWMS_JSON) as f:
+        ewms_config = json.load(f)
+
     to_clients_queue = mq.Queue(
-        ENV.SKYSCAN_MQ_TOCLIENT_BROKER_TYPE,
-        address=ENV.SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS,
-        name=ENV.SKYSCAN_MQ_TOCLIENT,
-        auth_token=ENV.SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN,
+        ewms_config["toclient"]["broker_type"],
+        address=ewms_config["toclient"]["broker_address"],
+        name=ewms_config["toclient"]["name"],
+        auth_token=ewms_config["toclient"]["auth_token"],
         # timeout=-1,  # NOTE: this mq only sends messages so no timeout needed
     )
+
     from_clients_queue = mq.Queue(
-        ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE,
-        address=ENV.SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS,
-        name=ENV.SKYSCAN_MQ_FROMCLIENT,
-        auth_token=ENV.SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN,
+        ewms_config["fromclient"]["broker_type"],
+        address=ewms_config["fromclient"]["broker_address"],
+        name=ewms_config["fromclient"]["name"],
+        auth_token=ewms_config["fromclient"]["auth_token"],
         timeout=ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
 
