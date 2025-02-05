@@ -11,21 +11,26 @@ set -ex # file is sourced so turn off at end
 
 export SKYSCAN_SKYDRIVER_SCAN_ID=$(uuidgen)
 
-# to-client queue
-# -> server
-export SKYSCAN_MQ_TOCLIENT="to-clients-$SKYSCAN_SKYDRIVER_SCAN_ID"
-export SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN=${SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN:-""} # note: set in ci job
-export SKYSCAN_MQ_TOCLIENT_BROKER_TYPE=${SKYSCAN_MQ_TOCLIENT_BROKER_TYPE:-"rabbitmq"}
-export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS=${SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS:-""} # note: set in ci job
-# -> worker/client/pilot
-# note: set in launch_worker.sh
-#
-# from-client queue
-# -> server
-export SKYSCAN_MQ_FROMCLIENT="from-clients-$SKYSCAN_SKYDRIVER_SCAN_ID"
-export SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN=${SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN:-""} # note: set in ci job
-export SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE=${SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE:-"rabbitmq"}
-export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS=${SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS:-""} # note: set in ci job
+# mq attrs
+export SKYSCAN_EWMS_JSON="$PWD/ewms.json"
+cat <<EOF > "$SKYSCAN_EWMS_JSON"
+{
+    "toclient": {
+        "name": "to-clients-$SKYSCAN_SKYDRIVER_SCAN_ID",
+        "auth_token": "${SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN:-""}",
+        "broker_type": "${SKYSCAN_MQ_TOCLIENT_BROKER_TYPE:-"rabbitmq"}",
+        "broker_address": "${SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS:-""}"
+    },
+    "fromclient": {
+        "name": "from-clients-$SKYSCAN_SKYDRIVER_SCAN_ID",
+        "auth_token": "${SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN:-""}",
+        "broker_type": "${SKYSCAN_MQ_FROMCLIENT_BROKER_TYPE:-"rabbitmq"}",
+        "broker_address": "${SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS:-""}"
+    }
+}
+EOF
+
+
 # -> worker/client/pilot
 # note: set in launch_worker.sh
 
