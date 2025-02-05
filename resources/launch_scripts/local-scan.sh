@@ -79,9 +79,11 @@ else
         --mount type=bind,source="$CI_SKYSCAN_CACHE_DIR",target=/local/cache \
         --mount type=bind,source="$CI_SKYSCAN_OUTPUT_DIR",target=/local/output \
         --mount type=bind,source="$(dirname "$CI_SKYSCAN_STARTUP_JSON")",target=/local/startup \
+        --mount type=bind,source="$(dirname "$_EWMS_JSON_ON_HOST")",target=/local/ewms \
         --env PY_COLORS=1 \
         $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+        --env SKYSCAN_EWMS_JSON="/local/ewms/$(basename "$_EWMS_JSON_ON_HOST")" \
         "$CI_DOCKER_IMAGE_TAG" \
         python -m skymap_scanner.server \
         --reco-algo $_RECO_ALGO \

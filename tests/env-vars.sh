@@ -12,8 +12,8 @@ set -ex # file is sourced so turn off at end
 export SKYSCAN_SKYDRIVER_SCAN_ID=$(uuidgen)
 
 # mq attrs
-export SKYSCAN_EWMS_JSON="$PWD/ewms.json"
-cat <<EOF > "$SKYSCAN_EWMS_JSON"
+export _EWMS_JSON_ON_HOST="$PWD/ewms.json"
+cat <<EOF > "$_EWMS_JSON_ON_HOST"
 {
     "toclient": {
         "name": "to-clients-$SKYSCAN_SKYDRIVER_SCAN_ID",
