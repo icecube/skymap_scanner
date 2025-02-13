@@ -109,7 +109,7 @@ async def wait_for_workers_to_start() -> None:
 
     skydriver_rc = connect_to_skydriver(urgent=False)
     timer = IntervalTimer(30, LOGGER)  # fyi: skydriver (feb '25) updates every 60s
-    prev = {}
+    prev: dict[str, Any] = {}
 
     while True:  # yes, we are going to wait forever
         resp = await skydriver_rc.request(
