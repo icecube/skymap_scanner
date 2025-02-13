@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import cachetools.func
 import mqclient as mq
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
+from wipac_dev_tools.timing_tools import IntervalTimer
 
 from . import ENV
 
@@ -99,6 +100,35 @@ async def kill_switch_check_from_skydriver() -> None:
                 f"Kill switch triggered by SkyDriver scan state: {status['scan_state']}"
             )
             os.kill(os.getpid(), signal.SIGINT)  # NOTE - sys.exit only exits thread
+
+
+async def wait_for_workers_to_start() -> None:
+    """Wait until SkyDriver indicates there are workers currently running."""
+    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        return
+
+    skydriver_rc = connect_to_skydriver(urgent=False)
+    timer = IntervalTimer(30, LOGGER)  # fyi: skydriver (feb '25) updates every 60s
+    prev = {}
+
+    while True:  # yes, we are going to wait forever
+        resp = await skydriver_rc.request(
+            "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/ewms/workforce"
+        )
+
+        if resp != prev:
+            LOGGER.info(f"workers: {resp}")  # why not log this, but just when updated
+            prev = resp
+
+        if resp["n_running"]:
+            LOGGER.info("SkyDriver says there are workers running!")
+            return
+        else:
+            LOGGER.info(
+                f"SkyDriver says there no workers are running (yet)"
+                f"--checking again in {timer.seconds}s..."
+            )
+            await timer.wait_until_interval()
 
 
 ########################################################################################

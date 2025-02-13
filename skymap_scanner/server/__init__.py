@@ -52,11 +52,9 @@ class EnvConfig:
 
     # TIMEOUTS
     #
-    # seconds -- how long server waits before thinking all clients are dead
-    #  - set to duration of first reco + client launch (condor)
-    #  - important if clients launch *AFTER* server
-    #  - normal expiration scenario: all clients died (bad condor submit file), otherwise never (server knows when all recos are done)
-    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 3 * 24 * 60 * 60  # 3 days
+    # seconds -- how long server waits before thinking *all* clients are dead
+    #  - set to duration of longest reco + on-client startup time
+    SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS: int = 2 * 60 * 60  # 2 hours
 
     # SKYDRIVER VARS
     SKYSCAN_SKYDRIVER_ADDRESS: str = ""  # SkyDriver REST interface address

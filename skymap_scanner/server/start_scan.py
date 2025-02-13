@@ -34,6 +34,7 @@ from .utils import (
     fetch_event_contents_from_skydriver,
     get_mqclient_connections,
     kill_switch_check_from_skydriver,
+    wait_for_workers_to_start,
 )
 from .. import config as cfg, recos
 from ..recos import RecoInterface, set_pointing_ra_dec
@@ -359,6 +360,13 @@ async def scan(
         predictive_scanning_threshold,
     )
     await reporter.precomputing_report()
+
+    # Before doing anything further, are the workers ready?
+    # NOTE: this is an optimization -- without this check, we'd have to rely on the
+    #       mq's 'to_clients_queue' timeout. however, if the workforce is slow to start
+    #       (aka condor is very busy) then this wait could be *long*, much longer than
+    #       the normal 'to_clients_queue' timeout.
+    await wait_for_workers_to_start()
 
     # Start the scan iteration loop
     total_n_pixfin = await _serve_and_collect(
