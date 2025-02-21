@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 set -ex
 
 ########################################################################
@@ -56,13 +57,12 @@ declare -A pidmap # map of background pids to wait on
 export CI_SKYSCAN_STARTUP_JSON="$(pwd)/dir-for-startup-json/startup.json" # export for launch_worker.sh
 mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
-export SKYSCAN_EWMS_JSON="/local/ewms/$(basename "$_EWMS_JSON_ON_HOST")"
-
 ########################################################################
 # Launch Server
 
 if [ -n "$_RUN_THIS_SIF_IMAGE" ]; then
     # SINGULARITY
+    export SKYSCAN_EWMS_JSON="$_EWMS_JSON_ON_HOST"
     singularity run "$_RUN_THIS_SIF_IMAGE" \
         python -m skymap_scanner.server \
         --reco-algo $_RECO_ALGO \
@@ -85,6 +85,7 @@ else
         --env PY_COLORS=1 \
         $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+        --env SKYSCAN_EWMS_JSON="/local/ewms/$(basename "$_EWMS_JSON_ON_HOST")" \
         "$CI_DOCKER_IMAGE_TAG" \
         python -m skymap_scanner.server \
         --reco-algo $_RECO_ALGO \
