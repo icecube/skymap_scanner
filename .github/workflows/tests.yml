@@ -219,12 +219,14 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer (.sif) image
         run: |
+          set -euo pipefail
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
 
       - name: run
         timeout-minutes: 15  # on average ~9min  # yes, `timeout` is used below but this is insurance
         run: |
+          set -euo pipefail
           set -x
           source tests/env-vars.sh
           export _RECO_ALGO="${{ matrix.reco_algo }}"
@@ -248,6 +250,7 @@ jobs:
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
         name: look at stderrfiles
         run: |
+          set -euo pipefail
           set -x
           # check for fails/errors
 
@@ -264,6 +267,7 @@ jobs:
       - if: ${{ matrix.reco_algo == 'dummy' }}
         name: look at results file (.npz)
         run: |
+          set -euo pipefail
           ls .
           ls $CI_SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
@@ -272,23 +276,28 @@ jobs:
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
@@ -345,6 +354,7 @@ jobs:
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
+          set -euo pipefail
           set -x
           source tests/env-vars.sh
           export _RECO_ALGO=dummy
@@ -357,6 +367,7 @@ jobs:
 
       - name: check no nsides skipped
         run: |
+          set -euo pipefail
           ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
           export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
@@ -373,23 +384,28 @@ jobs:
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
@@ -397,6 +413,7 @@ jobs:
       - name: rabbitmq logs
         if: always()
         run: |
+          set -euo pipefail
           docker logs rabbitmq
 
 
@@ -442,6 +459,7 @@ jobs:
       - name: run
         timeout-minutes: 12  # on average ~9min  # yes, `timeout` is used below but this is insurance
         run: |
+          set -euo pipefail
           set -x
           source tests/env-vars.sh
           export _RECO_ALGO=crash_dummy
@@ -456,6 +474,7 @@ jobs:
           timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
+          set -euo pipefail
           set -x
           # check for fails/errors
           
@@ -473,23 +492,28 @@ jobs:
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
@@ -560,6 +584,7 @@ jobs:
       - name: run
         timeout-minutes: 45  # on average max~=35min
         run: |
+          set -euo pipefail
           set -x
           lscpu
           python3 --version
@@ -573,6 +598,7 @@ jobs:
 
       - name: test output against known result (.json)
         run: |
+          set -euo pipefail
           ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
           outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
@@ -588,29 +614,35 @@ jobs:
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
       - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
       - name: worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
       - name: rabbitmq logs
         if: always()
         run: |
+          set -euo pipefail
           docker logs rabbitmq
 
 
@@ -627,6 +659,7 @@ jobs:
           load: true
       - name: run
         run: |
+          set -euo pipefail
           source tests/env-vars.sh
           
           docker run --rm -i \
@@ -670,6 +703,7 @@ jobs:
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
+          set -euo pipefail
           set -e
           source tests/env-vars.sh
           
@@ -687,6 +721,7 @@ jobs:
 
       - name: test output against known result
         run: |
+          set -euo pipefail
           source tests/env-vars.sh
           
           ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
