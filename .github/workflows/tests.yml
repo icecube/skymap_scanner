@@ -33,12 +33,6 @@ env:
 
 jobs:
 
-
-  #############################################################################
-  # PACKAGING & LINTERS
-  #############################################################################
-
-
   py-versions:
     runs-on: ubuntu-latest
     outputs:
@@ -47,6 +41,10 @@ jobs:
       - uses: actions/checkout@v4
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.5
+
+  #############################################################################
+  # LINTERS
+  #############################################################################
 
   # flake8:
   #   runs-on: ubuntu-latest
@@ -68,6 +66,10 @@ jobs:
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+
+  #############################################################################
+  # PACKAGING
+  #############################################################################
 
   py-setup:
     runs-on: ubuntu-latest
@@ -104,7 +106,6 @@ jobs:
   #############################################################################
   # TESTS
   #############################################################################
-
 
   test-build-docker:
     runs-on: ubuntu-latest
@@ -169,14 +170,56 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
+
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.2
-      - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer (singularity) image
+        name: install apptainer
         run: |
-          sudo singularity build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
+          set -euo pipefail
+          set -x
+          
+          # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#installing-apptainer
+          # Ensure repositories are up-to-date
+          sudo apt-get update
+          # Install debian packages for dependencies
+          sudo apt-get install -y \
+              build-essential \
+              libseccomp-dev \
+              pkg-config \
+              uidmap \
+              squashfs-tools \
+              fakeroot \
+              cryptsetup \
+              tzdata \
+              dh-apparmor \
+              curl wget git
+          # Clone the repo
+          git clone https://github.com/apptainer/apptainer.git
+          cd apptainer
+          git checkout v1.3.2
+          # Compiling Apptainer
+          ./mconfig
+          cd $(/bin/pwd)/builddir
+          make
+          sudo make install
+          apptainer --version
+          
+          # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#apparmor-profile-ubuntu-2310
+          sudo tee /etc/apparmor.d/apptainer << 'EOF'
+          # Permit unprivileged user namespace creation for apptainer starter
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile apptainer /usr/local/libexec/apptainer/bin/starter{,-suid} 
+              flags=(unconfined) {
+            userns,
+            # Site-specific additions and overrides. See local/README for details.
+            include if exists <local/apptainer>
+          }
+          EOF
+          sudo systemctl reload apparmor
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: build apptainer (.sif) image
+        run: |
+          sudo apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
 
       - name: run
@@ -189,7 +232,7 @@ jobs:
           export _NSIDES="1:0 2:12 4:12"
           
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
-              export _RUN_THIS_SINGULARITY_IMAGE="$(realpath skymap_scanner.sif)"
+              export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
               export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
           fi
           

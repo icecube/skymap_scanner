@@ -59,9 +59,9 @@ mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 ########################################################################
 # Launch Server
 
-if [ -n "$_RUN_THIS_SINGULARITY_IMAGE" ]; then
+if [ -n "$_RUN_THIS_SIF_IMAGE" ]; then
     # SINGULARITY
-    singularity run "$_RUN_THIS_SINGULARITY_IMAGE" \
+    singularity run "$_RUN_THIS_SIF_IMAGE" \
         python -m skymap_scanner.server \
         --reco-algo $_RECO_ALGO \
         --event-file $_EVENTS_FILE \
