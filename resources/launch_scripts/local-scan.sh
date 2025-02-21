@@ -60,7 +60,7 @@ mkdir "$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 ########################################################################
 # Launch Server
 
-if [ -n "$_RUN_THIS_SIF_IMAGE" ]; then
+if [ -n "${_RUN_THIS_SIF_IMAGE:-}" ]; then
     # SINGULARITY
     export SKYSCAN_EWMS_JSON="$_EWMS_JSON_ON_HOST"
     singularity run "$_RUN_THIS_SIF_IMAGE" \
