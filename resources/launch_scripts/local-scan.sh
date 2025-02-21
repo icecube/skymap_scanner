@@ -46,10 +46,10 @@ mkdir $CI_SKYSCAN_DEBUG_DIR
 ########################################################################
 # Misc setup
 
-if [ -z "$_PREDICTIVE_SCANNING_THRESHOLD" ]; then
-    arg_predictive_scanning_threshold=""
-else
+if [ -n "${_PREDICTIVE_SCANNING_THRESHOLD:-}" ]; then
     arg_predictive_scanning_threshold="--predictive-scanning-threshold $_PREDICTIVE_SCANNING_THRESHOLD"
+else
+    arg_predictive_scanning_threshold=""
 fi
 
 declare -A pidmap # map of background pids to wait on
