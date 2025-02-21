@@ -219,7 +219,7 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer (.sif) image
         run: |
-          sudo apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
+          apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
 
       - name: run
