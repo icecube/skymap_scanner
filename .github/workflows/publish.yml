@@ -10,9 +10,11 @@ on:
     inputs:
       platform:
         description: 'Platform'
-        default: 'linux/amd64,linux/arm64/v8'
+        default: 'linux/amd64'
         required: false
   delete:
+    branches:
+      - '**'
 
 jobs:
   docker:
@@ -20,32 +22,21 @@ jobs:
     name: "Docker Image"
     runs-on: ubuntu-latest
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main  # need space for image build
+        with:
+          docker-images: false
 
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@main
-      with:
-        # this might remove tools that are actually needed,
-        # if set to "true" but frees about 6 GB
-        tool-cache: false
-        # all of these default to true, but feel free to set to
-        # "false" if necessary for your workflow
-        android: true
-        dotnet: true
-        haskell: true
-        # large-packages: true  # TODO: see below...
-        large-packages: false  # TODO: remove once https://github.com/jlumbroso/free-disk-space/issues/4 is fixed
-        swap-storage: true
+      - name: Checkout Project
+        uses: actions/checkout@v4
 
-    - name: Checkout Project
-      uses: actions/checkout@v3
-
-    - name: Docker meta
-      id: docker_meta
-      uses: docker/metadata-action@v4
-      with:
-        images: |
-          icecube/skymap_scanner
-        tags: |
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            icecube/skymap_scanner
+          tags: |
             # branches (PRs)
             type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
             # release tags
@@ -53,83 +44,71 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_type == 'tag' }}
             type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      if: ${{ github.event_name != 'pull_request' }}
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Set up QEMU
-      if: ${{ contains(github.event.inputs.platform || 'linux/amd64', 'arm') }}
-      uses: docker/setup-qemu-action@v2
+      - name: Set up QEMU
+        if: ${{ contains(github.event.inputs.platform || 'linux/amd64', 'arm') }}
+        uses: docker/setup-qemu-action@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - 
-      name: Push Docker Image X86_64
-      # if: ${{ arch != 'arm' }}
-      uses: docker/build-push-action@v3
-      with:
-        context: .
-        platforms: ${{ github.event.inputs.platform || 'linux/amd64' }}
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.docker_meta.outputs.tags }}
-        labels: ${{ steps.docker_meta.outputs.labels }}
-
-    # - 
-    #   name: Push Docker Image
-    #   if: ${{ arch == 'arm' }}
-    #   uses: docker/build-push-action@v3
-    #   with:
-    #     context: .
-    #     platforms: linux/amd64,linux/arm64/v8
-    #     push: ${{ github.event_name != 'pull_request' }}
-    #     tags: ${{ steps.docker_meta.outputs.tags }}
-    #     labels: ${{ steps.docker_meta.outputs.labels }}
+      - name: Push Docker Image X86_64
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: ${{ github.event.inputs.platform || 'linux/amd64' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
 
   cvmfs:
     name: CVMFS Image
     needs: [docker]
-    if: |
-      always() &&
-      (needs.docker.result == 'success' ||
-        (needs.docker.result == 'skipped' && github.event_name == 'delete')
-      )
+    if: ${{ github.event_name != 'delete' && needs.docker.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
 
-    - name: Checkout Project
-      uses: actions/checkout@v3
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            icecube/skymap_scanner
+          flavor: |
+            latest=false
+          tags: |
+            # we only want to put version/sha-specific images on CVMFS
+            # branches (PRs)
+            type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
+            # release tags
+            type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
 
-    - name: Docker meta
-      id: docker_meta
-      uses: docker/metadata-action@v4
-      with:
-        images: |
-          icecube/skymap_scanner
-        flavor: |
-          latest=false
-        tags: |
-          # we only want to put version/sha -specific images on CVMFS
-          # branches (PRs)
-          type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
-          # release tags
-          type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
+      - name: Request Build(s)
+        uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
+          docker_tags: ${{ steps.docker_meta.outputs.tags }}
+          dest_dir: realtime
+          include_docker_repo: false
 
-    - name: Request Build(s)
-      if: github.event_name != 'delete'
-      uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
-      with:
-        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-        docker_tags: ${{ steps.docker_meta.outputs.tags }}
-        dest_dir: realtime
-        include_docker_repo: false
+  cvmfs-removal:
+    name: Request Removal(s) on CVMFS
+    if: github.event_name == 'delete'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
 
-    - name: Request Removal(s)
-      if: github.event_name == 'delete'
-      uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
-      with:
-        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-        remove_regex_path: 'realtime/${{ github.event.ref }}.*'
+      - name: Request Removal(s)
+        uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
+          remove_regex_path: 'realtime/${{ github.event.ref }}-.*'
