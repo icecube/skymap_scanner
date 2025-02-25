@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 set -ex # file is sourced so turn off at end
 
 ########################################################################
