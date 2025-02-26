@@ -157,11 +157,13 @@ find_finished_pid() {
 echo "Waiting on components..."
 pids=("${!pidmap[@]}") # get keys
 for ((i = 0; i < ${#pids[@]}; i++)); do
+    echo "sleeping for 10s..."
     sleep 10
     set -x
     wait -n # wait for the FIRST to finish
     exit_status=$?
-    #set +x
+    set +x
+    echo "sleeping for 5s..."
     sleep 5 # for our logs
 
     # find the finished process PID by checking jobs
