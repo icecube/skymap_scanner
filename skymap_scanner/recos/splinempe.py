@@ -1,5 +1,7 @@
 """IceTray segment for a dummy reco."""
 
+# mypy: ignore-errors
+# fmt: off
 
 import datetime
 import numpy as np

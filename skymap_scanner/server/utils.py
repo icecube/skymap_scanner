@@ -1,6 +1,5 @@
 """Server-specific utils."""
 
-
 import asyncio
 import json
 import logging
@@ -12,27 +11,59 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import cachetools.func
+import mqclient as mq
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
+from wipac_dev_tools.timing_tools import IntervalTimer
 
-from .. import config as cfg
+from . import ENV
 
 LOGGER = logging.getLogger(__name__)
+
+
+########################################################################################
+
+
+def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
+    """Establish connections to message queues."""
+    with open(ENV.SKYSCAN_EWMS_JSON) as f:
+        ewms_config = json.load(f)
+
+    to_clients_queue = mq.Queue(
+        ewms_config["toclient"]["broker_type"],
+        address=ewms_config["toclient"]["broker_address"],
+        name=ewms_config["toclient"]["name"],
+        auth_token=ewms_config["toclient"]["auth_token"],
+        # timeout=-1,  # NOTE: this mq only sends messages so no timeout needed
+    )
+
+    from_clients_queue = mq.Queue(
+        ewms_config["fromclient"]["broker_type"],
+        address=ewms_config["fromclient"]["broker_address"],
+        name=ewms_config["fromclient"]["name"],
+        auth_token=ewms_config["fromclient"]["auth_token"],
+        timeout=ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+    )
+
+    return to_clients_queue, from_clients_queue
+
+
+########################################################################################
 
 
 def connect_to_skydriver(urgent: bool) -> RestClient:
     """Get REST client for SkyDriver depending on the urgency."""
     if urgent:
         return RestClient(
-            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=60.0,
             retries=CalcRetryFromWaittimeMax(waittime_max=1 * 60 * 60),
             # backoff_factor=0.3,
         )
     else:
         return RestClient(
-            cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=cfg.ENV.SKYSCAN_SKYDRIVER_AUTH,
+            ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=10.0,
             retries=1,
             # backoff_factor=0.3,
@@ -50,7 +81,7 @@ async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
 
 async def kill_switch_check_from_skydriver() -> None:
     """Routinely check SkyDriver whether to continue the scan."""
-    if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         return
 
     logger = logging.getLogger("skyscan.kill_switch")
@@ -58,10 +89,10 @@ async def kill_switch_check_from_skydriver() -> None:
     skydriver_rc = connect_to_skydriver(urgent=False)
 
     while True:
-        await asyncio.sleep(cfg.ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
+        await asyncio.sleep(ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
 
         status = await skydriver_rc.request(
-            "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
+            "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
         )
 
         if status["scan_state"].startswith("STOPPED__"):
@@ -71,12 +102,44 @@ async def kill_switch_check_from_skydriver() -> None:
             os.kill(os.getpid(), signal.SIGINT)  # NOTE - sys.exit only exits thread
 
 
+async def wait_for_workers_to_start() -> None:
+    """Wait until SkyDriver indicates there are workers currently running."""
+    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        return
+
+    skydriver_rc = connect_to_skydriver(urgent=False)
+    timer = IntervalTimer(30, LOGGER)  # fyi: skydriver (feb '25) updates every 60s
+    prev: dict[str, Any] = {}
+
+    while True:  # yes, we are going to wait forever
+        resp = await skydriver_rc.request(
+            "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/ewms/workforce"
+        )
+
+        if resp != prev:
+            LOGGER.info(f"workers: {resp}")  # why not log this, but just when updated
+            prev = resp
+
+        if resp["n_running"]:
+            LOGGER.info("SkyDriver says there are workers running!")
+            return
+        else:
+            LOGGER.info(
+                f"SkyDriver says there no workers are running (yet)"
+                f"--checking again in {timer.seconds}s..."
+            )
+            await timer.wait_until_interval()
+
+
+########################################################################################
+
+
 async def fetch_event_contents_from_skydriver() -> Any:
     """Fetch event contents from SkyDriver."""
     skydriver_rc = connect_to_skydriver(urgent=True)
 
     manifest = await skydriver_rc.request(
-        "GET", f"/scan/{cfg.ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+        "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
     )
     LOGGER.info("Fetched event contents from SkyDriver")
     return manifest["event_i3live_json_dict"]
@@ -100,6 +163,9 @@ def fetch_event_contents_from_file(event_file: Optional[Path]) -> dict:
 
     LOGGER.info(f"Fetched event contents from file: {event_file}")
     return data
+
+
+########################################################################################
 
 
 def _is_pow_of_two(intval: int) -> bool:

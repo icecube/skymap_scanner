@@ -4,8 +4,8 @@
 # pylint: skip-file
 # mypy: ignore-errors
 
-import copy
 import datetime
+import os
 from typing import Final, List, Tuple
 
 import numpy
@@ -43,7 +43,7 @@ class MillipedeOriginal(RecoInterface):
         """
         variation_distance = 20.*I3Units.m
 
-        if cfg.ENV.SKYSCAN_MINI_TEST:
+        if os.getenv('_SKYSCAN_CI_MINI_TEST'):
             return VertexGenerator.mini_test(variation_distance=variation_distance)
         else:    
             return VertexGenerator.octahedron(radius=variation_distance)

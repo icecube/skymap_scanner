@@ -101,8 +101,10 @@ def compare_then_exit(
     logger.info("Actual vs Expected...")
 
     if equal or close:
+        logger.info("Good.")
         sys.exit(0)
     else:
+        logger.error("Failed!")
         if do_assert:
             assert False
         sys.exit(1)
