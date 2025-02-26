@@ -157,6 +157,8 @@ find_finished_pid() {
 echo "Waiting on components..."
 pids=("${!pidmap[@]}") # get keys
 for ((i = 0; i < ${#pids[@]}; i++)); do
+    echo "Background jobs before wait:"
+    jobs -p
     echo "sleeping for 10s..."
     sleep 10
     set -x
