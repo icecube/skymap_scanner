@@ -22,7 +22,7 @@ python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_S
 export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
 # task image, args, env
-if [ -n "$_RUN_THIS_SIF_IMAGE" ]; then
+if [ -n "${_RUN_THIS_SIF_IMAGE:-}" ]; then
     # place a duplicate of the file b/c the pilot transforms this into another format, so there are issues w/ parallelizing
     export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_RUN_THIS_SIF_IMAGE")"
     cp "$_RUN_THIS_SIF_IMAGE" "$EWMS_PILOT_TASK_IMAGE"
