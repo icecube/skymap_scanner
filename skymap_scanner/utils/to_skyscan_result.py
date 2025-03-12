@@ -65,8 +65,8 @@ def _pixelreco_to_tuple(
         pixfin.llh,  # llh
         pixfin.reco_losses_inside,  # E_in
         pixfin.reco_losses_total,  # E_tot
-        pixfin.position.X,  # X
-        pixfin.position.Y,  # Y
-        pixfin.position.Z,  # Z
+        pixfin.position.x,  # X
+        pixfin.position.y,  # Y
+        pixfin.position.z,  # Z
         pixfin.time  # time
     )
