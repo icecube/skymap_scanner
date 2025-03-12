@@ -49,6 +49,7 @@ COPY . .
 RUN pip install .[client-starter,rabbitmq] || pip install .[rabbitmq]
 
 # TODO: REMOVE!
+RUN apt-get update && apt-get install -y git
 RUN pip install "git+https://github.com/icecube/skyreader.git@feature-write-position-and-time#egg=icecube-skyreader"
 
 RUN pip freeze
