@@ -527,10 +527,6 @@ jobs:
           echo $outfile
           cat $outfile
           pip install .  # don't need icecube, so no docker container needed
-          
-          # TODO: REMOVE!
-          pip install "git+https://github.com/icecube/skyreader.git@feature-write-position-and-time#egg=icecube-skyreader"
-          
           python tests/compare_scan_results.py \
             --actual $outfile \
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \

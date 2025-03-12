@@ -48,9 +48,6 @@ COPY . .
 # client-starter fails to install on architectures not supporting htcondor, so silently fail without the extra
 RUN pip install .[client-starter,rabbitmq] || pip install .[rabbitmq]
 
-# TODO: REMOVE!
-RUN pip install "git+https://github.com/icecube/skyreader.git@feature-write-position-and-time#egg=icecube-skyreader"
-
 RUN pip freeze
 
 ENV OPENBLAS_CORETYPE="Haswell"
