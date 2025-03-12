@@ -13,7 +13,7 @@ from .pixel_classes import NSidesDict, RecoPixelFinal
 LOGGER = logging.getLogger(__name__)
 
 
-PixelTuple = Tuple[int, float, float, float]
+PixelTuple = Tuple[int, float, float, float, float, float, float, float]
 
 
 def from_nsides_dict(
@@ -65,4 +65,8 @@ def _pixelreco_to_tuple(
         pixfin.llh,  # llh
         pixfin.reco_losses_inside,  # E_in
         pixfin.reco_losses_total,  # E_tot
+        pixfin.position.X,  # X
+        pixfin.position.Y,  # Y
+        pixfin.position.Z,  # Z
+        pixfin.time  # time
     )
