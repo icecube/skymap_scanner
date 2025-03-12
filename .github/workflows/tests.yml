@@ -529,7 +529,7 @@ jobs:
           pip install .  # don't need icecube, so no docker container needed
           
           # TODO: REMOVE!
-          pip install "git+https://github.com/icecube/skyreader.git@feature-write-position-and-time#egg=icecube-skyreader"
+          pip install "git+https://github.com/icecube/skyreader.git@feature-write-position-and-time"
           
           python tests/compare_scan_results.py \
             --actual $outfile \
