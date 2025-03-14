@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 def from_nsides_dict(
     nsides_dict: NSidesDict,
     is_complete: bool,
-    event_metadata: Optional[EventMetadata] = None,
+    event_metadata: EventMetadata,
 ) -> SkyScanResult:
     """Factory method for nsides_dict."""
     event_metadata_dict = {}

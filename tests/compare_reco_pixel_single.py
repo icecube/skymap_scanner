@@ -15,6 +15,21 @@ from skymap_scanner.utils.messages import Serialization
 from skymap_scanner.utils.pixel_classes import RecoPixelFinal
 
 
+def load_from_outfile(outfile_fpath: Path) -> SkyScanResult:
+    """Load a SkyScanResult from the outfile."""
+    with open(outfile_fpath, "r") as f:
+        msg = json.load(f)
+
+    pixfin = RecoPixelFinal.from_recopixelvariation(
+        Serialization.decode_pkl_b64(msg[MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64])
+    )
+    return to_skyscan_result.from_nsides_dict(
+        {pixfin.nside: {pixfin.pixel_id: pixfin}},
+        is_complete=True,
+        event_metadata=EventMetadata(0, 0, "", 0., False)
+    )
+
+
 def main():
     """Loads two scan results in numpy format and exit with the outcome of the
     comparison."""
@@ -56,22 +71,8 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    def load_from_outfile(outfile_fpath: Path, version: int) -> SkyScanResult:
-        """Load a SkyScanResult from the outfile."""
-        with open(outfile_fpath, "r") as f:
-            msg = json.load(f)
-
-        pixfin = RecoPixelFinal.from_recopixelvariation(
-            Serialization.decode_pkl_b64(msg[MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64])
-        )
-        return to_skyscan_result.from_nsides_dict(
-            {pixfin.nside: {pixfin.pixel_id: pixfin}},
-            is_complete=True,
-            event_metadata=EventMetadata(0, 0, "", 0., False, version)
-        )
-
-    actual = load_from_outfile(args.actual, 1)
-    expected = load_from_outfile(args.expected, 0)
+    actual = load_from_outfile(args.actual)
+    expected = load_from_outfile(args.expected)
 
     compare_then_exit(
         actual,
