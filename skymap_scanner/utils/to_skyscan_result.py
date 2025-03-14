@@ -25,7 +25,7 @@ def from_nsides_dict(
     result = {}
     for nside, pixel_dict in nsides_dict.items():
         _dtype = np.dtype(  # type: ignore[call-overload]
-            SkyScanResult.PIXEL_TYPE,
+            SkyScanResult.PIXEL_TYPES[1],
             metadata=dict(
                 nside=nside,
                 complete=is_complete,
