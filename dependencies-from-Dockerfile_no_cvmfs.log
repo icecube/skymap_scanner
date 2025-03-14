@@ -42,7 +42,7 @@ htchirp==3.0
 htcondor==24.5.1
 html5lib==1.1
 hypothesis==6.36.0
-icecube-skyreader==1.4.1
+icecube-skyreader==1.4.2
 idna==3.3
 imagesize==1.4.1
 iminuit==2.26.0
@@ -252,7 +252,7 @@ skymap-scanner
 │           ├── typing_extensions [required: Any, installed: 4.12.2]
 │           └── requests [required: Any, installed: 2.25.1]
 ├── healpy [required: Any, installed: 1.15.0]
-├── icecube-skyreader [required: >1.4.0, installed: 1.4.1]
+├── icecube-skyreader [required: >=1.4.2, installed: 1.4.2]
 │   ├── astropy [required: Any, installed: 5.0.2]
 │   ├── healpy [required: Any, installed: 1.15.0]
 │   ├── matplotlib [required: Any, installed: 3.5.1]
