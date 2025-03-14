@@ -33,7 +33,7 @@ decorator==4.4.2
 defusedxml==0.7.1
 docutils==0.20.1
 et-xmlfile==1.0.1
-ewms-pilot==0.19.0
+ewms-pilot==0.27.0
 fonttools==4.29.1
 fs==2.4.12
 gast==0.5.2
@@ -71,7 +71,7 @@ numexpr==2.8.1
 numpy==1.21.5
 odfpy==1.4.2
 olefile==0.46
-oms-mqclient==2.4.10
+oms-mqclient==2.7.0
 openpyxl==3.0.9
 packaging==21.3
 pandas==1.3.5
@@ -140,6 +140,7 @@ wipac-dev-tools==1.15.6
 wipac-rest-tools==1.8.6
 xlwt==1.3.0
 zipp==1.0.0
+zstd==1.5.6.6
 ########################################################################
 #  pipdeptree
 ########################################################################
@@ -244,13 +245,15 @@ pyzmq==22.3.0
 setuptools==59.6.0
 six==1.16.0
 skymap-scanner
-├── ewms-pilot [required: ==0.19.0, installed: 0.19.0]
+├── ewms-pilot [required: >=0.19.0,<1, installed: 0.27.0]
 │   ├── htchirp [required: Any, installed: 3.0]
 │   ├── htcondor [required: Any, installed: 24.5.1]
-│   └── oms-mqclient [required: Any, installed: 2.4.10]
-│       └── wipac-dev-tools [required: Any, installed: 1.15.6]
-│           ├── typing_extensions [required: Any, installed: 4.12.2]
-│           └── requests [required: Any, installed: 2.25.1]
+│   ├── oms-mqclient [required: Any, installed: 2.7.0]
+│   │   ├── wipac-dev-tools [required: Any, installed: 1.15.6]
+│   │   │   ├── typing_extensions [required: Any, installed: 4.12.2]
+│   │   │   └── requests [required: Any, installed: 2.25.1]
+│   │   └── zstd [required: Any, installed: 1.5.6.6]
+│   └── numpy [required: Any, installed: 1.21.5]
 ├── healpy [required: Any, installed: 1.15.0]
 ├── icecube-skyreader [required: >=1.4.2, installed: 1.4.2]
 │   ├── astropy [required: Any, installed: 5.0.2]
@@ -268,10 +271,11 @@ skymap-scanner
 ├── iminuit [required: <2.27.0, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
-├── oms-mqclient [required: ==2.4.10, installed: 2.4.10]
-│   └── wipac-dev-tools [required: Any, installed: 1.15.6]
-│       ├── typing_extensions [required: Any, installed: 4.12.2]
-│       └── requests [required: Any, installed: 2.25.1]
+├── oms-mqclient [required: >=2.4.10,<3, installed: 2.7.0]
+│   ├── wipac-dev-tools [required: Any, installed: 1.15.6]
+│   │   ├── typing_extensions [required: Any, installed: 4.12.2]
+│   │   └── requests [required: Any, installed: 2.25.1]
+│   └── zstd [required: Any, installed: 1.5.6.6]
 ├── scipy [required: Any, installed: 1.8.0]
 ├── wipac-dev-tools [required: Any, installed: 1.15.6]
 │   ├── typing_extensions [required: Any, installed: 4.12.2]
