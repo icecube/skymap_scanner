@@ -56,7 +56,7 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    def load_from_outfile(outfile_fpath: Path) -> SkyScanResult:
+    def load_from_outfile(outfile_fpath: Path, **kwargs) -> SkyScanResult:
         """Load a SkyScanResult from the outfile."""
         with open(outfile_fpath, "r") as f:
             msg = json.load(f)
@@ -67,10 +67,11 @@ def main():
         return to_skyscan_result.from_nsides_dict(
             {pixfin.nside: {pixfin.pixel_id: pixfin}},
             is_complete=True,
+            **kwargs
         )
 
     actual = load_from_outfile(args.actual)
-    expected = load_from_outfile(args.expected)
+    expected = load_from_outfile(args.expected, version=0)
 
     compare_then_exit(
         actual,
