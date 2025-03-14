@@ -5,7 +5,7 @@ import json
 import logging
 from pathlib import Path
 
-from skyreader import SkyScanResult
+from skyreader import SkyScanResult, EventMetadata
 from wipac_dev_tools import logging_tools
 
 from compare_scan_results import compare_then_exit
@@ -56,7 +56,7 @@ def main():
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
 
-    def load_from_outfile(outfile_fpath: Path, **kwargs) -> SkyScanResult:
+    def load_from_outfile(outfile_fpath: Path, version: int) -> SkyScanResult:
         """Load a SkyScanResult from the outfile."""
         with open(outfile_fpath, "r") as f:
             msg = json.load(f)
@@ -67,11 +67,11 @@ def main():
         return to_skyscan_result.from_nsides_dict(
             {pixfin.nside: {pixfin.pixel_id: pixfin}},
             is_complete=True,
-            **kwargs
+            event_metadata=EventMetadata(0, 0, "", 0., False, version)
         )
 
-    actual = load_from_outfile(args.actual)
-    expected = load_from_outfile(args.expected, version=0)
+    actual = load_from_outfile(args.actual, 1)
+    expected = load_from_outfile(args.expected, 0)
 
     compare_then_exit(
         actual,
