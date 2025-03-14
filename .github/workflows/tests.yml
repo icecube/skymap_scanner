@@ -60,6 +60,9 @@ jobs:
       fail-fast: false
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        exclude:
+          - py3: '3.12'
+          - py3: '3.13'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
@@ -495,7 +498,10 @@ jobs:
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
@@ -505,6 +511,7 @@ jobs:
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
+
       - name: run
         timeout-minutes: 35  # on average max~=26min
         run: |
