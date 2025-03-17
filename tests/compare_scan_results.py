@@ -65,6 +65,13 @@ def main():
         action="store_true",
         help="'assert' the results",
     )
+    parser.add_argument(
+        "--compare-different-versions-ok",
+        dest="do_assert",
+        default=False,
+        action="store_true",
+        help="whether it's allowed to compare result objects of different versions (columns, aka numpy dtypes)",
+    )
 
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
@@ -81,6 +88,7 @@ def main():
         args.expected,
         args.do_assert,
         args.diff_out_dir,
+        args.compare_different_versions_ok,
         logger,
     )
 
@@ -92,6 +100,7 @@ def compare_then_exit(
     expected_fpath: Path,
     do_assert: bool,
     diff_out_dir: str,
+    compare_different_versions_ok: bool,
     logger: logging.Logger,
 ) -> None:
     """Compare the results, dump a json diff file, and sys.exit."""
@@ -105,7 +114,10 @@ def compare_then_exit(
 
     try:
         equal = actual == expected
-    except TypeError:
+    except TypeError as e:
+        logger.warning(f"--expected and --actual results are not the same types: {e}")
+        if not compare_different_versions_ok:
+            raise e
         equal = False
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
