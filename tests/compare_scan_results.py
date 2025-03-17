@@ -67,7 +67,6 @@ def main():
     )
     parser.add_argument(
         "--compare-different-versions-ok",
-        dest="do_assert",
         default=False,
         action="store_true",
         help="whether it's allowed to compare result objects of different versions (columns, aka numpy dtypes)",
