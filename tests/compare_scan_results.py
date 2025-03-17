@@ -9,7 +9,7 @@ from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
 RTOL_PER_FIELD = {"llh": 0.1, "E_in": 0.01, "E_tot": 0.01,
-                  "X": 0.5, "Y": 0.5, "Z": 0.5, "T": 0.1}
+                  "X": 0.01, "Y": 0.01, "Z": 0.01, "T": 0.01}
 
 
 def read_file(filepath: Path) -> SkyScanResult:
