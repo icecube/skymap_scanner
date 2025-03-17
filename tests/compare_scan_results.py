@@ -95,11 +95,7 @@ def compare_then_exit(
     close = actual.is_close(
         expected, dump_json_diff=dump_json_diff, rtol_per_field=RTOL_PER_FIELD
     )
-
-    try:
-        equal = actual == expected
-    except TypeError:
-        equal = False
+    equal = actual == expected
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
     logger.info(f"{RTOL_PER_FIELD=}")
