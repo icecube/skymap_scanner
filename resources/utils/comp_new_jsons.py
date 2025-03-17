@@ -34,5 +34,5 @@ for method in os.listdir(RESULTS_DIR):
                 files["expected"],
                 "--assert",
             ]
-            print(f"Running: {' '.join(command)}")
+            print(f"\n\nRunning: {' '.join(command)}")
             subprocess.check_call(command)
