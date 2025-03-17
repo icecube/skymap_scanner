@@ -8,8 +8,15 @@ from pathlib import Path
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
-RTOL_PER_FIELD = {"llh": 0.1, "E_in": 0.01, "E_tot": 0.01,
-                  "X": 0.1, "Y": 0.1, "Z": 0.1, "T": 0.01}
+RTOL_PER_FIELD = {
+    "llh": 0.1,
+    "E_in": 0.01,
+    "E_tot": 0.01,
+    "X": 0.1,
+    "Y": 0.1,
+    "Z": 0.1,
+    "T": 0.01,
+}
 
 
 def read_file(filepath: Path) -> SkyScanResult:
@@ -106,8 +113,10 @@ def compare_then_exit(
     logger.info("Actual vs Expected...")
 
     if equal or close:
+        logger.info("PASSED.")
         sys.exit(0)
     else:
+        logger.info("FAILED!")
         if do_assert:
             assert False
         sys.exit(1)
