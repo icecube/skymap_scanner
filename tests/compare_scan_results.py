@@ -88,8 +88,8 @@ def main():
         args.expected,
         args.do_assert,
         args.diff_out_dir,
-        args.compare_different_versions_ok,
         logger,
+        compare_different_versions_ok=args.compare_different_versions_ok,
     )
 
 
@@ -100,8 +100,8 @@ def compare_then_exit(
     expected_fpath: Path,
     do_assert: bool,
     diff_out_dir: str,
-    compare_different_versions_ok: bool,
     logger: logging.Logger,
+    compare_different_versions_ok: bool = False,
 ) -> None:
     """Compare the results, dump a json diff file, and sys.exit."""
     dump_json_diff = (
