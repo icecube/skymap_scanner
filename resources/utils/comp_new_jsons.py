@@ -1,5 +1,6 @@
 import os
 import subprocess
+from typing import Dict
 
 RESULTS_DIR = "../../tests/data/results_json"
 COMPARE_SCRIPT = "../../tests/compare_scan_results.py"
@@ -11,7 +12,7 @@ for method in os.listdir(RESULTS_DIR):
         continue
 
     # Collect all file pairs
-    file_pairs = {}
+    file_pairs: Dict[str, Dict[str, str]] = {}
     for filename in os.listdir(method_path):
         if filename.endswith(".json"):
             base_name = filename.replace(".new.json", "").replace(".json", "")
