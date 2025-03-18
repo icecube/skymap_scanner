@@ -1,6 +1,5 @@
 """Tools for extracting json messages."""
 
-
 # fmt: off
 # pylint: skip-file
 

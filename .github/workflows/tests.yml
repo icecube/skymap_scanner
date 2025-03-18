@@ -492,6 +492,13 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - if: matrix.reco_algo == splinempe
+        name: splinempe gh-issue reminder timer
+        run: |
+          if [ "$(date +%s)" -ge "1758212280" ]; then
+              echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
+              exit 1
+          fi
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
