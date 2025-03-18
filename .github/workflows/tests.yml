@@ -537,8 +537,16 @@ jobs:
           
           
           # --------------------------------------------------------------------
-          # splinempe gh-issue reminder timer + special handling
+          # splinempe: special handling + gh-issue reminder timer
           if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
+            python tests/compare_scan_results.py \
+              --actual $outfile \
+              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
+              --assert \
+              --compare-different-versions-ok \
+              || (cat $(ls *.diff.json) && false)
+          
+            # put the timer after, so at least we know if the test passes
             start_time="2025-03-18"  # Set the starting date
             end_time=$(date -d "$start_time +6 months" +%s)
             current_time=$(date +%s)
@@ -547,12 +555,6 @@ jobs:
                 exit 1
             fi
           
-            python tests/compare_scan_results.py \
-              --actual $outfile \
-              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
-              --assert \
-              --compare-different-versions-ok \
-              || (cat $(ls *.diff.json) && false)
             exit 0
           fi
           # --------------------------------------------------------------------
