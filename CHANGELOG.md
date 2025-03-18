@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v3.22.0 (2025-03-18)
+
+### Other
+
+* Fix CVMFS Image Removal GH Action - 3 ([#280](https://github.com/icecube/skymap_scanner/issues/280)) ([`918f738`](https://github.com/icecube/skymap_scanner/commit/918f7380145b3aa1f8e8156164fbcc4d210d3df1))
+* Fix CVMFS Image Removal GH Action - 2 ([#279](https://github.com/icecube/skymap_scanner/issues/279)) ([`44ebff5`](https://github.com/icecube/skymap_scanner/commit/44ebff5e50b67158c6cbe95eb9106de8848aa226))
+* Fix CVMFS Image Removal GH Action ([#278](https://github.com/icecube/skymap_scanner/issues/278)) ([`6f45e94`](https://github.com/icecube/skymap_scanner/commit/6f45e943a6ae8d6d8dc3f7a122c70d7259abfe3f))
+
 ## v3.21.2 (2024-10-16)
 
 ### Other
