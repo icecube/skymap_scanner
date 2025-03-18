@@ -15,6 +15,8 @@ from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 # True constants
 #
 
+EVENT_METADATA_VERSION: Final[int] = 1
+
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
 LOCAL_DATA_SOURCES: Final[List[Path]] = [
