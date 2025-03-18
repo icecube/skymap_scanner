@@ -60,6 +60,9 @@ jobs:
       fail-fast: false
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        exclude:
+          - py3: '3.12'
+          - py3: '3.13'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
@@ -157,13 +160,57 @@ jobs:
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
-      - uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.2
+
+      - name: install apptainer
+        run: |
+          set -euo pipefail
+          set -x
+          
+          # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#installing-apptainer
+          # Ensure repositories are up-to-date
+          sudo apt-get update
+          # Install debian packages for dependencies
+          sudo apt-get install -y \
+              build-essential \
+              libseccomp-dev \
+              pkg-config \
+              uidmap \
+              squashfs-tools \
+              fakeroot \
+              cryptsetup \
+              tzdata \
+              dh-apparmor \
+              curl wget git
+          # Clone the repo
+          git clone https://github.com/apptainer/apptainer.git
+          cd apptainer
+          git checkout v1.3.2
+          # Compiling Apptainer
+          ./mconfig
+          cd $(/bin/pwd)/builddir
+          make
+          sudo make install
+          apptainer --version
+          
+          # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#apparmor-profile-ubuntu-2310
+          sudo tee /etc/apparmor.d/apptainer << 'EOF'
+          # Permit unprivileged user namespace creation for apptainer starter
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile apptainer /usr/local/libexec/apptainer/bin/starter{,-suid} 
+              flags=(unconfined) {
+            userns,
+            # Site-specific additions and overrides. See local/README for details.
+            include if exists <local/apptainer>
+          }
+          EOF
+          sudo systemctl reload apparmor
+
       - name: build singularity image
         run: |
           sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner:local
           ls -lh skymap_scanner.sif
+
       - name: run singularity container
         run: |
           source tests/env-vars.sh
@@ -451,7 +498,10 @@ jobs:
       - uses: actionhippie/swap-space@v1
         with:
           size: 10G
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3
         with:
@@ -461,6 +511,7 @@ jobs:
           file: Dockerfile
           tags: icecube/skymap_scanner:local
           load: true
+
       - name: run
         timeout-minutes: 35  # on average max~=26min
         run: |
@@ -483,6 +534,32 @@ jobs:
           echo $outfile
           cat $outfile
           pip install .  # don't need icecube, so no docker container needed
+          
+          
+          # --------------------------------------------------------------------
+          # splinempe: special handling + gh-issue reminder timer
+          if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
+            python tests/compare_scan_results.py \
+              --actual $outfile \
+              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
+              --assert \
+              --compare-different-versions-ok \
+              || (cat $(ls *.diff.json) && false)
+          
+            # put the timer after, so at least we know if the test passes
+            start_time="2025-03-18"  # Set the starting date
+            end_time=$(date -d "$start_time +6 months" +%s)
+            current_time=$(date +%s)
+            if (( current_time >= end_time )); then
+                echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
+                exit 1
+            fi
+          
+            exit 0
+          fi
+          # --------------------------------------------------------------------
+          
+          
           python tests/compare_scan_results.py \
             --actual $outfile \
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \

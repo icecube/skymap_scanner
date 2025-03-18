@@ -1,6 +1,5 @@
 """Tools for extracting json messages."""
 
-
 # fmt: off
 # pylint: skip-file
 
@@ -23,6 +22,7 @@ from .utils import (
     save_GCD_frame_packet_to_file,
 )
 from .data_handling import get_gcd_datastager
+from ..config import EVENT_METADATA_VERSION
 
 LOGGER = logging.getLogger(__name__)
 
@@ -99,9 +99,9 @@ def extract_json_message(
                                  state_dict,
                                  reco_algo,
                                  cache_dir=cache_dir)
-    
+
     state_dict[cfg.STATEDICT_INPUT_PULSES] = pulses_name
-    
+
     return event_metadata, state_dict
 
 
@@ -145,7 +145,7 @@ def _validate_physics_frame(physics_frame):
     if "I3EventHeader" not in physics_frame:
         raise RuntimeError("No I3EventHeader in Physics frame.")
 
-# split out from __extract_frame_packet 
+# split out from __extract_frame_packet
 def _ensure_cache_directory(cache_dir, event_metadata):
     event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
@@ -168,7 +168,7 @@ def prepare_frame_packet(
     2. creates a cache for the event under `cache_dir` (to be deprecated);
     3. determines the baseline GCD filename for events having compressed GCD;
     4. invokes `prepare_frames` to uncompress the GCD information and
-        run the `prepare_frames` traysegment of `reco_algo`. 
+        run the `prepare_frames` traysegment of `reco_algo`.
 
     Returns:
         Tuple[EventMetadata, dict]:
@@ -180,11 +180,11 @@ def prepare_frame_packet(
 
     # move the last packet frame from Physics to the Physics stream
     frame_packet[-1] = rewrite_frame_stop(frame_packet[-1], icetray.I3Frame.Stream('P'))
-    
+
     physics_frame = frame_packet[-1]
 
     _validate_physics_frame(physics_frame=physics_frame)
- 
+
     header = physics_frame["I3EventHeader"]
 
     event_metadata = EventMetadata(
@@ -193,6 +193,7 @@ def prepare_frame_packet(
         _extract_event_type(physics_frame),
         get_event_mjd(frame_packet),
         is_real_event,
+        version=EVENT_METADATA_VERSION,
     )
     LOGGER.debug("event ID is {0}".format(event_metadata))
 
@@ -225,7 +226,7 @@ def prepare_frame_packet(
         datastager = get_gcd_datastager()
         # assume GCD dir is always valid
         baseline_GCD_file = os.path.join(GCD_dir, baseline_GCD)
-        
+
         LOGGER.debug(f"Trying GCD file: {baseline_GCD_file}")
         datastager.stage_files([baseline_GCD])
         baseline_GCD_file = datastager.get_filepath(baseline_GCD)
@@ -233,7 +234,7 @@ def prepare_frame_packet(
         if not os.path.isfile(baseline_GCD_file):
             raise RuntimeError(f"Baseline GCD file {baseline_GCD_file} not available!")
         # NOTE: logic allowing GCD_dir to point to a file, in order to directly override the GCD has been removed.
-        
+
         cached_baseline_GCD_file = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
 
         baseline_GCD_framepacket = load_framepacket_from_file(baseline_GCD_file)
@@ -261,7 +262,7 @@ def prepare_frame_packet(
             if (filename != baseline_GCD) and (os.path.basename(filename) != os.path.basename(baseline_GCD)):
                 raise RuntimeError(f"Expected the stored source baseline GCD to be {baseline_GCD}. It is {filename}.")
         with open(source_baseline_GCD_metadata, "w") as text_file:
-            text_file.write(baseline_GCD)   
+            text_file.write(baseline_GCD)
 
     #=====================
     # GCD-less framepacket

@@ -1,17 +1,25 @@
-{
+    {
     "nside-1": {
         "columns": [
             "index",
             "llh",
             "E_in",
-            "E_tot"
+            "E_tot",
+            "X",
+            "Y",
+            "Z",
+            "T"
         ],
         "data": [
             [
                 2,
                 1567.2499780226708,
                 NaN,
-                NaN
+                NaN,
+                145.50896433664659,
+                -371.13868007376516,
+                -497.61151244154365,
+                735541.0
             ]
         ],
         "metadata": {
@@ -21,7 +29,8 @@
             "event_id": 7637140,
             "event_type": "neutrino",
             "mjd": 59754.67588432013,
-            "is_real_event": true
+            "is_real_event": true,
+            "version": 1
         }
     }
 }

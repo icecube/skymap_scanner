@@ -1,6 +1,5 @@
 """For encapsulating the results of an event scan in a single instance."""
 
-
 import dataclasses as dc
 import logging
 from typing import Optional, Tuple
@@ -13,13 +12,10 @@ from .pixel_classes import NSidesDict, RecoPixelFinal
 LOGGER = logging.getLogger(__name__)
 
 
-PixelTuple = Tuple[int, float, float, float]
-
-
 def from_nsides_dict(
     nsides_dict: NSidesDict,
     is_complete: bool,
-    event_metadata: Optional[EventMetadata] = None,
+    event_metadata: EventMetadata,
 ) -> SkyScanResult:
     """Factory method for nsides_dict."""
     event_metadata_dict = {}
@@ -29,7 +25,7 @@ def from_nsides_dict(
     result = {}
     for nside, pixel_dict in nsides_dict.items():
         _dtype = np.dtype(  # type: ignore[call-overload]
-            SkyScanResult.PIXEL_TYPE,
+            SkyScanResult.PIXEL_TYPES[event_metadata.version],
             metadata=dict(
                 nside=nside,
                 complete=is_complete,
@@ -51,7 +47,7 @@ def from_nsides_dict(
 
 def _pixelreco_to_tuple(
     pixfin: RecoPixelFinal, nside: int, pixel_id: int
-) -> PixelTuple:
+) -> Tuple[int, float, float, float, float, float, float, float]:
     if (
         not isinstance(pixfin, RecoPixelFinal)
         or nside != pixfin.nside
@@ -65,4 +61,8 @@ def _pixelreco_to_tuple(
         pixfin.llh,  # llh
         pixfin.reco_losses_inside,  # E_in
         pixfin.reco_losses_total,  # E_tot
+        pixfin.position.x,  # X
+        pixfin.position.y,  # Y
+        pixfin.position.z,  # Z
+        pixfin.time,  # time
     )
