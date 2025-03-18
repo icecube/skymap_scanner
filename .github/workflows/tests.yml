@@ -495,7 +495,7 @@ jobs:
       - if: matrix.reco_algo == 'splinempe'
         name: splinempe gh-issue reminder timer
         run: |
-          start_time="2024-09-18"  # Set the starting date
+          start_time="2025-03-18"  # Set the starting date
           end_time=$(date -d "$start_time +6 months" +%s)
           current_time=$(date +%s)
       
