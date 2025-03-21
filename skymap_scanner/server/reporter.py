@@ -681,7 +681,7 @@ class Reporter:
             "predictive_scanning_threshold": self.predictive_scanning_threshold,
             "last_updated": str(dt.datetime.fromtimestamp(int(time.time()))),
             # fields new to skydriver v2
-            "start": self.global_start,
+            "start": int(self.global_start),
             "end": int(time.time()) if self.is_event_scan_done else None,
         }
         scan_metadata = {
