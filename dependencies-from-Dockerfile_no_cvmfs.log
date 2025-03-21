@@ -39,7 +39,7 @@ gast==0.5.2
 healpy==1.15.0
 html5lib==1.1
 hypothesis==6.36.0
-icecube-skyreader==1.3.6
+icecube-skyreader==1.4.2
 idna==3.3
 imagesize==1.4.1
 iminuit==2.26.0
@@ -68,7 +68,7 @@ numexpr==2.8.1
 numpy==1.21.5
 odfpy==1.4.2
 olefile==0.46
-oms-mqclient==2.6.0
+oms-mqclient==2.7.0
 openpyxl==3.0.9
 packaging==21.3
 pandas==1.3.5
@@ -133,11 +133,11 @@ urllib3==2.3.0
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
-wipac-dev-tools==1.15.4
+wipac-dev-tools==1.15.6
 wipac-rest-tools==1.8.6
 xlwt==1.3.0
 zipp==1.0.0
-zstd==1.5.6.4
+zstd==1.5.6.6
 ########################################################################
 #  pipdeptree
 ########################################################################
@@ -147,23 +147,23 @@ beautifulsoup4==4.10.0
 beniget==0.4.1
 Bottleneck==1.3.2
 breathe==4.35.0
-├── docutils [required: >=0.12, installed: 0.20.1]
-└── Sphinx [required: >=4.0,!=5.0.0, installed: 7.2.6]
-    ├── alabaster [required: >=0.7,<0.8, installed: 0.7.13]
-    ├── Babel [required: >=2.9, installed: 2.13.1]
-    ├── docutils [required: >=0.18.1,<0.21, installed: 0.20.1]
-    ├── imagesize [required: >=1.3, installed: 1.4.1]
-    ├── Jinja2 [required: >=3.0, installed: 3.0.3]
-    ├── packaging [required: >=21.0, installed: 24.2]
-    ├── Pygments [required: >=2.14, installed: 2.17.2]
-    ├── requests [required: >=2.25.0, installed: 2.25.1]
-    ├── snowballstemmer [required: >=2.0, installed: 2.2.0]
-    ├── sphinxcontrib-applehelp [required: Any, installed: 1.0.7]
-    ├── sphinxcontrib-devhelp [required: Any, installed: 1.0.5]
-    ├── sphinxcontrib-htmlhelp [required: >=2.0.0, installed: 2.0.4]
-    ├── sphinxcontrib-jsmath [required: Any, installed: 1.0.1]
-    ├── sphinxcontrib-qthelp [required: Any, installed: 1.0.6]
-    └── sphinxcontrib-serializinghtml [required: >=1.1.9, installed: 1.1.9]
+├── Sphinx [required: >=4.0,!=5.0.0, installed: 7.2.6]
+│   ├── sphinxcontrib-applehelp [required: Any, installed: 1.0.7]
+│   ├── sphinxcontrib-devhelp [required: Any, installed: 1.0.5]
+│   ├── sphinxcontrib-jsmath [required: Any, installed: 1.0.1]
+│   ├── sphinxcontrib-htmlhelp [required: >=2.0.0, installed: 2.0.4]
+│   ├── sphinxcontrib-serializinghtml [required: >=1.1.9, installed: 1.1.9]
+│   ├── sphinxcontrib-qthelp [required: Any, installed: 1.0.6]
+│   ├── Jinja2 [required: >=3.0, installed: 3.0.3]
+│   ├── Pygments [required: >=2.14, installed: 2.17.2]
+│   ├── docutils [required: >=0.18.1,<0.21, installed: 0.20.1]
+│   ├── snowballstemmer [required: >=2.0, installed: 2.2.0]
+│   ├── Babel [required: >=2.9, installed: 2.13.1]
+│   ├── alabaster [required: >=0.7,<0.8, installed: 0.7.13]
+│   ├── imagesize [required: >=1.3, installed: 1.4.1]
+│   ├── requests [required: >=2.25.0, installed: 2.25.1]
+│   └── packaging [required: >=21.0, installed: 24.2]
+└── docutils [required: >=0.12, installed: 0.20.1]
 Brotli==1.0.9
 certifi==2020.6.20
 cffi==1.15.0
@@ -210,7 +210,7 @@ pexpect==4.8.0
 pickleshare==0.7.5
 pika==1.3.2
 Pillow==9.0.1
-pipdeptree==2.25.0
+pipdeptree==2.25.1
 ├── packaging [required: >=24.1, installed: 24.2]
 └── pip [required: >=24.2, installed: 25.0.1]
 pluggy==0.13.0
@@ -243,7 +243,7 @@ setuptools==59.6.0
 six==1.16.0
 skymap-scanner
 ├── healpy [required: Any, installed: 1.15.0]
-├── icecube-skyreader [required: Any, installed: 1.3.6]
+├── icecube-skyreader [required: Any, installed: 1.4.2]
 │   ├── astropy [required: Any, installed: 5.0.2]
 │   ├── healpy [required: Any, installed: 1.15.0]
 │   ├── matplotlib [required: Any, installed: 3.5.1]
@@ -253,21 +253,21 @@ skymap-scanner
 │   ├── numpy [required: Any, installed: 1.21.5]
 │   ├── pandas [required: Any, installed: 1.3.5]
 │   ├── scipy [required: Any, installed: 1.8.0]
-│   └── wipac-dev-tools [required: Any, installed: 1.15.4]
-│       ├── requests [required: Any, installed: 2.25.1]
-│       └── typing_extensions [required: Any, installed: 4.12.2]
+│   └── wipac-dev-tools [required: Any, installed: 1.15.6]
+│       ├── typing_extensions [required: Any, installed: 4.12.2]
+│       └── requests [required: Any, installed: 2.25.1]
 ├── iminuit [required: <2.27.0, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
-├── oms-mqclient [required: Any, installed: 2.6.0]
-│   ├── wipac-dev-tools [required: Any, installed: 1.15.4]
-│   │   ├── requests [required: Any, installed: 2.25.1]
-│   │   └── typing_extensions [required: Any, installed: 4.12.2]
-│   └── zstd [required: Any, installed: 1.5.6.4]
+├── oms-mqclient [required: Any, installed: 2.7.0]
+│   ├── wipac-dev-tools [required: Any, installed: 1.15.6]
+│   │   ├── typing_extensions [required: Any, installed: 4.12.2]
+│   │   └── requests [required: Any, installed: 2.25.1]
+│   └── zstd [required: Any, installed: 1.5.6.6]
 ├── scipy [required: Any, installed: 1.8.0]
-├── wipac-dev-tools [required: Any, installed: 1.15.4]
-│   ├── requests [required: Any, installed: 2.25.1]
-│   └── typing_extensions [required: Any, installed: 4.12.2]
+├── wipac-dev-tools [required: Any, installed: 1.15.6]
+│   ├── typing_extensions [required: Any, installed: 4.12.2]
+│   └── requests [required: Any, installed: 2.25.1]
 └── wipac-rest-tools [required: Any, installed: 1.8.6]
     ├── cachetools [required: Any, installed: 5.5.2]
     ├── PyJWT [required: !=2.6.0, installed: 2.10.1]
@@ -277,9 +277,9 @@ skymap-scanner
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
     ├── tornado [required: Any, installed: 6.4.2]
     ├── urllib3 [required: >=2.0.4, installed: 2.3.0]
-    └── wipac-dev-tools [required: Any, installed: 1.15.4]
-        ├── requests [required: Any, installed: 2.25.1]
-        └── typing_extensions [required: Any, installed: 4.12.2]
+    └── wipac-dev-tools [required: Any, installed: 1.15.6]
+        ├── typing_extensions [required: Any, installed: 4.12.2]
+        └── requests [required: Any, installed: 2.25.1]
 sortedcontainers==2.1.0
 soupsieve==2.3.1
 sympy==1.9
