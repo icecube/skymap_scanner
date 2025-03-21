@@ -680,6 +680,9 @@ class Reporter:
             "processing_stats": self._get_processing_progress(),
             "predictive_scanning_threshold": self.predictive_scanning_threshold,
             "last_updated": str(dt.datetime.fromtimestamp(int(time.time()))),
+            # fields new to skydriver v2
+            "start": self.global_start,
+            "end": int(time.time()) if self.is_event_scan_done else None,
         }
         scan_metadata = {
             "scan_id": ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
