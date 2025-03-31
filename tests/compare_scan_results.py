@@ -8,7 +8,15 @@ from pathlib import Path
 from skyreader import SkyScanResult
 from wipac_dev_tools import logging_tools
 
-RTOL_PER_FIELD = {"llh": 0.1, "E_in": 0.01, "E_tot": 0.01}
+RTOL_PER_FIELD = {
+    "llh": 0.1,
+    "E_in": 0.01,
+    "E_tot": 0.01,
+    "X": 0.1,
+    "Y": 0.1,
+    "Z": 0.1,
+    "T": 0.01,
+}
 
 
 def read_file(filepath: Path) -> SkyScanResult:
@@ -57,6 +65,12 @@ def main():
         action="store_true",
         help="'assert' the results",
     )
+    parser.add_argument(
+        "--compare-different-versions-ok",
+        default=False,
+        action="store_true",
+        help="whether it's allowed to compare result objects of different versions (columns, aka numpy dtypes)",
+    )
 
     args = parser.parse_args()
     logging_tools.log_argparse_args(args, logger=logger, level="WARNING")
@@ -74,6 +88,7 @@ def main():
         args.do_assert,
         args.diff_out_dir,
         logger,
+        compare_different_versions_ok=args.compare_different_versions_ok,
     )
 
 
@@ -85,6 +100,7 @@ def compare_then_exit(
     do_assert: bool,
     diff_out_dir: str,
     logger: logging.Logger,
+    compare_different_versions_ok: bool = False,
 ) -> None:
     """Compare the results, dump a json diff file, and sys.exit."""
     dump_json_diff = (
@@ -94,17 +110,24 @@ def compare_then_exit(
     close = actual.is_close(
         expected, dump_json_diff=dump_json_diff, rtol_per_field=RTOL_PER_FIELD
     )
-    equal = actual == expected
+
+    try:
+        equal = actual == expected
+    except TypeError as e:
+        logger.warning(f"--expected and --actual results are not the same types: {e}")
+        if not compare_different_versions_ok:
+            raise e
+        equal = False
 
     logger.info(f"The loaded files are close? ({close}) and/or equal? ({equal}).")
     logger.info(f"{RTOL_PER_FIELD=}")
     logger.info("Actual vs Expected...")
 
     if equal or close:
-        logger.info("Good.")
+        logger.info("PASSED.")
         sys.exit(0)
     else:
-        logger.error("Failed!")
+        logger.info("FAILED!")
         if do_assert:
             assert False
         sys.exit(1)

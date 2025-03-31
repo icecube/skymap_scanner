@@ -4,14 +4,22 @@
             "index",
             "llh",
             "E_in",
-            "E_tot"
+            "E_tot",
+            "X",
+            "Y",
+            "Z",
+            "T"
         ],
         "data": [
             [
                 6,
                 1370.4553241836998,
                 NaN,
-                NaN
+                NaN,
+                -405.4612185250339,
+                -82.38619873570633,
+                -116.24934043253937,
+                10692.20429875758
             ]
         ],
         "metadata": {
@@ -21,7 +29,8 @@
             "event_id": 31747601,
             "event_type": "neutrino",
             "mjd": 60280.71416774572,
-            "is_real_event": true
+            "is_real_event": true,
+            "version": 1
         }
     }
 }

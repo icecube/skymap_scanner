@@ -7,6 +7,8 @@ from typing import Final, List
 # True constants
 #
 
+EVENT_METADATA_VERSION: Final[int] = 1
+
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
 LOCAL_DATA_SOURCES: Final[List[Path]] = [
