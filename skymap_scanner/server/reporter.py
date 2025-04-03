@@ -587,13 +587,9 @@ class Reporter:
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
 
-        reco_lowerbounds = self.nside_progression.n_recos_by_nside_lowerbound(
-            self.n_posvar
-        )
-
         def recos_percent_string(nside: int) -> str:
             if nside not in self._n_sent_by_nside:  # hasn't been sent
-                return f"N/A ({reco_lowerbounds[nside]} predicted)"
+                return f"N/A ({self.estimated_total_nside_recos[nside]} predicted)"
             return (
                 f"{self.worker_stats_collection.ct_by_nside(nside)}/{self._n_sent_by_nside[nside]} "
                 f"({self.worker_stats_collection.ct_by_nside(nside) / self._n_sent_by_nside[nside]:.4f})"
@@ -604,10 +600,10 @@ class Reporter:
 
         def pixels_percent_string(nside: int) -> str:
             if nside not in self._n_sent_by_nside:  # hasn't been sent
-                return f"N/A ({int(reco_lowerbounds[nside]/self.n_posvar)} predicted)"
+                return f"N/A ({self.estimated_total_nside_recos[nside]/self.n_posvar} predicted)"
             # only finished pixels
-            done = int(self._n_sent_by_nside[nside] / self.n_posvar)
-            return f"{pixels_done(nside)}/{done} ({pixels_done(nside) / done:.4f})"
+            done = self._n_sent_by_nside[nside] / self.n_posvar
+            return f"{pixels_done(nside)}/{done:.2f} ({pixels_done(nside) / done:.4f})"
 
         by_nside = {}
         # get done counts & percentages (estimates for future nsides)
