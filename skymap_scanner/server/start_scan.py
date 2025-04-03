@@ -30,6 +30,7 @@ from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
 from .utils import (
     NSideProgression,
+    calc_estimated_total_nside_recos,
     fetch_event_contents_from_file,
     fetch_event_contents_from_skydriver,
     get_mqclient_connections,
@@ -353,8 +354,10 @@ async def scan(
     reporter = Reporter(
         global_start_time,
         nsides_dict,
-        len(pixeler.pos_variations),
         nside_progression,
+        calc_estimated_total_nside_recos(
+            nside_progression, pixeler.reco, len(pixeler.pos_variations)
+        ),
         output_dir,
         event_metadata,
         predictive_scanning_threshold,

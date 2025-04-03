@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import math
 import os
 import pickle
 import signal
@@ -10,12 +11,13 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import cachetools.func
 import mqclient as mq
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 from wipac_dev_tools.timing_tools import IntervalTimer
 
 from . import ENV
+from ..recos import RecoInterface
+from ..recos.splinempe_pointed import SplineMPEPointed
 
 LOGGER = logging.getLogger(__name__)
 
@@ -181,8 +183,6 @@ class NSideProgression(OrderedDict[int, int]):
     FIRST_NSIDE_PIXEL_EXTENSION = 0
     DEFAULT = [(8, FIRST_NSIDE_PIXEL_EXTENSION), (64, 12), (512, 24)]
 
-    HEALPIX_BASE_PIXEL_COUNT = 12
-
     def __init__(self, int_int_list: List[Tuple[int, int]]):
         super().__init__(NSideProgression._prevalidate(int_int_list))
 
@@ -255,26 +255,41 @@ class NSideProgression(OrderedDict[int, int]):
     def __hash__(self) -> int:  # type: ignore[override]
         return hash(str(self._get_int_int_list()))
 
-    @cachetools.func.lru_cache()
-    def n_recos_by_nside_lowerbound(self, n_posvar: int) -> Dict[int, int]:
-        """Get # of recos per nside (w/ predictive scanning its a LOWER bound).
 
-        The actual pixel generation is done iteratively, and does not
-        rely on this function. Use this function for reporting & logging
-        only.
-        """
+def calc_estimated_total_nside_recos(
+    nside_progression: NSideProgression,
+    reco: RecoInterface,
+    n_posvar: int,
+) -> Dict[int, int]:
+    """Get # of recos per nside (w/ predictive scanning its a LOWER bound).
 
-        # override first pixel extension for the math (uses base pixel count)
-        nside_factor_list = self._get_int_int_list()
-        nside_factor_list[0] = (nside_factor_list[0][0], self.HEALPIX_BASE_PIXEL_COUNT)
+    The actual pixel generation is done iteratively, and does not
+    rely on this function. Use this function for reporting & logging
+    only.
+    """
 
-        def previous_nside(index: int) -> int:
-            # get previous nside value
-            if index == 0:  # for the first nside use 1, since it's used to divide
-                return 1
-            return nside_factor_list[index - 1][0]  # nside
+    def previous_nside(index: int) -> int:
+        """Get previous nside value."""
+        if index == 0:  # for the first nside use 1, since it's used to divide
+            return 1
+        return nside_progression.get_at_index(index - 1)[0]  # nside
 
-        return {
-            nside: int(n_posvar * factor * ((nside / previous_nside(i)) ** 2))
-            for i, (nside, factor) in enumerate(nside_factor_list)
-        }
+    def get_nside_count(index: int, nside: int) -> int:
+        """Get the estimated n recos for this nside."""
+        if index == 0:
+            if isinstance(reco, SplineMPEPointed):
+                # pointed scans do not use the full sky
+                return math.ceil(
+                    ((math.pi**2) * (reco.ang_dist**2) * (nside**2)) / 10800
+                )
+            else:
+                factor = 12  # the base pixel count for HEALPix
+        else:
+            factor = nside_progression[nside]  # the pixel extension
+        # get floor
+        return int(n_posvar * factor * ((nside / previous_nside(index)) ** 2))
+
+    # calculate each
+    return {
+        nside: get_nside_count(i, nside) for i, nside in enumerate(nside_progression)
+    }

@@ -315,8 +315,8 @@ class Reporter:
         self,
         global_start_time: float,
         nsides_dict: NSidesDict,
-        n_posvar: int,
         nside_progression: NSideProgression,
+        estimated_total_nside_recos: dict[int, int],
         output_dir: Optional[Path],
         event_metadata: EventMetadata,
         predictive_scanning_threshold: float,
@@ -327,10 +327,10 @@ class Reporter:
                 - the start time (epoch) of the entire scan
             `nsides_dict`
                 - the nsides_dict
-            `n_posvar`
-                - number of position variations per pixel
             `nside_progression`
                 - the list of nsides & pixel-extensions
+            `estimated_total_nside_recos`
+                - the **estimated** total number of recos keyed by nside
             `output_dir`
                 - a directory to write out results & progress
             `event_metadata`
@@ -350,10 +350,8 @@ class Reporter:
         self.global_start = global_start_time
         self.nsides_dict = nsides_dict
 
-        if n_posvar <= 0:
-            raise ValueError(f"n_posvar is not positive: {n_posvar}")
-        self.n_posvar = n_posvar
         self.nside_progression = nside_progression
+        self.estimated_total_nside_recos = estimated_total_nside_recos
 
         self._n_sent_by_nside: Dict[int, int] = {}
 
@@ -485,14 +483,13 @@ class Reporter:
         if self.is_event_scan_done:
             return sum(self._n_sent_by_nside[nside] for nside in self.nside_progression)
 
-        estimates = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
         estimates_with_sents = sum(
-            self._n_sent_by_nside.get(nside, estimates[nside])
+            self._n_sent_by_nside.get(nside, self.estimated_total_nside_recos[nside])
             for nside in self.nside_progression
         )
         # estimates-sum SHOULD be a lower bound, but if estimates_with_sents
         #   is less than there will be more recos sent in the future
-        return max(estimates_with_sents, sum(estimates.values()))
+        return max(estimates_with_sents, sum(self.estimated_total_nside_recos.values()))
 
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
