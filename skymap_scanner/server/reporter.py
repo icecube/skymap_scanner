@@ -315,6 +315,7 @@ class Reporter:
         self,
         global_start_time: float,
         nsides_dict: NSidesDict,
+        n_posvar: int,
         nside_progression: NSideProgression,
         estimated_total_nside_recos: dict[int, int],
         output_dir: Optional[Path],
@@ -327,6 +328,8 @@ class Reporter:
                 - the start time (epoch) of the entire scan
             `nsides_dict`
                 - the nsides_dict
+            `n_posvar`
+                - number of position variations per pixel
             `nside_progression`
                 - the list of nsides & pixel-extensions
             `estimated_total_nside_recos`
@@ -350,6 +353,9 @@ class Reporter:
         self.global_start = global_start_time
         self.nsides_dict = nsides_dict
 
+        if n_posvar <= 0:
+            raise ValueError(f"n_posvar is not positive: {n_posvar}")
+        self.n_posvar = n_posvar
         self.nside_progression = nside_progression
         self.estimated_total_nside_recos = estimated_total_nside_recos
 
