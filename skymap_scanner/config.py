@@ -4,6 +4,7 @@ import dataclasses as dc
 import logging
 from pathlib import Path
 from typing import Final, List
+from collections import namedtuple
 
 import ewms_pilot
 import mqclient
@@ -53,12 +54,13 @@ REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_
 
 
 # physics strings
-INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
-    "2021a": "SplitUncleanedInIcePulses",
-    "2023a": "SplitInIcePulses",
-    "2024a": "SplitInIcePulses",
+KeyNames = namedtuple('KeyNames', 'pulseseries l2_splinempe')
+INPUT_KEY_NAMES_MAP: Final[dict[str, str]] = {
+    "2021a": KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE"),
+    "2023a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
+    "2024a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
 }
-DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
+DEFAULT_INPUT_KEY_NAMES: Final = KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE")
 
 INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
 
@@ -78,6 +80,7 @@ STATEDICT_INPUT_PULSES: Final = "input_pulses_name"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
+MSG_KEY_FORMAT_VERSION: Final = "format_version"
 #
 MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: Final = "reco_pixel_variation_pkl_b64"
 MSG_KEY_RUNTIME: Final = "runtime"

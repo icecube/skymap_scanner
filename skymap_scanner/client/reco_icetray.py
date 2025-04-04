@@ -106,6 +106,7 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     outfile: Path,
+    realtime_format_version: str
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -147,7 +148,7 @@ def reco_pixel(
 
     # create instance of reco_algo object
     RecoAlgo = recos.get_reco_interface_object(reco_algo)
-    reco = RecoAlgo()
+    reco = RecoAlgo(realtime_format_version)
     reco.setup_reco()
 
     # perform fit
@@ -279,6 +280,7 @@ def main() -> None:
         msg = json.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = messages.Serialization.decode_pkl_b64(msg[cfg.MSG_KEY_PFRAME_PKL_B64])
+        realtime_format_version = msg[cfg.MSG_KEY_FORMAT_VERSION]
 
     # get GCDQp_packet
     LOGGER.info(f"Reading {args.GCDQp_packet_json}...")
@@ -295,6 +297,7 @@ def main() -> None:
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.outfile,
+        realtime_format_version
     )
     LOGGER.info("Done reco'ing pixel.")
 

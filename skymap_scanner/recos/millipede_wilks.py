@@ -48,7 +48,7 @@ class MillipedeWilks(RecoInterface):
     pulsesName = cfg.INPUT_PULSES_NAME + "IC"
     pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
-    def __init__(self):
+    def __init__(self, realtime_format_version):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
@@ -112,7 +112,6 @@ class MillipedeWilks(RecoInterface):
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
-        
 
         tray.Add(mask_deepcore, origpulses=cfg.INPUT_PULSES_NAME, maskedpulses=cls.pulsesName)
 
