@@ -72,7 +72,7 @@ def extract_json_message(
     is_real_event: bool,
     cache_dir: str,
     GCD_dir: str
-) -> Tuple[EventMetadata, dict]:
+) -> Tuple[EventMetadata, dict, str]:
 
     _validate_cache_dir(cache_dir=cache_dir)
     pulses_name, realtime_format_version = _get_pulses_name(event_dict=event_dict)

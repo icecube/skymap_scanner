@@ -55,7 +55,7 @@ REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_
 
 # physics strings
 KeyNames = namedtuple('KeyNames', 'pulseseries l2_splinempe')
-INPUT_KEY_NAMES_MAP: Final[dict[str, str]] = {
+INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
     "2021a": KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE"),
     "2023a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
     "2024a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
