@@ -20,7 +20,6 @@ from icecube.BadDomList.BadDomListTraySegment import BadDomList # type: ignore[i
 from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 
 from .. import recos
-from .. import config as cfg
 
 LOGGER = logging.getLogger(__name__)
 
