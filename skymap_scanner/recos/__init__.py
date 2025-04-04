@@ -129,7 +129,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
 def set_pointing_ra_dec(
     particle_name: Union[str, None],
     p_frame: I3Frame
-) -> Union[Tuple[float, float], None, NoReturn]:
+) -> Union[Tuple[float, float], None]:
     """Retrieves the direction for a pointed scan"""
     if particle_name is None:
         # this is the case for generic full sky scans
