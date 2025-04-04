@@ -400,7 +400,7 @@ class SplineMPE(RecoInterface):
             OutputName="splinempe-reco",
             SeedService="splinempe-seed",
             Parametrization="splinempe-param",
-p            LogLikelihood="splinempe-llh",
+            LogLikelihood="splinempe-llh",
             Minimizer="simplex",
         )
 
