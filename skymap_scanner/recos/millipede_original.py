@@ -107,11 +107,11 @@ class MillipedeOriginal(RecoInterface):
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
+            raise RuntimeError(f"{pulsesName} not in frame")
         if pulsesName + "TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
+            raise RuntimeError(f"{pulsesName + 'TimeWindows'} not in frame")
         if pulsesName + "TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
+            raise RuntimeError(f"{pulsesName + 'TimeRange'} not in frame")
 
     @icetray.traysegment
     def exclusions(self, tray, name):

@@ -42,7 +42,7 @@ def extract_GCD_diff_base_filename(frame_packet):
                 GCD_diff_base_filename = frame[key].base_filename
                 LOGGER.debug(f"GCD diff base_filename loaded from {key} in {frame.Stop} frame.")
             elif frame[key].base_filename != GCD_diff_base_filename:
-                raise RuntimeError("inconsistent frame diff base GCD file names. expected {0}, got {1}".format(GCD_diff_base_filename, frame[key].base_filename))
+                raise RuntimeError(f"inconsistent frame diff base GCD file names. expected {GCD_diff_base_filename}, got {frame[key].base_filename}")
 
     if GCD_diff_base_filename == "current-gcd":
         # It is unclear which legacy case is covered by this condition.
@@ -128,9 +128,9 @@ def _extract_event_type(physics_frame):
 # split out from prepare_frame_packet()
 def _validate_cache_dir(cache_dir: str):
     if not os.path.exists(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
+        raise RuntimeError(f"cache directory \"{cache_dir}\" does not exist.")
     if not os.path.isdir(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
+        raise RuntimeError(f"cache directory \"{cache_dir}\" is not a directory.")
 
 # split out from prepare_frame_packet()
 def _validate_frame_packet(frame_packet: list):
@@ -149,7 +149,7 @@ def _validate_physics_frame(physics_frame):
 def _ensure_cache_directory(cache_dir, event_metadata):
     event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
-        raise RuntimeError("This event would be cached in directory \"{0}\", but it exists and is not a directory.".format(event_cache_dir))
+        raise RuntimeError(f"This event would be cached in directory \"{event_cache_dir}\", but it exists and is not a directory.")
     if not os.path.exists(event_cache_dir):
         os.mkdir(event_cache_dir)
     return event_cache_dir
@@ -195,7 +195,7 @@ def prepare_frame_packet(
         is_real_event,
         version=EVENT_METADATA_VERSION,
     )
-    LOGGER.debug("event ID is {0}".format(event_metadata))
+    LOGGER.debug(f"event ID is {event_metadata}")
 
     event_cache_dir = _ensure_cache_directory(cache_dir, event_metadata)
 

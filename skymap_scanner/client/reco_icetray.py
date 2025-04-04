@@ -77,10 +77,10 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
 
 def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     """Save this frame to the disk cache."""
-    nside_dir = save_dir / "nside{0:06d}".format(frame[cfg.I3FRAME_NSIDE].value)
+    nside_dir = save_dir / f"nside{frame[cfg.I3FRAME_NSIDE].value:06d}"
     nside_dir.mkdir(parents=True, exist_ok=True)
 
-    pixel_fname = nside_dir / "pix{0:012d}.i3".format(frame[cfg.I3FRAME_PIXEL].value)
+    pixel_fname = nside_dir / f"pix{frame[cfg.I3FRAME_PIXEL].value:012d}.i3"
 
     save_GCD_frame_packet_to_file([frame], str(pixel_fname))
     return pixel_fname
