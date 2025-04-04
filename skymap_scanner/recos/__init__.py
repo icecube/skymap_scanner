@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import importlib
 import pkgutil
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
