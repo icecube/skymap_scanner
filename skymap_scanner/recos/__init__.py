@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import importlib
 import pkgutil
-from typing import TYPE_CHECKING, Any, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Tuple, Union, NoReturn
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -129,7 +129,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
 def set_pointing_ra_dec(
     particle_name: Union[str, None],
     p_frame: I3Frame
-) -> Union[Tuple[float, float], None]:
+) -> Union[Tuple[float, float], None, NoReturn]:
     """Retrieves the direction for a pointed scan"""
     if particle_name is None:
         # this is the case for generic full sky scans
