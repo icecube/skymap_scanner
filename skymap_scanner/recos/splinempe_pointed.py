@@ -13,7 +13,9 @@ class SplineMPEPointed(splinempe.SplineMPE):
 
     def __init__(self, realtime_format_version):
         super().__init__(realtime_format_version)
-        self.pointing_dir_name = config.INPUT_KEY_NAMES_MAP[realtime_format_version].l2_splinempe
+        self.pointing_dir_name = config.INPUT_KEY_NAMES_MAP.get(
+            realtime_format_version,
+            config.DEFAULT_INPUT_KEY_NAMES).l2_splinempe
 
 
 RECO_CLASS: Final[type[RecoInterface]] = SplineMPEPointed

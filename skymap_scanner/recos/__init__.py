@@ -35,8 +35,6 @@ class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
     name: str = __name__
-    ang_dist: float = cfg.DEFAULT_ANG_DIST
-    pointing_dir_name: Union[None, str] = None
     # Reco-specific behaviors that need to be defined in derived classes.
     rotate_vertex: bool
     refine_time: bool
@@ -48,7 +46,8 @@ class RecoInterface(ABC):
 
     @abstractmethod
     def __init__(self, realtime_format_version):
-        pass
+        self.ang_dist: float = cfg.DEFAULT_ANG_DIST
+        self.pointing_dir_name: Union[None, str] = None
 
     @staticmethod
     def get_datastager():
