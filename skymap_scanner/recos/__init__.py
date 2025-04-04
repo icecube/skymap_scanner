@@ -131,7 +131,10 @@ def set_pointing_ra_dec(
     p_frame: I3Frame
 ) -> Union[Tuple[float, float], None]:
     """Retrieves the direction for a pointed scan"""
-    pointing_ra_dec = None
+    if particle_name is None:
+        # this is the case for generic full sky scans
+        return
+
     if particle_name in p_frame.keys():
         pointing_dir = p_frame[particle_name].dir
         pointing_ra_dec = astro.dir_to_equa(
@@ -139,4 +142,5 @@ def set_pointing_ra_dec(
             pointing_dir.azimuth,
             p_frame["I3EventHeader"].start_time.mod_julian_day_double
         )
-    return pointing_ra_dec
+        return pointing_ra_dec
+    raise RuntimeError(f"Particle {particle_name} needed for pointing was not found in the frame!")
