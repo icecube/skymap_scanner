@@ -124,7 +124,7 @@ class PixelsToReco:
 
         # The HLC pulse mask should have been been created in prepare_frames().
         self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(
-            p_frame, self.reco.pulsesName_input+'HLC')
+            p_frame, self.reco.get_input_pulses(realtime_format_version)+'HLC')
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 

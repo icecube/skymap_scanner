@@ -159,7 +159,7 @@ def prepare_frame_packet(
     frame_packet: list,
     reco_algo: str,
     is_real_event: bool,
-    pulses_name: str,
+    realtime_format_version: str,
     cache_dir: str,
     GCD_dir: str,
 ) -> Tuple[EventMetadata, dict]:
@@ -294,7 +294,7 @@ def prepare_frame_packet(
     # Uncompress GCD info and invoke `prepare_frames` traysegment provided by `reco_algo`
     # - frame_packet has GCD diff => baseline_GCD_file is a path string
     # - frame_packet has either normal GCD or has been reassembled => baseline_GCD_file is None
-    prepared_frame_packet = prepare_frames(frame_packet, event_metadata, baseline_GCD_file, reco_algo, pulses_name=pulses_name)
+    prepared_frame_packet = prepare_frames(frame_packet, event_metadata, baseline_GCD_file, reco_algo, realtime_format_version=realtime_format_version)
 
     # Delete original frame packet.
     del frame_packet

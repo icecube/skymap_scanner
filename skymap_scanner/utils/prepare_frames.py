@@ -84,7 +84,7 @@ def prepare_frames(frame_array,
     # icetray.logging.console()
 
     # Reconstruction algorithm provider class
-    _reco = recos.get_reco_interface_object(reco_algo)(realtime_format_version)
+    RecoAlgo = recos.get_reco_interface_object(reco_algo)
 
     output_frames: list[icetray.I3Frame] = []
 
@@ -112,14 +112,14 @@ def prepare_frames(frame_array,
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
-        Input=_reco.pulsesName_input,
-        OutputHLC=_reco.pulsesName_input+'HLC',
-        OutputSLC=_reco.pulsesName_input+'SLC',
-        If=lambda frame: _reco.pulsesName_input+'HLC' not in frame)
+        Input=RecoAlgo.get_input_pulses(realtime_format_version),
+        OutputHLC=RecoAlgo.get_input_pulses(realtime_format_version)+'HLC',
+        OutputSLC=RecoAlgo.get_input_pulses(realtime_format_version)+'SLC',
+        If=lambda frame: RecoAlgo.get_input_pulses(realtime_format_version)+'HLC' not in frame)
 
     # Run reco-specific preprocessing.
     tray.AddSegment(
-        _reco.prepare_frames,
+        RecoAlgo(realtime_format_version).prepare_frames,
         f"{reco_algo}_prepareframes",
         logger=LOGGER
     )
