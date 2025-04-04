@@ -139,11 +139,11 @@ class DataStager:
             filepath = subdir / filename
             LOGGER.debug(f"Trying to read {filepath}...")
             if filepath.is_file():
-                LOGGER.debug(f"-> success.")
+                LOGGER.debug("-> success.")
                 filename = str(filepath)
                 return filename
             else:
-                LOGGER.debug(f"-> fail.")
+                LOGGER.debug("-> fail.")
                 # File was not found in local paths.
         raise FileNotFoundError(f"File {filename} is not available on any local path.")
 

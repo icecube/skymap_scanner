@@ -2,7 +2,7 @@
 
 import dataclasses as dc
 import logging
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 from skyreader import EventMetadata, SkyScanResult

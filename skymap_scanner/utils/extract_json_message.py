@@ -6,7 +6,7 @@
 import json
 import logging
 import os
-from typing import Tuple, Union
+from typing import Tuple
 
 from icecube import full_event_followup, icetray  # type: ignore[import-not-found]
 from skyreader import EventMetadata

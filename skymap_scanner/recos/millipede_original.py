@@ -4,7 +4,6 @@
 # pylint: skip-file
 # mypy: ignore-errors
 
-import copy
 import datetime
 from typing import Final, List, Tuple
 
@@ -28,7 +27,6 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import late_pulse_cleaning

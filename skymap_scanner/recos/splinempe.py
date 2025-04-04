@@ -3,7 +3,7 @@
 
 import datetime
 import numpy as np
-from typing import Final, List
+from typing import Final
 
 
 from icecube.icetray import I3Units  # type: ignore[import]
@@ -28,7 +28,7 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 
 # Class bindings directly accessed by the python code are imported explicitly.
 from icecube.icetray import I3Frame, traysegment  # type: ignore[import]
-from icecube.lilliput import scipymin, i3minuit  # type: ignore[import]
+from icecube.lilliput import scipymin  # type: ignore[import]
 from icecube.photonics_service import I3PhotoSplineService  # type: ignore[import]
 from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTConfigurationService  # type: ignore[import]
 
