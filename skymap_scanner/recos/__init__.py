@@ -35,10 +35,6 @@ class RecoInterface(ABC):
     """An abstract class encapsulating reco-specific logic."""
 
     name: str = __name__
-    # Reco-specific behaviors that need to be defined in derived classes.
-    rotate_vertex: bool
-    refine_time: bool
-    add_fallback_position: bool
 
     # List of spline filenames required by the class.
     # The spline files will be looked up in pre-defined local paths or fetched from a remote data store.
@@ -46,6 +42,12 @@ class RecoInterface(ABC):
 
     @abstractmethod
     def __init__(self, realtime_format_version):
+        # Reco-specific behaviors that need to be defined in derived classes.
+        self.rotate_vertex: bool
+        self.refine_time: bool
+        self.add_fallback_position: bool
+
+        # Optionally these can be set in derived classes for directed scans
         self.ang_dist: float = cfg.DEFAULT_ANG_DIST
         self.pointing_dir_name: Union[None, str] = None
 

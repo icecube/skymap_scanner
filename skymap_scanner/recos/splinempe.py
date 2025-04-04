@@ -68,6 +68,7 @@ class SplineMPE(RecoInterface):
     vertex_seed_source = "VHESelfVeto"
 
     def __init__(self, realtime_format_version):
+        super().__init__(realtime_format_version)
         # Mandatory attributes (RecoInterface).
         self.rotate_vertex = True
         self.refine_time = True
