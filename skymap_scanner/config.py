@@ -17,7 +17,7 @@ from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 #
 
 EVENT_METADATA_VERSION: Final[int] = 1
-DEFAULT_ANG_DIST: Final[int] = 3.5
+DEFAULT_ANG_DIST: Final[float] = 3.5
 
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
