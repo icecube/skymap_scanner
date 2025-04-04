@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import importlib
 import pkgutil
-from typing import TYPE_CHECKING, Any, List, Tuple, Union, NoReturn
+from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
 if TYPE_CHECKING:  # https://stackoverflow.com/a/65265627
     from ..utils.pixel_classes import RecoPixelVariation
@@ -133,7 +133,7 @@ def set_pointing_ra_dec(
     """Retrieves the direction for a pointed scan"""
     if particle_name is None:
         # this is the case for generic full sky scans
-        return
+        return None
 
     if particle_name in p_frame.keys():
         pointing_dir = p_frame[particle_name].dir
