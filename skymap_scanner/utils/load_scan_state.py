@@ -175,7 +175,6 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
             LOGGER.debug(" - has a frame diff packet at {0} (using original copy)".format(os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_metadata)))
     else:
         LOGGER.debug(" - does not seem to contain frame diff packet")
-        baseline_GCD = None
 
     return {
         cfg.STATEDICT_GCDQP_PACKET: frame_packet,
