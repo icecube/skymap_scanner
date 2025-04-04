@@ -75,7 +75,7 @@ def extract_json_message(
 ) -> Tuple[EventMetadata, dict, str]:
 
     _validate_cache_dir(cache_dir=cache_dir)
-    pulses_name, realtime_format_version = _get_pulses_name(event_dict=event_dict)
+    _, realtime_format_version = _get_pulses_name(event_dict=event_dict)
 
     # extract the event content
     # the event object is converted to JSON
@@ -92,7 +92,7 @@ def extract_json_message(
         is_real_event=is_real_event,
         cache_dir=cache_dir,
         GCD_dir=GCD_dir,
-        pulses_name=pulses_name
+        realtime_format_version=realtime_format_version
     )
 
     LOGGER.info("Load scan state...")
@@ -101,8 +101,6 @@ def extract_json_message(
                                  state_dict,
                                  reco_algo,
                                  cache_dir=cache_dir)
-
-    state_dict[cfg.STATEDICT_INPUT_PULSES] = pulses_name
 
     return event_metadata, state_dict, realtime_format_version
 

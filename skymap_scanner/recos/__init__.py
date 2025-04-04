@@ -60,6 +60,11 @@ class RecoInterface(ABC):
         return datastager
 
     @staticmethod
+    def get_input_pulses(realtime_format_version: str) -> str:
+        return cfg.INPUT_KEY_NAMES_MAP.get(realtime_format_version,
+                                           cfg.DEFAULT_INPUT_KEY_NAMES).pulseseries
+
+    @staticmethod
     @abstractmethod
     def get_vertex_variations() -> List[I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""

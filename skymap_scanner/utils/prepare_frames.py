@@ -73,17 +73,18 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
+
 def prepare_frames(frame_array,
                    event_metadata,
                    baseline_GCD: Union[None, str],
                    reco_algo: str,
-                   pulses_name: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
+                   realtime_format_version: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
     # ACTIVATE FOR DEBUG
     # icetray.logging.console()
 
     # Reconstruction algorithm provider class
-    RecoAlgo = recos.get_reco_interface_object(reco_algo)
+    _reco = recos.get_reco_interface_object(reco_algo)(realtime_format_version)
 
     output_frames: list[icetray.I3Frame] = []
 
@@ -96,14 +97,6 @@ def prepare_frames(frame_array,
                  keep_compressed=True,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
-
-    def fetch_pulses(frame):
-        frame[cfg.INPUT_PULSES_NAME] = copy.deepcopy(frame[pulses_name])
-        frame[f'{cfg.INPUT_PULSES_NAME}TimeRange'] = copy.deepcopy(frame[f'{pulses_name}TimeRange'])
-        del frame[pulses_name]
-        del frame[f'{pulses_name}TimeRange']
-
-    tray.Add(fetch_pulses, "fetch_pulse_series", If = lambda f: cfg.INPUT_PULSES_NAME not in f)
 
     if 'BadDomsList' not in frame_array[2]:
         # rebuild the BadDomsList
@@ -119,14 +112,14 @@ def prepare_frames(frame_array,
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
-        Input=cfg.INPUT_PULSES_NAME,
-        OutputHLC=cfg.INPUT_PULSES_NAME+'HLC',
-        OutputSLC=cfg.INPUT_PULSES_NAME+'SLC',
-        If=lambda frame: cfg.INPUT_PULSES_NAME+'HLC' not in frame)
+        Input=_reco.pulsesName_input,
+        OutputHLC=_reco.pulsesName_input+'HLC',
+        OutputSLC=_reco.pulsesName_input+'SLC',
+        If=lambda frame: _reco.pulsesName_input+'HLC' not in frame)
 
     # Run reco-specific preprocessing.
     tray.AddSegment(
-        RecoAlgo.prepare_frames,
+        _reco.prepare_frames,
         f"{reco_algo}_prepareframes",
         logger=LOGGER
     )

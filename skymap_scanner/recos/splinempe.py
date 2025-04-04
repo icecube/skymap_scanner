@@ -41,7 +41,6 @@ from .common.pulse_proc import mask_deepcore
 class SplineMPE(RecoInterface):
     """Logic for SplineMPE reco."""
 
-    base_pulseseries = cfg.INPUT_PULSES_NAME
     rt_cleaned_pulseseries = "SplitRTCleanedInIcePulses"
     cleaned_muon_pulseseries = "CleanedMuonPulses"
     cleaned_muon_pulseseries_ic = "CleanedMuonPulsesIC"
@@ -73,6 +72,7 @@ class SplineMPE(RecoInterface):
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
+        self.base_pulseseries = self.get_input_pulses(realtime_format_version)
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -128,9 +128,8 @@ class SplineMPE(RecoInterface):
 
         return steps
 
-    @classmethod
     @traysegment
-    def prepare_frames(cls, tray, name: str, logger) -> None:
+    def prepare_frames(self, tray, name: str, logger) -> None:
         # =========================================================
         # PULSE CLEANING
         # From "SplitUncleanedInIcePulses" to "CleanedMuonPulses".
@@ -156,8 +155,8 @@ class SplineMPE(RecoInterface):
         tray.AddModule(
             "I3SeededRTCleaning_RecoPulseMask_Module",
             "BaseProc_RTCleaning",
-            InputHitSeriesMapName=cls.base_pulseseries,
-            OutputHitSeriesMapName=cls.rt_cleaned_pulseseries,
+            InputHitSeriesMapName=self.base_pulseseries,
+            OutputHitSeriesMapName=self.rt_cleaned_pulseseries,
             STConfigService=seededRTConfig,
             SeedProcedure="HLCCoreHits",
             NHitsThreshold=2,
@@ -165,18 +164,18 @@ class SplineMPE(RecoInterface):
             Streams=[I3Frame.Physics],
         )
 
-        tray.Add(checkName, name=cls.rt_cleaned_pulseseries)
+        tray.Add(checkName, name=self.rt_cleaned_pulseseries)
 
         # from icetray/filterscripts/python/baseproc.py
         tray.AddModule(
             "I3TimeWindowCleaning<I3RecoPulse>",
             "BaseProc_TimeWindowCleaning",
-            InputResponse=cls.rt_cleaned_pulseseries,
-            OutputResponse=cls.cleaned_muon_pulseseries,
+            InputResponse=self.rt_cleaned_pulseseries,
+            OutputResponse=self.cleaned_muon_pulseseries,
             TimeWindow=6000 * I3Units.ns,
         )
 
-        tray.Add(checkName, name=cls.cleaned_muon_pulseseries)
+        tray.Add(checkName, name=self.cleaned_muon_pulseseries)
 
         # =========================================================
         # ENERGY ESTIMATOR SEEDING
@@ -192,16 +191,16 @@ class SplineMPE(RecoInterface):
             logger.debug(f"{repr(frame)}/{frame}")
 
         tray.Add("Copy",
-                 Keys=["l2_online_BestFit", cls.energy_reco_seed],
-                 If=lambda f: f.Has("l2_online_BestFit") and not f.Has(cls.energy_reco_seed))
+                 Keys=["l2_online_BestFit", self.energy_reco_seed],
+                 If=lambda f: f.Has("l2_online_BestFit") and not f.Has(self.energy_reco_seed))
 
         # From icetray/filterscript/python/onlinel2filter.py
         tray.AddModule(
             "muex",
-            cls.energy_estimator,
-            pulses=cls.cleaned_muon_pulseseries,
-            rectrk=cls.energy_reco_seed,
-            result=cls.energy_estimator,
+            self.energy_estimator,
+            pulses=self.cleaned_muon_pulseseries,
+            rectrk=self.energy_reco_seed,
+            result=self.energy_estimator,
             energy=True,
             detail=True,
             compat=False,
@@ -212,13 +211,13 @@ class SplineMPE(RecoInterface):
 
         tray.Add(
             mask_deepcore,
-            origpulses=cls.cleaned_muon_pulseseries,
-            maskedpulses=cls.cleaned_muon_pulseseries_ic,
+            origpulses=self.cleaned_muon_pulseseries,
+            maskedpulses=self.cleaned_muon_pulseseries_ic,
         )
 
         ####
 
-        if cls.vertex_seed_source == "VHESelfVeto":
+        if self.vertex_seed_source == "VHESelfVeto":
             # For HESE events, HESE_VHESelfVeto should already be in the frame.
             #   Here, we re-run the module nevertheless to ensure consistency
             #   in the settings of the scan regardless of the input event.
@@ -227,7 +226,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto",
                 VertexThreshold=250,
-                Pulses=cls.base_pulseseries + "HLC",
+                Pulses=self.base_pulseseries + "HLC",
                 OutputBool="VHESelfVeto",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -238,7 +237,7 @@ class SplineMPE(RecoInterface):
                 "VHESelfVeto",
                 "selfveto-emergency-lowen-settings",
                 VertexThreshold=5,
-                Pulses=cls.base_pulseseries + "HLC",
+                Pulses=self.base_pulseseries + "HLC",
                 OutputBool="VHESelfVeto-seed-source",
                 OutputVertexTime=cfg.INPUT_TIME_NAME,
                 OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -246,7 +245,7 @@ class SplineMPE(RecoInterface):
             )
 
             def notify_seed(frame):
-                logger.debug(f"Seed from {cls.vertex_seed_source}:")
+                logger.debug(f"Seed from {self.vertex_seed_source}:")
                 logger.debug(frame[cfg.INPUT_POS_NAME])
                 # logger.debug(f"Seed from OnlineL2_SplineMPE:")
                 # logger.debug(frame["OnlineL2_SplineMPE"].pos)
@@ -254,7 +253,7 @@ class SplineMPE(RecoInterface):
 
             tray.Add(notify_seed)
 
-        elif cls.vertex_seed_source == "OnlineL2_SplineMPE":
+        elif self.vertex_seed_source == "OnlineL2_SplineMPE":
             # First vertex seed is extracted from OnlineL2 reco.
             def extract_seed(frame):
                 seed_source = "OnlineL2_SplineMPE"
@@ -401,7 +400,7 @@ class SplineMPE(RecoInterface):
             OutputName="splinempe-reco",
             SeedService="splinempe-seed",
             Parametrization="splinempe-param",
-            LogLikelihood="splinempe-llh",
+p            LogLikelihood="splinempe-llh",
             Minimizer="simplex",
         )
 

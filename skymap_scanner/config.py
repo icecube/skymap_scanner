@@ -62,8 +62,6 @@ INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
 }
 DEFAULT_INPUT_KEY_NAMES: Final = KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE")
 
-INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
-
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
 OUTPUT_PARTICLE_NAME: Final = "MillipedeSeedParticle"
@@ -76,7 +74,6 @@ I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
 STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
 STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
 STATEDICT_NSIDES: Final = "nsides"
-STATEDICT_INPUT_PULSES: Final = "input_pulses_name"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
