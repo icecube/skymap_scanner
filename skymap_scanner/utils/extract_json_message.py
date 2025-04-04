@@ -52,20 +52,6 @@ def extract_GCD_diff_base_filename(frame_packet):
     return GCD_diff_base_filename
 
 
-def _get_pulses_name(event_dict: dict):
-    # Some JSON events may not have the 'version' attribute.
-    # In such case we default to "no-version".
-    realtime_format_version: str = event_dict["value"].get("version", "no-version")
-
-    # If a version is not in the map (always the case for `no-version`) use default
-    #   otherwise get pulses name from the map.
-    pulses_name = cfg.INPUT_KEY_NAMES_MAP.get(
-        realtime_format_version,
-        cfg.DEFAULT_INPUT_KEY_NAMES
-    ).pulseseries
-    return pulses_name, realtime_format_version
-
-
 def extract_json_message(
     event_dict: dict,
     reco_algo: str,
@@ -75,7 +61,9 @@ def extract_json_message(
 ) -> Tuple[EventMetadata, dict, str]:
 
     _validate_cache_dir(cache_dir=cache_dir)
-    _, realtime_format_version = _get_pulses_name(event_dict=event_dict)
+    # Some JSON events may not have the 'version' attribute.
+    # In such case we default to "no-version".
+    realtime_format_version = event_dict["value"].get("version", "no-version")
 
     # extract the event content
     # the event object is converted to JSON
