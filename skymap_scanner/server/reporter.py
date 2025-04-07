@@ -636,7 +636,7 @@ class Reporter:
         def n_sent_recos(nside: int) -> float:
             return self._n_sent_by_nside.get(nside, 0) / self.n_posvar
 
-        tallies_by_nside = {}
+        tallies_by_nside: Dict[int, Dict[str, Dict[str, Union[float, int, str]]]] = {}
         # get done counts & percentages (estimates for future nsides)
         for nside in self.nside_progression:  # sorted by nside
             tallies_by_nside[nside] = {
@@ -681,7 +681,6 @@ class Reporter:
             except IndexError:  # have not reached that point yet
                 pass
 
-        del nside
         return {
             "nsides": tallies_by_nside,
             "overall": {
