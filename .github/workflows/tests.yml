@@ -582,7 +582,7 @@ jobs:
           load: true
 
       - name: run
-        timeout-minutes: 45  # on average max~=35min
+        timeout-minutes: 55  # on average max~=35min
         run: |
           set -euo pipefail
           set -x
