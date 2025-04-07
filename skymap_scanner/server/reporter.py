@@ -614,7 +614,7 @@ class Reporter:
             return len(self.nsides_dict.get(nside, []))
 
         def n_sent_recos(nside: int) -> float:
-            return self._n_sent_by_nside[nside] / self.n_posvar
+            return self._n_sent_by_nside.get(nside, 0) / self.n_posvar
 
         tallies_by_nside = {}
         # get done counts & percentages (estimates for future nsides)
@@ -630,7 +630,7 @@ class Reporter:
                         if nside in self._n_sent_by_nside
                         else "N/A"
                     ),
-                    "generated total": self._n_sent_by_nside[nside],
+                    "generated total": self._n_sent_by_nside.get(nside, 0),
                     "initial approx. total": self.estimated_total_nside_recos[nside],
                 },
                 "pixels": {
