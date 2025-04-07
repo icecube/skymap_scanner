@@ -623,11 +623,7 @@ class Reporter:
                     else "N/A"
                 ),
                 "generated": generated,
-                "initial approximation total": (
-                    init_approx
-                    if isinstance(init_approx, int)
-                    else f"{init_approx:.2f}"
-                ),
+                "initial approximation total": init_approx,
             }
 
         def pixels_done(nside: int) -> int:
