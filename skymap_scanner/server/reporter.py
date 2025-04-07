@@ -10,7 +10,7 @@ import math
 import statistics
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from rest_tools.client import RestClient
 from skyreader import EventMetadata, SkyScanResult
@@ -610,6 +610,26 @@ class Reporter:
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
 
+        def assemble(
+            done: int,
+            generated: Union[float, int],
+            init_approx: Union[float, int],
+        ) -> Dict[str, Union[float, int, str]]:
+            return {
+                "done": done,
+                "done est. percent": (
+                    f"{done}/{generated} ({done / generated:.2f})"  # ex: 1/7 (0.1429)
+                    if generated != 0
+                    else "N/A"
+                ),
+                "generated": generated,
+                "initial approximation total": (
+                    init_approx
+                    if isinstance(init_approx, int)
+                    else f"{init_approx:.2f}"
+                ),
+            }
+
         def pixels_done(nside: int) -> int:
             return len(self.nsides_dict.get(nside, []))
 
@@ -620,34 +640,16 @@ class Reporter:
         # get done counts & percentages (estimates for future nsides)
         for nside in self.nside_progression:  # sorted by nside
             tallies_by_nside[nside] = {
-                "recos": {
-                    "done": self.worker_stats_collection.ct_by_nside(nside),
-                    "done est. percent": (
-                        (  # ex: 1/7 (0.1429)
-                            f"{self.worker_stats_collection.ct_by_nside(nside)}/{self._n_sent_by_nside[nside]} "
-                            f"({self.worker_stats_collection.ct_by_nside(nside) / self._n_sent_by_nside[nside]:.4f})"
-                        )
-                        if nside in self._n_sent_by_nside
-                        else "N/A"
-                    ),
-                    "generated": self._n_sent_by_nside.get(nside, 0),
-                    "initial approximation total": self.estimated_total_nside_recos[
-                        nside
-                    ],
-                },
-                "pixels": {
-                    "done": pixels_done(nside),
-                    "done est. percent": (
-                        (  # ex: 0/1.00 (0.0000)
-                            f"{pixels_done(nside)}/{(n_sent_recos(nside)):.2f} "
-                            f"({pixels_done(nside) / (n_sent_recos(nside)):.4f})"
-                        )
-                        if nside in self._n_sent_by_nside
-                        else "N/A"
-                    ),
-                    "generated": n_sent_recos(nside),
-                    "initial approximation total": f"{self.estimated_total_nside_recos[nside] / self.n_posvar:.2f}",
-                },
+                "recos": assemble(
+                    self.worker_stats_collection.ct_by_nside(nside),
+                    self._n_sent_by_nside.get(nside, 0),
+                    self.estimated_total_nside_recos[nside],
+                ),
+                "pixels": assemble(
+                    pixels_done(nside),
+                    n_sent_recos(nside),
+                    self.estimated_total_nside_recos[nside] / self.n_posvar,
+                ),
             }
 
         # see when we reached X% done
@@ -679,14 +681,23 @@ class Reporter:
             except IndexError:  # have not reached that point yet
                 pass
 
+        del nside
         return {
             "nsides": tallies_by_nside,
-            "total pixels": sum(v["pixels"]["done"] for v in tallies_by_nside.values()),
-            "total recos": self.worker_stats_collection.total_ct,
-            "est. scan percent (recos)": (
-                f"{self.worker_stats_collection.total_ct}/{predicted_total} "
-                f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
-            ),
+            "overall": {
+                # fmt: off
+                "recos": assemble(
+                    sum(tallies_by_nside[n]["recos"]["done"] for n in tallies_by_nside),
+                    sum(tallies_by_nside[n]["recos"]["generated"] for n in tallies_by_nside),
+                    sum(tallies_by_nside[n]["recos"]["initial approximation total"] for n in tallies_by_nside),
+                ),
+                "pixels":  assemble(
+                    sum(tallies_by_nside[n]["pixels"]["done"] for n in tallies_by_nside),
+                    sum(tallies_by_nside[n]["pixels"]["generated"] for n in tallies_by_nside),
+                    sum(tallies_by_nside[n]["pixels"]["initial approximation total"] for n in tallies_by_nside),
+                ),
+                # fmt: on
+            },
             "est. scan timeline": timeline,
         }
 
