@@ -42,37 +42,53 @@ class WorkerStats:
         on_server_roundtrips: list[float],
         on_server_roundtrip_starts: list[float],
         on_server_roundtrip_ends: list[float],
+        initial_count: int = 0,
     ) -> None:
-        self.on_worker_runtimes = on_worker_runtimes
-        self.on_worker_runtimes.sort()  # speed up stats
+
         #
-        self.on_server_roundtrips = on_server_roundtrips
-        self.on_server_roundtrips.sort()  # speed up stats
+        # PRIVATE
+        # note -- these are private so the lists can be sampled to reduce memory
         #
-        self.on_server_roundtrip_starts: List[float] = on_server_roundtrip_starts
-        self.on_server_roundtrip_starts.sort()  # speed up stats
+
+        self._on_worker_runtimes = on_worker_runtimes
+        self._on_worker_runtimes.sort()  # speed up stats
+        #
+        self._on_server_roundtrips = on_server_roundtrips
+        self._on_server_roundtrips.sort()  # speed up stats
+        #
+        self._on_server_roundtrip_starts: List[float] = on_server_roundtrip_starts
+        self._on_server_roundtrip_starts.sort()  # speed up stats
+        #
+        self._on_server_roundtrip_ends = on_server_roundtrip_ends
+        self._on_server_roundtrip_ends.sort()  # speed up stats
+
+        #
+        # PUBLIC
+        #
+
+        self.count = initial_count
+
+        # statistics functions...
+
         self.on_server_first_roundtrip_start = lambda: min(
-            self.on_server_roundtrip_starts
+            self._on_server_roundtrip_starts
         )
-        #
-        self.on_server_roundtrip_ends = on_server_roundtrip_ends
-        self.on_server_roundtrip_ends.sort()  # speed up stats
-        self.on_server_last_roundtrip_end = lambda: max(self.on_server_roundtrip_ends)
+        self.on_server_last_roundtrip_end = lambda: max(self._on_server_roundtrip_ends)
 
-        self.fastest_worker = lambda: min(self.on_worker_runtimes)
-        self.fastest_roundtrip = lambda: min(self.on_server_roundtrips)
+        self.fastest_worker = lambda: min(self._on_worker_runtimes)
+        self.fastest_roundtrip = lambda: min(self._on_server_roundtrips)
 
-        self.slowest_worker = lambda: max(self.on_worker_runtimes)
-        self.slowest_roundtrip = lambda: max(self.on_server_roundtrips)
+        self.slowest_worker = lambda: max(self._on_worker_runtimes)
+        self.slowest_roundtrip = lambda: max(self._on_server_roundtrips)
 
         # Fast, floating point arithmetic mean.
-        self.mean_worker = lambda: statistics.fmean(self.on_worker_runtimes)
-        self.mean_roundtrip = lambda: statistics.fmean(self.on_server_roundtrips)
+        self.mean_worker = lambda: statistics.fmean(self._on_worker_runtimes)
+        self.mean_roundtrip = lambda: statistics.fmean(self._on_server_roundtrips)
 
         # Median (middle value) of data.
-        self.median_worker = lambda: float(statistics.median(self.on_worker_runtimes))
+        self.median_worker = lambda: float(statistics.median(self._on_worker_runtimes))
         self.median_roundtrip = lambda: float(
-            statistics.median(self.on_server_roundtrips)
+            statistics.median(self._on_server_roundtrips)
         )
 
         # other statistics functions...
@@ -92,22 +108,28 @@ class WorkerStats:
         on_worker_runtime: float,
         on_server_roundtrip_start: float,
         on_server_roundtrip_end: float,
+        increment_count: int,
     ) -> "WorkerStats":
         """Insert the runtime and recalculate round-trip start/end times."""
+        self.count += increment_count
+
+        # FUTURE DEV: sample these instead, i.e. flip a coin, heads:update, tails:noop
+
+        # these must be sorted in order for the statistics functions to be quick
         bisect.insort(
-            self.on_worker_runtimes,
+            self._on_worker_runtimes,
             on_worker_runtime,
         )
         bisect.insort(
-            self.on_server_roundtrips,
+            self._on_server_roundtrips,
             on_server_roundtrip_end - on_server_roundtrip_start,
         )
         bisect.insort(
-            self.on_server_roundtrip_starts,
+            self._on_server_roundtrip_starts,
             on_server_roundtrip_start,
         )
         bisect.insort(
-            self.on_server_roundtrip_ends,
+            self._on_server_roundtrip_ends,
             on_server_roundtrip_end,
         )
         return self
@@ -168,7 +190,7 @@ class WorkerStats:
                                 self.on_server_last_roundtrip_end()
                                 - self.on_server_first_roundtrip_start()
                             )
-                            / len(self.on_worker_runtimes)
+                            / self.count
                         )
                     )
                 ),
@@ -218,7 +240,7 @@ class WorkerStatsCollection:
         try:
             # look at a window, so don't use the first start time
             #   psst, we know that this list is sorted, ascending
-            nth_most_recent_start = self.aggregate.on_server_roundtrip_starts[
+            nth_most_recent_start = self.aggregate._on_server_roundtrip_starts[
                 -self.runtime_sample_window_size
             ]
             n_recos = self.runtime_sample_window_size
@@ -234,16 +256,14 @@ class WorkerStatsCollection:
     def ct_by_nside(self, nside: int) -> int:
         """Get length per given nside."""
         try:
-            return len(self._worker_stats_by_nside[nside].on_worker_runtimes)
+            return self._worker_stats_by_nside[nside].count
         except KeyError:
             return 0
 
     @property
     def total_ct(self) -> int:
-        """O(n) b/c len is O(1), n < 10."""
-        return sum(
-            len(w.on_worker_runtimes) for w in self._worker_stats_by_nside.values()
-        )
+        """Get the total count of all work units (recos)."""
+        return sum(w.count for w in self._worker_stats_by_nside.values())
 
     @property
     def first_roundtrip_start(self) -> float:
@@ -265,6 +285,7 @@ class WorkerStatsCollection:
                 on_worker_runtime,
                 on_server_roundtrip_start,
                 on_server_roundtrip_end,
+                increment_count=1,
             )
         except KeyError:
             worker_stats = self._worker_stats_by_nside[nside] = WorkerStats(
@@ -274,8 +295,9 @@ class WorkerStatsCollection:
                 ],
                 on_server_roundtrip_starts=[on_server_roundtrip_start],
                 on_server_roundtrip_ends=[on_server_roundtrip_end],
+                initial_count=1,
             )
-        return len(worker_stats.on_worker_runtimes)
+        return worker_stats.count
 
     @property
     def aggregate(self) -> WorkerStats:
@@ -286,17 +308,18 @@ class WorkerStatsCollection:
                 return WorkerStats([], [], [], [])
             self._aggregate = WorkerStats(
                 on_worker_runtimes=list(
-                    itertools.chain(*[i.on_worker_runtimes for i in instances])
+                    itertools.chain(*[i._on_worker_runtimes for i in instances])
                 ),
                 on_server_roundtrips=list(
-                    itertools.chain(*[i.on_server_roundtrips for i in instances])
+                    itertools.chain(*[i._on_server_roundtrips for i in instances])
                 ),
                 on_server_roundtrip_starts=list(
-                    itertools.chain(*[i.on_server_roundtrip_starts for i in instances])
+                    itertools.chain(*[i._on_server_roundtrip_starts for i in instances])
                 ),
                 on_server_roundtrip_ends=list(
-                    itertools.chain(*[i.on_server_roundtrip_ends for i in instances])
+                    itertools.chain(*[i._on_server_roundtrip_ends for i in instances])
                 ),
+                initial_count=self.total_ct,
             )
         return self._aggregate
 
@@ -395,12 +418,12 @@ class Reporter:
             RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
         self._call_order["last_called"] = current  # type: ignore[assignment]
 
-    def increment_sent_ct(self, nside: int, increment: int = 1) -> None:
+    def increment_sent_ct(self, nside: int) -> None:
         """Increment the number sent by nside."""
         try:
-            self._n_sent_by_nside[nside] += increment
+            self._n_sent_by_nside[nside] += 1
         except KeyError:
-            self._n_sent_by_nside[nside] = increment
+            self._n_sent_by_nside[nside] = 1
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
@@ -587,31 +610,42 @@ class Reporter:
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
 
-        def recos_percent_string(nside: int) -> str:
-            if nside not in self._n_sent_by_nside:  # hasn't been sent
-                return f"N/A ({self.estimated_total_nside_recos[nside]} predicted)"
-            return (
-                f"{self.worker_stats_collection.ct_by_nside(nside)}/{self._n_sent_by_nside[nside]} "
-                f"({self.worker_stats_collection.ct_by_nside(nside) / self._n_sent_by_nside[nside]:.4f})"
-            )
-
         def pixels_done(nside: int) -> int:
             return len(self.nsides_dict.get(nside, []))
 
-        def pixels_percent_string(nside: int) -> str:
-            if nside not in self._n_sent_by_nside:  # hasn't been sent
-                return f"N/A ({self.estimated_total_nside_recos[nside]/self.n_posvar} predicted)"
-            # only finished pixels
-            done = self._n_sent_by_nside[nside] / self.n_posvar
-            return f"{pixels_done(nside)}/{done:.2f} ({pixels_done(nside) / done:.4f})"
+        def n_sent_recos(nside: int) -> float:
+            return self._n_sent_by_nside[nside] / self.n_posvar
 
-        by_nside = {}
+        tallies_by_nside = {}
         # get done counts & percentages (estimates for future nsides)
         for nside in self.nside_progression:  # sorted by nside
-            by_nside[nside] = {
-                "done": pixels_done(nside),  # only finished pixels
-                "est. percent": pixels_percent_string(nside),
-                "est. percent (recos)": recos_percent_string(nside),
+            tallies_by_nside[nside] = {
+                "recos": {
+                    "done": self.worker_stats_collection.ct_by_nside(nside),
+                    "done est. percent": (
+                        (  # ex: 1/7 (0.1429)
+                            f"{self.worker_stats_collection.ct_by_nside(nside)}/{self._n_sent_by_nside[nside]} "
+                            f"({self.worker_stats_collection.ct_by_nside(nside) / self._n_sent_by_nside[nside]:.4f})"
+                        )
+                        if nside in self._n_sent_by_nside
+                        else "N/A"
+                    ),
+                    "generated total": self._n_sent_by_nside[nside],
+                    "initial approx. total": self.estimated_total_nside_recos[nside],
+                },
+                "pixels": {
+                    "done": pixels_done(nside),
+                    "done est. percent": (
+                        (  # ex: 0/1.00 (0.0000)
+                            f"{pixels_done(nside)}/{(n_sent_recos(nside)):.2f} "
+                            f"({pixels_done(nside) / (n_sent_recos(nside)):.4f})"
+                        )
+                        if nside in self._n_sent_by_nside
+                        else "N/A"
+                    ),
+                    "generated total": n_sent_recos(nside),
+                    "initial approx. total": f"{self.estimated_total_nside_recos[nside] / self.n_posvar:2f}",
+                },
             }
 
         # see when we reached X% done
@@ -634,7 +668,7 @@ class Reporter:
                 index = math.ceil(predicted_total * i) - 1
                 name = str(i)
             try:
-                when = self.worker_stats_collection.aggregate.on_server_roundtrip_ends[
+                when = self.worker_stats_collection.aggregate._on_server_roundtrip_ends[
                     index
                 ]
                 timeline[name] = str(
@@ -644,11 +678,10 @@ class Reporter:
                 pass
 
         return {
-            "nsides": by_nside,
-            # total completed pixels
-            "total pixels": sum(v["done"] for v in by_nside.values()),
+            "nsides": tallies_by_nside,
+            "total pixels": sum(v["pixels"]["done"] for v in tallies_by_nside.values()),
             "total recos": self.worker_stats_collection.total_ct,
-            "est. scan percent": (
+            "est. scan percent (recos)": (
                 f"{self.worker_stats_collection.total_ct}/{predicted_total} "
                 f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
             ),
