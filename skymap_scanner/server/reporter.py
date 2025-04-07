@@ -682,14 +682,14 @@ class Reporter:
             "overall": {
                 # fmt: off
                 "recos": assemble(
-                    sum(tallies_by_nside[n]["recos"]["done"] for n in tallies_by_nside),
-                    sum(tallies_by_nside[n]["recos"]["generated"] for n in tallies_by_nside),
-                    sum(tallies_by_nside[n]["recos"]["initial approximation total"] for n in tallies_by_nside),
+                    sum(tallies_by_nside[n]["recos"]["done"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["recos"]["generated"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["recos"]["initial approximation total"] for n in tallies_by_nside),  # type: ignore[misc]
                 ),
-                "pixels":  assemble(
-                    sum(tallies_by_nside[n]["pixels"]["done"] for n in tallies_by_nside),
-                    sum(tallies_by_nside[n]["pixels"]["generated"] for n in tallies_by_nside),
-                    sum(tallies_by_nside[n]["pixels"]["initial approximation total"] for n in tallies_by_nside),
+                "pixels": assemble(
+                    sum(tallies_by_nside[n]["pixels"]["done"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["pixels"]["generated"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["pixels"]["initial approximation total"] for n in tallies_by_nside),  # type: ignore[misc]
                 ),
                 # fmt: on
             },
