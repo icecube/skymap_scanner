@@ -278,9 +278,11 @@ def calc_estimated_total_nside_recos(
         if index == 0:
             if reco.pointing_dir_names is not None:
                 # pointed scans do not use the full sky
-                # N_approx ≈ 6 * nside ^ 2 * (1 - cos(R))
-                return math.ceil(
-                    6 * nside**2 * (1 - math.cos(reco.ang_dist * (math.pi / 180)))
+                return (
+                    math.ceil(  # N_approx ≈ 6 * nside ^ 2 * (1 - cos(R))
+                        6 * nside**2 * (1 - math.cos(reco.ang_dist * (math.pi / 180)))
+                    )
+                    * n_posvar
                 )
             else:
                 factor = 12  # the base pixel count for HEALPix
