@@ -630,8 +630,10 @@ class Reporter:
                         if nside in self._n_sent_by_nside
                         else "N/A"
                     ),
-                    "generated total": self._n_sent_by_nside.get(nside, 0),
-                    "initial approx. total": self.estimated_total_nside_recos[nside],
+                    "generated": self._n_sent_by_nside.get(nside, 0),
+                    "initial approximation total": self.estimated_total_nside_recos[
+                        nside
+                    ],
                 },
                 "pixels": {
                     "done": pixels_done(nside),
@@ -643,8 +645,8 @@ class Reporter:
                         if nside in self._n_sent_by_nside
                         else "N/A"
                     ),
-                    "generated total": n_sent_recos(nside),
-                    "initial approx. total": f"{self.estimated_total_nside_recos[nside] / self.n_posvar:.2f}",
+                    "generated": n_sent_recos(nside),
+                    "initial approximation total": f"{self.estimated_total_nside_recos[nside] / self.n_posvar:.2f}",
                 },
             }
 
