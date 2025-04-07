@@ -644,7 +644,7 @@ class Reporter:
                         else "N/A"
                     ),
                     "generated total": n_sent_recos(nside),
-                    "initial approx. total": f"{self.estimated_total_nside_recos[nside] / self.n_posvar:2f}",
+                    "initial approx. total": f"{self.estimated_total_nside_recos[nside] / self.n_posvar:.2f}",
                 },
             }
 
