@@ -80,7 +80,7 @@ STATEDICT_NSIDES: Final = "nsides"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
-MSG_KEY_REALTIME_FORMAT_VERSION: Final = "format_version"
+MSG_KEY_REALTIME_FORMAT_VERSION: Final = "realtime_format_version"
 #
 MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: Final = "reco_pixel_variation_pkl_b64"
 MSG_KEY_RUNTIME: Final = "runtime"
