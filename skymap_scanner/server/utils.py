@@ -276,7 +276,7 @@ def calc_estimated_total_nside_recos(
     def get_nside_count(index: int, nside: int) -> int:
         """Get the estimated n recos for this nside."""
         if index == 0:
-            if reco.pointing_dir_names is not None:
+            if reco.pointing_dir_name is not None:
                 # pointed scans do not use the full sky
                 return (
                     math.ceil(  # N_approx ≈ 6 * nside ^ 2 * (1 - cos(R))
