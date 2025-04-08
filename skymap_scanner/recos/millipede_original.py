@@ -82,7 +82,7 @@ class MillipedeOriginal(RecoInterface):
                     OutputVertexPos=cfg.INPUT_POS_NAME,
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
-    def __init__(self, realtime_format_version):
+    def __init__(self, realtime_format_version: str):
         super().__init__(realtime_format_version)
         self.rotate_vertex = False
         self.refine_time = False

@@ -44,7 +44,7 @@ class MillipedeWilks(RecoInterface):
     SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE,
                            FTP_EFFP_SPLINE, FTP_TMOD_SPLINE]
 
-    def __init__(self, realtime_format_version):
+    def __init__(self, realtime_format_version: str):
         super().__init__(realtime_format_version)
         self.rotate_vertex = True
         self.refine_time = True

@@ -41,7 +41,7 @@ class RecoInterface(ABC):
     SPLINE_REQUIREMENTS: List[str] = list()
 
     @abstractmethod
-    def __init__(self, realtime_format_version):
+    def __init__(self, realtime_format_version: str):
         # Reco-specific behaviors that need to be defined in derived classes.
         self.rotate_vertex: bool
         self.refine_time: bool
