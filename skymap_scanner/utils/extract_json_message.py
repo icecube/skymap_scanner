@@ -62,7 +62,7 @@ def extract_json_message(
 
     _validate_cache_dir(cache_dir=cache_dir)
     # Some JSON events may not have the 'version' attribute.
-    # In such case we default to "no-version".
+    # In such case we default to empty string "".
     realtime_format_version = event_dict["value"].get("version", "")
 
     # extract the event content
