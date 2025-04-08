@@ -280,7 +280,7 @@ def main() -> None:
         msg = json.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = messages.Serialization.decode_pkl_b64(msg[cfg.MSG_KEY_PFRAME_PKL_B64])
-        realtime_format_version = msg[cfg.MSG_KEY_FORMAT_VERSION]
+        realtime_format_version = msg[cfg.MSG_KEY_REALTIME_FORMAT_VERSION]
 
     # get GCDQp_packet
     LOGGER.info(f"Reading {args.GCDQp_packet_json}...")

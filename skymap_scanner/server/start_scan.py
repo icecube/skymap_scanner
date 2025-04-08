@@ -410,7 +410,7 @@ async def _send_pixels(
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
-                    cfg.MSG_KEY_FORMAT_VERSION: realtime_format_version,
+                    cfg.MSG_KEY_REALTIME_FORMAT_VERSION: realtime_format_version,
                     cfg.MSG_KEY_PFRAME_PKL_B64: messages.Serialization.encode_pkl_b64(
                         pframe
                     ),

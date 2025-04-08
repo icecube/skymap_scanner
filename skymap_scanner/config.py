@@ -56,6 +56,8 @@ REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_
 
 # physics strings
 KeyNames = namedtuple('KeyNames', 'pulseseries l2_splinempe')
+# the keys for this dictionary correspond to the realtime "version" specified in event json
+# in skymap_scanner the keys are referred to as the "realtime_format_version"
 INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
     "2021a": KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE"),
     "2023a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
@@ -78,7 +80,7 @@ STATEDICT_NSIDES: Final = "nsides"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
-MSG_KEY_FORMAT_VERSION: Final = "format_version"
+MSG_KEY_REALTIME_FORMAT_VERSION: Final = "format_version"
 #
 MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: Final = "reco_pixel_variation_pkl_b64"
 MSG_KEY_RUNTIME: Final = "runtime"
