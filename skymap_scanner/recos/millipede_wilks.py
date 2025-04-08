@@ -43,15 +43,18 @@ class MillipedeWilks(RecoInterface):
 
     SPLINE_REQUIREMENTS = [FTP_ABS_SPLINE, FTP_PROB_SPLINE, FTP_EFFD_SPLINE,
                            FTP_EFFP_SPLINE, FTP_TMOD_SPLINE]
-    # Constants ########################################################
 
-    pulsesName = cfg.INPUT_PULSES_NAME + "IC"
-    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-
-    def __init__(self):
+    def __init__(self, realtime_format_version: str):
+        super().__init__(realtime_format_version)
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = True
+
+        self.pulsesName_input = self.get_input_pulses(realtime_format_version)
+        self.pulsesName = self.pulsesName_input + "IC"
+        self.pulsesName_cleaned = self.pulsesName+'LatePulseCleaned'
+
+
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
@@ -81,9 +84,8 @@ class MillipedeWilks(RecoInterface):
 
         self.muon_service = None
 
-    @classmethod
     @icetray.traysegment
-    def prepare_frames(cls, tray, name, logger):
+    def prepare_frames(self, tray, name, logger):
         # Generates the vertex seed for the initial scan. 
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
@@ -98,7 +100,7 @@ class MillipedeWilks(RecoInterface):
 
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
-            Pulses=cfg.INPUT_PULSES_NAME+'HLC',
+            Pulses=self.pulsesName_input+'HLC',
             OutputBool='HESE_VHESelfVeto',
             OutputVertexTime=cfg.INPUT_TIME_NAME,
             OutputVertexPos=cfg.INPUT_POS_NAME,
@@ -107,37 +109,35 @@ class MillipedeWilks(RecoInterface):
         # this only runs if the previous module did not return anything
         tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
                        VertexThreshold=5,
-                       Pulses=cfg.INPUT_PULSES_NAME+'HLC',
+                       Pulses=self.pulsesName_input+'HLC',
                        OutputBool='VHESelfVeto_meaningless_lowen',
                        OutputVertexTime=cfg.INPUT_TIME_NAME,
                        OutputVertexPos=cfg.INPUT_POS_NAME,
                        If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
-        
 
-        tray.Add(mask_deepcore, origpulses=cfg.INPUT_PULSES_NAME, maskedpulses=cls.pulsesName)
+        tray.Add(mask_deepcore, origpulses=self.pulsesName_input, maskedpulses=self.pulsesName)
 
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
+            raise RuntimeError(f"{pulsesName} not in frame")
         if pulsesName + "TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
+            raise RuntimeError(f"{pulsesName + 'TimeWindows'} not in frame")
         if pulsesName + "TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
+            raise RuntimeError(f"{pulsesName + 'TimeRange'} not in frame")
 
-    @classmethod
     @icetray.traysegment
-    def exclusions(cls, tray, name):
+    def exclusions(self, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 cls.pulsesName_cleaned,
-                                 cls.pulsesName_cleaned+'TimeWindows',
-                                 cls.pulsesName_cleaned+'TimeRange'])
+                                 self.pulsesName_cleaned,
+                                 self.pulsesName_cleaned+'TimeWindows',
+                                 self.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = cls.pulsesName,
+            Pulses = self.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -180,12 +180,12 @@ class MillipedeWilks(RecoInterface):
 
         ##################
         tray.AddModule(pulse_cleaning, "LatePulseCleaning",
-                       input_pulses_name=cls.pulsesName,
-                       output_pulses_name=cls.pulsesName_cleaned,
+                       input_pulses_name=self.pulsesName,
+                       output_pulses_name=self.pulsesName_cleaned,
                        residual=1.5e3*I3Units.ns)
-        ExcludedDOMs.append(cls.pulsesName_cleaned+'TimeWindows')
+        ExcludedDOMs.append(self.pulsesName_cleaned+'TimeWindows')
 
-        tray.Add(skipunhits, output='OtherUnhits', pulses=cls.pulsesName_cleaned)
+        tray.Add(skipunhits, output='OtherUnhits', pulses=self.pulsesName_cleaned)
         ExcludedDOMs.append('OtherUnhits')
         return ExcludedDOMs
 

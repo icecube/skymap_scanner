@@ -39,7 +39,7 @@ fs==2.4.12
 gast==0.5.2
 healpy==1.15.0
 htchirp==3.0
-htcondor==24.5.1
+htcondor==24.6.1
 html5lib==1.1
 hypothesis==6.36.0
 icecube-skyreader==1.4.2
@@ -108,7 +108,7 @@ pythran==0.10.0
 pytz==2022.1
 PyYAML==5.4.1
 pyzmq==22.3.0
-qrcode==8.0
+qrcode==8.1
 requests==2.25.1
 requests-futures==1.0.2
 scipy==1.8.0
@@ -128,7 +128,7 @@ tables==3.7.0
 toml==0.10.2
 tornado==6.4.2
 traitlets==5.1.1
-typing_extensions==4.12.2
+typing_extensions==4.13.1
 ufoLib2==0.13.1
 unicodedata2==14.0.0
 UNKNOWN @ file:///root/nuflux-2.0.4
@@ -212,7 +212,7 @@ pexpect==4.8.0
 pickleshare==0.7.5
 pika==1.3.2
 Pillow==9.0.1
-pipdeptree==2.25.1
+pipdeptree==2.26.0
 ├── packaging [required: >=24.1, installed: 24.2]
 └── pip [required: >=24.2, installed: 25.0.1]
 pluggy==0.13.0
@@ -246,10 +246,10 @@ six==1.16.0
 skymap-scanner
 ├── ewms-pilot [required: ==0.19.0, installed: 0.19.0]
 │   ├── htchirp [required: Any, installed: 3.0]
-│   ├── htcondor [required: Any, installed: 24.5.1]
+│   ├── htcondor [required: Any, installed: 24.6.1]
 │   └── oms-mqclient [required: Any, installed: 2.4.10]
 │       └── wipac-dev-tools [required: Any, installed: 1.15.6]
-│           ├── typing_extensions [required: Any, installed: 4.12.2]
+│           ├── typing_extensions [required: Any, installed: 4.13.1]
 │           └── requests [required: Any, installed: 2.25.1]
 ├── healpy [required: Any, installed: 1.15.0]
 ├── icecube-skyreader [required: >=1.4.2, installed: 1.4.2]
@@ -263,30 +263,30 @@ skymap-scanner
 │   ├── pandas [required: Any, installed: 1.3.5]
 │   ├── scipy [required: Any, installed: 1.8.0]
 │   └── wipac-dev-tools [required: Any, installed: 1.15.6]
-│       ├── typing_extensions [required: Any, installed: 4.12.2]
+│       ├── typing_extensions [required: Any, installed: 4.13.1]
 │       └── requests [required: Any, installed: 2.25.1]
 ├── iminuit [required: <2.27.0, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
 ├── oms-mqclient [required: ==2.4.10, installed: 2.4.10]
 │   └── wipac-dev-tools [required: Any, installed: 1.15.6]
-│       ├── typing_extensions [required: Any, installed: 4.12.2]
+│       ├── typing_extensions [required: Any, installed: 4.13.1]
 │       └── requests [required: Any, installed: 2.25.1]
 ├── scipy [required: Any, installed: 1.8.0]
 ├── wipac-dev-tools [required: Any, installed: 1.15.6]
-│   ├── typing_extensions [required: Any, installed: 4.12.2]
+│   ├── typing_extensions [required: Any, installed: 4.13.1]
 │   └── requests [required: Any, installed: 2.25.1]
 └── wipac-rest-tools [required: Any, installed: 1.8.6]
     ├── cachetools [required: Any, installed: 5.5.2]
     ├── PyJWT [required: !=2.6.0, installed: 2.10.1]
-    ├── qrcode [required: Any, installed: 8.0]
+    ├── qrcode [required: Any, installed: 8.1]
     ├── requests [required: Any, installed: 2.25.1]
     ├── requests-futures [required: Any, installed: 1.0.2]
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
     ├── tornado [required: Any, installed: 6.4.2]
     ├── urllib3 [required: >=2.0.4, installed: 2.3.0]
     └── wipac-dev-tools [required: Any, installed: 1.15.6]
-        ├── typing_extensions [required: Any, installed: 4.12.2]
+        ├── typing_extensions [required: Any, installed: 4.13.1]
         └── requests [required: Any, installed: 2.25.1]
 sortedcontainers==2.1.0
 soupsieve==2.3.1

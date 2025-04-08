@@ -20,7 +20,6 @@ from icecube.BadDomList.BadDomListTraySegment import BadDomList # type: ignore[i
 from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 
 from .. import recos
-from .. import config as cfg
 
 LOGGER = logging.getLogger(__name__)
 
@@ -73,11 +72,12 @@ class FrameArraySink(icetray.I3Module):
 
         self.PushFrame(frame)
 
+
 def prepare_frames(frame_array,
                    event_metadata,
                    baseline_GCD: Union[None, str],
                    reco_algo: str,
-                   pulses_name: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
+                   realtime_format_version: str) -> List[icetray.I3Frame]: # type hint using list available from python 3.11
 
     # ACTIVATE FOR DEBUG
     # icetray.logging.console()
@@ -97,14 +97,6 @@ def prepare_frames(frame_array,
                  base_path=base_GCD_path,
                  base_filename=base_GCD_filename)
 
-    def fetch_pulses(frame):
-        frame[cfg.INPUT_PULSES_NAME] = copy.deepcopy(frame[pulses_name])
-        frame[f'{cfg.INPUT_PULSES_NAME}TimeRange'] = copy.deepcopy(frame[f'{pulses_name}TimeRange'])
-        del frame[pulses_name]
-        del frame[f'{pulses_name}TimeRange']
-
-    tray.Add(fetch_pulses, "fetch_pulse_series", If = lambda f: cfg.INPUT_PULSES_NAME not in f)
-
     if 'BadDomsList' not in frame_array[2]:
         # rebuild the BadDomsList
         # For real data events, query i3live
@@ -119,14 +111,14 @@ def prepare_frames(frame_array,
     # Separates pulses in HLC and SLC to obtain the HLC series.
     # HLC pulses are used for the determination of the vertex.
     tray.AddModule('I3LCPulseCleaning', 'lcclean1',
-        Input=cfg.INPUT_PULSES_NAME,
-        OutputHLC=cfg.INPUT_PULSES_NAME+'HLC',
-        OutputSLC=cfg.INPUT_PULSES_NAME+'SLC',
-        If=lambda frame: cfg.INPUT_PULSES_NAME+'HLC' not in frame)
+        Input=RecoAlgo.get_input_pulses(realtime_format_version),
+        OutputHLC=RecoAlgo.get_input_pulses(realtime_format_version)+'HLC',
+        OutputSLC=RecoAlgo.get_input_pulses(realtime_format_version)+'SLC',
+        If=lambda frame: RecoAlgo.get_input_pulses(realtime_format_version)+'HLC' not in frame)
 
     # Run reco-specific preprocessing.
     tray.AddSegment(
-        RecoAlgo.prepare_frames,
+        RecoAlgo(realtime_format_version).prepare_frames,
         f"{reco_algo}_prepareframes",
         logger=LOGGER
     )

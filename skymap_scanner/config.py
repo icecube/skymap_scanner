@@ -4,6 +4,7 @@ import dataclasses as dc
 import logging
 from pathlib import Path
 from typing import Final, List
+from collections import namedtuple
 
 import ewms_pilot
 import mqclient
@@ -16,6 +17,7 @@ from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 #
 
 EVENT_METADATA_VERSION: Final[int] = 1
+DEFAULT_ANG_DIST: Final[float] = 3.5
 
 
 # Local data sources. These are assumed to be filesystem paths and are expected to have the same directory structure.
@@ -53,14 +55,15 @@ REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_
 
 
 # physics strings
-INPUT_PULSES_NAME_MAP: Final[dict[str, str]] = {
-    "2021a": "SplitUncleanedInIcePulses",
-    "2023a": "SplitInIcePulses",
-    "2024a": "SplitInIcePulses",
+KeyNames = namedtuple('KeyNames', 'pulseseries l2_splinempe')
+# the keys for this dictionary correspond to the realtime "version" specified in event json
+# in skymap_scanner the keys are referred to as the "realtime_format_version"
+INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
+    "2021a": KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE"),
+    "2023a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
+    "2024a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
 }
-DEFAULT_INPUT_PULSES_NAME: Final = "SplitUncleanedInIcePulses"
-
-INPUT_PULSES_NAME = "SplitUncleanedInIcePulses"
+DEFAULT_INPUT_KEY_NAMES: Final = KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE")
 
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"
@@ -74,10 +77,10 @@ I3FRAME_POSVAR: Final = "SCAN_PositionVariationIndex"
 STATEDICT_GCDQP_PACKET: Final = "GCDQp_packet"
 STATEDICT_BASELINE_GCD_FILE: Final = "baseline_GCD_file"
 STATEDICT_NSIDES: Final = "nsides"
-STATEDICT_INPUT_PULSES: Final = "input_pulses_name"
 #
 MSG_KEY_RECO_ALGO: Final = "reco_algo"
 MSG_KEY_PFRAME_PKL_B64: Final = "pframe_pkl_b64"
+MSG_KEY_REALTIME_FORMAT_VERSION: Final = "realtime_format_version"
 #
 MSG_KEY_RECO_PIXEL_VARIATION_PKL_B64: Final = "reco_pixel_variation_pkl_b64"
 MSG_KEY_RUNTIME: Final = "runtime"

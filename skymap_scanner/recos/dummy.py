@@ -29,7 +29,8 @@ from . import RecoInterface, VertexGenerator
 class Dummy(RecoInterface):
     """Logic for a dummy reco."""
 
-    def __init__(self):
+    def __init__(self, realtime_format_version: str):
+        super().__init__(realtime_format_version)
         self.rotate_vertex = True
         self.refine_time = True
         self.add_fallback_position = False

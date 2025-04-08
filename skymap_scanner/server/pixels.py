@@ -190,7 +190,7 @@ def choose_pixels_to_reconstruct(
             nsides_dict,
             coord_ra_dec=coord_ra_dec,
             nside=nside_progression.max_nside,  # use final nside
-            angular_dist=ang_dist*numpy.pi/180.
+            angular_dist=numpy.radians(ang_dist)
         )
 
     # INITIAL PIXEL GENERATION
