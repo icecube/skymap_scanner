@@ -61,12 +61,6 @@ class SplineMPE(RecoInterface):
     energy_reco_seed = "OnlineL2_BestFit"
     energy_estimator = "OnlineL2_BestFit_MuEx"
 
-    # This may be configurable in the future.
-    # "VHESelfVeto" yields a reco-independent vertex seed.
-    # "OnlineL2_SplineMPE" picks the output of the L2 SplineMPE reco
-    #   and is mostly supported for legacy reasons.
-    vertex_seed_source = "VHESelfVeto"
-
     def __init__(self, realtime_format_version: str):
         super().__init__(realtime_format_version)
         # Mandatory attributes (RecoInterface).
@@ -74,6 +68,18 @@ class SplineMPE(RecoInterface):
         self.refine_time = True
         self.add_fallback_position = True
         self.base_pulseseries = self.get_input_pulses(realtime_format_version)
+
+        # Pick out the L2 SplineMPE online reco
+        self.l2_splinempe = cfg.INPUT_KEY_NAMES_MAP.get(
+            realtime_format_version,
+            cfg.DEFAULT_INPUT_KEY_NAMES).l2_splinempe
+
+        # This may be configurable in the future.
+        # "VHESelfVeto" yields a reco-independent vertex seed.
+        # Setting this to self.l2_splinempe
+        # picks the output of the L2 SplineMPE reco
+        # and is mostly supported for legacy reasons.
+        self.vertex_seed_source = "VHESelfVeto"
 
     @staticmethod
     def get_prejitter(config="max") -> int:
@@ -248,16 +254,13 @@ class SplineMPE(RecoInterface):
             def notify_seed(frame):
                 logger.debug(f"Seed from {self.vertex_seed_source}:")
                 logger.debug(frame[cfg.INPUT_POS_NAME])
-                # logger.debug(f"Seed from OnlineL2_SplineMPE:")
-                # logger.debug(frame["OnlineL2_SplineMPE"].pos)
-                # logger.debug(frame["OnlineL2_SplineMPE"].time)
 
             tray.Add(notify_seed)
 
-        elif self.vertex_seed_source == "OnlineL2_SplineMPE":
+        elif self.vertex_seed_source == self.l2_splinempe:
             # First vertex seed is extracted from OnlineL2 reco.
             def extract_seed(frame):
-                seed_source = "OnlineL2_SplineMPE"
+                seed_source = self.vertex_seed_source
                 frame[cfg.INPUT_POS_NAME] = frame[seed_source].pos
                 frame[cfg.INPUT_TIME_NAME] = dataclasses.I3Double(
                     frame[seed_source].time
