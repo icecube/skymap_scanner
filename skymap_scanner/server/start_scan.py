@@ -377,7 +377,7 @@ async def scan(
         reporter,
         predictive_scanning_threshold,
         nside_progression,
-        realtime_format_version
+        realtime_format_version,
     )
 
     # sanity check
@@ -465,7 +465,7 @@ async def _serve_and_collect(
                 collector.sent_pixvars,
                 # we want to open re-refinement for all nsides <= max_nside_thresholded
                 nside_progression.get_slice_plus_one(max_nside_thresholded),
-                realtime_format_version
+                realtime_format_version,
             )
             # Check if scan is done --
             # there was no re-refinement of a region & collected everything sent
@@ -771,7 +771,7 @@ def main() -> None:
             from_clients_queue=from_clients_queue,
             nside_progression=args.nside_progression,
             predictive_scanning_threshold=args.predictive_scanning_threshold,
-            realtime_format_version=realtime_format_version
+            realtime_format_version=realtime_format_version,
         )
     )
     LOGGER.info("Done.")

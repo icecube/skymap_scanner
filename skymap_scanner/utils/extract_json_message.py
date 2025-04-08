@@ -80,7 +80,7 @@ def extract_json_message(
         is_real_event=is_real_event,
         cache_dir=cache_dir,
         GCD_dir=GCD_dir,
-        realtime_format_version=realtime_format_version
+        realtime_format_version=realtime_format_version,
     )
 
     LOGGER.info("Load scan state...")

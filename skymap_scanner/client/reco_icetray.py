@@ -297,7 +297,7 @@ def main() -> None:
         GCDQp_packet,
         str(args.baseline_GCD_file),
         args.outfile,
-        realtime_format_version
+        realtime_format_version,
     )
     LOGGER.info("Done reco'ing pixel.")
 
