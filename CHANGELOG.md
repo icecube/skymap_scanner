@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.22.1 (2025-04-08)
+
+### Other
+
+* Realtime version passthrough ([#282](https://github.com/icecube/skymap_scanner/issues/282)) ([`bdaf201`](https://github.com/icecube/skymap_scanner/commit/bdaf201516e11f5afd81736c12ad936e4bddad4e))
+
 ## v3.22.0 (2025-03-18)
 
 ### Other
