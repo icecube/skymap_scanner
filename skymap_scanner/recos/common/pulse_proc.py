@@ -1,8 +1,7 @@
 import copy
 import numpy
-from typing import Final, Union, List
+from typing import Final, List
 
-from icecube.icetray import I3Units  # type: ignore[import]
 from icecube import dataclasses  # type: ignore[import]
 
 

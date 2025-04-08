@@ -77,10 +77,10 @@ class LoadInitialFrames(icetray.I3Module):  # type: ignore[misc]
 
 def save_to_disk_cache(frame: icetray.I3Frame, save_dir: Path) -> Path:
     """Save this frame to the disk cache."""
-    nside_dir = save_dir / "nside{0:06d}".format(frame[cfg.I3FRAME_NSIDE].value)
+    nside_dir = save_dir / f"nside{frame[cfg.I3FRAME_NSIDE].value:06d}"
     nside_dir.mkdir(parents=True, exist_ok=True)
 
-    pixel_fname = nside_dir / "pix{0:012d}.i3".format(frame[cfg.I3FRAME_PIXEL].value)
+    pixel_fname = nside_dir / f"pix{frame[cfg.I3FRAME_PIXEL].value:012d}.i3"
 
     save_GCD_frame_packet_to_file([frame], str(pixel_fname))
     return pixel_fname
@@ -106,6 +106,7 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     outfile: Path,
+    realtime_format_version: str,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()
@@ -147,7 +148,7 @@ def reco_pixel(
 
     # create instance of reco_algo object
     RecoAlgo = recos.get_reco_interface_object(reco_algo)
-    reco = RecoAlgo()
+    reco = RecoAlgo(realtime_format_version)
     reco.setup_reco()
 
     # perform fit
@@ -287,6 +288,7 @@ def main() -> None:
         msg = json.load(f)
         reco_algo = msg[cfg.MSG_KEY_RECO_ALGO]
         pframe = messages.Serialization.decode_pkl_b64(msg[cfg.MSG_KEY_PFRAME_PKL_B64])
+        realtime_format_version = msg[cfg.MSG_KEY_REALTIME_FORMAT_VERSION]
 
     # get GCDQp_packet
     GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
@@ -302,5 +304,6 @@ def main() -> None:
         GCDQp_packet,
         str(baseline_gcd_file),
         args.outfile,
+        realtime_format_version,
     )
     LOGGER.info("Done reco'ing pixel.")

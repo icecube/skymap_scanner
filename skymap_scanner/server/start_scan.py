@@ -69,6 +69,7 @@ class PixelsToReco:
         output_particle_name: str,
         reco_algo: str,
         event_metadata: EventMetadata,
+        realtime_format_version: str,
     ) -> None:
         """
         Arguments:
@@ -88,6 +89,8 @@ class PixelsToReco:
                 - name of the reconstruction algorithm to run
             `event_metadata`
                 - a collection of metadata about the event
+            `realtime_format_version`
+                - the realtime format version that determines how keys are named in the frame
         """
         self.nsides_dict = nsides_dict
         self.input_pos_name = input_pos_name
@@ -96,7 +99,7 @@ class PixelsToReco:
 
         RecoAlgo: type[RecoInterface] = recos.get_reco_interface_object(reco_algo)
 
-        self.reco: RecoInterface = RecoAlgo()
+        self.reco: RecoInterface = RecoAlgo(realtime_format_version)
 
         self.pos_variations = self.reco.get_vertex_variations()
 
@@ -123,11 +126,12 @@ class PixelsToReco:
             )
 
         # The HLC pulse mask should have been been created in prepare_frames().
-        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(p_frame,cfg.INPUT_PULSES_NAME+'HLC')
+        self.pulseseries_hlc = dataclasses.I3RecoPulseSeriesMap.from_frame(
+            p_frame, self.reco.get_input_pulses(realtime_format_version)+'HLC')
 
         self.omgeo = g_frame["I3Geometry"].omgeo
 
-        self.pointing_ra_dec = set_pointing_ra_dec(self.reco.pointing_dir_names, p_frame)
+        self.pointing_ra_dec = set_pointing_ra_dec(self.reco.pointing_dir_name, p_frame)
 
 
     @staticmethod
@@ -330,6 +334,7 @@ async def scan(
     from_clients_queue: mq.Queue,
     nside_progression: NSideProgression,
     predictive_scanning_threshold: float,
+    realtime_format_version: str,
 ) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
@@ -349,6 +354,7 @@ async def scan(
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
         reco_algo=reco_algo,
         event_metadata=event_metadata,
+        realtime_format_version=realtime_format_version
     )
 
     reporter = Reporter(
@@ -384,6 +390,7 @@ async def scan(
         reporter,
         predictive_scanning_threshold,
         nside_progression,
+        realtime_format_version,
     )
 
     # sanity check
@@ -402,6 +409,7 @@ async def _send_pixels(
     pixeler: PixelsToReco,
     already_sent_pixvars: Set[SentPixelVariation],
     nside_subprogression: NSideProgression,
+    realtime_format_version: str,
 ) -> Set[SentPixelVariation]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
@@ -415,6 +423,7 @@ async def _send_pixels(
             await pub.send(
                 {
                     cfg.MSG_KEY_RECO_ALGO: reco_algo,
+                    cfg.MSG_KEY_REALTIME_FORMAT_VERSION: realtime_format_version,
                     cfg.MSG_KEY_PFRAME_PKL_B64: messages.Serialization.encode_pkl_b64(
                         pframe
                     ),
@@ -440,6 +449,7 @@ async def _serve_and_collect(
     reporter: Reporter,
     predictive_scanning_threshold: float,
     nside_progression: NSideProgression,
+    realtime_format_version: str,
 ) -> int:
     """Scan an entire event.
 
@@ -468,6 +478,7 @@ async def _serve_and_collect(
                 collector.sent_pixvars,
                 # we want to open re-refinement for all nsides <= max_nside_thresholded
                 nside_progression.get_slice_plus_one(max_nside_thresholded),
+                realtime_format_version,
             )
             # Check if scan is done --
             # there was no re-refinement of a region & collected everything sent
@@ -704,7 +715,7 @@ def main() -> None:
 
     # get inputs (load event_id + state_dict cache)
     LOGGER.info("Extracting event...")
-    event_metadata, state_dict = extract_json_message.extract_json_message(
+    event_metadata, state_dict, realtime_format_version = extract_json_message.extract_json_message(
         event_contents,
         reco_algo=args.reco_algo,
         is_real_event=args.real_event,
@@ -744,6 +755,7 @@ def main() -> None:
             from_clients_queue=from_clients_queue,
             nside_progression=args.nside_progression,
             predictive_scanning_threshold=args.predictive_scanning_threshold,
+            realtime_format_version=realtime_format_version,
         )
     )
     LOGGER.info("Done.")

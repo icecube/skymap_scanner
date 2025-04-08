@@ -25,7 +25,7 @@ def load_cache_state(
 ) -> dict:
     this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if not os.path.isdir(this_event_cache_dir):
-        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), this_event_cache_dir))
+        raise NotADirectoryError(f"event \"{str(event_metadata)}\" not found in cache at \"{this_event_cache_dir}\".")
 
     # load GCDQp state first
     LOGGER.debug("Initialize state_dict with GCDQp")
@@ -78,7 +78,7 @@ def load_scan_state(
 
     this_event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if not os.path.isdir(this_event_cache_dir):
-        raise NotADirectoryError("event \"{0}\" not found in cache at \"{1}\".".format(str(event_metadata), this_event_cache_dir))
+        raise NotADirectoryError(f"event \"{str(event_metadata)}\" not found in cache at \"{this_event_cache_dir}\".")
 
     # get all directories
     nsides = [(int(d[5:]), os.path.join(this_event_cache_dir, d)) for d in os.listdir(this_event_cache_dir) if os.path.isdir(os.path.join(this_event_cache_dir, d)) and d.startswith("nside")]
@@ -154,7 +154,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
             source_baseline_GCD_framepacket = None
             try:
                 read_path = os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_basename)
-                LOGGER.debug("load_GCDQp_state => reading source baseline GCD from {0}".format(read_path))
+                LOGGER.debug(f"load_GCDQp_state => reading source baseline GCD from {read_path}")
                 source_baseline_GCD_framepacket = load_framepacket_from_file(read_path)
             except:
                 LOGGER.debug(" -> failed")
@@ -172,10 +172,9 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
             del source_baseline_GCD_framepacket
             del cached_baseline_GCD_framepacket
             
-            LOGGER.debug(" - has a frame diff packet at {0} (using original copy)".format(os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_metadata)))
+            LOGGER.debug(f" - has a frame diff packet at {os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_metadata)} (using original copy)")
     else:
         LOGGER.debug(" - does not seem to contain frame diff packet")
-        baseline_GCD = None
 
     return {
         cfg.STATEDICT_GCDQP_PACKET: frame_packet,

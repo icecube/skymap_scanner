@@ -28,14 +28,12 @@ from icecube import (  # noqa: F401
 from icecube.icetray import I3Frame
 
 from .. import config as cfg
-from ..utils.data_handling import DataStager
 from ..utils.pixel_classes import RecoPixelVariation
 from . import RecoInterface, VertexGenerator
 from .common.pulse_proc import late_pulse_cleaning
 
 class MillipedeOriginal(RecoInterface):
     """Reco logic for millipede."""
-    
 
     @staticmethod
     def get_vertex_variations() -> List[dataclasses.I3Position]:
@@ -47,9 +45,6 @@ class MillipedeOriginal(RecoInterface):
             return VertexGenerator.mini_test(variation_distance=variation_distance)
         else:    
             return VertexGenerator.octahedron(radius=variation_distance)
-    
-    pulsesName = cfg.INPUT_PULSES_NAME
-    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
 
     # Spline requirements
     MIE_ABS_SPLINE = "ems_mie_z20_a10.abs.fits"
@@ -58,9 +53,6 @@ class MillipedeOriginal(RecoInterface):
     SPLINE_REQUIREMENTS = [ MIE_ABS_SPLINE, MIE_PROB_SPLINE ]
 
     # Constants ########################################################
-    pulsesName = cfg.INPUT_PULSES_NAME
-    pulsesName_cleaned = pulsesName+'LatePulseCleaned'
-
     SPEScale = 0.99 # DOM efficiency
 
     # Load Data ########################################################
@@ -68,9 +60,8 @@ class MillipedeOriginal(RecoInterface):
     # (muon part emits so little light in comparison)
     # This is why we can use cascade tables
 
-    @classmethod
     @icetray.traysegment
-    def prepare_frames(cls, tray, name, logger):
+    def prepare_frames(self, tray, name, logger):
         # If VHESelfVeto is already present, copy over the output to the names used by Skymap Scanner  for seeding the vertices.
         def extract_seed(frame):
             seed_prefix = "HESE_VHESelfVeto"
@@ -86,16 +77,20 @@ class MillipedeOriginal(RecoInterface):
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
         tray.AddModule('VHESelfVeto', 'selfveto',
                     VertexThreshold=2,
-                    Pulses=cfg.INPUT_PULSES_NAME+'HLC',
+                    Pulses=self.pulsesName+'HLC',
                     OutputBool='HESE_VHESelfVeto',
                     OutputVertexTime=cfg.INPUT_TIME_NAME,
                     OutputVertexPos=cfg.INPUT_POS_NAME,
                     If=lambda frame: "HESE_VHESelfVeto" not in frame)
 
-    def __init__(self):
+    def __init__(self, realtime_format_version: str):
+        super().__init__(realtime_format_version)
         self.rotate_vertex = False
         self.refine_time = False
         self.add_fallback_position = False
+
+        self.pulsesName = self.get_input_pulses(realtime_format_version)
+        self.pulsesName_cleaned = self.pulsesName+'LatePulseCleaned'
 
     def setup_reco(self):
         datastager = self.get_datastager()
@@ -114,25 +109,24 @@ class MillipedeOriginal(RecoInterface):
     @staticmethod
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName))
+            raise RuntimeError(f"{pulsesName} not in frame")
         if pulsesName + "TimeWindows" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeWindows"))
+            raise RuntimeError(f"{pulsesName + 'TimeWindows'} not in frame")
         if pulsesName + "TimeRange" not in frame:
-            raise RuntimeError("{0} not in frame".format(pulsesName + "TimeRange"))
+            raise RuntimeError(f"{pulsesName + 'TimeRange'} not in frame")
 
-    @classmethod
     @icetray.traysegment
-    def exclusions(cls, tray, name):
+    def exclusions(self, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
                                  'SaturatedDOMs',
                                  'DeepCoreDOMs',
-                                 cls.pulsesName_cleaned,
-                                 cls.pulsesName_cleaned+'TimeWindows',
-                                 cls.pulsesName_cleaned+'TimeRange'])
+                                 self.pulsesName_cleaned,
+                                 self.pulsesName_cleaned+'TimeWindows',
+                                 self.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
-            Pulses = cls.pulsesName,
+            Pulses = self.pulsesName,
             ExcludeDeepCore='DeepCoreDOMs',
             ExcludeSaturatedDOMs='SaturatedDOMs',
             ExcludeBrightDOMs='BrightDOMs',
@@ -155,12 +149,12 @@ class MillipedeOriginal(RecoInterface):
         ##################
 
         tray.AddModule(late_pulse_cleaning, "LatePulseCleaning",
-                       input_pulses_name=cls.pulsesName,
-                       output_pulses_name=cls.pulsesName_cleaned,
-                       orig_pulses_name=cls.pulsesName,
+                       input_pulses_name=self.pulsesName,
+                       output_pulses_name=self.pulsesName_cleaned,
+                       orig_pulses_name=self.pulsesName,
                        residual=1.5e3*I3Units.ns,
                        )
-        return ExcludedDOMs + [cls.pulsesName_cleaned+'TimeWindows']
+        return ExcludedDOMs + [self.pulsesName_cleaned+'TimeWindows']
 
 
     @icetray.traysegment

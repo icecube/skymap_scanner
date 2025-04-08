@@ -6,7 +6,7 @@
 import json
 import logging
 import os
-from typing import Tuple, Union
+from typing import Tuple
 
 from icecube import full_event_followup, icetray  # type: ignore[import-not-found]
 from skyreader import EventMetadata
@@ -42,7 +42,7 @@ def extract_GCD_diff_base_filename(frame_packet):
                 GCD_diff_base_filename = frame[key].base_filename
                 LOGGER.debug(f"GCD diff base_filename loaded from {key} in {frame.Stop} frame.")
             elif frame[key].base_filename != GCD_diff_base_filename:
-                raise RuntimeError("inconsistent frame diff base GCD file names. expected {0}, got {1}".format(GCD_diff_base_filename, frame[key].base_filename))
+                raise RuntimeError(f"inconsistent frame diff base GCD file names. expected {GCD_diff_base_filename}, got {frame[key].base_filename}")
 
     if GCD_diff_base_filename == "current-gcd":
         # It is unclear which legacy case is covered by this condition.
@@ -51,18 +51,6 @@ def extract_GCD_diff_base_filename(frame_packet):
 
     return GCD_diff_base_filename
 
-def _get_pulses_name(event_dict: dict):
-    # Some JSON events may not have the 'version' attribute.
-    # In such case we default to "no-version".
-    realtime_format_version: str = event_dict["value"].get("version", "no-version")
-
-    # If a version is not in the map (always the case for `no-version`) use default
-    #   otherwise get pulses name from the map.
-    pulses_name = cfg.INPUT_PULSES_NAME_MAP.get(
-        realtime_format_version,
-        cfg.DEFAULT_INPUT_PULSES_NAME
-    )
-    return pulses_name
 
 def extract_json_message(
     event_dict: dict,
@@ -70,10 +58,12 @@ def extract_json_message(
     is_real_event: bool,
     cache_dir: str,
     GCD_dir: str
-) -> Tuple[EventMetadata, dict]:
+) -> Tuple[EventMetadata, dict, str]:
 
     _validate_cache_dir(cache_dir=cache_dir)
-    pulses_name = _get_pulses_name(event_dict=event_dict)
+    # Some JSON events may not have the 'version' attribute.
+    # In such case we default to empty string "".
+    realtime_format_version = event_dict["value"].get("version", "")
 
     # extract the event content
     # the event object is converted to JSON
@@ -90,7 +80,7 @@ def extract_json_message(
         is_real_event=is_real_event,
         cache_dir=cache_dir,
         GCD_dir=GCD_dir,
-        pulses_name=pulses_name
+        realtime_format_version=realtime_format_version,
     )
 
     LOGGER.info("Load scan state...")
@@ -100,9 +90,7 @@ def extract_json_message(
                                  reco_algo,
                                  cache_dir=cache_dir)
 
-    state_dict[cfg.STATEDICT_INPUT_PULSES] = pulses_name
-
-    return event_metadata, state_dict
+    return event_metadata, state_dict, realtime_format_version
 
 
 def _extract_event_type(physics_frame):
@@ -128,9 +116,9 @@ def _extract_event_type(physics_frame):
 # split out from prepare_frame_packet()
 def _validate_cache_dir(cache_dir: str):
     if not os.path.exists(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" does not exist.".format(cache_dir))
+        raise RuntimeError(f"cache directory \"{cache_dir}\" does not exist.")
     if not os.path.isdir(cache_dir):
-        raise RuntimeError("cache directory \"{0}\" is not a directory.".format(cache_dir))
+        raise RuntimeError(f"cache directory \"{cache_dir}\" is not a directory.")
 
 # split out from prepare_frame_packet()
 def _validate_frame_packet(frame_packet: list):
@@ -149,7 +137,7 @@ def _validate_physics_frame(physics_frame):
 def _ensure_cache_directory(cache_dir, event_metadata):
     event_cache_dir = os.path.join(cache_dir, str(event_metadata))
     if os.path.exists(event_cache_dir) and not os.path.isdir(event_cache_dir):
-        raise RuntimeError("This event would be cached in directory \"{0}\", but it exists and is not a directory.".format(event_cache_dir))
+        raise RuntimeError(f"This event would be cached in directory \"{event_cache_dir}\", but it exists and is not a directory.")
     if not os.path.exists(event_cache_dir):
         os.mkdir(event_cache_dir)
     return event_cache_dir
@@ -159,7 +147,7 @@ def prepare_frame_packet(
     frame_packet: list,
     reco_algo: str,
     is_real_event: bool,
-    pulses_name: str,
+    realtime_format_version: str,
     cache_dir: str,
     GCD_dir: str,
 ) -> Tuple[EventMetadata, dict]:
@@ -195,7 +183,7 @@ def prepare_frame_packet(
         is_real_event,
         version=EVENT_METADATA_VERSION,
     )
-    LOGGER.debug("event ID is {0}".format(event_metadata))
+    LOGGER.debug(f"event ID is {event_metadata}")
 
     event_cache_dir = _ensure_cache_directory(cache_dir, event_metadata)
 
@@ -294,7 +282,7 @@ def prepare_frame_packet(
     # Uncompress GCD info and invoke `prepare_frames` traysegment provided by `reco_algo`
     # - frame_packet has GCD diff => baseline_GCD_file is a path string
     # - frame_packet has either normal GCD or has been reassembled => baseline_GCD_file is None
-    prepared_frame_packet = prepare_frames(frame_packet, event_metadata, baseline_GCD_file, reco_algo, pulses_name=pulses_name)
+    prepared_frame_packet = prepare_frames(frame_packet, event_metadata, baseline_GCD_file, reco_algo, realtime_format_version=realtime_format_version)
 
     # Delete original frame packet.
     del frame_packet
