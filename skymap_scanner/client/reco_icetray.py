@@ -106,7 +106,7 @@ def reco_pixel(
     GCDQp_packet: List[icetray.I3Frame],
     baseline_GCD_file: str,
     outfile: Path,
-    realtime_format_version: str
+    realtime_format_version: str,
 ) -> Path:
     """Actually do the reco."""
     start_time = time.time()

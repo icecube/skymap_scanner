@@ -42,6 +42,8 @@ class RecoInterface(ABC):
 
     @abstractmethod
     def __init__(self, realtime_format_version: str):
+        self.realtime_format_version = realtime_format_version
+
         # Reco-specific behaviors that need to be defined in derived classes.
         self.rotate_vertex: bool
         self.refine_time: bool

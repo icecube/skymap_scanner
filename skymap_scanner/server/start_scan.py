@@ -66,7 +66,7 @@ class PixelsToReco:
         output_particle_name: str,
         reco_algo: str,
         event_metadata: EventMetadata,
-        realtime_format_version: str
+        realtime_format_version: str,
     ) -> None:
         """
         Arguments:
@@ -332,7 +332,7 @@ async def scan(
     from_clients_queue: mq.Queue,
     nside_progression: NSideProgression,
     predictive_scanning_threshold: float,
-    realtime_format_version: str
+    realtime_format_version: str,
 ) -> NSidesDict:
     """Send pixels to be reco'd by client(s), then collect results and save to
     disk."""
@@ -396,7 +396,7 @@ async def _send_pixels(
     pixeler: PixelsToReco,
     already_sent_pixvars: Set[SentPixelVariation],
     nside_subprogression: NSideProgression,
-    realtime_format_version: str
+    realtime_format_version: str,
 ) -> Set[SentPixelVariation]:
     """This send the next logical round of pixels to be reconstructed."""
     LOGGER.info("Getting pixels to send to clients...")
@@ -436,7 +436,7 @@ async def _serve_and_collect(
     reporter: Reporter,
     predictive_scanning_threshold: float,
     nside_progression: NSideProgression,
-    realtime_format_version: str
+    realtime_format_version: str,
 ) -> int:
     """Scan an entire event.
 
