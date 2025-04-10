@@ -1,7 +1,16 @@
 # .flake8
 [flake8]
-# Continuation line issues
 ignore =
+# Common issues (ignore by WIPACrepo/wipac-dev-flake8-action if there was no .flake8)
+    E203,
+    E226,
+    E228,
+    E231,
+    E501,
+    W503,
+    W504,
+
+# Continuation line issues
     E122,
     E123,
     E124,
