@@ -18,8 +18,6 @@ def main():
 
     logging.basicConfig(level=logging.DEBUG)
 
-    logger = logging.getLogger(__name__)
-
     parser = argparse.ArgumentParser(description="Scan cache and dumps results to json")
 
     parser.add_argument("-c", "--cache", help="Cache directory", required=True)
