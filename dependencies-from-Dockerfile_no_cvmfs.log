@@ -133,7 +133,7 @@ urllib3==2.4.0
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
-wipac-dev-tools==1.15.9
+wipac-dev-tools==1.16.0
 wipac-rest-tools==1.8.6
 xlwt==1.3.0
 zipp==1.0.0
@@ -253,19 +253,19 @@ skymap-scanner
 │   ├── numpy [required: Any, installed: 1.21.5]
 │   ├── pandas [required: Any, installed: 1.3.5]
 │   ├── scipy [required: Any, installed: 1.8.0]
-│   └── wipac-dev-tools [required: Any, installed: 1.15.9]
+│   └── wipac-dev-tools [required: Any, installed: 1.16.0]
 │       ├── requests [required: Any, installed: 2.25.1]
 │       └── typing_extensions [required: Any, installed: 4.13.2]
 ├── iminuit [required: <2.27.0, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
 ├── oms-mqclient [required: Any, installed: 2.7.0]
-│   ├── wipac-dev-tools [required: Any, installed: 1.15.9]
+│   ├── wipac-dev-tools [required: Any, installed: 1.16.0]
 │   │   ├── requests [required: Any, installed: 2.25.1]
 │   │   └── typing_extensions [required: Any, installed: 4.13.2]
 │   └── zstd [required: Any, installed: 1.5.6.7]
 ├── scipy [required: Any, installed: 1.8.0]
-├── wipac-dev-tools [required: Any, installed: 1.15.9]
+├── wipac-dev-tools [required: Any, installed: 1.16.0]
 │   ├── requests [required: Any, installed: 2.25.1]
 │   └── typing_extensions [required: Any, installed: 4.13.2]
 └── wipac-rest-tools [required: Any, installed: 1.8.6]
@@ -277,7 +277,7 @@ skymap-scanner
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
     ├── tornado [required: Any, installed: 6.4.2]
     ├── urllib3 [required: >=2.0.4, installed: 2.4.0]
-    └── wipac-dev-tools [required: Any, installed: 1.15.9]
+    └── wipac-dev-tools [required: Any, installed: 1.16.0]
         ├── requests [required: Any, installed: 2.25.1]
         └── typing_extensions [required: Any, installed: 4.13.2]
 sortedcontainers==2.1.0
