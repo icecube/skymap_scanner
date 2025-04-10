@@ -23,7 +23,7 @@ from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg, recos
-from . import ENV
+from . import CLIENT_ENV
 from ..utils import messages
 from ..utils.data_handling import get_gcd_datastager
 from ..utils.load_scan_state import get_baseline_gcd_frames
@@ -262,9 +262,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        CLIENT_ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers=__name__.split(".", maxsplit=1)[0],
-        third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        third_party_level=CLIENT_ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         formatter=logging_tools.WIPACDevToolsFormatter(),
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
