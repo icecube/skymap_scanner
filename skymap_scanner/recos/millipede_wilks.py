@@ -86,7 +86,7 @@ class MillipedeWilks(RecoInterface):
 
     @icetray.traysegment
     def prepare_frames(self, tray, name, logger):
-        # Generates the vertex seed for the initial scan. 
+        # Generates the vertex seed for the initial scan.
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
@@ -151,7 +151,8 @@ class MillipedeWilks(RecoInterface):
         # I like having frame objects in there even if they are empty for some frames
         def createEmptyDOMLists(frame, ListNames=[]):
             for name in ListNames:
-                if name in frame: continue
+                if name in frame:
+                    continue
                 frame[name] = dataclasses.I3VectorOMKey()
         tray.AddModule(createEmptyDOMLists, 'createEmptyDOMLists',
                        ListNames = ["BrightDOMs"])

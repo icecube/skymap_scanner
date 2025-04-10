@@ -1,6 +1,5 @@
 """prepare the GCDQp packet by adding frame objects that might be missing."""
 
-
 # fmt: off
 # pylint: skip-file
 
@@ -61,7 +60,8 @@ class FrameArraySink(icetray.I3Module):
 
     def Process(self):
         frame = self.PopFrame()
-        if not frame: return
+        if not frame:
+            return
 
         # ignore potential TrayInfo frames
         if frame.Stop == icetray.I3Frame.TrayInfo:
@@ -131,7 +131,8 @@ def prepare_frames(frame_array,
         def delFrameObjectsWithDiffsAvailable(frame):
             all_keys = list(frame.keys())
             for key in list(frame.keys()):
-                if not key.endswith('Diff'): continue
+                if not key.endswith('Diff'):
+                    continue
                 non_diff_key = key[:-4]
                 if non_diff_key in all_keys:
                     del frame[non_diff_key]
