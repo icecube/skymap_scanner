@@ -1,0 +1,43 @@
+# .flake8
+[flake8]
+ignore =
+# Common issues (ignore by WIPACrepo/wipac-dev-flake8-action if there was no .flake8)
+    E203,
+    E226,
+    E228,
+    E231,
+    E501,
+    W503,
+    W504,
+
+# Continuation line issues
+    E122,
+    E123,
+    E124,
+    E128,
+
+# Whitespace issues
+    E201,
+    E202,
+    E225,
+    E251,
+    E261,
+    E265,
+    E266,
+
+# Layout issues
+    E302,
+    E303,
+    E305,
+    E306,
+
+# Trailing / blank line issues
+    W291,
+    W293
+
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv

@@ -1,6 +1,5 @@
 """Generic utility functions."""
 
-
 # fmt: off
 # pylint: skip-file
 
@@ -102,10 +101,12 @@ def extract_MC_truth(frame_packet: List[icetray.I3Frame]) -> Optional[Tuple[floa
     # find the muon
     muon = None
     for particle in mc_tree:
-        if particle.type not in [dataclasses.I3Particle.ParticleType.MuPlus, dataclasses.I3Particle.ParticleType.MuMinus]: continue
+        if particle.type not in [dataclasses.I3Particle.ParticleType.MuPlus, dataclasses.I3Particle.ParticleType.MuMinus]:
+            continue
         if muon is not None:
             LOGGER.debug("More than one muon in MCTree")
-            if particle.energy < muon.energy: continue
+            if particle.energy < muon.energy:
+                continue
         muon = particle
 
     if muon is None:
