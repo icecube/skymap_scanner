@@ -46,12 +46,19 @@ jobs:
   # LINTERS
   #############################################################################
 
-  # flake8:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
-  #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
+  flake8:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.2
 
   mypy:
     needs: [ py-versions ]
