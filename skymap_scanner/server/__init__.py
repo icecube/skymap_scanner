@@ -14,7 +14,7 @@ from .. import config as cfg
 
 
 @dc.dataclass(frozen=True)
-class EnvConfig:
+class ServerEnvConfig:
     """For storing environment variables, typed."""
 
     #
@@ -78,4 +78,4 @@ class EnvConfig:
             )
 
 
-SERVER_ENV = from_environment_as_dataclass(EnvConfig)
+SERVER_ENV = from_environment_as_dataclass(ServerEnvConfig)

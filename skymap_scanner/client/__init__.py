@@ -13,7 +13,7 @@ from .. import config as cfg
 
 
 @dc.dataclass(frozen=True)
-class EnvConfig:
+class ClientEnvConfig:
     """For storing environment variables, typed."""
 
     # LOGGING VARS
@@ -28,4 +28,4 @@ class EnvConfig:
     # _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY: float = 0.5  # for reco algo: crash-dummy
 
 
-CLIENT_ENV = from_environment_as_dataclass(EnvConfig)
+CLIENT_ENV = from_environment_as_dataclass(ClientEnvConfig)
