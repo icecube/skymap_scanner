@@ -15,7 +15,7 @@ import mqclient as mq
 from rest_tools.client import CalcRetryFromWaittimeMax, RestClient
 from wipac_dev_tools.timing_tools import IntervalTimer
 
-from . import ENV
+from . import SERVER_ENV
 from ..recos import RecoInterface
 
 LOGGER = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 
 def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
     """Establish connections to message queues."""
-    with open(ENV.SKYSCAN_EWMS_JSON) as f:
+    with open(SERVER_ENV.SKYSCAN_EWMS_JSON) as f:
         ewms_config = json.load(f)
 
     to_clients_queue = mq.Queue(
@@ -42,7 +42,7 @@ def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
         address=ewms_config["fromclient"]["broker_address"],
         name=ewms_config["fromclient"]["name"],
         auth_token=ewms_config["fromclient"]["auth_token"],
-        timeout=ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+        timeout=SERVER_ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
     )
 
     return to_clients_queue, from_clients_queue
@@ -55,16 +55,16 @@ def connect_to_skydriver(urgent: bool) -> RestClient:
     """Get REST client for SkyDriver depending on the urgency."""
     if urgent:
         return RestClient(
-            ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=ENV.SKYSCAN_SKYDRIVER_AUTH,
+            SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=SERVER_ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=60.0,
             retries=CalcRetryFromWaittimeMax(waittime_max=1 * 60 * 60),
             # backoff_factor=0.3,
         )
     else:
         return RestClient(
-            ENV.SKYSCAN_SKYDRIVER_ADDRESS,
-            token=ENV.SKYSCAN_SKYDRIVER_AUTH,
+            SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS,
+            token=SERVER_ENV.SKYSCAN_SKYDRIVER_AUTH,
             timeout=10.0,
             retries=1,
             # backoff_factor=0.3,
@@ -82,7 +82,7 @@ async def nonurgent_request(rc: RestClient, args: dict[str, Any]) -> Any:
 
 async def kill_switch_check_from_skydriver() -> None:
     """Routinely check SkyDriver whether to continue the scan."""
-    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+    if not SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         return
 
     logger = logging.getLogger("skyscan.kill_switch")
@@ -90,10 +90,10 @@ async def kill_switch_check_from_skydriver() -> None:
     skydriver_rc = connect_to_skydriver(urgent=False)
 
     while True:
-        await asyncio.sleep(ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
+        await asyncio.sleep(SERVER_ENV.SKYSCAN_KILL_SWITCH_CHECK_INTERVAL)
 
         status = await skydriver_rc.request(
-            "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
+            "GET", f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
         )
 
         if status["scan_state"].startswith("STOPPED__"):
@@ -105,7 +105,7 @@ async def kill_switch_check_from_skydriver() -> None:
 
 async def wait_for_workers_to_start() -> None:
     """Wait until SkyDriver indicates there are workers currently running."""
-    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+    if not SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         return
 
     skydriver_rc = connect_to_skydriver(urgent=False)
@@ -114,7 +114,7 @@ async def wait_for_workers_to_start() -> None:
 
     while True:  # yes, we are going to wait forever
         resp = await skydriver_rc.request(
-            "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/ewms/workforce"
+            "GET", f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/ewms/workforce"
         )
 
         if resp != prev:
@@ -140,7 +140,7 @@ async def fetch_event_contents_from_skydriver() -> Any:
     skydriver_rc = connect_to_skydriver(urgent=True)
 
     manifest = await skydriver_rc.request(
-        "GET", f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
+        "GET", f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest"
     )
     LOGGER.info("Fetched event contents from SkyDriver")
     return manifest["event_i3live_json_dict"]

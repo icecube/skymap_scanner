@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from rest_tools.client import RestClient
 from skyreader import EventMetadata, SkyScanResult
 
-from . import ENV
+from . import SERVER_ENV
 from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 from .. import config as cfg
 from ..utils import to_skyscan_result
@@ -209,14 +209,14 @@ class WorkerStatsCollection:
         """Get a human-readable string of what technique is used for predicting runtimes."""
         if (
             self.runtime_sample_window_size
-            == ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN
+            == SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN
         ):
             return (
                 f"simple average over entire scan runtime "
                 f"(a moving average with a window of "
-                f"{ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO} "
+                f"{SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO} "
                 f"will be used after "
-                f"{int(ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN/ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)} "
+                f"{int(SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN / SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)} "
                 f"recos have finished)"
             )
         else:
@@ -225,14 +225,16 @@ class WorkerStatsCollection:
     @property
     def _runtime_sample_window_size_candidate(self) -> int:
         """The window size that would be used if not for a minimum."""
-        return int(self.total_ct * ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)
+        return int(
+            self.total_ct * SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
+        )
 
     @property
     def runtime_sample_window_size(self) -> int:
         """The size of the window used for predicting runtimes."""
         return max(
             self._runtime_sample_window_size_candidate,
-            ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN,
+            SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN,
         )
 
     def on_server_recent_sec_per_reco_rate(self) -> float:
@@ -384,7 +386,7 @@ class Reporter:
 
         self._n_sent_by_nside: Dict[int, int] = {}
 
-        if not ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        if not SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS:
             self.skydriver_rc_nonurgent: Optional[RestClient] = None
             self.skydriver_rc_urgent: Optional[RestClient] = None
         else:
@@ -475,7 +477,8 @@ class Reporter:
         # check if we need to send a report to the logger
         current_time = time.time()
         if bypass_timers or (
-            current_time - self.last_time_reported > ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
+            current_time - self.last_time_reported
+            > SERVER_ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             if self.worker_stats_collection.total_ct == 0:
@@ -483,7 +486,7 @@ class Reporter:
             else:
                 epilogue_msg = (
                     f"I will report back again in "
-                    f"{ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds if I have an update."
+                    f"{SERVER_ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds if I have an update."
                 )
             await self._send_progress(summary_msg, epilogue_msg)
 
@@ -491,7 +494,7 @@ class Reporter:
         current_time = time.time()
         if bypass_timers or (
             current_time - self.last_time_reported_skymap
-            > ENV.SKYSCAN_RESULT_INTERVAL_SEC
+            > SERVER_ENV.SKYSCAN_RESULT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
             await self._send_result()
@@ -725,7 +728,7 @@ class Reporter:
             "end": int(time.time()) if self.is_event_scan_done else None,
         }
         scan_metadata = {
-            "scan_id": ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
+            "scan_id": SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
             "nside_progression": self.nside_progression,
             "position_variations": self.n_posvar,
         }
@@ -741,7 +744,7 @@ class Reporter:
         # skydriver
         sd_args = dict(
             method="PATCH",
-            path=f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest",
+            path=f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest",
             args=body,
         )
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
@@ -769,7 +772,7 @@ class Reporter:
         body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
         sd_args = dict(
             method="PUT",
-            path=f"/scan/{ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/result",
+            path=f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/result",
             args=body,
         )
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:

@@ -24,7 +24,7 @@ from icecube import (  # type: ignore[import-not-found]
 from skyreader import EventMetadata
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from . import ENV
+from . import SERVER_ENV
 from .collector import Collector, ExtraRecoPixelVariationException
 from .pixels import choose_pixels_to_reconstruct
 from .reporter import Reporter
@@ -354,7 +354,7 @@ async def scan(
         output_particle_name=cfg.OUTPUT_PARTICLE_NAME,
         reco_algo=reco_algo,
         event_metadata=event_metadata,
-        realtime_format_version=realtime_format_version
+        realtime_format_version=realtime_format_version,
     )
 
     reporter = Reporter(
@@ -683,12 +683,12 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        SERVER_ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
         first_party_loggers=__name__.split(".", maxsplit=1)[0],
-        third_party_level=ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        third_party_level=SERVER_ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         future_third_parties=["google", "pika"],
         specialty_loggers={
-            mq.queue.LOGGER: ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
+            mq.queue.LOGGER: SERVER_ENV.SKYSCAN_MQ_CLIENT_LOG,  # type: ignore[dict-item]
         },
         formatter=logging_tools.WIPACDevToolsFormatter(),
     )
@@ -702,25 +702,27 @@ def main() -> None:
         raise NotADirectoryError(args.gcd_dir)
 
     # check output status
-    if not ENV.SKYSCAN_SKYDRIVER_ADDRESS and not args.output_dir:
+    if not SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS and not args.output_dir:
         raise RuntimeError(
             "Must include either --output-dir or SKYSCAN_SKYDRIVER_ADDRESS (env var), "
             "otherwise you won't see your results!"
         )
     # read event file
-    if ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+    if SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS:
         event_contents = asyncio.run(fetch_event_contents_from_skydriver())
     else:
         event_contents = fetch_event_contents_from_file(args.event_file)
 
     # get inputs (load event_id + state_dict cache)
     LOGGER.info("Extracting event...")
-    event_metadata, state_dict, realtime_format_version = extract_json_message.extract_json_message(
-        event_contents,
-        reco_algo=args.reco_algo,
-        is_real_event=args.real_event,
-        cache_dir=str(args.cache_dir),
-        GCD_dir=str(args.gcd_dir),
+    event_metadata, state_dict, realtime_format_version = (
+        extract_json_message.extract_json_message(
+            event_contents,
+            reco_algo=args.reco_algo,
+            is_real_event=args.real_event,
+            cache_dir=str(args.cache_dir),
+            GCD_dir=str(args.gcd_dir),
+        )
     )
 
     # write startup files for client-spawning

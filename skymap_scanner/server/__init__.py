@@ -78,4 +78,4 @@ class EnvConfig:
             )
 
 
-ENV = from_environment_as_dataclass(EnvConfig)
+SERVER_ENV = from_environment_as_dataclass(EnvConfig)
