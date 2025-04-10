@@ -59,6 +59,8 @@ jobs:
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
+        with:
+          max-complexity: 16
 
   mypy:
     needs: [ py-versions ]
