@@ -1,0 +1,26 @@
+# .flake8
+[flake8]
+ignore =
+    E122,  # continuation line missing indentation or outdented
+    E123,  # closing bracket does not match indentation
+    E124,  # closing bracket does not match visual indentation
+    E128,  # continuation line under-indented for visual indent
+    E201,  # whitespace after ‘[’ or ‘(’
+    E202,  # whitespace before ‘]’ or ‘)’
+    E225,  # missing whitespace around operator
+    E251,  # unexpected spaces around keyword / parameter equals
+    E261,  # at least two spaces before inline comment
+    E265,  # block comment should start with '# '
+    E266,  # too many leading '#' for block comment
+    E302,  # expected 2 blank lines, found 1
+    E303,  # too many blank lines
+    E305,  # expected 2 blank lines after class/function definition
+    E306,  # expected 1 blank line before a nested definition
+    W291,  # trailing whitespace
+    W293,  # blank line contains whitespace
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv

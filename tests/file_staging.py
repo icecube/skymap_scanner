@@ -65,7 +65,7 @@ def test_file_staging() -> None:
         try:
             filepath = datastager.get_filepath(filename)
         except FileNotFoundError:
-            logger.debug(f"File not available as expected.")
+            logger.debug("File not available as expected.")
         else:
             assert 0  # we shouldn't get here!
 
