@@ -127,6 +127,7 @@ jobs:
           load: true
 
   test-run-dummy:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -309,6 +310,7 @@ jobs:
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
   test-run-nsides-thresholds-dummy:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -425,6 +427,7 @@ jobs:
 
 
   test-run-crash-dummy:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
@@ -526,6 +529,7 @@ jobs:
 
 
   test-run-realistic:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -680,6 +684,7 @@ jobs:
 
 
   test-file-staging:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -702,6 +707,7 @@ jobs:
 
 
   test-run-single-pixel:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -786,6 +792,7 @@ jobs:
     # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
     needs: [
       mypy,
+      flake8,
       py-setup,
       py-dependencies,
       test-build-docker,
