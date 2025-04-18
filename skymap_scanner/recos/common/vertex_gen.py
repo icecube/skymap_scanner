@@ -44,7 +44,7 @@ class VertexGenerator:
 
         for i, vi in enumerate(v_ax):  # step along axis
             for j, r in enumerate(r_ax):  # step along radius
-                for ang in ang_ax:  #  step around anlge
+                for ang in ang_ax:  # step around anlge
                     x = r * np.cos(ang + (i + j) * dang)
                     y = r * np.sin(ang + (i + j) * dang)
                     z = vi

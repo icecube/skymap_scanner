@@ -1,6 +1,5 @@
 """Tools for picking pixels to scan."""
 
-
 # fmt: off
 # pylint: skip-file
 
@@ -102,12 +101,15 @@ def find_pixels_to_refine(
     # refine pixels that have neighbors with a high likelihood ratio
     for pixel in list(pixels_dict.keys()):
         pixel_llh = pixels_dict[pixel].llh
-        if numpy.isnan(pixel_llh): continue # do not refine nan pixels
+        if numpy.isnan(pixel_llh):
+            continue # do not refine nan pixels
         neighbors = healpy.get_all_neighbours(nside, pixel)
 
         for neighbor in neighbors:
-            if neighbor==-1: continue
-            if neighbor not in pixels_dict: continue
+            if neighbor==-1:
+                continue
+            if neighbor not in pixels_dict:
+                continue
             neighbor_llh = pixels_dict[neighbor].llh
 
             llh_diff = 2.*numpy.abs(pixel_llh-neighbor_llh) # Wilk's theorem
