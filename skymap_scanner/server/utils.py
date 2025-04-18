@@ -96,7 +96,7 @@ async def kill_switch_check_from_skydriver() -> None:
             "GET", f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/status"
         )
 
-        if status["scan_state"].startswith("STOPPED__"):
+        if status["is_deleted"] or status["ewms_deactivated"]:
             logger.critical(
                 f"Kill switch triggered by SkyDriver scan state: {status['scan_state']}"
             )
