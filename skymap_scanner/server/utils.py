@@ -126,7 +126,7 @@ async def wait_for_workers_to_start() -> None:
             return
         else:
             LOGGER.info(
-                f"SkyDriver says there no workers are running (yet)"
+                f"SkyDriver says no workers are running (yet)"
                 f"--checking again in {timer.seconds}s..."
             )
             await timer.wait_until_interval()
