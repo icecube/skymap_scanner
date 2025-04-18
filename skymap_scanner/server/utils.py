@@ -98,7 +98,8 @@ async def kill_switch_check_from_skydriver() -> None:
 
         if status["is_deleted"] or status["ewms_deactivated"]:
             logger.critical(
-                f"Kill switch triggered by SkyDriver scan state: {status['scan_state']}"
+                f"Kill switch triggered by SkyDriver scan status: "
+                f"{status['is_deleted']=} or {status['ewms_deactivated']=}"
             )
             os.kill(os.getpid(), signal.SIGINT)  # NOTE - sys.exit only exits thread
 
