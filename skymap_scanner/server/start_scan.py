@@ -141,6 +141,8 @@ class PixelsToReco:
         for om in pulses.keys():
             rvec = omgeo[om].position-vertex
             _l = -rvec*direction
+            if _l > 0.:  # only look ahead from vertex
+                continue
             _d = numpy.sqrt(rvec.mag2-_l**2) # closest approach distance
             if _d < min_d: # closest om
                 min_d = _d
