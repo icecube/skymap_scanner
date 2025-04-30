@@ -30,7 +30,7 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
 
       - name: Docker meta
         id: docker_meta
@@ -78,7 +78,7 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
 
       - name: Docker meta
         id: docker_meta
@@ -111,7 +111,7 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
 
       - name: Request Removal(s)
         uses: WIPACrepo/build-singularity-cvmfs-action@v1.3

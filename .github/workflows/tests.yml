@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.5
 
@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
@@ -76,7 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
@@ -93,6 +93,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
@@ -110,6 +111,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
@@ -127,7 +129,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -182,7 +184,7 @@ jobs:
           docker-images: false
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -366,7 +368,7 @@ jobs:
           docker-images: false
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -474,7 +476,7 @@ jobs:
           docker-images: false
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -601,7 +603,7 @@ jobs:
           size: 10G
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -707,7 +709,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -753,7 +755,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -832,7 +834,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - name: Python Semantic Release
         uses: python-semantic-release/python-semantic-release@v7.34.6
         with:
