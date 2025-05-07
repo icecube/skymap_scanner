@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
       - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
@@ -111,7 +111,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
@@ -834,7 +834,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
       - name: Python Semantic Release
         uses: python-semantic-release/python-semantic-release@v7.34.6
         with:
