@@ -23,6 +23,7 @@ REMOTE_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu"
 
 REMOTE_DATA_DOWNLOAD_RETRIES: Final[int] = 2  # note: attempts = retries + 1
 REMOTE_DATA_DOWNLOAD_TIMEOUT: Final[int] = 15  # sec
+REMOTE_DATA_READ_TIMEOUT: Final[int] = 60  # sec
 
 # Local ephemeral directory to stage files.
 LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
@@ -47,7 +48,7 @@ REMOTE_GCD_DATA_SOURCE: Final[str] = "http://prod-exe.icecube.wisc.edu/baseline_
 
 
 # physics strings
-KeyNames = namedtuple('KeyNames', 'pulseseries l2_splinempe')
+KeyNames = namedtuple("KeyNames", "pulseseries l2_splinempe")
 # the keys for this dictionary correspond to the realtime "version" specified in event json
 # in skymap_scanner the keys are referred to as the "realtime_format_version"
 INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
@@ -55,7 +56,9 @@ INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
     "2023a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
     "2024a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
 }
-DEFAULT_INPUT_KEY_NAMES: Final = KeyNames("SplitUncleanedInIcePulses", "OnlineL2_SplineMPE")
+DEFAULT_INPUT_KEY_NAMES: Final = KeyNames(
+    "SplitUncleanedInIcePulses", "OnlineL2_SplineMPE"
+)
 
 INPUT_TIME_NAME: Final = "SeedVertexTime"
 INPUT_POS_NAME: Final = "SeedVertexPos"

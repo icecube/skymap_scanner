@@ -76,7 +76,10 @@ class DataStager:
                 response = requests.get(
                     url,
                     stream=True,
-                    timeout=cfg.REMOTE_DATA_DOWNLOAD_TIMEOUT,
+                    timeout=(
+                        cfg.REMOTE_DATA_DOWNLOAD_TIMEOUT,  # connection timeout
+                        cfg.REMOTE_DATA_READ_TIMEOUT,  # read timeout - useful for huge files
+                    ),
                 )
                 response.raise_for_status()  # Check if the request was successful (2xx)
                 break
@@ -88,6 +91,7 @@ class DataStager:
 
         # Step 2: Write the file
         try:
+            # NOTE: this uses the 'REMOTE_DATA_READ_TIMEOUT' timeout value, set above
             with open(dest, "wb") as file:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
