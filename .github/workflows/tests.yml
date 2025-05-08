@@ -1,5 +1,4 @@
-name: tests
-
+name: ci/cd
 
 on:
   push:
