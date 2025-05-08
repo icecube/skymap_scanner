@@ -29,7 +29,7 @@ REMOTE_DATA_READ_TIMEOUT: Final[int] = 60  # sec
 # Local ephemeral directory to stage files.
 # 'EWMS_TASK_DATA_HUB_DIR' is a directory available to all client instances (ewms tasks)
 LOCAL_DATA_CACHE: Final[Path] = (
-    Path(os.getenv("EWMS_TASK_DATA_HUB_DIR"), ".") / "data-staging-cache"
+    Path(os.getenv("EWMS_TASK_DATA_HUB_DIR", ".")) / "data-staging-cache"
 )
 
 # Directory path under a local data source to fetch spline data from.
