@@ -58,9 +58,9 @@ class RecoInterface(ABC):
     @staticmethod
     def get_datastager():
         datastager = DataStager(
-            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_dirs=cfg.LOCAL_DATA_SOURCES,
             local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+            remote_url_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
         )
         return datastager
 

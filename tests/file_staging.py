@@ -28,9 +28,9 @@ def test_file_staging() -> None:
     invalid_file_list = ["NONEXISTENT_FILE"]
 
     datastager = DataStager(
-        local_paths=cfg.LOCAL_DATA_SOURCES,
+        local_dirs=cfg.LOCAL_DATA_SOURCES,
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-        remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+        remote_url_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
 
     # test stage_files()
@@ -44,14 +44,14 @@ def test_file_staging() -> None:
         assert isinstance(e, RuntimeError)
         assert str(e) == (
             f"Download failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: "
-            f"404 Client Error: Not Found for url: {datastager.remote_path}/{invalid_file_list[0]}"
+            f"404 Client Error: Not Found for url: {datastager.remote_url_path}/{invalid_file_list[0]}"
         )
 
     # ensure that filepaths can be retrieved for all local files
     local_filepaths: Dict[str, str] = dict()
     for filename in local_file_list:
         logger.debug(f"Testing local file: {filename}.")
-        local_filepaths[filename] = datastager.get_local_filepath(filename)
+        local_filepaths[filename] = datastager._get_local_filepath(filename)
         assert local_filepaths[filename] == datastager.get_filepath(filename)
         logger.debug(f"File available at {local_filepaths[filename]}.")
 
