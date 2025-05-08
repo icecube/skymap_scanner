@@ -1,4 +1,4 @@
-"""data_handling.py."""
+"""Tool for staging data files via local lookup or HTTP download."""
 
 import itertools
 import logging
@@ -13,10 +13,16 @@ from .. import config as cfg
 LOGGER = logging.getLogger(__name__)
 
 
+def is_filename(fname: str) -> bool:
+    """Return True if fname is a valid filename (no path components)."""
+    return fname == str(Path(fname).name)
+
+
 class DataStager:
     """
-    Class to manage the staging of (spline) data from different sources (in-container, mountpoint, CVMFS, http).
-    Some similarity in the paths is assumed.
+    Class to manage the staging of data files from different sources (in-container, mountpoint, CVMFS, http).
+
+    Files are referred to by filename, this way, the user doesn't need to know exactly where a file exists.
     """
 
     def __init__(self, local_dirs: List[Path], local_subdir: str, remote_url_path: str):
@@ -34,28 +40,39 @@ class DataStager:
         Args:
             file_list (List[str]): list of file filenames to look up / retrieve.
         """
-        LOGGER.debug(f"Staging files in filelist: {file_list}")
+        LOGGER.info(f"Staging files in filelist: {file_list}")
+
+        # validate
+        for fname in file_list:
+            if not is_filename(fname):
+                raise RuntimeError(
+                    f"Cannot stage '{fname}' -- expected a filename without any path components."
+                )
+
+        # stage
         for basename in file_list:
 
-            # get file from a local dir
+            # first: try getting file from a local dir
             try:
                 filepath: str = self._get_local_filepath(basename)
                 LOGGER.info(f"File {basename} is available at {filepath}.")
                 continue
             except FileNotFoundError:
-                LOGGER.debug(
-                    f"File {basename} is not available on default local paths."
-                )
+                LOGGER.debug(f"File {basename} is not available on local paths.")
 
-            # backup plan: check staging dir (else, download it)
-            if (self.staging_path / basename).is_file():
-                LOGGER.info("File is available on staging path.")
-            else:
-                LOGGER.debug("Staging from HTTP source.")
-                self._download_file(
-                    url=f"{self.remote_url_path}/{basename}",
-                    dest=self.staging_path / basename,
-                )
+            # backup plan: check staging dir
+            try:
+                return str(self._get_staging_filepath(basename))
+            except FileNotFoundError:
+                pass
+
+            # FALL-THROUGH
+            # -> download it
+            LOGGER.debug("Staging from HTTP source.")
+            self._download_file(
+                url=f"{self.remote_url_path}/{basename}",
+                dest=self.staging_path / basename,
+            )
 
     @staticmethod
     def _download_file(url: str, dest: Path):
@@ -119,22 +136,38 @@ class DataStager:
         Returns:
             str: valid filename.
         """
+        # validate
+        if not is_filename(filename):
+            raise RuntimeError(
+                f"Cannot retrieve '{filename}' -- expected a filename without any path components.'"
+            )
+
         # get file from a local dir
         try:
             return self._get_local_filepath(filename)
         except FileNotFoundError:
             pass
 
-        # backup plan: look at staging-dir
-        filepath = self.staging_path / filename
-        if filepath.is_file():
-            LOGGER.info(f"File {filename} available at {filepath}.")
-            return str(filepath)
+        # backup plan: look at staging dir
+        try:
+            return str(self._get_staging_filepath(filename))
+        except FileNotFoundError:
+            pass
 
         # FALL-THROUGH
         raise FileNotFoundError(
             f"File {filename} is not available in any local or staging path."
         )
+
+    def _get_staging_filepath(self, filename: str) -> Path:
+        """Look up filename on staging dir path."""
+        filepath = self.staging_path / filename
+
+        if not filepath.is_file():
+            FileNotFoundError(f"File {filename} is not in staging dir ({filepath}).")
+
+        LOGGER.info(f"File {filename} available at {filepath}.")
+        return filepath
 
     def _get_local_filepath(self, filename: str) -> str:
         """Look up filename on local paths and return the first matching filename.
@@ -162,6 +195,7 @@ class DataStager:
 
 
 def get_gcd_datastager() -> DataStager:
+    """Get a DataStager instance configured for GCD files."""
     return DataStager(
         local_dirs=cfg.LOCAL_GCD_DATA_SOURCES,
         local_subdir=cfg.LOCAL_GCD_SUBDIR,
