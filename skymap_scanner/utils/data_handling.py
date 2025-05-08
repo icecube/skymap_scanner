@@ -18,6 +18,14 @@ def is_filename(fname: str) -> bool:
     return fname == str(Path(fname).name)
 
 
+class InvalidFilenameException(Exception):
+    """Raised when a filename is invalid."""
+
+
+class DownloadFailedException(Exception):
+    """Raised when a download failed."""
+
+
 class DataStager:
     """
     Class to manage the staging of data files from different sources (in-container, mountpoint, CVMFS, http).
@@ -62,7 +70,7 @@ class DataStager:
         # validate
         for fname in file_list:
             if not is_filename(fname):
-                raise RuntimeError(
+                raise InvalidFilenameException(
                     f"Cannot stage {fname=} -- expected a filename without any path components."
                 )
 
@@ -123,7 +131,7 @@ class DataStager:
                 break
             except requests.exceptions.RequestException as e:
                 if attempt > cfg.REMOTE_DATA_DOWNLOAD_RETRIES:  # 'attempt' is 1-indexed
-                    raise RuntimeError(
+                    raise DownloadFailedException(
                         f"[download] failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: {dest=} {url=}"
                     ) from e
 
@@ -134,7 +142,7 @@ class DataStager:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
         except IOError as e:
-            raise RuntimeError(
+            raise DownloadFailedException(
                 f"[download] failed during file write: {dest=} {url=}"
             ) from e
 
@@ -142,7 +150,7 @@ class DataStager:
         if dest.is_file():
             LOGGER.info(f"[download] created {dest=}")
         else:
-            raise RuntimeError(
+            raise DownloadFailedException(
                 f"[download] failed during file write (file is invalid): {dest=} {url=}"
             )
 
@@ -157,7 +165,7 @@ class DataStager:
         """
         # validate
         if not is_filename(filename):
-            raise RuntimeError(
+            raise InvalidFilenameException(
                 f"Cannot retrieve {filename=} -- expected a filename without any path components.'"
             )
 

@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 
 from skymap_scanner import config as cfg
-from skymap_scanner.utils.data_handling import DataStager
+from skymap_scanner.utils.data_handling import DataStager, DownloadFailedException
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -41,11 +41,8 @@ def test_file_staging() -> None:
     try:
         datastager.stage_files(invalid_file_list)
     except Exception as e:
-        assert isinstance(e, RuntimeError)
-        assert str(e) == (
-            f"Download failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: "
-            f"404 Client Error: Not Found for url: {datastager.remote_url_path}/{invalid_file_list[0]}"
-        )
+        assert isinstance(e, DownloadFailedException)
+        assert f"failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: " in str(e)
 
     # ensure that filepaths can be retrieved for all local files
     local_filepaths: Dict[str, str] = dict()
