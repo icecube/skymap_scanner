@@ -102,6 +102,7 @@ jobs:
           base-keywords: IceCube
 
   py-dependencies:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for images to build
@@ -125,6 +126,7 @@ jobs:
   #############################################################################
 
   test-build-docker:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
