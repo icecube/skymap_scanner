@@ -27,7 +27,7 @@ REMOTE_DATA_DOWNLOAD_TIMEOUT: Final[int] = 15  # sec
 REMOTE_DATA_READ_TIMEOUT: Final[int] = 60  # sec
 
 # Local ephemeral directory to stage files.
-# 'EWMS_TASK_DATA_HUB_DIR' is a directory available to all client instances (ewms tasks)
+# 'EWMS_TASK_DATA_HUB_DIR' is a shared directory available to all client instances (ewms tasks)
 LOCAL_DATA_CACHE: Final[Path] = (
     Path(os.getenv("EWMS_TASK_DATA_HUB_DIR", ".")) / "data-staging-cache"
 )
