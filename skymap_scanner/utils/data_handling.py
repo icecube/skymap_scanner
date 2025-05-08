@@ -49,7 +49,7 @@ class DataStager:
 
         # use the 'local_subdir' in the cache dir path to partition path
         self.cache_dir: Path = cfg.LOCAL_DATA_CACHE / local_subdir
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(exist_ok=True, parents=True)
 
     def stage_files(self, file_list: List[str]):
         """Checks local availability for filenames in a list, and retrieves the missing ones from the HTTP source.
