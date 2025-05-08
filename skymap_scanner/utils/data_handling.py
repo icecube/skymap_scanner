@@ -25,14 +25,31 @@ class DataStager:
     Files are referred to by filename, this way, the user doesn't need to know exactly where a file exists.
     """
 
-    def __init__(self, local_dirs: List[Path], local_subdir: str, remote_url_path: str):
-        self.local_dirs = local_dirs
-        self.local_subdir = local_subdir
+    def __init__(
+        self,
+        local_data_sources: List[Path],
+        local_subdir: str,
+        remote_url_path: str,
+    ):
+        """
+        Initialize a DataStager with local sources, a subdirectory, and a remote URL.
+
+        Args:
+            local_data_sources (List[Path]):
+                base directories to search locally
+            local_subdir (str):
+                subdirectory within each base directory to search
+            remote_url_path (str):
+                a base URL for downloading files if not found locally
+                (if used, files are cached locally)
+        """
+        self.local_dirs = [(dpath / local_subdir) for dpath in local_data_sources]
 
         self.remote_url_path = remote_url_path
 
-        self.staging_path: Path = cfg.LOCAL_DATA_CACHE
-        self.staging_path.mkdir(exist_ok=True)
+        # use the 'local_subdir' in the cache dir path to partition path
+        self.cache_dir: Path = cfg.LOCAL_DATA_CACHE / local_subdir
+        self.cache_dir.mkdir(exist_ok=True)
 
     def stage_files(self, file_list: List[str]):
         """Checks local availability for filenames in a list, and retrieves the missing ones from the HTTP source.
@@ -40,13 +57,13 @@ class DataStager:
         Args:
             file_list (List[str]): list of file filenames to look up / retrieve.
         """
-        LOGGER.info(f"Staging files in filelist: {file_list}")
+        LOGGER.info(f"Staging files: {file_list=}")
 
         # validate
         for fname in file_list:
             if not is_filename(fname):
                 raise RuntimeError(
-                    f"Cannot stage '{fname}' -- expected a filename without any path components."
+                    f"Cannot stage {fname=} -- expected a filename without any path components."
                 )
 
         # stage
@@ -54,24 +71,23 @@ class DataStager:
 
             # first: try getting file from a local dir
             try:
-                filepath: str = self._get_local_filepath(basename)
-                LOGGER.info(f"File {basename} is available at {filepath}.")
+                self._get_local_filepath(basename)
                 continue
             except FileNotFoundError:
-                LOGGER.debug(f"File {basename} is not available on local paths.")
+                pass
 
-            # backup plan: check staging dir
+            # backup plan: check cache dir
             try:
-                return str(self._get_staging_filepath(basename))
+                str(self._get_cached_filepath(basename))
+                continue
             except FileNotFoundError:
                 pass
 
             # FALL-THROUGH
             # -> download it
-            LOGGER.debug("Staging from HTTP source.")
             self._download_file(
                 url=f"{self.remote_url_path}/{basename}",
-                dest=self.staging_path / basename,
+                dest=self.cache_dir / basename,
             )
 
     @staticmethod
@@ -81,11 +97,12 @@ class DataStager:
         Raises:
             RuntimeError: if the file retrieval fails.
         """
+        LOGGER.info(f"[download] getting {dest=} {url=}")
 
         def backoff_sleep(_attempt: int):
             """Sleep with exponential backoff."""
             sleep_duration = 2**_attempt  # Exponential backoff: 2, 4, 8 seconds...
-            LOGGER.info(f"Retrying file download in {sleep_duration} seconds...")
+            LOGGER.debug(f"[download] retrying in {sleep_duration}s...")
             time.sleep(sleep_duration)
 
         # Step 1: Download the file
@@ -107,7 +124,7 @@ class DataStager:
             except requests.exceptions.RequestException as e:
                 if attempt > cfg.REMOTE_DATA_DOWNLOAD_RETRIES:  # 'attempt' is 1-indexed
                     raise RuntimeError(
-                        f"Download failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: {e}"
+                        f"[download] failed after {cfg.REMOTE_DATA_DOWNLOAD_RETRIES} retries: {dest=} {url=}"
                     ) from e
 
         # Step 2: Write the file
@@ -117,18 +134,20 @@ class DataStager:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
         except IOError as e:
-            raise RuntimeError(f"File download failed during file write: {e}") from e
+            raise RuntimeError(
+                f"[download] failed during file write: {dest=} {url=}"
+            ) from e
 
         # Step 3: Ensure the file was created successfully
         if dest.is_file():
-            LOGGER.info(f"File successfully created at {dest}.")
+            LOGGER.info(f"[download] created {dest=}")
         else:
             raise RuntimeError(
-                f"File download failed during file write (file is invalid):\n-> {dest}."
+                f"[download] failed during file write (file is invalid): {dest=} {url=}"
             )
 
     def get_filepath(self, filename: str) -> str:
-        """Look up basename under the local paths and the staging path and returns the first valid filename.
+        """Look up filename under the local paths and the cache dir -- returns first match.
 
         Args:
             filename (str): file basename to look up.
@@ -139,34 +158,33 @@ class DataStager:
         # validate
         if not is_filename(filename):
             raise RuntimeError(
-                f"Cannot retrieve '{filename}' -- expected a filename without any path components.'"
+                f"Cannot retrieve {filename=} -- expected a filename without any path components.'"
             )
 
-        # get file from a local dir
+        # first, get file from a local dir
         try:
             return self._get_local_filepath(filename)
         except FileNotFoundError:
             pass
 
-        # backup plan: look at staging dir
+        # backup plan: look at cache dir
         try:
-            return str(self._get_staging_filepath(filename))
+            return str(self._get_cached_filepath(filename))
         except FileNotFoundError:
             pass
 
         # FALL-THROUGH
-        raise FileNotFoundError(
-            f"File {filename} is not available in any local or staging path."
-        )
+        raise FileNotFoundError(filename)
 
-    def _get_staging_filepath(self, filename: str) -> Path:
-        """Look up filename on staging dir path."""
-        filepath = self.staging_path / filename
+    def _get_cached_filepath(self, filename: str) -> Path:
+        """Look up filename on cache dir path."""
+        filepath = self.cache_dir / filename
+        LOGGER.info(f"[cache] trying {filepath=}")
 
         if not filepath.is_file():
-            FileNotFoundError(f"File {filename} is not in staging dir ({filepath}).")
+            raise FileNotFoundError(filepath)
 
-        LOGGER.info(f"File {filename} available at {filepath}.")
+        LOGGER.info(f"[cache] found {filepath=}")
         return filepath
 
     def _get_local_filepath(self, filename: str) -> str:
@@ -178,26 +196,23 @@ class DataStager:
         Returns:
             str: the file path of the file if available
         """
-        LOGGER.debug(f"Look up file {filename}.")
 
         for source in self.local_dirs:
-            filepath = source / self.local_subdir / filename
-            LOGGER.debug(f"Trying to read {filepath}...")
+            filepath = source / filename
+            LOGGER.info(f"[local] trying {filepath=}")
             if filepath.is_file():
-                LOGGER.debug("-> file found")
+                LOGGER.info(f"[local] found {filepath=}")
                 return str(filepath)
-            else:
-                LOGGER.debug("-> file not found")
 
         # FALL-THROUGH
         # -> File was not found in local paths.
-        raise FileNotFoundError(f"File {filename} is not available on any local path.")
+        raise FileNotFoundError(filename)
 
 
 def get_gcd_datastager() -> DataStager:
     """Get a DataStager instance configured for GCD files."""
     return DataStager(
-        local_dirs=cfg.LOCAL_GCD_DATA_SOURCES,
+        local_data_sources=cfg.LOCAL_GCD_DATA_SOURCES,
         local_subdir=cfg.LOCAL_GCD_SUBDIR,
         remote_url_path=cfg.REMOTE_GCD_DATA_SOURCE,
     )

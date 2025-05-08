@@ -28,7 +28,7 @@ def test_file_staging() -> None:
     invalid_file_list = ["NONEXISTENT_FILE"]
 
     datastager = DataStager(
-        local_dirs=cfg.LOCAL_DATA_SOURCES,
+        local_data_sources=cfg.LOCAL_DATA_SOURCES,
         local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
         remote_url_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
     )
