@@ -1,5 +1,6 @@
 """Configuration constants."""
 
+import os
 from pathlib import Path
 from typing import Final, List
 from collections import namedtuple
@@ -26,7 +27,10 @@ REMOTE_DATA_DOWNLOAD_TIMEOUT: Final[int] = 15  # sec
 REMOTE_DATA_READ_TIMEOUT: Final[int] = 60  # sec
 
 # Local ephemeral directory to stage files.
-LOCAL_DATA_CACHE: Final[Path] = Path("./data-staging-cache")
+# 'EWMS_TASK_DATA_HUB_DIR' is a directory available to all client instances (ewms tasks)
+LOCAL_DATA_CACHE: Final[Path] = (
+    Path(os.getenv("EWMS_TASK_DATA_HUB_DIR"), ".") / "data-staging-cache"
+)
 
 # Directory path under a local data source to fetch spline data from.
 LOCAL_SPLINE_SUBDIR: Final[str] = "photon-tables/splines"
