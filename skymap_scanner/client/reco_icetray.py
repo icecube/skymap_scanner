@@ -1,7 +1,5 @@
 """Reco a single pixel."""
 
-# pylint: skip-file
-
 import argparse
 import datetime
 import json
@@ -25,7 +23,9 @@ from icecube.icetray import I3Tray  # type: ignore[import-not-found]
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .. import config as cfg, recos
+from . import CLIENT_ENV
 from ..utils import messages
+from ..utils.data_handling import get_gcd_datastager
 from ..utils.load_scan_state import get_baseline_gcd_frames
 from ..utils.pixel_classes import RecoPixelVariation, pframe_tuple
 from ..utils.utils import save_GCD_frame_packet_to_file
@@ -246,33 +246,41 @@ def main() -> None:
         ),
     )
 
-    # extra "physics" args
+    # startup.json
     parser.add_argument(
-        "--gcdqp-packet-json",
-        dest="GCDQp_packet_json",
-        required=True,
-        help="a JSON file containing the GCDQp_packet (list of I3Frames)",
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).is_file(),
-            FileNotFoundError(x),
+        "--client-startup-json",
+        help=(
+            "The filepath to the JSON file with data needed to reco "
+            "(contains baseline_GCD_file and GCDQp_packet)"
         ),
-    )
-    parser.add_argument(
-        "--baseline-gcd-file",
-        dest="baseline_GCD_file",
-        required=True,
-        help="the baseline GCD file",
         type=lambda x: argparse_tools.validate_arg(
             Path(x),
-            Path(x).is_file(),
-            FileNotFoundError(x),
+            Path(x).parent.is_dir(),
+            NotADirectoryError(Path(x).parent),
         ),
     )
 
     args = parser.parse_args()
-    cfg.configure_loggers()
+    logging_tools.set_level(
+        CLIENT_ENV.SKYSCAN_LOG,  # type: ignore[arg-type]
+        first_party_loggers=__name__.split(".", maxsplit=1)[0],
+        third_party_level=CLIENT_ENV.SKYSCAN_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        formatter=logging_tools.WIPACDevToolsFormatter(),
+    )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
+
+    # read startup.json
+    with open(args.client_startup_json, "rb") as f:
+        startup_json_dict = json.load(f)
+
+    # stage file(s)
+    datastager = get_gcd_datastager()
+    baseline_gcd_file = Path(startup_json_dict["baseline_GCD_file"])
+    datastager.stage_files([baseline_gcd_file.name])
+    baseline_gcd_file = Path(datastager.get_filepath(baseline_gcd_file.name))
+    # check if baseline GCD file is reachable
+    if not baseline_gcd_file.exists():
+        raise FileNotFoundError(baseline_gcd_file)
 
     # get PFrame
     LOGGER.info(f"Reading {args.infile}...")
@@ -283,11 +291,10 @@ def main() -> None:
         realtime_format_version = msg[cfg.MSG_KEY_REALTIME_FORMAT_VERSION]
 
     # get GCDQp_packet
-    LOGGER.info(f"Reading {args.GCDQp_packet_json}...")
-    with open(args.GCDQp_packet_json, "r") as f:
-        GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
-            f.read(), pnf_framing=False
-        )
+    GCDQp_packet = full_event_followup.i3live_json_to_frame_packet(
+        json.dumps(startup_json_dict[cfg.STATEDICT_GCDQP_PACKET]),
+        pnf_framing=False,
+    )
 
     # go!
     LOGGER.info(f"Starting {reco_algo}...")
@@ -295,13 +302,8 @@ def main() -> None:
         reco_algo,
         pframe,
         GCDQp_packet,
-        str(args.baseline_GCD_file),
+        str(baseline_gcd_file),
         args.outfile,
         realtime_format_version,
     )
     LOGGER.info("Done reco'ing pixel.")
-
-
-# This entrypoint is only used in CI testing
-if __name__ == "__main__":
-    main()

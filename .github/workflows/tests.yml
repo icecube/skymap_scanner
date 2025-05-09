@@ -1,5 +1,4 @@
-name: tests
-
+name: ci/cd
 
 on:
   push:
@@ -19,39 +18,52 @@ env:
   PY_COLORS: "1"
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
+  #
+  CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
+  #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
+  N_WORKERS: 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
-  SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
-  SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
-  SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
-  EWMS_PILOT_DUMP_SUBPROC_OUTPUT: False  # get logs in "reco-icetray logs" step instead
-  EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # allow a reco to fail (if it keeps failing on redelivery/ies, expect it to affect the scanner server's timeout eventually)
+  CI_SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
+  CI_SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
+  CI_SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
   # see source tests/env-vars.sh
 
 
 jobs:
-
-
-  #############################################################################
-  # PACKAGING & LINTERS
-  #############################################################################
-
 
   py-versions:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.2
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.5
 
-  # flake8:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v3
-  #     - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
+  #############################################################################
+  # LINTERS
+  #############################################################################
+
+  flake8:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
+        with:
+          max-complexity: 16  # ideal is ~10-15
 
   mypy:
     needs: [ py-versions ]
@@ -60,23 +72,27 @@ jobs:
       fail-fast: false
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-        exclude:
-          - py3: '3.12'
-          - py3: '3.13'
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+
+  #############################################################################
+  # PACKAGING
+  #############################################################################
 
   py-setup:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
       - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
@@ -85,15 +101,17 @@ jobs:
           base-keywords: IceCube
 
   py-dependencies:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
       - uses: jlumbroso/free-disk-space@main  # need space for images to build
         with:
           docker-images: false
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
         if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
         with:
@@ -106,27 +124,42 @@ jobs:
   # TESTS
   #############################################################################
 
-
   test-build-docker:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
-
-  test-run-singularity-dummy-reco:
-    needs: test-build-docker
+  test-run-dummy:
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        reco_algo: [
+          "dummy",
+          "crash_dummy"
+        ]
+        container_platform: [
+          "docker",
+          "apptainer",
+        ]
     env:
-      SKYSCAN_BROKER_ADDRESS: user1:password@localhost/test
-      # SKYSCAN_BROKER_AUTH: user1  # using this would override password in address
+      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
+      EWMS_PILOT_TASK_TIMEOUT: 5
     services:
       rabbitmq:
         # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
@@ -150,20 +183,21 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
 
-      - name: install apptainer
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: install apptainer
         run: |
-          set -euo pipefail
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#installing-apptainer
@@ -205,65 +239,93 @@ jobs:
           }
           EOF
           sudo systemctl reload apparmor
-
-      - name: build singularity image
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: build apptainer (.sif) image
         run: |
-          sudo singularity build skymap_scanner.sif docker-daemon://icecube/skymap_scanner:local
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
 
-      - name: run singularity container
+      - name: run
+        timeout-minutes: 15  # on average ~9min  # yes, `timeout` is used below but this is insurance
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -x
           source tests/env-vars.sh
+          export _RECO_ALGO="${{ matrix.reco_algo }}"
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+          export _NSIDES="1:0 2:12 4:12"
+          
+          if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
+              export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
+              export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
+          fi
+          
+          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
+              export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
+          fi
+          
+          cd ./resources/launch_scripts
+          # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
+          #   so, stop it after some time and chek that it has stderrfiles
+          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
 
-          mkdir $SKYSCAN_CACHE_DIR
-          mkdir $SKYSCAN_OUTPUT_DIR
-
-          # Launch Server
-          singularity run skymap_scanner.sif \
-            python -m skymap_scanner.server \
-            --reco-algo dummy \
-            --event-file $REALTIME_EVENTS_DIR/hese_event_01.json \
-            --cache-dir $SKYSCAN_CACHE_DIR \
-            --output-dir $SKYSCAN_OUTPUT_DIR \
-            --client-startup-json ./startup.json \
-            --nsides 1:0 \
-            --simulated-event \
-            &
-
-          ./resources/launch_scripts/wait_for_file.sh ./startup.json $CLIENT_STARTER_WAIT_FOR_STARTUP_JSON
-
-          # Launch Clients
-          nclients=2
-          echo "Launching $nclients clients"
-          mkdir $SKYSCAN_DEBUG_DIR
-          export EWMS_PILOT_TASK_TIMEOUT=1800  # 30 mins
-          for i in $( seq 1 $nclients ); do
-            singularity run skymap_scanner.sif \
-              python -m skymap_scanner.client \
-              --client-startup-json ./startup.json \
-              --debug-directory $SKYSCAN_DEBUG_DIR \
-              &
-            echo -e "\tclient #$i launched"
-          done
-
-          wait -n  # for server
-          for i in $( seq 1 $nclients ); do
-            wait -n  # for client
-          done
-      - name: look at results file (.npz)
+      - if: ${{ matrix.reco_algo == 'crash_dummy' }}
+        name: look at stderrfiles
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -x
+          # check for fails/errors
+
+          error_type_1='intentional crash-dummy error'
+          error_type_2='subprocess timed out after'
+          pattern="$error_type_1|$error_type_2"
+
+          if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
+              echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
+          else
+              echo "No matches found."
+              exit 1
+          fi
+      - if: ${{ matrix.reco_algo == 'dummy' }}
+        name: look at results file (.npz)
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           ls .
-          ls $SKYSCAN_OUTPUT_DIR
-          outfile=$(ls -d $SKYSCAN_OUTPUT_DIR/*.npz)
+          ls $CI_SKYSCAN_OUTPUT_DIR
+          outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
-      - name: broker docker logs
+
+      - name: central server stdout/stderr
         if: always()
         run: |
-          docker logs rabbitmq
-
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+      - name: worker pilot \#1 stdout/stderr
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+      - name: worker pilot \#2 stdout/stderr
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
   test-run-nsides-thresholds-dummy:
-    needs: test-build-docker
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -278,8 +340,10 @@ jobs:
           0.65,
         ]
     env:
-      SKYSCAN_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_BROKER_AUTH: password  # using this would override password in address
+      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
     services:
       rabbitmq:
         # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
@@ -303,19 +367,20 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 10  # on average max~=5min
+        timeout-minutes: 12  # on average max~=8.5min
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           source tests/env-vars.sh
           export _RECO_ALGO=dummy
@@ -324,13 +389,14 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
+          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
-          ls $SKYSCAN_OUTPUT_DIR
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
-          export outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           python3 -c '
           import json
@@ -344,35 +410,48 @@ jobs:
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: client worker \#1 stdout/stderr
+      - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-      - name: client worker \#2 stdout/stderr
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+      - name: worker pilot \#2 stdout/stderr
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
-      - name: reco-icetray logs
-        if: always()
-        run: |
-          sudo apt install tree
-          tree $SKYSCAN_DEBUG_DIR
-          find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
 
-      - name: broker docker logs
+      - name: rabbitmq logs
         if: always()
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
 
 
   test-run-crash-dummy:
-    needs: test-build-docker
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     env:
-      SKYSCAN_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_BROKER_AUTH: password  # using this would override password in address
+      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
     services:
       rabbitmq:
         # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
@@ -396,57 +475,80 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 10  # on average ~6min  # yes, `timeout` is used below but this is insurance
+        timeout-minutes: 12  # on average ~9min  # yes, `timeout` is used below but this is insurance
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           source tests/env-vars.sh
           export _RECO_ALGO=crash_dummy
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="1:0 2:12 4:12"
-          export SKYSCAN_CRASH_DUMMY_PROBABILITY=0.75
+          export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          # since SKYSCAN_CRASH_DUMMY_PROBABILITY<1, this step will go forever
+          # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
-          # check for fails
-          stderrfiles=$(find $SKYSCAN_DEBUG_DIR/ -name "stderrfile" -type f -exec sh -c "tail -1 {} | sed -e 's/^.*DEBUG //p' " \; | sort | uniq -c)
-          echo $stderrfiles
-          if [ -z "${stderrfiles}" ]; then
+          # check for fails/errors
+          
+          error_type_1='intentional crash-dummy error'
+          error_type_2='subprocess timed out after'
+          pattern="$error_type_1|$error_type_2"
+          
+          if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
+              echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
+          else
+              echo "No matches found."
               exit 1
           fi
 
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: client worker \#1 stdout/stderr
+      - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-      - name: client worker \#2 stdout/stderr
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+      - name: worker pilot \#2 stdout/stderr
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
 
   test-run-realistic:
-    needs: test-build-docker
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -470,8 +572,10 @@ jobs:
           - reco_algo: splinempe_pointed
             eventfile: hese_event_01.json
     env:
-      SKYSCAN_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_BROKER_AUTH: password  # using this would override password in address
+      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
     services:
       rabbitmq:
         # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
@@ -499,22 +603,20 @@ jobs:
         with:
           size: 10G
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
 
       - name: run
-        timeout-minutes: 35  # on average max~=26min
+        timeout-minutes: 55  # on average max~=35min
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           lscpu
           python3 --version
@@ -524,13 +626,14 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh 2 $CI_TEST_RUN_STDOUT_STDERR_DIR
+          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
-          ls $SKYSCAN_OUTPUT_DIR
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
-          outfile=$(find $SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           cat $outfile
           pip install .  # don't need icecube, so no docker container needed
@@ -569,52 +672,65 @@ jobs:
       - name: central server stdout/stderr
         if: always()
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: client worker \#1 stdout/stderr
+      - name: worker pilot \#1 stdout/stderr
         if: always()
         run: |
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-1.out
-      - name: client worker \#2 stdout/stderr
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/client-2.out
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+      - name: worker pilot \#2 stdout/stderr
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
-      - name: reco-icetray logs
+      - name: rabbitmq logs
         if: always()
         run: |
-          sudo apt install tree
-          tree $SKYSCAN_DEBUG_DIR
-          find $SKYSCAN_DEBUG_DIR -type f -not -name "*.i3" -not -name "*.pkl" -exec "more" {} + | cat  # recursively cats with filenames (delimited by :::::::)
-
-      - name: broker docker logs
-        if: always()
-        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
 
 
   test-file-staging:
-    needs: test-build-docker
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          source tests/env-vars.sh
+          
           docker run --rm -i \
-            icecube/skymap_scanner:local \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $CI_DOCKER_IMAGE_TAG \
             python tests/file_staging.py
 
 
   test-run-single-pixel:
-    needs: test-build-docker
+    needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -638,42 +754,41 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          file: Dockerfile
-          tags: icecube/skymap_scanner:local
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 15  # on average max~=7min
+        timeout-minutes: 10  # on average max~=5min
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -e
           source tests/env-vars.sh
-
-          # grab the GCDQp_packet key and throw into a file
-          jq '.GCDQp_packet' \
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json > \
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}//GCDQp_packet.json
           
-          # run reco
+          # run reco directly
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:local \
-            python -m skymap_scanner.client.reco_icetray \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $CI_DOCKER_IMAGE_TAG \
+            python -m skymap_scanner.client \
             --infile /local/test-data/in.json \
-            --gcdqp-packet-json /local/test-data/GCDQp_packet.json \
-            --baseline-gcd-file $(jq -r '.baseline_GCD_file' tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json) \
+            --client-startup-json /local/test-data/startup.json \
             --outfile /local/test-data/out-actual.json
 
       - name: test output against known result
         run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          source tests/env-vars.sh
+          
+          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
           ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
           # need icecube for depickling, so docker container needed
@@ -681,8 +796,8 @@ jobs:
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
             --env PY_COLORS=1 \
-            $(env | grep '^SKYSCAN_' | awk '$0="--env "$0') \
-            icecube/skymap_scanner:local \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $CI_DOCKER_IMAGE_TAG \
             python tests/compare_reco_pixel_single.py \
             --actual /local/test-data/out-actual.json \
             --expected /local/test-data/out.json \
@@ -702,23 +817,25 @@ jobs:
     # have to wait for tests so python-semantic-release can push (branch protection on main don't work w/ the bot)
     needs: [
       mypy,
+      flake8,
       py-setup,
       py-dependencies,
       test-build-docker,
-      test-run-singularity-dummy-reco,
+      test-run-dummy,
       test-file-staging,
       test-run-nsides-thresholds-dummy,
       test-run-crash-dummy,
       test-run-realistic,
-      test-run-single-pixel
+      test-run-single-pixel,
     ]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
       - name: Python Semantic Release
         uses: python-semantic-release/python-semantic-release@v7.34.6
         with:

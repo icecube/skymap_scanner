@@ -1,6 +1,5 @@
 """Classes for representing a pixel-like things in various forms."""
 
-
 import dataclasses as dc
 import time
 from typing import Any, Dict, Tuple

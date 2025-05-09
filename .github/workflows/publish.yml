@@ -29,6 +29,8 @@ jobs:
 
       - name: Checkout Project
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
 
       - name: Docker meta
         id: docker_meta
@@ -75,6 +77,8 @@ jobs:
     steps:
       - name: Checkout Project
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
 
       - name: Docker meta
         id: docker_meta
@@ -106,9 +110,11 @@ jobs:
     steps:
       - name: Checkout Project
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
 
       - name: Request Removal(s)
-        uses: WIPACrepo/build-singularity-cvmfs-action@del-fix
+        uses: WIPACrepo/build-singularity-cvmfs-action@v1.3
         with:
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
           delete_image_tags: 'skymap_scanner:${{ github.event.ref }}-[SHA]'  # image tags to remove

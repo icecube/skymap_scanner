@@ -1,6 +1,5 @@
 """Tools for loading the scan state."""
 
-
 # fmt: off
 # pylint: skip-file
 
@@ -40,15 +39,15 @@ def load_cache_state(
 
 """
 Code extracted from load_scan_state()
-"""    
+"""
 def get_baseline_gcd_frames(baseline_GCD_file, GCDQp_packet) -> List[icetray.I3Frame]:
 
     if baseline_GCD_file is not None:
-          
+
         LOGGER.debug(f"Trying to read GCD from {baseline_GCD_file}.")
         try:
             baseline_GCD_frames = load_framepacket_from_file(baseline_GCD_file)
-        except:
+        except Exception:
             LOGGER.debug(" -> failed")
             raise RuntimeError("Unable to read baseline GCD. In the current design, this is unexpected. Possibly a bug or data corruption!")
         if baseline_GCD_frames is not None:
@@ -70,7 +69,7 @@ def load_scan_state(
     reco_algo: str,
     cache_dir: str = "./cache/"
 ) -> dict:
-    
+
     geometry = get_baseline_gcd_frames(
         state_dict.get(cfg.STATEDICT_BASELINE_GCD_FILE),
         state_dict.get(cfg.STATEDICT_GCDQP_PACKET),
@@ -127,7 +126,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
         raise RuntimeError(f"GCQDp file for event \"{str(event_metadata)}\" not found in cache at \"{GCDQp_filename}\".")
     frame_packet = load_framepacket_from_file(GCDQp_filename)
     LOGGER.debug(f"Loaded frame packet from {GCDQp_filename}")
-    
+
     # cached baseline GCD
     cached_baseline_GCD = os.path.join(event_cache_dir, cfg.BASELINE_GCD_FILENAME)
     # source path of cached baseline GCD is stored in metadata file
@@ -143,7 +142,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
         if source_baseline_GCD is None:
             # load and throw away to make sure it is readable
             load_framepacket_from_file(cached_baseline_GCD)
-            LOGGER.debug(f" - has a frame diff packet ref. to cached baseline {cached_baseline_GCD}")            
+            LOGGER.debug(f" - has a frame diff packet ref. to cached baseline {cached_baseline_GCD}")
             raise RuntimeError(f"Cache state seems to require a baseline GCD file (it contains a cached version), but the cache does cointain \"{cfg.SOURCE_BASELINE_GCD_METADATA}\". This is a bug or corrupted data.")
         else:
             # For the time being, the code will try to find the corresponding GCD in cfg.DEFAULT_GCD_DIR.
@@ -156,14 +155,14 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
                 read_path = os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_basename)
                 LOGGER.debug(f"load_GCDQp_state => reading source baseline GCD from {read_path}")
                 source_baseline_GCD_framepacket = load_framepacket_from_file(read_path)
-            except:
+            except Exception:
                 LOGGER.debug(" -> failed")
                 source_baseline_GCD_framepacket = None
             if source_baseline_GCD_framepacket is None:
                 raise RuntimeError(f"load_GCDQp_state => Could not read the source GCD file \"{source_baseline_GCD_metadata}\"")
-            
+
             cached_baseline_GCD_framepacket = load_framepacket_from_file(cached_baseline_GCD)
-            
+
             source_baseline_GCD_framepacket_hash = hash_frame_packet(source_baseline_GCD_framepacket)
             cached_baseline_GCD_framepacket_hash = hash_frame_packet(cached_baseline_GCD_framepacket)
             if source_baseline_GCD_framepacket_hash != cached_baseline_GCD_framepacket_hash:
@@ -171,7 +170,7 @@ def load_GCDQp_state(event_metadata: EventMetadata, cache_dir="./cache/") -> dic
 
             del source_baseline_GCD_framepacket
             del cached_baseline_GCD_framepacket
-            
+
             LOGGER.debug(f" - has a frame diff packet at {os.path.join(cfg.DEFAULT_GCD_DIR, source_baseline_GCD_metadata)} (using original copy)")
     else:
         LOGGER.debug(" - does not seem to contain frame diff packet")
