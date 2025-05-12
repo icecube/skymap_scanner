@@ -1,6 +1,7 @@
 """Entry-point to start up client service."""
 
-from . import client
+from . import reco_icetray
+
 
 if __name__ == "__main__":
-    client.main()
+    reco_icetray.main()

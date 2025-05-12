@@ -32,11 +32,14 @@ def extract_GCD_diff_base_filename(frame_packet):
     GCD_diff_base_filename = None
     for frame in frame_packet:
         # only check GCD frames
-        if frame.Stop not in [icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus]: continue
+        if frame.Stop not in [icetray.I3Frame.Geometry, icetray.I3Frame.Calibration, icetray.I3Frame.DetectorStatus]:
+            continue
 
         for key in list(frame.keys()):
-            if frame.get_stop(key) != frame.Stop: continue # only look at native stops
-            if not key.endswith('Diff'): continue # skip non-diff keys
+            if frame.get_stop(key) != frame.Stop:
+                continue # only look at native stops
+            if not key.endswith('Diff'):
+                continue # skip non-diff keys
 
             if GCD_diff_base_filename is None:
                 GCD_diff_base_filename = frame[key].base_filename

@@ -173,3 +173,4 @@ plots-*/
 !dependencies*.log
 
 device-refresh-token
+resources/launch_scripts/ewms-v1/scan-dir-*

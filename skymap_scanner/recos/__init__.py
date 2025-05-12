@@ -14,13 +14,15 @@ from ..utils.data_handling import DataStager
 try:  # these are only used for typehints, so mock imports are fine
     from icecube.dataclasses import I3Position  # type: ignore[import]
     from icecube.icetray import I3Frame  # type: ignore[import]
-    from icecube import astro # type: ignore[import]
-except ImportError: # type: ignore[import]
+    from icecube import astro  # type: ignore[import]
+except ImportError:  # type: ignore[import]
     I3Position = Any
     I3Frame = Any
 
 # Redundant imports are used to declare symbols exported by the module.
-from .common.vertex_gen import VertexGenerator as VertexGenerator
+from .common.vertex_gen import VertexGenerator as VertexGenerator  # noqa: F401
+
+__all__ = ["VertexGenerator"]
 
 
 class UnsupportedRecoAlgoException(Exception):
@@ -56,16 +58,17 @@ class RecoInterface(ABC):
     @staticmethod
     def get_datastager():
         datastager = DataStager(
-            local_paths=cfg.LOCAL_DATA_SOURCES,
+            local_data_sources=cfg.LOCAL_DATA_SOURCES,
             local_subdir=cfg.LOCAL_SPLINE_SUBDIR,
-            remote_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
+            remote_url_path=f"{cfg.REMOTE_DATA_SOURCE}/{cfg.REMOTE_SPLINE_SUBDIR}",
         )
         return datastager
 
     @staticmethod
     def get_input_pulses(realtime_format_version: str) -> str:
-        return cfg.INPUT_KEY_NAMES_MAP.get(realtime_format_version,
-                                           cfg.DEFAULT_INPUT_KEY_NAMES).pulseseries
+        return cfg.INPUT_KEY_NAMES_MAP.get(
+            realtime_format_version, cfg.DEFAULT_INPUT_KEY_NAMES
+        ).pulseseries
 
     @staticmethod
     @abstractmethod
@@ -89,7 +92,7 @@ class RecoInterface(ABC):
     def traysegment(self, tray, name, logger, **kwargs: Any) -> None:
         """Performs the reconstruction."""
         pass
- 
+
     @staticmethod
     @abstractmethod
     def to_recopixelvariation(
@@ -130,8 +133,7 @@ def get_reco_spline_requirements(name: str) -> List[str]:
 
 
 def set_pointing_ra_dec(
-    particle_name: Union[str, None],
-    p_frame: I3Frame
+    particle_name: Union[str, None], p_frame: I3Frame
 ) -> Union[Tuple[float, float], None]:
     """Retrieves the direction for a pointed scan"""
     if particle_name is None:
@@ -143,7 +145,9 @@ def set_pointing_ra_dec(
         pointing_ra_dec = astro.dir_to_equa(
             pointing_dir.zenith,
             pointing_dir.azimuth,
-            p_frame["I3EventHeader"].start_time.mod_julian_day_double
+            p_frame["I3EventHeader"].start_time.mod_julian_day_double,
         )
         return pointing_ra_dec
-    raise RuntimeError(f"Particle {particle_name} needed for pointing was not found in the frame!")
+    raise RuntimeError(
+        f"Particle {particle_name} needed for pointing was not found in the frame!"
+    )

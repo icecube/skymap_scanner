@@ -1,6 +1,5 @@
 """Contains a class for reporting progress and result for a scan."""
 
-
 import bisect
 import dataclasses as dc
 import datetime as dt
@@ -11,16 +10,17 @@ import math
 import statistics
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from rest_tools.client import RestClient
 from skyreader import EventMetadata, SkyScanResult
 
+from . import SERVER_ENV
+from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 from .. import config as cfg
 from ..utils import to_skyscan_result
 from ..utils.pixel_classes import NSidesDict
 from ..utils.utils import pyobj_to_string_repr
-from .utils import NSideProgression, connect_to_skydriver, nonurgent_request
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,37 +38,58 @@ class WorkerStats:
 
     def __init__(
         self,
-        worker_runtimes: Optional[List[float]] = None,
-        roundtrips: Optional[List[float]] = None,
-        roundtrip_start: float = float("inf"),
-        roundtrip_end: float = float("-inf"),
-        ends: Optional[List[float]] = None,
+        on_worker_runtimes: list[float],
+        on_server_roundtrips: list[float],
+        on_server_roundtrip_starts: list[float],
+        on_server_roundtrip_ends: list[float],
+        initial_count: int = 0,
     ) -> None:
-        self.roundtrip_start = roundtrip_start
-        self.roundtrip_end = roundtrip_end
 
-        self.worker_runtimes: List[float] = worker_runtimes if worker_runtimes else []
-        self.worker_runtimes.sort()  # speed up stats
         #
-        self.roundtrips: List[float] = roundtrips if roundtrips else []
-        self.roundtrips.sort()  # speed up stats
+        # PRIVATE
+        # note -- these are private so the lists can be sampled to reduce memory
         #
-        self.ends: List[float] = ends if ends else []
-        self.ends.sort()  # speed up stats
 
-        self.fastest_worker = lambda: min(self.worker_runtimes)
-        self.fastest_roundtrip = lambda: min(self.roundtrips)
+        self._on_worker_runtimes = on_worker_runtimes
+        self._on_worker_runtimes.sort()  # speed up stats
+        #
+        self._on_server_roundtrips = on_server_roundtrips
+        self._on_server_roundtrips.sort()  # speed up stats
+        #
+        self._on_server_roundtrip_starts: List[float] = on_server_roundtrip_starts
+        self._on_server_roundtrip_starts.sort()  # speed up stats
+        #
+        self._on_server_roundtrip_ends = on_server_roundtrip_ends
+        self._on_server_roundtrip_ends.sort()  # speed up stats
 
-        self.slowest_worker = lambda: max(self.worker_runtimes)
-        self.slowest_roundtrip = lambda: max(self.roundtrips)
+        #
+        # PUBLIC
+        #
+
+        self.count = initial_count
+
+        # statistics functions...
+
+        self.on_server_first_roundtrip_start = lambda: min(
+            self._on_server_roundtrip_starts
+        )
+        self.on_server_last_roundtrip_end = lambda: max(self._on_server_roundtrip_ends)
+
+        self.fastest_worker = lambda: min(self._on_worker_runtimes)
+        self.fastest_roundtrip = lambda: min(self._on_server_roundtrips)
+
+        self.slowest_worker = lambda: max(self._on_worker_runtimes)
+        self.slowest_roundtrip = lambda: max(self._on_server_roundtrips)
 
         # Fast, floating point arithmetic mean.
-        self.mean_worker = lambda: statistics.fmean(self.worker_runtimes)
-        self.mean_roundtrip = lambda: statistics.fmean(self.roundtrips)
+        self.mean_worker = lambda: statistics.fmean(self._on_worker_runtimes)
+        self.mean_roundtrip = lambda: statistics.fmean(self._on_server_roundtrips)
 
         # Median (middle value) of data.
-        self.median_worker = lambda: float(statistics.median(self.worker_runtimes))
-        self.median_roundtrip = lambda: float(statistics.median(self.roundtrips))
+        self.median_worker = lambda: float(statistics.median(self._on_worker_runtimes))
+        self.median_roundtrip = lambda: float(
+            statistics.median(self._on_server_roundtrips)
+        )
 
         # other statistics functions...
         # geometric_mean Geometric mean of data.
@@ -84,16 +105,33 @@ class WorkerStats:
 
     def update(
         self,
-        worker_runtime: float,
-        roundtrip_start: float,
-        roundtrip_end: float,
+        on_worker_runtime: float,
+        on_server_roundtrip_start: float,
+        on_server_roundtrip_end: float,
+        increment_count: int,
     ) -> "WorkerStats":
         """Insert the runtime and recalculate round-trip start/end times."""
-        bisect.insort(self.worker_runtimes, worker_runtime)
-        bisect.insort(self.roundtrips, roundtrip_end - roundtrip_start)
-        bisect.insort(self.ends, roundtrip_end)
-        self.roundtrip_start = min(self.roundtrip_start, roundtrip_start)
-        self.roundtrip_end = max(self.roundtrip_end, roundtrip_end)
+        self.count += increment_count
+
+        # FUTURE DEV: sample these instead, i.e. flip a coin, heads:update, tails:noop
+
+        # these must be sorted in order for the statistics functions to be quick
+        bisect.insort(
+            self._on_worker_runtimes,
+            on_worker_runtime,
+        )
+        bisect.insort(
+            self._on_server_roundtrips,
+            on_server_roundtrip_end - on_server_roundtrip_start,
+        )
+        bisect.insort(
+            self._on_server_roundtrip_starts,
+            on_server_roundtrip_start,
+        )
+        bisect.insort(
+            self._on_server_roundtrip_ends,
+            on_server_roundtrip_end,
+        )
         return self
 
     def get_summary(self) -> Dict[str, Dict[str, str]]:
@@ -129,16 +167,30 @@ class WorkerStats:
                 ),
             },
             "wall time": {
-                "start": str(dt.datetime.fromtimestamp(int(self.roundtrip_start))),
-                "end": str(dt.datetime.fromtimestamp(int(self.roundtrip_end))),
+                "start": str(
+                    dt.datetime.fromtimestamp(
+                        int(self.on_server_first_roundtrip_start())
+                    )
+                ),
+                "end": str(
+                    dt.datetime.fromtimestamp(int(self.on_server_last_roundtrip_end()))
+                ),
                 "runtime": str(
-                    dt.timedelta(seconds=int(self.roundtrip_end - self.roundtrip_start))
+                    dt.timedelta(
+                        seconds=int(
+                            self.on_server_last_roundtrip_end()
+                            - self.on_server_first_roundtrip_start()
+                        )
+                    )
                 ),
                 "mean reco": str(
                     dt.timedelta(
                         seconds=int(
-                            (self.roundtrip_end - self.roundtrip_start)
-                            / len(self.worker_runtimes)
+                            (
+                                self.on_server_last_roundtrip_end()
+                                - self.on_server_first_roundtrip_start()
+                            )
+                            / self.count
                         )
                     )
                 ),
@@ -153,54 +205,123 @@ class WorkerStatsCollection:
         self._worker_stats_by_nside: Dict[int, WorkerStats] = {}
         self._aggregate: Optional[WorkerStats] = None
 
+    def get_runtime_prediction_technique(self) -> str:
+        """Get a human-readable string of what technique is used for predicting runtimes."""
+        if (
+            self.runtime_sample_window_size
+            == SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN
+        ):
+            return (
+                f"simple average over entire scan runtime "
+                f"(a moving average with a window of "
+                f"{SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO} "
+                f"will be used after "
+                f"{int(SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN / SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO)} "
+                f"recos have finished)"
+            )
+        else:
+            return f"simple moving average (window={self.runtime_sample_window_size})"
+
+    @property
+    def _runtime_sample_window_size_candidate(self) -> int:
+        """The window size that would be used if not for a minimum."""
+        return int(
+            self.total_ct * SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_RATIO
+        )
+
+    @property
+    def runtime_sample_window_size(self) -> int:
+        """The size of the window used for predicting runtimes."""
+        return max(
+            self._runtime_sample_window_size_candidate,
+            SERVER_ENV.SKYSCAN_PROGRESS_RUNTIME_PREDICTION_WINDOW_MIN,
+        )
+
+    def on_server_recent_sec_per_reco_rate(self) -> float:
+        """The sec/reco rate from server pov within a moving window."""
+        try:
+            # look at a window, so don't use the first start time
+            #   psst, we know that this list is sorted, ascending
+            nth_most_recent_start = self.aggregate._on_server_roundtrip_starts[
+                -self.runtime_sample_window_size
+            ]
+            n_recos = self.runtime_sample_window_size
+        except IndexError:
+            # not enough recos to sample, so take all of them
+            nth_most_recent_start = self.aggregate.on_server_first_roundtrip_start()
+            n_recos = self.total_ct
+
+        return (
+            self.aggregate.on_server_last_roundtrip_end() - nth_most_recent_start
+        ) / n_recos
+
     def ct_by_nside(self, nside: int) -> int:
         """Get length per given nside."""
         try:
-            return len(self._worker_stats_by_nside[nside].worker_runtimes)
+            return self._worker_stats_by_nside[nside].count
         except KeyError:
             return 0
 
     @property
     def total_ct(self) -> int:
-        """O(n) b/c len is O(1), n < 10."""
-        return sum(len(w.worker_runtimes) for w in self._worker_stats_by_nside.values())
+        """Get the total count of all work units (recos)."""
+        return sum(w.count for w in self._worker_stats_by_nside.values())
 
     @property
     def first_roundtrip_start(self) -> float:
-        """O(n), n < 10."""
-        return min(w.roundtrip_start for w in self._worker_stats_by_nside.values())
+        """Get the first roundtrip start time from server pov."""
+        return self.aggregate.on_server_first_roundtrip_start()
 
     def update(
         self,
         nside: int,
-        runtime: float,
-        roundtrip_start: float,
-        roundtrip_end: float,
+        on_worker_runtime: float,
+        on_server_roundtrip_start: float,
+        on_server_roundtrip_end: float,
     ) -> int:
         """Return reco-count of nside's list after updating."""
         self._aggregate = None  # clear
         try:
             worker_stats = self._worker_stats_by_nside[nside]
+            worker_stats.update(
+                on_worker_runtime,
+                on_server_roundtrip_start,
+                on_server_roundtrip_end,
+                increment_count=1,
+            )
         except KeyError:
-            worker_stats = self._worker_stats_by_nside[nside] = WorkerStats()
-        worker_stats.update(runtime, roundtrip_start, roundtrip_end)
-        return len(worker_stats.worker_runtimes)
+            worker_stats = self._worker_stats_by_nside[nside] = WorkerStats(
+                on_worker_runtimes=[on_worker_runtime],
+                on_server_roundtrips=[
+                    on_server_roundtrip_end - on_server_roundtrip_start
+                ],
+                on_server_roundtrip_starts=[on_server_roundtrip_start],
+                on_server_roundtrip_ends=[on_server_roundtrip_end],
+                initial_count=1,
+            )
+        return worker_stats.count
 
     @property
     def aggregate(self) -> WorkerStats:
-        """Cached `WorkerStats` aggregate."""
+        """An aggregate (`WorkerStats` obj) of all recos (all nsides)."""
         if not self._aggregate:
             instances = self._worker_stats_by_nside.values()
             if not instances:
-                return WorkerStats()
+                return WorkerStats([], [], [], [])
             self._aggregate = WorkerStats(
-                worker_runtimes=list(
-                    itertools.chain(*[i.worker_runtimes for i in instances])
+                on_worker_runtimes=list(
+                    itertools.chain(*[i._on_worker_runtimes for i in instances])
                 ),
-                roundtrips=list(itertools.chain(*[i.roundtrips for i in instances])),
-                roundtrip_start=min(i.roundtrip_start for i in instances),
-                roundtrip_end=max(i.roundtrip_end for i in instances),
-                ends=list(itertools.chain(*[i.ends for i in instances])),
+                on_server_roundtrips=list(
+                    itertools.chain(*[i._on_server_roundtrips for i in instances])
+                ),
+                on_server_roundtrip_starts=list(
+                    itertools.chain(*[i._on_server_roundtrip_starts for i in instances])
+                ),
+                on_server_roundtrip_ends=list(
+                    itertools.chain(*[i._on_server_roundtrip_ends for i in instances])
+                ),
+                initial_count=self.total_ct,
             )
         return self._aggregate
 
@@ -217,19 +338,17 @@ class Reporter:
 
     def __init__(
         self,
-        scan_id: str,
         global_start_time: float,
         nsides_dict: NSidesDict,
         n_posvar: int,
         nside_progression: NSideProgression,
+        estimated_total_nside_recos: dict[int, int],
         output_dir: Optional[Path],
         event_metadata: EventMetadata,
         predictive_scanning_threshold: float,
     ) -> None:
         """
         Arguments:
-            `scan_id`
-                - the unique id of this scan
             `global_start_time`
                 - the start time (epoch) of the entire scan
             `nsides_dict`
@@ -238,6 +357,8 @@ class Reporter:
                 - number of position variations per pixel
             `nside_progression`
                 - the list of nsides & pixel-extensions
+            `estimated_total_nside_recos`
+                - the **estimated** total number of recos keyed by nside
             `output_dir`
                 - a directory to write out results & progress
             `event_metadata`
@@ -254,7 +375,6 @@ class Reporter:
         self.is_event_scan_done = False
         self.predictive_scanning_threshold = predictive_scanning_threshold
 
-        self.scan_id = scan_id
         self.global_start = global_start_time
         self.nsides_dict = nsides_dict
 
@@ -262,10 +382,11 @@ class Reporter:
             raise ValueError(f"n_posvar is not positive: {n_posvar}")
         self.n_posvar = n_posvar
         self.nside_progression = nside_progression
+        self.estimated_total_nside_recos = estimated_total_nside_recos
 
         self._n_sent_by_nside: Dict[int, int] = {}
 
-        if not cfg.ENV.SKYSCAN_SKYDRIVER_ADDRESS:
+        if not SERVER_ENV.SKYSCAN_SKYDRIVER_ADDRESS:
             self.skydriver_rc_nonurgent: Optional[RestClient] = None
             self.skydriver_rc_urgent: Optional[RestClient] = None
         else:
@@ -299,12 +420,12 @@ class Reporter:
             RuntimeError(f"Out of order execution: {self._call_order['last_called']=}")
         self._call_order["last_called"] = current  # type: ignore[assignment]
 
-    def increment_sent_ct(self, nside: int, increment: int = 1) -> None:
+    def increment_sent_ct(self, nside: int) -> None:
         """Increment the number sent by nside."""
         try:
-            self._n_sent_by_nside[nside] += increment
+            self._n_sent_by_nside[nside] += 1
         except KeyError:
-            self._n_sent_by_nside[nside] = increment
+            self._n_sent_by_nside[nside] = 1
 
     async def precomputing_report(self) -> None:
         """Make a report before ANYTHING is computed."""
@@ -314,26 +435,28 @@ class Reporter:
     async def record_reco(
         self,
         nside: int,
-        runtime: float,
-        roundtrip_start: float,
-        roundtrip_end: float,
+        on_worker_runtime: float,
+        on_server_roundtrip_start: float,
+        on_server_roundtrip_end: float,
     ) -> None:
         """Send reports/logs/plots if needed."""
         self._check_call_order(self.record_reco)
 
         if not self.time_of_first_reco_start_on_client:
-            # timeline: roundtrip_start -> pre-reco queue time -> (runtime) -> post-reco queue time -> roundtrip_end
+            # timeline: on_server_roundtrip_start -> pre-reco queue time -> (runtime) -> post-reco queue time -> on_server_roundtrip_end
             # since worker nodes need to startup & a pixel may fail several times before being reco'd,
             # we know "pre-reco queue time" >>> "post-reco queue time"
             # if we assume "post-reco queue time" ~= 0.0, then the reco started here:
-            self.time_of_first_reco_start_on_client = roundtrip_end - (runtime + 0.0)
+            self.time_of_first_reco_start_on_client = on_server_roundtrip_end - (
+                on_worker_runtime + 0.0
+            )
 
         # update stats
         nside_ct = self.worker_stats_collection.update(
             nside,
-            runtime,
-            roundtrip_start,
-            roundtrip_end,
+            on_worker_runtime,
+            on_server_roundtrip_start,
+            on_server_roundtrip_end,
         )
 
         # make report(s)
@@ -355,7 +478,7 @@ class Reporter:
         current_time = time.time()
         if bypass_timers or (
             current_time - self.last_time_reported
-            > cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
+            > SERVER_ENV.SKYSCAN_PROGRESS_INTERVAL_SEC
         ):
             self.last_time_reported = current_time
             if self.worker_stats_collection.total_ct == 0:
@@ -363,7 +486,7 @@ class Reporter:
             else:
                 epilogue_msg = (
                     f"I will report back again in "
-                    f"{cfg.ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds if I have an update."
+                    f"{SERVER_ENV.SKYSCAN_PROGRESS_INTERVAL_SEC} seconds if I have an update."
                 )
             await self._send_progress(summary_msg, epilogue_msg)
 
@@ -371,7 +494,7 @@ class Reporter:
         current_time = time.time()
         if bypass_timers or (
             current_time - self.last_time_reported_skymap
-            > cfg.ENV.SKYSCAN_RESULT_INTERVAL_SEC
+            > SERVER_ENV.SKYSCAN_RESULT_INTERVAL_SEC
         ):
             self.last_time_reported_skymap = current_time
             await self._send_result()
@@ -392,14 +515,13 @@ class Reporter:
         if self.is_event_scan_done:
             return sum(self._n_sent_by_nside[nside] for nside in self.nside_progression)
 
-        estimates = self.nside_progression.n_recos_by_nside_lowerbound(self.n_posvar)
         estimates_with_sents = sum(
-            self._n_sent_by_nside.get(nside, estimates[nside])
+            self._n_sent_by_nside.get(nside, self.estimated_total_nside_recos[nside])
             for nside in self.nside_progression
         )
         # estimates-sum SHOULD be a lower bound, but if estimates_with_sents
         #   is less than there will be more recos sent in the future
-        return max(estimates_with_sents, sum(estimates.values()))
+        return max(estimates_with_sents, sum(self.estimated_total_nside_recos.values()))
 
     def _get_processing_progress(self) -> StrDict:
         """Get a multi-line report on processing stats."""
@@ -465,28 +587,25 @@ class Reporter:
             proc_stats["finished"] = True
         else:
             # MAKE PREDICTIONS
-            # NOTE: this is a simple mean, may want to visit more sophisticated methods
-            secs_predicted = elapsed_reco_server_walltime / (
-                self.worker_stats_collection.total_ct / self.predicted_total_recos()
+            n_recos_left = (
+                self.predicted_total_recos() - self.worker_stats_collection.total_ct
+            )
+            time_left = (  # this uses a moving window average
+                self.worker_stats_collection.on_server_recent_sec_per_reco_rate()
+                * n_recos_left  # (sec/recos) * (recos/1) -> sec
             )
             proc_stats["predictions"] = {
-                "time left": str(
-                    dt.timedelta(
-                        seconds=int(secs_predicted - elapsed_reco_server_walltime)
-                    )
-                ),
+                "time left": str(dt.timedelta(seconds=int(time_left))),
                 "total runtime at finish": str(
-                    dt.timedelta(seconds=int(secs_predicted + startup_runtime))
-                ),
-                "total # of reconstructions": self.predicted_total_recos(),
-                "end": str(
-                    dt.datetime.fromtimestamp(
-                        int(
-                            time.time()
-                            + (secs_predicted - elapsed_reco_server_walltime)
+                    dt.timedelta(
+                        seconds=int(
+                            startup_runtime + elapsed_reco_server_walltime + time_left
                         )
                     )
                 ),
+                "total # of reconstructions": self.predicted_total_recos(),
+                "end": str(dt.datetime.fromtimestamp(int(time.time() + time_left))),
+                "technique": self.worker_stats_collection.get_runtime_prediction_technique(),
             }
 
         return proc_stats
@@ -494,35 +613,42 @@ class Reporter:
     def _get_tallies(self) -> StrDict:
         """Get a multi-dict progress report of the nsides_dict's contents."""
 
-        reco_lowerbounds = self.nside_progression.n_recos_by_nside_lowerbound(
-            self.n_posvar
-        )
-
-        def recos_percent_string(nside: int) -> str:
-            if nside not in self._n_sent_by_nside:  # hasn't been sent
-                return f"N/A ({reco_lowerbounds[nside]} predicted)"
-            return (
-                f"{self.worker_stats_collection.ct_by_nside(nside)}/{self._n_sent_by_nside[nside]} "
-                f"({self.worker_stats_collection.ct_by_nside(nside) / self._n_sent_by_nside[nside]:.4f})"
-            )
+        def assemble(
+            done: int,
+            generated: Union[float, int],
+            init_approx: Union[float, int],
+        ) -> Dict[str, Union[float, int, str]]:
+            return {
+                "done": done,
+                "done est. percent": (
+                    f"{done}/{generated} ({done / generated:.2f})"  # ex: 1/7 (0.1429)
+                    if generated != 0
+                    else "N/A"
+                ),
+                "generated": generated,
+                "initial approximation total": init_approx,
+            }
 
         def pixels_done(nside: int) -> int:
             return len(self.nsides_dict.get(nside, []))
 
-        def pixels_percent_string(nside: int) -> str:
-            if nside not in self._n_sent_by_nside:  # hasn't been sent
-                return f"N/A ({int(reco_lowerbounds[nside]/self.n_posvar)} predicted)"
-            # only finished pixels
-            done = int(self._n_sent_by_nside[nside] / self.n_posvar)
-            return f"{pixels_done(nside)}/{done} ({pixels_done(nside) / done:.4f})"
+        def n_sent_recos(nside: int) -> float:
+            return self._n_sent_by_nside.get(nside, 0) / self.n_posvar
 
-        by_nside = {}
+        tallies_by_nside: Dict[int, Dict[str, Dict[str, Union[float, int, str]]]] = {}
         # get done counts & percentages (estimates for future nsides)
         for nside in self.nside_progression:  # sorted by nside
-            by_nside[nside] = {
-                "done": pixels_done(nside),  # only finished pixels
-                "est. percent": pixels_percent_string(nside),
-                "est. percent (recos)": recos_percent_string(nside),
+            tallies_by_nside[nside] = {
+                "recos": assemble(
+                    self.worker_stats_collection.ct_by_nside(nside),
+                    self._n_sent_by_nside.get(nside, 0),
+                    self.estimated_total_nside_recos[nside],
+                ),
+                "pixels": assemble(
+                    pixels_done(nside),
+                    n_sent_recos(nside),
+                    self.estimated_total_nside_recos[nside] / self.n_posvar,
+                ),
             }
 
         # see when we reached X% done
@@ -545,7 +671,9 @@ class Reporter:
                 index = math.ceil(predicted_total * i) - 1
                 name = str(i)
             try:
-                when = self.worker_stats_collection.aggregate.ends[index]
+                when = self.worker_stats_collection.aggregate._on_server_roundtrip_ends[
+                    index
+                ]
                 timeline[name] = str(
                     dt.timedelta(seconds=int(when - self.global_start))
                 )
@@ -553,14 +681,21 @@ class Reporter:
                 pass
 
         return {
-            "nsides": by_nside,
-            # total completed pixels
-            "total pixels": sum(v["done"] for v in by_nside.values()),
-            "total recos": self.worker_stats_collection.total_ct,
-            "est. scan percent": (
-                f"{self.worker_stats_collection.total_ct}/{predicted_total} "
-                f"({self.worker_stats_collection.total_ct / predicted_total:.4f})"
-            ),
+            "nsides": tallies_by_nside,
+            "overall": {
+                # fmt: off
+                "recos": assemble(
+                    sum(tallies_by_nside[n]["recos"]["done"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["recos"]["generated"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["recos"]["initial approximation total"] for n in tallies_by_nside),  # type: ignore[misc]
+                ),
+                "pixels": assemble(
+                    sum(tallies_by_nside[n]["pixels"]["done"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["pixels"]["generated"] for n in tallies_by_nside),  # type: ignore[misc]
+                    sum(tallies_by_nside[n]["pixels"]["initial approximation total"] for n in tallies_by_nside),  # type: ignore[misc]
+                ),
+                # fmt: on
+            },
             "est. scan timeline": timeline,
         }
 
@@ -588,9 +723,12 @@ class Reporter:
             "processing_stats": self._get_processing_progress(),
             "predictive_scanning_threshold": self.predictive_scanning_threshold,
             "last_updated": str(dt.datetime.fromtimestamp(int(time.time()))),
+            # fields new to skydriver v2
+            "start": int(self.global_start),
+            "end": int(time.time()) if self.is_event_scan_done else None,
         }
         scan_metadata = {
-            "scan_id": self.scan_id,
+            "scan_id": SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID,
             "nside_progression": self.nside_progression,
             "position_variations": self.n_posvar,
         }
@@ -604,7 +742,11 @@ class Reporter:
         }
 
         # skydriver
-        sd_args = dict(method="PATCH", path=f"/scan/{self.scan_id}/manifest", args=body)
+        sd_args = dict(
+            method="PATCH",
+            path=f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/manifest",
+            args=body,
+        )
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
             await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
         elif self.is_event_scan_done and self.skydriver_rc_urgent:
@@ -628,7 +770,11 @@ class Reporter:
 
         # skydriver
         body = {"skyscan_result": serialized, "is_final": self.is_event_scan_done}
-        sd_args = dict(method="PUT", path=f"/scan/{self.scan_id}/result", args=body)
+        sd_args = dict(
+            method="PUT",
+            path=f"/scan/{SERVER_ENV.SKYSCAN_SKYDRIVER_SCAN_ID}/result",
+            args=body,
+        )
         if not self.is_event_scan_done and self.skydriver_rc_nonurgent:
             await nonurgent_request(self.skydriver_rc_nonurgent, sd_args)
         elif self.is_event_scan_done and self.skydriver_rc_urgent:
