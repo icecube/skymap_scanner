@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v4.0.0 (2025-05-12)
+
+### Breaking
+
+* Co-authored-by: wipacdevbot <developers@icecube.wisc.edu> ([`733df02`](https://github.com/icecube/skymap_scanner/commit/733df02bdf369061507fe755a173357ffe5117ce))
+
 ## v3.22.1 (2025-04-08)
 
 ### Other
