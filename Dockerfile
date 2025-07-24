@@ -1,9 +1,9 @@
 #
 # Define the base image icetray version
 #
-ARG ICETRAY_VERSION=v1.9.1-ubuntu22.04-X64
+ARG ICETRAY_VERSION=v1.15.3-ubuntu22.04
 
-FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION AS prod
+FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION AS prod
 
 # gcd files
 RUN mkdir -p /opt/i3-data/baseline_gcds && \
