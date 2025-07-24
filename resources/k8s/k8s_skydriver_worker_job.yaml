@@ -91,7 +91,7 @@ spec:
         name: skydriver-worker
         command: 
         - "/bin/bash"
-        - "/usr/local/icetray/env-shell.sh"
+        - "/opt/icetray/bin/icetray-shell"
         args:  
         - "python"
         - "-m"
