@@ -167,7 +167,7 @@ class MillipedeWilks(RecoInterface):
             omgeo = frame['I3Geometry']
             geo = omgeo.omgeo
             unhits = dataclasses.I3VectorOMKey()
-            for k, v in geo.iteritems():
+            for k, v in geo.items():
                 if v.omtype != dataclasses.I3OMGeo.OMType.IceCube:
                     continue
                 if k.string not in keepstrings:
