@@ -17,7 +17,7 @@ beniget==0.4.1
 Bottleneck==1.3.2
 breathe==4.35.0
 Brotli==1.0.9
-cachetools==5.5.2
+cachetools==6.1.0
 certifi==2020.6.20
 cffi==1.15.0
 chardet==4.0.0
@@ -39,7 +39,7 @@ gast==0.5.2
 healpy==1.15.0
 html5lib==1.1
 hypothesis==6.36.0
-icecube-skyreader==1.4.4
+icecube-skyreader==1.4.5
 idna==3.3
 imagesize==1.4.1
 iminuit==2.26.0
@@ -59,7 +59,7 @@ matplotlib==3.5.1
 matplotlib-inline==0.1.3
 meander==0.0.3
 meson==1.3.0
-mhealpy==0.3.5
+mhealpy==0.3.6
 more-itertools==8.10.0
 mpmath==0.0.0
 nose2==0.9.2
@@ -123,21 +123,21 @@ sphinxcontrib-serializinghtml==1.1.9
 sympy==1.9
 tables==3.7.0
 toml==0.10.2
-tornado==6.4.2
+tornado==6.5.1
 traitlets==5.1.1
-typing_extensions==4.13.2
+typing_extensions==4.14.1
 ufoLib2==0.13.1
 unicodedata2==14.0.0
 UNKNOWN @ file:///root/nuflux-2.0.4
-urllib3==2.4.0
+urllib3==2.5.0
 urwid==2.1.2
 wcwidth==0.2.5
 webencodings==0.5.1
-wipac-dev-tools==1.16.10
-wipac-rest-tools==1.8.7
+wipac-dev-tools==1.16.11
+wipac-rest-tools==1.11.0
 xlwt==1.3.0
 zipp==1.0.0
-zstd==1.5.7.0
+zstd==1.5.7.2
 ########################################################################
 #  pipdeptree
 ########################################################################
@@ -210,7 +210,7 @@ pexpect==4.8.0
 pickleshare==0.7.5
 pika==1.3.2
 Pillow==9.0.1
-pipdeptree==2.26.1
+pipdeptree==2.28.0
 ├── packaging [required: >=24.1, installed: 25.0]
 └── pip [required: >=24.2, installed: 25.1.1]
 pluggy==0.13.0
@@ -242,52 +242,48 @@ setuptools==59.6.0
 six==1.16.0
 skymap-scanner
 ├── healpy [required: Any, installed: 1.15.0]
-├── icecube-skyreader [required: >=1.4.2, installed: 1.4.4]
+├── icecube-skyreader [required: >=1.4.2, installed: 1.4.5]
 │   ├── astropy [required: Any, installed: 5.0.2]
 │   ├── healpy [required: Any, installed: 1.15.0]
 │   ├── matplotlib [required: Any, installed: 3.5.1]
 │   ├── meander [required: Any, installed: 0.0.3]
-│   ├── mhealpy [required: Any, installed: 0.3.5]
+│   ├── mhealpy [required: Any, installed: 0.3.6]
 │   │   ├── healpy [required: Any, installed: 1.15.0]
 │   │   └── matplotlib [required: Any, installed: 3.5.1]
 │   ├── numpy [required: Any, installed: 1.21.5]
 │   ├── pandas [required: Any, installed: 1.3.5]
 │   ├── scipy [required: Any, installed: 1.8.0]
-│   └── wipac-dev-tools [required: Any, installed: 1.16.10]
-│       ├── python-dateutil [required: Any, installed: 2.8.1]
+│   └── wipac-dev-tools [required: Any, installed: 1.16.11]
 │       ├── python-dateutil [required: Any, installed: 2.8.1]
 │       ├── requests [required: Any, installed: 2.25.1]
-│       └── typing_extensions [required: Any, installed: 4.13.2]
+│       └── typing_extensions [required: Any, installed: 4.14.1]
 ├── iminuit [required: <2.27.0, installed: 2.26.0]
 │   └── numpy [required: >=1.21, installed: 1.21.5]
 ├── numpy [required: <2.0.0, installed: 1.21.5]
 ├── oms-mqclient [required: Any, installed: 2.7.0]
-│   ├── wipac-dev-tools [required: Any, installed: 1.16.10]
-│   │   ├── python-dateutil [required: Any, installed: 2.8.1]
+│   ├── wipac-dev-tools [required: Any, installed: 1.16.11]
 │   │   ├── python-dateutil [required: Any, installed: 2.8.1]
 │   │   ├── requests [required: Any, installed: 2.25.1]
-│   │   └── typing_extensions [required: Any, installed: 4.13.2]
-│   └── zstd [required: Any, installed: 1.5.7.0]
+│   │   └── typing_extensions [required: Any, installed: 4.14.1]
+│   └── zstd [required: Any, installed: 1.5.7.2]
 ├── scipy [required: Any, installed: 1.8.0]
-├── wipac-dev-tools [required: Any, installed: 1.16.10]
-│   ├── python-dateutil [required: Any, installed: 2.8.1]
+├── wipac-dev-tools [required: Any, installed: 1.16.11]
 │   ├── python-dateutil [required: Any, installed: 2.8.1]
 │   ├── requests [required: Any, installed: 2.25.1]
-│   └── typing_extensions [required: Any, installed: 4.13.2]
-└── wipac-rest-tools [required: Any, installed: 1.8.7]
-    ├── cachetools [required: Any, installed: 5.5.2]
+│   └── typing_extensions [required: Any, installed: 4.14.1]
+└── wipac-rest-tools [required: Any, installed: 1.11.0]
+    ├── cachetools [required: Any, installed: 6.1.0]
     ├── PyJWT [required: !=2.6.0, installed: 2.10.1]
     ├── qrcode [required: Any, installed: 8.2]
     ├── requests [required: Any, installed: 2.25.1]
     ├── requests-futures [required: Any, installed: 1.0.2]
     │   └── requests [required: >=1.2.0, installed: 2.25.1]
-    ├── tornado [required: Any, installed: 6.4.2]
-    ├── urllib3 [required: >=2.0.4, installed: 2.4.0]
-    └── wipac-dev-tools [required: Any, installed: 1.16.10]
-        ├── python-dateutil [required: Any, installed: 2.8.1]
+    ├── tornado [required: Any, installed: 6.5.1]
+    ├── urllib3 [required: >=2.0.4, installed: 2.5.0]
+    └── wipac-dev-tools [required: Any, installed: 1.16.11]
         ├── python-dateutil [required: Any, installed: 2.8.1]
         ├── requests [required: Any, installed: 2.25.1]
-        └── typing_extensions [required: Any, installed: 4.13.2]
+        └── typing_extensions [required: Any, installed: 4.14.1]
 sortedcontainers==2.1.0
 soupsieve==2.3.1
 sympy==1.9
