@@ -39,7 +39,7 @@ spec:
     name: skydriver-worker
     command: 
     - "/bin/bash"
-    - "/opt/icetray/bin/icetray-shell"
+    - "/usr/local/icetray/env-shell.sh"
     args:  
     - "python"
     - "-m"
