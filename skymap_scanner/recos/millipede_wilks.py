@@ -194,6 +194,15 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
+        def check(frame):
+            cal = frame['I3Calibration']
+            omkeys = list(cal.dom_cal.keys())
+            mean_spes = [dataclasses.mean_spe_charge(cal.dom_cal[_]) for _ in omkeys]
+            logger.debug('Mean SPEs')
+            for mean_spe, omkey in zip(mean_spes[::100], omkeys[::100]):
+                logger.debug(f'...{omkey}: {mean_spe}')
+                
+        tray.Add(check)
 
         ExcludedDOMs = tray.Add(self.exclusions)
 
