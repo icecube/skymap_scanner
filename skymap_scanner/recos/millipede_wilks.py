@@ -107,6 +107,9 @@ class MillipedeWilks(RecoInterface):
         tray.Add(extract_seed, "ExtractSeed",
                  If = lambda frame: frame.Has("HESE_VHESelfVeto"))
 
+        tray.Add(check,
+                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
+
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
             Pulses=self.pulsesName_input+'HLC',
