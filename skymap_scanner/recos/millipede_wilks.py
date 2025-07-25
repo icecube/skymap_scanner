@@ -27,7 +27,8 @@ from icecube.icetray import I3Frame
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface, VertexGenerator
+from . import (RecoInterface,
+               VertexGenerator)
 from .common.pulse_proc import mask_deepcore, pulse_cleaning
 
 
