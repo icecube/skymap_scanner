@@ -96,6 +96,14 @@ class MillipedeWilks(RecoInterface):
             frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexPos"]
             frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexTime"]
 
+        def check(frame):
+            cal = frame['I3Calibration']
+            omkeys = list(cal.dom_cal.keys())
+            mean_spes = [dataclasses.mean_spe_charge(cal.dom_cal[_]) for _ in omkeys]
+            logger.debug('Mean SPEs')
+            for omkey, mean_spe in zip(mean_spes[::100], omkeys[::100]):
+                logger.debug(f'...{omkey}: {mean_spe}')
+                
         tray.Add(extract_seed, "ExtractSeed",
                  If = lambda frame: frame.Has("HESE_VHESelfVeto"))
 
