@@ -200,7 +200,8 @@ class MillipedeWilks(RecoInterface):
             mean_spes = [dataclasses.mean_spe_charge(cal.dom_cal[_]) for _ in omkeys]
             logger.debug('Mean SPEs')
             for mean_spe, omkey in zip(mean_spes[::100], omkeys[::100]):
-                logger.debug(f'...{omkey}: {mean_spe}')
+                x = cal.dom_cal[omkey]
+                logger.debug(f'...{omkey}: {mean_spe} {x.Mean()} {x.mean_atwd_charge_corretion}')
                 
         tray.Add(check)
 
