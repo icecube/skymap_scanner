@@ -201,7 +201,7 @@ class MillipedeWilks(RecoInterface):
             logger.debug('Mean SPEs')
             for mean_spe, omkey in zip(mean_spes[::100], omkeys[::100]):
                 x = cal.dom_cal[omkey]
-                logger.debug(f'...{omkey}: {mean_spe} {x.combined_spe_charge_distribution.Mean()} {x.mean_atwd_charge_corretion}')
+                logger.debug(f'...{omkey}: {mean_spe} {x.combined_spe_charge_distribution.Mean()} {x.mean_atwd_charge_correction}')
                 
         tray.Add(check)
 
