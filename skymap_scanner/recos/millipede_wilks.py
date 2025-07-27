@@ -194,23 +194,19 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
-        def check(frame):
-            cal = frame['I3Calibration']
-            omkeys = list(cal.dom_cal.keys())
-            mean_spes = [dataclasses.mean_spe_charge(cal.dom_cal[_]) for _ in omkeys]
-            logger.debug('Mean SPEs')
-            for mean_spe, omkey in zip(mean_spes[::100], omkeys[::100]):
-                x = cal.dom_cal[omkey]
-                logger.debug(f'...{omkey}: {mean_spe} {x.mean_atwd_charge_correction}')
-                logger.debug(f'......: {x.combined_spe_charge_distribution.compensation_factor}')
-                logger.debug(f'......: {x.combined_spe_charge_distribution.residuals.x}')
-                logger.debug(f'......: {x.combined_spe_charge_distribution.residuals.y}')
-                
-        tray.Add(check)
-
         ExcludedDOMs = tray.Add(self.exclusions)
 
         tray.Add(self.makeSurePulsesExist, pulsesName=self.pulsesName_cleaned)
+
+        def check_cal(frame):
+            cal = frame['I3Calibration']
+            logger.debug('Mean SPEs')
+            for omkey in list(cal.dom_cal.keys())[::100]:
+                x = cal.dom_cal[omkey]
+                mean_spe = dataclasses.mean_spe_charge(x)
+                logger.debug(f'...{omkey}: {mean_spe} {x.mean_atwd_charge}')
+                logger.debug(f'......: {x.combined_spe_charge_distribution.compensation_factor}')
+        tray.Add(check_cal)
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")
