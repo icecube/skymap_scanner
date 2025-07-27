@@ -24,7 +24,6 @@ RUN ls -la $WORKDIR
 # physics config
 ENV OPENBLAS_CORETYPE="Haswell"
 ENV NPY_DISABLE_CPU_FEATURES="AVX512F,AVX512_KNL,AVX512_KNM,AVX512_CLX,AVX512_CNL,AVX512_ICL,AVX512CD,AVX512_SKX"
-ENV I3PHOTOSPLINESERVICE_SHARE_MEMORY=1
 
 # set the entry point so that module is called with any parameters given to the `docker run` command
 ENTRYPOINT ["/bin/bash", "/opt/icetray/bin/icetray-shell", "exec"]
