@@ -174,7 +174,7 @@ def main():
     server_cmd = build_server_cmd(args.output_dir, startup_json)
     server_log = args.output_dir / "server.out"
     server_proc = launch_process(server_cmd, stdout_file=server_log)
-    processes.append(("server", server_proc))
+    processes.append(("central server", server_proc))
 
     # Wait for startup.json
     _print_now("Waiting for startup.json...")
