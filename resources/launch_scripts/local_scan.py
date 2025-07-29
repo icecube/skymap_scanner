@@ -46,13 +46,9 @@ def wait_for_file(path: Path, timeout: int = 60):
 
 
 def launch_process(cmd, cwd=None, stdout_file=None) -> subprocess.Popen:
-    if stdout_file:
-        out = open(stdout_file, "w")
-    else:
-        out = subprocess.DEVNULL
     return subprocess.Popen(
         cmd,
-        stdout=out,
+        stdout=open(stdout_file, "w") if stdout_file else subprocess.DEVNULL,
         stderr=subprocess.STDOUT,
         cwd=cwd,
     )
@@ -86,7 +82,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             "--client-startup-json",
             str(startup_json),
             "--nsides",
-            os.environ["_NSIDES"],
+            *os.environ["_NSIDES"].split(),
             "--simulated-event",
         ]
     else:
@@ -139,13 +135,14 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             "--client-startup-json",
             f"/local/startup/{startup_json.name}",
             "--nsides",
-            os.environ["_NSIDES"],
+            *os.environ["_NSIDES"].split(),
             *predictive,
             "--real-event",
         ]
 
 
 def main():
+    processes: list[tuple[str, subprocess.Popen]] = []
     args = parse_args()
 
     # Validate directories
@@ -166,7 +163,7 @@ def main():
     server_cmd = build_server_cmd(args.output_dir, startup_json)
     server_log = args.output_dir / "server.out"
     server_proc = launch_process(server_cmd, stdout_file=server_log)
-    processes = [("server", server_proc)]
+    processes.append(("server", server_proc))
 
     # Wait for startup.json
     print("Waiting for startup.json...")
