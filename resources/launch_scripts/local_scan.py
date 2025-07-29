@@ -42,7 +42,10 @@ def wait_for_file(path: Path, timeout: int = 60):
         if path.exists():
             return
         time.sleep(1)
-    sys.exit(f"Timed out waiting for file: {path}")
+    print(
+        f"::error::Timed out waiting for file: {path}. Look at central server's output."
+    )
+    sys.exit(1)
 
 
 def launch_process(cmd, cwd=None, stdout_file=None) -> subprocess.Popen:
