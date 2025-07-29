@@ -284,7 +284,7 @@ jobs:
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
               echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
           else
-              echo "No matches found."
+              echo "::error::Could not find the expected error(s) in worker/pilot outputs."
               exit 1
           fi
       - if: ${{ matrix.reco_algo == 'dummy' }}
@@ -514,7 +514,7 @@ jobs:
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
               echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
           else
-              echo "No matches found."
+              echo "::error::Could not find the expected error(s) in worker/pilot outputs."
               exit 1
           fi
 
