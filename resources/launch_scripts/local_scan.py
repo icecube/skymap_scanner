@@ -47,14 +47,27 @@ def parse_args():
     return parser.parse_args()
 
 
-def _timeout_logic(start: float, timeout: int, timeout_no_raise: bool):
+def _terminate_all(processes: list[tuple[str, subprocess.Popen]]) -> None:
+    for _, p in processes:
+        p.terminate()
+    time.sleep(10)
+
+
+def _timeout_logic(
+    start: float,
+    timeout: int,
+    timeout_no_raise: bool,
+    processes: list[tuple[str, subprocess.Popen]],
+):
     if time.time() - start > timeout:
         msg = f"scan took longer than --timeout {timeout}"
         if timeout_no_raise:
             _print_now(f"::warning::{msg}")
+            _terminate_all(processes)
             return True
         else:
             _print_now(f"::error::{msg}")
+            _terminate_all(processes)
             raise TimeoutError(msg)
     else:
         return False
@@ -237,7 +250,7 @@ def main():
 
         # check timeout value (if used)
         if args.timeout is not None:
-            if _timeout_logic(start, args.timeout, args.timeout_no_raise):
+            if _timeout_logic(start, args.timeout, args.timeout_no_raise, processes):
                 return
 
         # check all processes
@@ -257,10 +270,7 @@ def main():
                 _print_now(
                     f"::error::{name} failed. Terminating remaining processes..."
                 )
-                # terminate the others
-                for _, p in processes:
-                    p.terminate()
-                time.sleep(10)
+                _terminate_all(processes)
                 sys.exit(1)
 
     # fall-through
