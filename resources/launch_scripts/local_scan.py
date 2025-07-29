@@ -193,8 +193,15 @@ def main():
         _print_now(f"\tworker #{i} launched")
 
     # Wait for all processes to finish
+    i = -1
     while processes:
+        i += 1
+        if i % 6 == 1:  # every 1 min, print -- offset with the 'print' below
+            _print_now("processes are running.")
         time.sleep(10)
+        if i % 6 == 0:  # every 1 min, print
+            _print_now("checking in on processes...")
+
         for name, proc in list(processes):
             ret = proc.poll()
 
