@@ -48,7 +48,8 @@ def wait_for_file(path: Path, timeout: int = 60):
     sys.exit(1)
 
 
-def launch_process(cmd, cwd=None, stdout_file=None) -> subprocess.Popen:
+def launch_process(cmd, stdout_file, cwd=None) -> subprocess.Popen:
+    print(f"Launching process: {cmd}")
     return subprocess.Popen(
         cmd,
         stdout=open(stdout_file, "w") if stdout_file else subprocess.DEVNULL,
@@ -181,8 +182,8 @@ def main():
         out_path = worker_dir / "pilot.out"
         proc = launch_process(
             [str(launch_dir / "launch_worker.sh")],
-            cwd=worker_dir,
             stdout_file=out_path,
+            cwd=worker_dir,
         )
         processes.append((f"worker #{i}", proc))
         print(f"\tworker #{i} launched")
