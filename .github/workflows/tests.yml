@@ -159,7 +159,7 @@ jobs:
       SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
-      EWMS_PILOT_TASK_TIMEOUT: 5
+      EWMS_PILOT_TASK_TIMEOUT: 15
     services:
       rabbitmq:
         # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
