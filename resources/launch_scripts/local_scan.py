@@ -29,7 +29,31 @@ def parse_args():
         type=Path,
         help="Output directory",
     )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="timeout for the entire scan",
+    )
+    parser.add_argument(
+        "--timeout-no-raise",
+        action="store_true",
+        help="If set, will suppress errors on timeout (if using '--timeout').",
+    )
     return parser.parse_args()
+
+
+def _timeout_logic(start: float, timeout: int, timeout_no_raise: bool):
+    if time.time() - start > timeout:
+        msg = f"scan took longer than --timeout {timeout}"
+        if timeout_no_raise:
+            _print_now(f"::warning::{msg}")
+            return True
+        else:
+            _print_now(f"::error::{msg}")
+            raise TimeoutError(msg)
+    else:
+        return False
 
 
 def validate_env_vars():
@@ -197,15 +221,22 @@ def main():
         _print_now(f"\tworker #{i} launched")
 
     # Wait for all processes to finish
+    start = time.time()
     i = -1
     while processes:
         i += 1
         if i % 6 == 1:  # every 1 min, print -- offset with the 'print' below
-            _print_now("processes are running.")
+            _print_now("-> scan processes are all running.")
         time.sleep(10)
         if i % 6 == 0:  # every 1 min, print
-            _print_now("checking in on processes...")
+            _print_now("checking in on scan processes...")
 
+        # check timeout value (if used)
+        if args.timeout is not None:
+            if _timeout_logic(start, args.timeout, args.timeout_no_raise):
+                return
+
+        # check all processes
         for name, proc in list(processes):
             ret = proc.poll()
 

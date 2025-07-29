@@ -266,9 +266,10 @@ jobs:
           fi
           
           cd ./resources/launch_scripts
+          # run scan with '--timeout'...
           # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR --timeout 240 --timeout-no-raise
 
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
         name: look at stderrfiles
@@ -498,9 +499,10 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
+          # run scan with '--timeout'...
           # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR --timeout 240 --timeout-no-raise
       - name: look at stderrfiles
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
