@@ -131,6 +131,6 @@ for pid in "${!pidmap[@]}"; do
 done
 
 echo "Waiting on components..."
-python3 "$(dirname "$0")/supervise_wait_n.py" \
+python3 ./supervise_wait_n.py \
     --pids "${!pidmap[@]}" \
     --labels "${pidmap[@]}"
