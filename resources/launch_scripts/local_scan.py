@@ -26,7 +26,11 @@ def parse_args():
 
 
 def validate_env_vars():
-    required = ["CI_SKYSCAN_CACHE_DIR", "CI_SKYSCAN_OUTPUT_DIR", "CI_SKYSCAN_DEBUG_DIR"]
+    required = [
+        "CI_SKYSCAN_CACHE_DIR",
+        "CI_SKYSCAN_OUTPUT_DIR",
+        "CI_SKYSCAN_DEBUG_DIR",
+    ]
     for var in required:
         if not os.getenv(var):
             sys.exit(f"Missing required env var: {var}")
@@ -41,7 +45,7 @@ def wait_for_file(path: Path, timeout: int = 60):
     sys.exit(f"Timed out waiting for file: {path}")
 
 
-def launch_process(cmd, cwd=None, stdout_file=None, env=None) -> subprocess.Popen:
+def launch_process(cmd, cwd=None, stdout_file=None) -> subprocess.Popen:
     if stdout_file:
         out = open(stdout_file, "w")
     else:
@@ -51,7 +55,6 @@ def launch_process(cmd, cwd=None, stdout_file=None, env=None) -> subprocess.Pope
         stdout=out,
         stderr=subprocess.STDOUT,
         cwd=cwd,
-        env=env,
     )
 
 
@@ -171,8 +174,7 @@ def main():
 
     # Launch workers
     print(f"Launching {args.n_workers} workers...")
-    worker_timeout = os.getenv("EWMS_PILOT_TASK_TIMEOUT", "1800")
-    os.environ["EWMS_PILOT_TASK_TIMEOUT"] = worker_timeout
+    os.environ["EWMS_PILOT_TASK_TIMEOUT"] = os.getenv("EWMS_PILOT_TASK_TIMEOUT", "1800")
     for i in range(1, args.n_workers + 1):
         worker_dir = args.output_dir / f"worker-{i}"
         worker_dir.mkdir(parents=True, exist_ok=True)
@@ -190,17 +192,25 @@ def main():
         time.sleep(10)
         for name, proc in list(processes):
             ret = proc.poll()
+
+            # is it done?
             if ret is None:
                 continue
+
+            # it's done
             print(f"Process {name} exited with code {ret}")
             processes.remove((name, proc))
+
+            # did it fail?
             if ret != 0:
                 print(f"ERROR: {name} failed. Terminating remaining processes...")
+                # terminate the others
                 for _, p in processes:
                     p.terminate()
                 time.sleep(10)
                 sys.exit(1)
 
+    # fall-through
     print("All components finished successfully")
 
 
