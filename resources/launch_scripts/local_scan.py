@@ -14,6 +14,10 @@ def _print_now(string: str) -> None:
     dt_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{dt_string} {string}", flush=True)
 
+    # special github messages should be printed verbatim
+    if any(string.startswith(x) for x in ["::error", "::warning", "::notice"]):
+        print(string, flush=True)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
