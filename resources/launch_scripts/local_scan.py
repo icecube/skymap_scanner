@@ -5,11 +5,14 @@ import os
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 
 def _print_now(string: str) -> None:
-    print(string, flush=True)
+    """Print immediately, prefixed with the date/time."""
+    dt_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{dt_string} {string}", flush=True)
 
 
 def parse_args():
