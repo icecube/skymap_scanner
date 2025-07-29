@@ -117,6 +117,7 @@ for i in $(seq 1 $nworkers); do
     mkdir -p $dir
     cd $dir
     $launch_scripts_dir/launch_worker.sh >>$dir/pilot.out 2>&1 &
+    cd -
     pidmap["$!"]="worker #$i"
     echo -e "\tworker #$i launched"
 done
