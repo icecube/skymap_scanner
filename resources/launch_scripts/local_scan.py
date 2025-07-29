@@ -8,6 +8,10 @@ import time
 from pathlib import Path
 
 
+def _print_now(string: str) -> None:
+    print(string, flush=True)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Run a scanner instance (server and workers) on the same machine."
@@ -42,14 +46,14 @@ def wait_for_file(path: Path, timeout: int = 60):
         if path.exists():
             return
         time.sleep(1)
-    print(
+    _print_now(
         f"::error::Timed out waiting for file: {path}. Look at central server's output."
     )
     sys.exit(1)
 
 
 def launch_process(cmd, stdout_file, cwd=None) -> subprocess.Popen:
-    print(f"Launching process: {cmd}")
+    _print_now(f"Launching process: {cmd}")
     return subprocess.Popen(
         cmd,
         stdout=open(stdout_file, "w") if stdout_file else subprocess.DEVNULL,
@@ -163,18 +167,18 @@ def main():
     os.environ["CI_SKYSCAN_STARTUP_JSON"] = str(startup_json)
 
     # Launch server
-    print("Launching server...")
+    _print_now("Launching server...")
     server_cmd = build_server_cmd(args.output_dir, startup_json)
     server_log = args.output_dir / "server.out"
     server_proc = launch_process(server_cmd, stdout_file=server_log)
     processes.append(("server", server_proc))
 
     # Wait for startup.json
-    print("Waiting for startup.json...")
+    _print_now("Waiting for startup.json...")
     wait_for_file(startup_json)
 
     # Launch workers
-    print(f"Launching {args.n_workers} workers...")
+    _print_now(f"Launching {args.n_workers} workers...")
     os.environ["EWMS_PILOT_TASK_TIMEOUT"] = os.getenv("EWMS_PILOT_TASK_TIMEOUT", "1800")
     for i in range(1, args.n_workers + 1):
         worker_dir = args.output_dir / f"worker-{i}"
@@ -186,7 +190,7 @@ def main():
             cwd=worker_dir,
         )
         processes.append((f"worker #{i}", proc))
-        print(f"\tworker #{i} launched")
+        _print_now(f"\tworker #{i} launched")
 
     # Wait for all processes to finish
     while processes:
@@ -199,12 +203,14 @@ def main():
                 continue
 
             # it's done
-            print(f"Process {name} exited with code {ret}")
+            _print_now(f"Process {name} exited with code {ret}")
             processes.remove((name, proc))
 
             # did it fail?
             if ret != 0:
-                print(f"ERROR: {name} failed. Terminating remaining processes...")
+                _print_now(
+                    f"::error::{name} failed. Terminating remaining processes..."
+                )
                 # terminate the others
                 for _, p in processes:
                     p.terminate()
@@ -212,7 +218,7 @@ def main():
                 sys.exit(1)
 
     # fall-through
-    print("All components finished successfully")
+    _print_now("All components finished successfully")
 
 
 if __name__ == "__main__":
