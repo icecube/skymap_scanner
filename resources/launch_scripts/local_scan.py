@@ -33,17 +33,6 @@ def parse_args():
         type=Path,
         help="Output directory",
     )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=None,
-        help="timeout for the entire scan",
-    )
-    parser.add_argument(
-        "--timeout-no-raise",
-        action="store_true",
-        help="If set, will suppress errors on timeout (if using '--timeout').",
-    )
     return parser.parse_args()
 
 
@@ -51,26 +40,6 @@ def _terminate_all(processes: list[tuple[str, subprocess.Popen]]) -> None:
     for _, p in processes:
         p.terminate()
     time.sleep(10)
-
-
-def _timeout_logic(
-    start: float,
-    timeout: int,
-    timeout_no_raise: bool,
-    processes: list[tuple[str, subprocess.Popen]],
-):
-    if time.time() - start > timeout:
-        msg = f"scan took longer than --timeout {timeout}"
-        if timeout_no_raise:
-            _print_now(f"::warning::{msg}")
-            _terminate_all(processes)
-            return True
-        else:
-            _print_now(f"::error::{msg}")
-            _terminate_all(processes)
-            raise TimeoutError(msg)
-    else:
-        return False
 
 
 def validate_env_vars():
@@ -247,11 +216,6 @@ def main():
         time.sleep(10)
         if i % 6 == 0:  # every 1 min, print
             _print_now("checking in on scan processes...")
-
-        # check timeout value (if used)
-        if args.timeout is not None:
-            if _timeout_logic(start, args.timeout, args.timeout_no_raise, processes):
-                return
 
         # check all processes
         for name, proc in list(processes):
