@@ -440,7 +440,6 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
-
       - name: rabbitmq logs
         if: always()
         run: |
@@ -602,6 +601,7 @@ jobs:
           docker logs rabbitmq
 
       - name: Upload results as artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
@@ -714,6 +714,7 @@ jobs:
             || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
 
       - name: Upload results as artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
