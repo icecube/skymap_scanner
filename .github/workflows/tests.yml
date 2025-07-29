@@ -387,7 +387,8 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
+            || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
 
       - name: check no nsides skipped
         run: |
@@ -496,7 +497,8 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
-          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
+            || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
       - name: look at stderrfiles
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
