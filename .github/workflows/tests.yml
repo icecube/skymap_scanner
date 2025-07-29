@@ -268,7 +268,7 @@ jobs:
           cd ./resources/launch_scripts
           # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          timeout 240 python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
 
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
         name: look at stderrfiles
@@ -389,7 +389,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
@@ -500,7 +500,7 @@ jobs:
           cd ./resources/launch_scripts
           # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
           #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          timeout 240 python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
       - name: look at stderrfiles
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -626,7 +626,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
