@@ -700,6 +700,16 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
 
+      - name: Upload results as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}/**
+            *.diff.json
+          if-no-files-found: warn
+          retention-days: 7
+
 
   test-file-staging:
     needs: [ flake8 ]
@@ -801,6 +811,16 @@ jobs:
             --diff-out-dir /local/test-data/ \
             --assert \
             || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
+
+      - name: Upload results as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-pixel-results
+          path: |
+            /local/test-data/out-actual.json
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
   #############################################################################
