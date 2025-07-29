@@ -11,7 +11,7 @@ set -ex
 #
 ########################################################################
 
-if [ -z "$1" ] || [ -z "$2" ]; then
+if [ -z "${1-}" ] || [ -z "${2-}" ]; then
     echo "Usage: wait_for_file.sh FILE DURATION_SECONDS"
     exit 1
 fi
