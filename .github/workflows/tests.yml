@@ -247,7 +247,7 @@ jobs:
           ls -lh skymap_scanner.sif
 
       - name: run
-        timeout-minutes: 15  # on average ~9min  # yes, `timeout` is used below but this is insurance
+        timeout-minutes: 15  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -387,6 +387,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
+          set +e  # allow `||` to supress first non-zero exit
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
             || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
 
@@ -485,7 +486,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
       - name: run
-        timeout-minutes: 12  # on average ~9min  # yes, `timeout` is used below but this is insurance
+        timeout-minutes: 12  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -497,6 +498,7 @@ jobs:
           export EWMS_PILOT_TASK_TIMEOUT=15
 
           cd ./resources/launch_scripts
+          set +e  # allow `||` to supress first non-zero exit
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
             || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
       - name: look at stderrfiles
