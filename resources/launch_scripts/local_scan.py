@@ -207,7 +207,6 @@ def main():
         _print_now(f"\tworker #{i} launched")
 
     # Wait for all processes to finish
-    start = time.time()
     i = -1
     while processes:
         i += 1
