@@ -182,7 +182,8 @@ def main():
 
     # Launch workers
     _print_now(f"Launching {args.n_workers} workers...")
-    os.environ["EWMS_PILOT_TASK_TIMEOUT"] = os.getenv("EWMS_PILOT_TASK_TIMEOUT", "1800")
+    if "EWMS_PILOT_TASK_TIMEOUT" not in os.environ:
+        os.environ["EWMS_PILOT_TASK_TIMEOUT"] = str(30 * 60)  # 30 mins
     for i in range(1, args.n_workers + 1):
         worker_dir = args.output_dir / f"worker-{i}"
         worker_dir.mkdir(parents=True, exist_ok=True)
