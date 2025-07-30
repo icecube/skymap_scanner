@@ -220,10 +220,11 @@ def main():
     while processes:
         i += 1
         if i % 6 == 1:  # every 1 min, print -- offset with the 'print' below
-            _print_now("-> scan processes are all running.")
+            _print_now("scan processes are all running.")
         time.sleep(10)
         if i % 6 == 0:  # every 1 min, print
             _print_now("checking in on scan processes...")
+            _print_now("- - - - -")
 
         # check all processes
         for name, proc, log in list(processes):
@@ -232,6 +233,7 @@ def main():
             if i % 6 == 0:
                 _print_now(f"{name} log tail:")
                 _print_now(f"\t{_last_line(log)}")
+                _print_now("- - - - -")
 
             # is it done?
             if ret is None:
