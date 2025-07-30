@@ -261,8 +261,11 @@ jobs:
           docker ps -a
           echo "=== Removing containers using $CI_DOCKER_IMAGE_TAG ==="
           docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
-          echo "=== Removing image $CI_DOCKER_IMAGE_TAG ==="
           docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
+          echo "=== Remove BuildKit container and volume ==="
+          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
+          echo "=== Volume prune ==="
+          docker volume prune -f
           echo "=== Builder prune ==="
           docker builder prune -a -f
           echo "=== System prune (including volumes) ==="
