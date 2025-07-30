@@ -4,7 +4,7 @@
 ARG ICETRAY_VERSION=v1.15.3-ubuntu22.04
 
 #FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION AS prod
-FROM icecube/icetray:icetray-devel-testfixJul29-ubuntu22.0 AS prod
+FROM icecube/icetray:icetray-devel-v1.15.3_pr4012-ubuntu22.04 AS prod
 
 # gcd files
 RUN mkdir -p /opt/i3-data/baseline_gcds && \
