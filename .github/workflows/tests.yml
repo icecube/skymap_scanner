@@ -246,6 +246,14 @@ jobs:
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
       - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: Install squashfuse in order to run .sif
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          # without squashfuse, .sif can't be run directly and needs to be converted
+          #  to a sandbox dir, 1 for each instance
+          sudo apt-get update
+          sudo apt-get install -y squashfuse
+      - if: ${{ matrix.container_platform == 'apptainer' }}
         name: clear up disk space
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
