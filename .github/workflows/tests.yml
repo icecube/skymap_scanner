@@ -719,7 +719,7 @@ jobs:
         with:
           name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
           path: |
-            /local/test-data/out-actual.json
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
             tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
           if-no-files-found: warn
           retention-days: 7
