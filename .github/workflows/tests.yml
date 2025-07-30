@@ -245,7 +245,8 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
-          docker rmi $CI_DOCKER_IMAGE_TAG  # clear space
+          docker rmi $CI_DOCKER_IMAGE_TAG  # clear disk space
+          docker system prune -a -f  # clear disk space
 
       - name: run
         timeout-minutes: 15  # on average ~9min
