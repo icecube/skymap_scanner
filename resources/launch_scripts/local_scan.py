@@ -36,7 +36,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def _terminate_all(processes: list[tuple[str, subprocess.Popen]]) -> None:
+def _terminate_all(processes: list[tuple[str, subprocess.Popen, Path]]) -> None:
     for _, p in processes:
         p.terminate()
     time.sleep(10)
@@ -162,8 +162,17 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
         ]
 
 
+def _last_line(fpath: Path) -> str:
+    try:
+        with open(fpath, "rb") as f:
+            last = f.read().rstrip(b"\n").split(b"\n")[-1].decode()
+            return last
+    except Exception as e:
+        return f"<cannot get last line: {e}>"
+
+
 def main():
-    processes: list[tuple[str, subprocess.Popen]] = []
+    processes: list[tuple[str, subprocess.Popen, Path]] = []
     args = parse_args()
 
     # Validate directories
@@ -184,7 +193,7 @@ def main():
     server_cmd = build_server_cmd(args.output_dir, startup_json)
     server_log = args.output_dir / "server.out"
     server_proc = launch_process(server_cmd, stdout_file=server_log)
-    processes.append(("central server", server_proc))
+    processes.append(("central server", server_proc, server_log))
 
     # Wait for startup.json
     _print_now("Waiting for startup.json...")
@@ -203,7 +212,7 @@ def main():
             stdout_file=out_path,
             cwd=worker_dir,
         )
-        processes.append((f"worker #{i}", proc))
+        processes.append((f"worker #{i}", proc, out_path))
         _print_now(f"\tworker #{i} launched")
 
     # Wait for all processes to finish
@@ -217,8 +226,12 @@ def main():
             _print_now("checking in on scan processes...")
 
         # check all processes
-        for name, proc in list(processes):
+        for name, proc, log in list(processes):
             ret = proc.poll()
+
+            if i % 6 == 0:
+                _print_now(f"{name} log tail:")
+                _print_now(f"\t{_last_line(log)}")
 
             # is it done?
             if ret is None:
@@ -226,7 +239,7 @@ def main():
 
             # it's done
             _print_now(f"Process {name} exited with code {ret}")
-            processes.remove((name, proc))
+            processes.remove((name, proc, log))
 
             # did it fail?
             if ret != 0:
