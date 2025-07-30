@@ -775,7 +775,6 @@ jobs:
       py-setup,
       py-dependencies,
       test-build-docker,
-      test-run-dummy,
       test-file-staging,
       test-run-nsides-thresholds-dummy,
       test-run-realistic,
