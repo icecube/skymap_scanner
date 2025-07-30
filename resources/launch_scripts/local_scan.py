@@ -37,7 +37,7 @@ def parse_args():
 
 
 def _terminate_all(processes: list[tuple[str, subprocess.Popen, Path]]) -> None:
-    for _, p in processes:
+    for _, p, _ in processes:
         p.terminate()
     time.sleep(10)
 
