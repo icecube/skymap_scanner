@@ -245,13 +245,38 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: clear up disk space
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           
-          # clear disk space
-          docker system df  # before
-          docker rmi $CI_DOCKER_IMAGE_TAG
-          docker builder prune -a -f  # remove unused build cache and dangling images/layers
-          docker system prune -a --volumes -f  # remove all other unused Docker objects (containers, networks, etc.)
-          docker system df  # after
+          echo "=== Disk usage summary ==="
+          df -h /
+          
+          echo "=== Before: docker system df ==="
+          docker system df
+          echo "=== All Docker images ==="
+          docker images
+          echo "=== All Docker containers ==="
+          docker ps -a
+          echo "=== Removing containers using $CI_DOCKER_IMAGE_TAG ==="
+          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
+          echo "=== Removing image $CI_DOCKER_IMAGE_TAG ==="
+          docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
+          echo "=== Builder prune ==="
+          docker builder prune -a -f
+          echo "=== System prune (including volumes) ==="
+          docker system prune -a --volumes -f
+          echo "=== After: docker system df ==="
+          docker system df
+          
+          echo "=== Clear up space w/ apt-get ==="
+          sudo apt-get clean
+          sudo apt-get autoremove -y
+          sudo rm -rf /var/lib/apt/lists/*  # delete all cached package metadata 
+
+          echo "=== Disk usage summary ==="
+          df -h /
 
       - name: run
         timeout-minutes: 15  # on average ~9min
