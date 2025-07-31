@@ -128,6 +128,9 @@ def compare_then_exit(
         sys.exit(0)
     else:
         logger.info("FAILED!")
+        print(  # print so the github actions console can interpret the error
+            f"::error::the scan results did not match the expected values ({close=}, {equal=})"
+        )
         if do_assert:
             assert False
         sys.exit(1)

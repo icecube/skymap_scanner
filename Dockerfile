@@ -1,9 +1,10 @@
 #
 # Define the base image icetray version
 #
-ARG ICETRAY_VERSION=v1.9.1-ubuntu22.04-X64
+ARG ICETRAY_VERSION=v1.15.3-ubuntu22.04
 
-FROM icecube/icetray:icetray-prod-$ICETRAY_VERSION AS prod
+#FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION AS prod
+FROM icecube/icetray:icetray-devel-v1.15.3_pr4012-ubuntu22.04 AS prod
 
 # gcd files
 RUN mkdir -p /opt/i3-data/baseline_gcds && \
@@ -26,5 +27,5 @@ ENV OPENBLAS_CORETYPE="Haswell"
 ENV NPY_DISABLE_CPU_FEATURES="AVX512F,AVX512_KNL,AVX512_KNM,AVX512_CLX,AVX512_CNL,AVX512_ICL,AVX512CD,AVX512_SKX"
 
 # set the entry point so that module is called with any parameters given to the `docker run` command
-ENTRYPOINT ["/bin/bash", "/usr/local/icetray/env-shell.sh"]
-CMD []
+ENTRYPOINT ["/bin/bash", "/opt/icetray/bin/icetray-shell", "exec"]
+CMD ["/bin/bash"]

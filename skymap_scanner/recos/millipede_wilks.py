@@ -167,7 +167,7 @@ class MillipedeWilks(RecoInterface):
             omgeo = frame['I3Geometry']
             geo = omgeo.omgeo
             unhits = dataclasses.I3VectorOMKey()
-            for k, v in geo.iteritems():
+            for k, v in geo.items():
                 if v.omtype != dataclasses.I3OMGeo.OMType.IceCube:
                     continue
                 if k.string not in keepstrings:
@@ -194,10 +194,19 @@ class MillipedeWilks(RecoInterface):
     @icetray.traysegment
     def traysegment(self, tray, name, logger, seed=None):
         """Perform MillipedeWilks reco."""
-
         ExcludedDOMs = tray.Add(self.exclusions)
 
         tray.Add(self.makeSurePulsesExist, pulsesName=self.pulsesName_cleaned)
+
+        def check_cal(frame):
+            cal = frame['I3Calibration']
+            logger.debug('Mean SPEs')
+            for omkey in list(cal.dom_cal.keys())[::100]:
+                x = cal.dom_cal[omkey]
+                mean_spe = dataclasses.mean_spe_charge(x)
+                logger.debug(f'...{omkey}: {mean_spe} {x.mean_atwd_charge_correction}')
+                logger.debug(f'......: {x.combined_spe_charge_distribution.compensation_factor}')
+        tray.Add(check_cal)
 
         def notify0(frame):
             logger.debug(f"starting a new fit ({name})! {datetime.datetime.now()}")

@@ -159,7 +159,7 @@ jobs:
       SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
-      EWMS_PILOT_TASK_TIMEOUT: 5
+      EWMS_PILOT_TASK_TIMEOUT: 15
     services:
       rabbitmq:
         # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
@@ -245,9 +245,52 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: Install squashfuse in order to run .sif
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          # without squashfuse, .sif can't be run directly and needs to be converted
+          #  to a sandbox dir, 1 for each instance
+          sudo apt-get update
+          sudo apt-get install -y squashfuse
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: clear up disk space
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          
+          echo "=== Disk usage summary ==="
+          df -h /
+          
+          echo "=== Before: docker system df ==="
+          docker system df
+          echo "=== All Docker images ==="
+          docker images
+          echo "=== All Docker containers ==="
+          docker ps -a
+          echo "=== Removing containers using $CI_DOCKER_IMAGE_TAG ==="
+          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
+          docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
+          echo "=== Remove BuildKit container and volume ==="
+          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
+          echo "=== Volume prune ==="
+          docker volume prune -f
+          echo "=== Builder prune ==="
+          docker builder prune -a -f
+          echo "=== System prune (including volumes) ==="
+          docker system prune -a --volumes -f
+          echo "=== After: docker system df ==="
+          docker system df
+          
+          echo "=== Clear up space w/ apt-get ==="
+          sudo apt-get clean
+          sudo apt-get autoremove -y
+          sudo rm -rf /var/lib/apt/lists/*  # delete all cached package metadata 
+
+          echo "=== Disk usage summary ==="
+          df -h /
 
       - name: run
-        timeout-minutes: 15  # on average ~9min  # yes, `timeout` is used below but this is insurance
+        timeout-minutes: 15  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -256,19 +299,24 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="1:0 2:12 4:12"
           
+          # set special env vars
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
               export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
               export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
           fi
-          
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           fi
           
+          # run!
           cd ./resources/launch_scripts
-          # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
-          #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
+          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
+              set +e  # allow `||` to supress first non-zero exit
+              python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
+                || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
+          else
+              python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          fi
 
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
         name: look at stderrfiles
@@ -284,7 +332,7 @@ jobs:
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
               echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
           else
-              echo "No matches found."
+              echo "::error::Could not find the expected error(s) in worker/pilot outputs."
               exit 1
           fi
       - if: ${{ matrix.reco_algo == 'dummy' }}
@@ -296,28 +344,28 @@ jobs:
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-      - name: central server stdout/stderr
+      - name: dump output -- central server stdout/stderr
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: worker pilot \#1 stdout/stderr
+      - name: dump output -- worker pilot \#1 stdout/stderr
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: dump output -- worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: worker pilot \#2 stdout/stderr
+      - name: dump output -- worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: dump output -- worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -389,7 +437,7 @@ jobs:
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: check no nsides skipped
         run: |
@@ -407,144 +455,39 @@ jobs:
           assert len(pydict) == nsides.count(":")
           '
 
-      - name: central server stdout/stderr
+      - name: dump output -- central server stdout/stderr
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: worker pilot \#1 stdout/stderr
+      - name: dump output -- worker pilot \#1 stdout/stderr
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: dump output -- worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: worker pilot \#2 stdout/stderr
+      - name: dump output -- worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: dump output -- worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
 
       - name: rabbitmq logs
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
-
-
-  test-run-crash-dummy:
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnami/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
-    steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
-        with:
-          docker-images: false
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
-      - name: run
-        timeout-minutes: 12  # on average ~9min  # yes, `timeout` is used below but this is insurance
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -x
-          source tests/env-vars.sh
-          export _RECO_ALGO=crash_dummy
-          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="1:0 2:12 4:12"
-          export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
-          export EWMS_PILOT_TASK_TIMEOUT=15
-
-          cd ./resources/launch_scripts
-          # since _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY<1, this step will go forever
-          #   so, stop it after some time and chek that it has stderrfiles
-          timeout 240 ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR  || true
-      - name: look at stderrfiles
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -x
-          # check for fails/errors
-          
-          error_type_1='intentional crash-dummy error'
-          error_type_2='subprocess timed out after'
-          pattern="$error_type_1|$error_type_2"
-          
-          if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
-              echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
-          else
-              echo "No matches found."
-              exit 1
-          fi
-
-      - name: central server stdout/stderr
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: worker pilot \#1 stdout/stderr
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: worker pilot \#2 stdout/stderr
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
 
   test-run-realistic:
@@ -599,9 +542,6 @@ jobs:
       - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
         with:
           docker-images: false
-      - uses: actionhippie/swap-space@v1
-        with:
-          size: 10G
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -626,7 +566,7 @@ jobs:
           export _NSIDES="1:0"
 
           cd ./resources/launch_scripts
-          ./local-scan.sh $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
       - name: test output against known result (.json)
         run: |
@@ -669,28 +609,28 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-      - name: central server stdout/stderr
+      - name: dump output -- central server stdout/stderr
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: worker pilot \#1 stdout/stderr
+      - name: dump output -- worker pilot \#1 stdout/stderr
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: dump output -- worker clients / reco-icetray instances \#1 stdouts/stderrs
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: worker pilot \#2 stdout/stderr
+      - name: dump output -- worker pilot \#2 stdout/stderr
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: dump output -- worker clients / reco-icetray instances \#2 stdouts/stderrs
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -702,6 +642,17 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
+
+      - name: Upload results as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
+          path: |
+            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}/**
+            *.diff.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
   test-file-staging:
@@ -805,6 +756,17 @@ jobs:
             --assert \
             || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
 
+      - name: Upload results as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
+          path: |
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
+          if-no-files-found: warn
+          retention-days: 7
+
 
   #############################################################################
   # GITHUB RELEASE
@@ -824,7 +786,6 @@ jobs:
       test-run-dummy,
       test-file-staging,
       test-run-nsides-thresholds-dummy,
-      test-run-crash-dummy,
       test-run-realistic,
       test-run-single-pixel,
     ]
