@@ -158,7 +158,7 @@ jobs:
       SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
       SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
       SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: False  # we want many crashes
+      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
     services:
       rabbitmq:
@@ -790,18 +790,20 @@ jobs:
       test-run-single-pixel,
     ]
     runs-on: ubuntu-latest
-    concurrency: release
+    concurrency: release  # prevent any possible race conditions
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - name: Python Semantic Release
-        uses: python-semantic-release/python-semantic-release@v7.34.6
+      # Python-Package Version Bump
+      - uses: python-semantic-release/python-semantic-release@v9.8.1
+        id: psr-psr
         with:
-          git_committer_name: ${{ env.BOT_NAME }}
-          git_committer_email: ${{ env.BOT_EMAIL }}
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          # repository_username: __token__
-          # repository_password: ${{ secrets.PYPI_TOKEN }}
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
+      # GitHub Release
+      - uses: python-semantic-release/upload-to-gh-release@v9.8.1
+        if: steps.psr-psr.outputs.released == 'true'
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
