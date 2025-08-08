@@ -93,12 +93,12 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
-        if: github.actor != ${{ env.BOT_NAME }}  # no auto-updates for bots # should match all 'git_committer_name' uses
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.1
         with:
-          git_committer_name: ${{ env.BOT_NAME }}
-          git_committer_email: ${{ env.BOT_EMAIL }}
-          base-keywords: IceCube
+          mode: PACKAGING
+          python_min: 3.9
+          keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
+          auto_mypy_option: True
 
   py-dependencies:
     needs: [ flake8 ]
