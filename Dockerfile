@@ -22,7 +22,8 @@ WORKDIR $WORKDIR
 # Mount the entire build context (including .git) just for this step
 # NOTE: no 'COPY' because we don't want to copy extra files (especially .git)
 RUN --mount=type=bind,source=.,target=/src \
-    pip install /src[rabbitmq]
+    pip install --upgrade pip setuptools wheel \
+ && pip install /src[rabbitmq]
 
 # optional diagnostics
 RUN pip freeze
