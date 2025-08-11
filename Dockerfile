@@ -16,7 +16,7 @@ RUN mkdir -p /opt/i3-data/baseline_gcds && \
 #
 ARG WORKDIR="/local"
 WORKDIR $WORKDIR
-COPY . .
+COPY --exclude=.git . .
 RUN --mount=source=.git,target=.git,type=bind pip install .[rabbitmq]
 # let's lee what's here...
 RUN pip freeze
