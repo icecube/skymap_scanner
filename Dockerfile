@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 #
 # Define the base image icetray version
 #
@@ -16,9 +18,13 @@ RUN mkdir -p /opt/i3-data/baseline_gcds && \
 #
 ARG WORKDIR="/local"
 WORKDIR $WORKDIR
-COPY --exclude=.git . .
-RUN --mount=source=.git,target=.git,type=bind pip install .[rabbitmq]
-# let's lee what's here...
+
+# Mount the entire build context (including .git) just for this step
+# NOTE: no 'COPY' because we don't want to copy extra files (especially .git)
+RUN --mount=type=bind,source=.,target=/src \
+    pip install /src[rabbitmq]
+
+# optional diagnostics
 RUN pip freeze
 RUN ls -la $WORKDIR
 
