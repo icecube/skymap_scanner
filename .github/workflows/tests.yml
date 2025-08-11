@@ -41,7 +41,7 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@main
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.7
 
   #############################################################################
   # LINTERS
