@@ -721,14 +721,14 @@ jobs:
           # run reco directly
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
+            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
             --env PY_COLORS=1 \
             $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
             $CI_DOCKER_IMAGE_TAG \
             python -m skymap_scanner.client \
-            --infile /local/test-data/in.json \
-            --client-startup-json /local/test-data/startup.json \
-            --outfile /local/test-data/out-actual.json
+            --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
+            --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
+            --outfile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
 
       - name: test output against known result
         run: |
@@ -741,14 +741,14 @@ jobs:
           # need icecube for depickling, so docker container needed
           docker run --network="host" --rm -i \
             --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}),target=/local/test-data \
+            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
             --env PY_COLORS=1 \
             $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
             $CI_DOCKER_IMAGE_TAG \
-            python tests/compare_reco_pixel_single.py \
-            --actual /local/test-data/out-actual.json \
-            --expected /local/test-data/out.json \
-            --diff-out-dir /local/test-data/ \
+            python /local/tests/compare_reco_pixel_single.py \
+            --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
+            --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \
+            --diff-out-dir /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/ \
             --assert \
             || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
 
