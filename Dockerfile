@@ -19,11 +19,15 @@ RUN mkdir -p /opt/i3-data/baseline_gcds && \
 ARG WORKDIR="/local"
 WORKDIR $WORKDIR
 
-# Mount the entire build context (including .git) just for this step
-# NOTE: no 'COPY' because we don't want to copy extra files (especially .git/)
+# Mount the entire build context (including '.git/') just for this step
+# NOTE:
+#  - no 'COPY' because we don't want to copy extra files (especially '.git/')
+#  - using '/tmp/pip-cache' allows pip to cache
+RUN --mount=type=cache,target=/tmp/pip-cache \
+    pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
 RUN --mount=type=bind,source=.,target=/src,rw \
-    pip install --upgrade pip setuptools wheel \
- && pip install /src[rabbitmq]
+    --mount=type=cache,target=/tmp/pip-cache \
+    pip install /src[rabbitmq]
 
 # optional diagnostics
 RUN pip freeze
