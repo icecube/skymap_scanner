@@ -28,6 +28,8 @@ RUN --mount=type=cache,target=/tmp/pip-cache \
 RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
+RUN test -n "$(git tag --list)" || \
+    (echo "::error:: no git tags found — build requires a tagged repo" && exit 1)
 RUN python -c 'import importlib.metadata; v=importlib.metadata.version("skymap-scanner"); print(v); assert v != "local", "::error::version \"local\" detected, image must be built with .git/ access"'
 
 # optional diagnostics
