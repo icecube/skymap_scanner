@@ -118,7 +118,7 @@ jobs:
           file: ./Dockerfile
           tags: skymap_scanner:py-dep-this
           load: true
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.0
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@main
 
 
   #############################################################################
