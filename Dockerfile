@@ -30,6 +30,7 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     pip install /src[rabbitmq]
 
 # optional diagnostics
+RUN python -c 'import importlib.metadata; print(importlib.metadata.version("skymap_scanner"))'
 RUN pip freeze
 RUN ls -la $WORKDIR
 
