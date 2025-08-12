@@ -28,9 +28,9 @@ RUN --mount=type=cache,target=/tmp/pip-cache \
 RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
+RUN python -c 'import importlib.metadata; print(importlib.metadata.version("skymap-scanner"))'
 
 # optional diagnostics
-RUN python -c 'import importlib.metadata; print(importlib.metadata.version("skymap-scanner"))'
 RUN pip freeze
 RUN ls -la $WORKDIR
 
