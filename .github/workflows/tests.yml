@@ -111,6 +111,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: skymap_scanner:py-dep-this
+          load: true
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.0
 
 
