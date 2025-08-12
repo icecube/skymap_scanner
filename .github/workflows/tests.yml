@@ -88,8 +88,7 @@ jobs:
   py-setup:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
@@ -104,11 +103,7 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for images to build
-        with:
-          docker-images: false
-      - name: checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
