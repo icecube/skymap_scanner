@@ -322,7 +322,7 @@ jobs:
           # check for fails/errors
 
           error_type_1='intentional crash-dummy error'
-          error_type_2='subprocess timed out after'
+          error_type_2='[Timeout-Error] timed out after'
           pattern="$error_type_1|$error_type_2"
 
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
