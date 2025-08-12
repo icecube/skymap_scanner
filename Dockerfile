@@ -29,7 +29,8 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
 # verify git has tags
-RUN test -n "$(ls -A .git/refs/tags 2>/dev/null || true)" || \
+RUN --mount=type=bind,source=.git,target=.git,readonly \
+    test -n "$(ls -A .git/refs/tags 2>/dev/null || true)" || \
     (echo "::error:: no git tags found — build requires a tagged repo (for GitHub Action builds, always use 'actions/checkout' with 'fetch-depth: 0')" && exit 1)
 
 # optional diagnostics
