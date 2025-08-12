@@ -671,9 +671,10 @@ jobs:
           source tests/env-vars.sh
           
           docker run --rm -i \
+            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
             $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
             $CI_DOCKER_IMAGE_TAG \
-            python tests/file_staging.py
+            python /local/tests/file_staging.py
 
 
   test-run-single-pixel:
