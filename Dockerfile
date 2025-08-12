@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/tmp/pip-cache \
 RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
-RUN python -c 'import importlib.metadata; print(importlib.metadata.version("skymap-scanner"))'
+RUN python -c 'import importlib.metadata; assert importlib.metadata.version("skymap-scanner") != "local", "::error::version \"local\" detected, image must be built with .git/ access"'
 
 # optional diagnostics
 RUN pip freeze
