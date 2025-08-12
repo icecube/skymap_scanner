@@ -29,10 +29,11 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
 # verify git has tags & print package version
-RUN --mount=type=bind,source=.git,target=.git,readonly \
-    sh -c '(ls -A .git/refs/tags 2>/dev/null | head -n1 >/dev/null) \
-        || grep -q "refs/tags/" .git/packed-refs 2>/dev/null \
-        || { echo >&2 "ERROR: no git tags found. For GHA use `actions/checkout` with `fetch-depth: 0`"; exit 1; }'
+RUN --mount=type=bind,source=.git,target=/tmp/.git,readonly \
+    sh -ec 'G=/tmp/.git; \
+      if [ -d "$G/refs/tags" ] && find "$G/refs/tags" -type f -print -quit | grep -q .; then :; \
+      elif [ -f "$G/packed-refs" ] && grep -q "refs/tags/" "$G/packed-refs"; then :; \
+      else echo "ERROR: No git tags found — for GHA use `actions/checkout` with `fetch-depth: 0`" >&2; exit 1; fi'
 RUN python -c 'import importlib.metadata; print(importlib.metadata.version("skymap-scanner"))'
 
 # optional diagnostics
