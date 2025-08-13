@@ -2,6 +2,7 @@ name: docker & singularity/cvmfs releases
 
 on:
   push:
+    # on push tags only
     branches-ignore:
       - '**'
     tags:
@@ -17,105 +18,21 @@ on:
       - '**'
 
 jobs:
-  docker:
-    if: github.event_name != 'delete'
-    name: "Docker Image"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main  # need space for image build
-        with:
-          docker-images: false
-
-      - name: Checkout Project
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-
-      - name: Docker meta
-        id: docker_meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            icecube/skymap_scanner
-          tags: |
-            # branches (PRs)
-            type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
-            # release tags
-            type=semver,pattern={{major}},enable=${{ github.ref_type == 'tag' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_type == 'tag' }}
-            type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        if: github.event_name != 'pull_request'
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Set up QEMU
-        if: contains(github.event.inputs.platform || 'linux/amd64', 'arm')
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Push Docker Image X86_64
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          platforms: ${{ github.event.inputs.platform || 'linux/amd64' }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.docker_meta.outputs.tags }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
-
-  cvmfs:
-    name: CVMFS Image
-    needs: [docker]
-    if: github.event_name != 'delete'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Project
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-
-      - name: Docker meta
-        id: docker_meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            icecube/skymap_scanner
-          flavor: |
-            latest=false
-          tags: |
-            # we only want to put version/sha-specific images on CVMFS
-            # branches (PRs)
-            type=sha,prefix={{branch}}-,enable=${{ github.ref_type == 'branch' }}
-            # release tags
-            type=semver,pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref_type == 'tag' }}
-
-      - name: Request Build(s)
-        uses: WIPACrepo/build-singularity-cvmfs-action@v1.2
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-          docker_tags: ${{ steps.docker_meta.outputs.tags }}
-          dest_dir: realtime
-          include_docker_repo: false
-
-  cvmfs-removal:
-    name: Request Removal(s) on CVMFS
-    if: github.event_name == 'delete'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Project
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-
-      - name: Request Removal(s)
-        uses: WIPACrepo/build-singularity-cvmfs-action@v1.3
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # so job can git push
-          delete_image_tags: 'skymap_scanner:${{ github.event.ref }}-[SHA]'  # image tags to remove
-          dest_dir: 'realtime'  # Required for constructing path pattern
+  image-publish:
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.6
+    permissions: # for GITHUB_TOKEN
+      packages: write
+    with:
+      image_registry: docker.io
+      image_namespace: icecube
+      image_name: skymap_scanner
+      mode: ${{ github.event_name == 'delete' && 'CVMFS_REMOVE' || 'CVMFS_BUILD' }}
+      cvmfs_dest_dir: realtime
+      # only used if mode is CVMFS_REMOVE:
+      cvmfs_remove_tags: '${{ github.ref_name }}-[SHA]'
+      # only used if mode builds image:
+      free_disk_space: true
+    secrets:
+      registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      registry_token: ${{ secrets.DOCKERHUB_TOKEN }}
+      cvmfs_github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}

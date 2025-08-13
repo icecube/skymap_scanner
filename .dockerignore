@@ -1,6 +1,6 @@
 *.pyc
 __pycache__
-.git
+#.git
 .terraform
 aws_ec2
 *.i3

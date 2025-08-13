@@ -7,6 +7,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from collections import deque
 
 
 def _print_now(string: str) -> None:
@@ -162,13 +163,15 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
         ]
 
 
-def _last_line(fpath: Path) -> str:
+def _last_n_lines(fpath: Path, n: int) -> list[str]:
+    """Return the last `n` lines of a file as a list of strings."""
     try:
         with open(fpath, "rb") as f:
-            last = f.read().rstrip(b"\n").split(b"\n")[-1].decode()
-            return last
+            # Keep only last n lines in memory
+            lines = deque(f, maxlen=n)
+        return [line.rstrip(b"\n").decode() for line in lines]
     except Exception as e:
-        return f"<cannot get last line: {e}>"
+        return [f"<cannot get last lines: {e}>"]
 
 
 def main():
@@ -231,8 +234,10 @@ def main():
             ret = proc.poll()
 
             if i % 6 == 0:
-                _print_now(f"{name} log tail:")
-                _print_now(f"\t{_last_line(log)}")
+                tail = 5
+                _print_now(f"{name} 'tail -{tail} {log}':")
+                for ln in _last_n_lines(log, tail):
+                    _print_now(f"\t{ln}")
                 _print_now("- - - - -")
 
             # is it done?
