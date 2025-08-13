@@ -13,7 +13,7 @@ dependencies = [
     'healpy',
     'icecube-skyreader>=1.4.2',
     'iminuit<2.27.0',
-    'numpy<2.0.0',
+    'numpy<3.0.0',
     'oms-mqclient',
     'scipy',
     'wipac-dev-tools',
