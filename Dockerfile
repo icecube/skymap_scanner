@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 #
 # Define the base image icetray version
 #
