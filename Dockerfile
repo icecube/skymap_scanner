@@ -19,7 +19,7 @@ RUN mkdir -p /opt/i3-data/baseline_gcds && \
 ARG WORKDIR="/local"
 WORKDIR $WORKDIR
 
-OC
+COPY . .
 
 # optional diagnostics
 RUN pip freeze
