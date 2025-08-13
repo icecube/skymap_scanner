@@ -8,11 +8,6 @@ on:
     tags:
       - '**'
   workflow_dispatch:
-    inputs:
-      platform:
-        description: 'Platform'
-        default: 'linux/amd64'
-        required: false
   delete:
     branches:
       - '**'
@@ -32,6 +27,7 @@ jobs:
       cvmfs_remove_tags: '${{ github.ref_name }}-[SHA]'
       # only used if mode builds image:
       free_disk_space: true
+      build_platforms_csv: 'linux/amd64'
     secrets:
       registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
       registry_token: ${{ secrets.DOCKERHUB_TOKEN }}
