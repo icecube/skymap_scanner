@@ -1,6 +1,7 @@
 name: ci/cd
 
 on:
+  # only on branch pushes
   push:
     branches:
       - '**'
