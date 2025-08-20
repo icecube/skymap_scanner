@@ -1,6 +1,7 @@
 name: ci/cd
 
 on:
+  # only on branch pushes
   push:
     branches:
       - '**'
@@ -76,10 +77,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+
 
   #############################################################################
   # PACKAGING
@@ -95,7 +98,7 @@ jobs:
       - uses: WIPACrepo/wipac-dev-py-setup-action@v5.2
         with:
           mode: PACKAGING
-          python_min: 3.9
+          python_min: '3.10'
           keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
           auto_mypy_option: True
 
@@ -106,6 +109,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -127,7 +131,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # git history + tags -> setuptools-scm can get correct version (optional)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -183,6 +187,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -415,6 +420,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -542,6 +548,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -659,6 +666,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -706,6 +714,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -786,7 +795,7 @@ jobs:
       test-run-realistic,
       test-run-single-pixel,
     ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.5
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.8
     permissions: # for GITHUB_TOKEN
       contents: write
     with:
