@@ -29,6 +29,7 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     pip install /src[rabbitmq]
 
 # optional diagnostics
+RUN python --version
 RUN pip freeze
 RUN ls -la $WORKDIR
 
