@@ -24,7 +24,7 @@ jobs:
       mode: ${{ github.event_name == 'delete' && 'CVMFS_REMOVE' || 'CVMFS_BUILD' }}
       cvmfs_dest_dir: realtime
       # only used if mode is CVMFS_REMOVE:
-      cvmfs_remove_tags: '${{ github.ref_name }}-[SHA]'
+      cvmfs_remove_tags: '${{ github.event.ref }}-[SHA]'
       # only used if mode builds image:
       free_disk_space: true
       build_platforms_csv: 'linux/amd64'
