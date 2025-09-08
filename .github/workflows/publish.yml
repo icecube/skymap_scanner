@@ -14,7 +14,7 @@ on:
 
 jobs:
   image-publish:
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.11
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.13
     permissions: # for GITHUB_TOKEN
       packages: write
     with:
