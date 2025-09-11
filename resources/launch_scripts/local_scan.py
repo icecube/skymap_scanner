@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from collections import deque
 
-TAIL = os.getenv("CI_LOCAL_SCAN_TAIL", 5)
+TAIL = int(os.getenv("CI_LOCAL_SCAN_TAIL", 5))
 
 
 def _print_now(string: str) -> None:
