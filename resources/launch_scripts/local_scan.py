@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from collections import deque
 
+TAIL = os.getenv("CI_LOCAL_SCAN_TAIL", 5)
+
 
 def _print_now(string: str) -> None:
     """Print immediately, prefixed with the date/time."""
@@ -234,10 +236,9 @@ def main():
             ret = proc.poll()
 
             if i % 6 == 0:
-                tail = 5
                 _print_now(f"{name} 'tail -{tail} {log}':")
-                for ln in _last_n_lines(log, tail):
-                    _print_now(f"\t{ln}")
+                for ln in _last_n_lines(log, TAIL):
+                    _print_now(f"\t>>>\t{ln}")
                 _print_now("- - - - -")
 
             # is it done?

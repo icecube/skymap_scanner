@@ -20,6 +20,7 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   #
+  CI_LOCAL_SCAN_TAIL: 20
   CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
