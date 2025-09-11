@@ -236,7 +236,7 @@ def main():
             ret = proc.poll()
 
             if i % 6 == 0:
-                _print_now(f"{name} 'tail -{tail} {log}':")
+                _print_now(f"{name} 'tail -{TAIL} {log}':")
                 for ln in _last_n_lines(log, TAIL):
                     _print_now(f"\t>>>\t{ln}")
                 _print_now("- - - - -")
