@@ -246,6 +246,12 @@ jobs:
           }
           EOF
           sudo systemctl reload apparmor
+          
+          # Install squashfuse in order to run .sif
+          #   without squashfuse, .sif can't be run directly and needs to be converted
+          #   to a sandbox dir, 1 for each instance
+          sudo apt-get update
+          sudo apt-get install -y squashfuse
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer (.sif) image
         env:
@@ -267,14 +273,6 @@ jobs:
           docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
           docker buildx ls | awk 'NR>1 {print $1}' | xargs -r -n1 docker buildx rm -f
           docker volume prune -f
-      - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: Install squashfuse in order to run .sif
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          # without squashfuse, .sif can't be run directly and needs to be converted
-          #  to a sandbox dir, 1 for each instance
-          sudo apt-get update
-          sudo apt-get install -y squashfuse
       - if: ${{ matrix.container_platform == 'apptainer' }}
         uses: jlumbroso/free-disk-space@main  # need space for mq broker
         with:
