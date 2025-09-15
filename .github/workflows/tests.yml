@@ -171,6 +171,9 @@ jobs:
           RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
+          # relax broker alarms for CI:
+          RABBITMQ_DISK_FREE_LIMIT: 1MB
+          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.9
         # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
@@ -374,6 +377,22 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+
+      - name: RabbitMQ diagnostics
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          echo "=== docker logs (rabbitmq) ==="
+          docker logs rabbitmq || true
+          echo "=== rabbitmqctl status ==="
+          docker exec rabbitmq rabbitmqctl status || true
+          echo "=== rabbitmq-diagnostics memory ==="
+          docker exec rabbitmq rabbitmq-diagnostics memory || true
+          echo "=== rabbitmq-diagnostics environment ==="
+          docker exec rabbitmq rabbitmq-diagnostics environment || true
+          echo "=== rabbitmq-diagnostics alarms ==="
+          docker exec rabbitmq rabbitmq-diagnostics alarms || true
+
 
   test-run-nsides-thresholds-dummy:
     needs: [ flake8 ]
