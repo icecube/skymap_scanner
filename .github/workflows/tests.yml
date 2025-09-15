@@ -142,7 +142,7 @@ jobs:
           load: true
 
   test-run-dummy:
-    needs: [ flake8 ]
+    # needs: [ flake8 ]   # remove so this starts up asap w/ priority
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
