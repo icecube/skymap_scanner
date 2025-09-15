@@ -247,10 +247,19 @@ jobs:
           sudo systemctl reload apparmor
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer (.sif) image
+        env:
+          # keep caches off $HOME and easy to delete
+          APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
+          APPTAINER_TMPDIR: ${{ runner.temp }}
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
+          # free docker layers now that SIF is built
+          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
+          docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
+          # drop apptainer caches
+          rm -rf "$APPTAINER_CACHEDIR" || true
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: Install squashfuse in order to run .sif
         run: |
