@@ -172,7 +172,7 @@ jobs:
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
           # Use the Bitnami-specific absolute limit var:
-          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"   # or "1MB" if you prefer
+          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
           # (Optional) leave memory watermark alone or keep it generous:
           RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
         # Note: `--network` option is not supported.
@@ -254,13 +254,19 @@ jobs:
           APPTAINER_TMPDIR: ${{ runner.temp }}
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          
           apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
           ls -lh skymap_scanner.sif
+          # drop apptainer caches
+          rm -rf "$APPTAINER_CACHEDIR" || true
+          
           # free docker layers now that SIF is built
           docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
           docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
-          # drop apptainer caches
-          rm -rf "$APPTAINER_CACHEDIR" || true
+          # prune buildkit + volume
+          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
+          docker buildx ls | awk 'NR>1 {print $1}' | xargs -r -n1 docker buildx rm -f
+          docker volume prune -f
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: Install squashfuse in order to run .sif
         run: |
@@ -270,40 +276,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y squashfuse
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: clear up disk space
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          
-          echo "=== Disk usage summary ==="
-          df -h /
-          
-          echo "=== Before: docker system df ==="
-          docker system df
-          echo "=== All Docker images ==="
-          docker images
-          echo "=== All Docker containers ==="
-          docker ps -a
-          echo "=== Removing containers using $CI_DOCKER_IMAGE_TAG ==="
-          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
-          docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
-          echo "=== Remove BuildKit container and volume ==="
-          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
-          echo "=== Volume prune ==="
-          docker volume prune -f
-          echo "=== Builder prune ==="
-          docker builder prune -a -f
-          echo "=== System prune (including volumes) ==="
-          docker system prune -a --volumes -f
-          echo "=== After: docker system df ==="
-          docker system df
-          
-          echo "=== Clear up space w/ apt-get ==="
-          sudo apt-get clean
-          sudo apt-get autoremove -y
-          sudo rm -rf /var/lib/apt/lists/*  # delete all cached package metadata 
-
-          echo "=== Disk usage summary ==="
-          df -h /
+        uses: jlumbroso/free-disk-space@main  # need space for mq broker
+        with:
+          docker-images: true  # no longer need docker images
+          # everything else to 'false'
+          tool-cache: false
+          android: false
+          dotnet: false
+          haskell: false
+          large-packages: false
+          swap-storage: false
 
       - name: run
         timeout-minutes: 15  # on average ~9min
