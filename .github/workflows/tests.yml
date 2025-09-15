@@ -20,6 +20,7 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   #
+  CI_LOCAL_SCAN_TAIL: 20
   CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
@@ -141,7 +142,7 @@ jobs:
           load: true
 
   test-run-dummy:
-    needs: [ flake8 ]
+    # needs: [ flake8 ]   # remove so this starts up asap w/ priority
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -170,6 +171,10 @@ jobs:
           RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
+          # Use the Bitnami-specific absolute limit var:
+          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
+          # (Optional) leave memory watermark alone or keep it generous:
+          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
         # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
@@ -181,7 +186,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
       - uses: actions/checkout@v5
@@ -241,55 +246,47 @@ jobs:
           }
           EOF
           sudo systemctl reload apparmor
-      - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer (.sif) image
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
-          ls -lh skymap_scanner.sif
-      - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: Install squashfuse in order to run .sif
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          # without squashfuse, .sif can't be run directly and needs to be converted
-          #  to a sandbox dir, 1 for each instance
+          
+          # Install squashfuse in order to run .sif
+          #   without squashfuse, .sif can't be run directly and needs to be converted
+          #   to a sandbox dir, 1 for each instance
           sudo apt-get update
           sudo apt-get install -y squashfuse
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: clear up disk space
+        name: build apptainer (.sif) image
+        env:
+          # keep caches off $HOME and easy to delete
+          APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
+          APPTAINER_TMPDIR: ${{ runner.temp }}
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           
-          echo "=== Disk usage summary ==="
-          df -h /
+          apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
+          ls -lh skymap_scanner.sif
+          # drop apptainer caches
+          echo "clearing apptainer caches..."
+          du -sh "$APPTAINER_CACHEDIR" || true
+          rm -rf "$APPTAINER_CACHEDIR" || true
           
-          echo "=== Before: docker system df ==="
-          docker system df
-          echo "=== All Docker images ==="
-          docker images
-          echo "=== All Docker containers ==="
-          docker ps -a
-          echo "=== Removing containers using $CI_DOCKER_IMAGE_TAG ==="
-          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
+          # Free docker stuff now that SIF is built
+          echo "clearing docker things..."
+          BEFORE="$(df -B1 --output=avail / | tail -1)"
+          # -- docker layers
+          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" -q | xargs -r docker rm -f
           docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
-          echo "=== Remove BuildKit container and volume ==="
-          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
-          echo "=== Volume prune ==="
-          docker volume prune -f
-          echo "=== Builder prune ==="
-          docker builder prune -a -f
-          echo "=== System prune (including volumes) ==="
-          docker system prune -a --volumes -f
-          echo "=== After: docker system df ==="
-          docker system df
-          
-          echo "=== Clear up space w/ apt-get ==="
-          sudo apt-get clean
-          sudo apt-get autoremove -y
-          sudo rm -rf /var/lib/apt/lists/*  # delete all cached package metadata 
-
-          echo "=== Disk usage summary ==="
-          df -h /
+          # -- prune buildkit + volume
+          docker ps -aq --filter "label=name=buildx_buildkit" | xargs -r docker rm -f || true
+          docker ps -aq --filter "ancestor=moby/buildkit:buildx-stable-1" | xargs -r docker rm -f || true
+          docker buildx ls | awk 'NR>1{gsub(/\*$/,"",$1); if($1!="default" && $1!="") print $1}' | xargs -r -n1 docker buildx rm -f || true
+          docker builder prune -af || true
+          docker system prune -af --volumes || true
+          docker volume ls -q --filter 'name=buildx_buildkit_.*_state' | xargs -r docker volume rm -f || true
+          # -- report
+          AFTER="$(df -B1 --output=avail / | tail -1)"
+          DELTA="$((AFTER - BEFORE))"
+          GIB="$(awk -v b="$DELTA" 'BEGIN{printf "%.2f", b/1024/1024/1024}')"
+          MIB="$(awk -v b="$DELTA" 'BEGIN{printf "%.0f", b/1024/1024}')"
+          echo "Freed: ${GIB} GiB (${MIB} MiB)"
 
       - name: run
         timeout-minutes: 15  # on average ~9min
@@ -374,6 +371,22 @@ jobs:
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
+      - name: RabbitMQ diagnostics
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          echo "=== docker logs (rabbitmq) ==="
+          docker logs rabbitmq || true
+          echo "=== rabbitmqctl status ==="
+          docker exec rabbitmq rabbitmqctl status || true
+          echo "=== rabbitmq-diagnostics memory ==="
+          docker exec rabbitmq rabbitmq-diagnostics memory || true
+          echo "=== rabbitmq-diagnostics environment ==="
+          docker exec rabbitmq rabbitmq-diagnostics environment || true
+          echo "=== rabbitmq-diagnostics alarms ==="
+          docker exec rabbitmq rabbitmq-diagnostics alarms || true
+
+
   test-run-nsides-thresholds-dummy:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
@@ -414,7 +427,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
       - uses: actions/checkout@v5
@@ -542,7 +555,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
       - uses: actions/checkout@v5
