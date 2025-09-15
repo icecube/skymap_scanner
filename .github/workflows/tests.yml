@@ -268,20 +268,27 @@ jobs:
           du -sh "$APPTAINER_CACHEDIR" || true
           rm -rf "$APPTAINER_CACHEDIR" || true
           
-          # Free docker stuff now that SIF is built
+          # Free Docker stuff now that SIF is built (keeps RabbitMQ up)
           echo "clearing docker things..."
           BEFORE="$(df -B1 --output=avail / | tail -1)"
-          # docker layers
-          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
+          # remove any containers using your scanner image, then the image itself
+          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" -q | xargs -r docker rm -f
           docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
-          # prune buildkit + volume
-          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
-          docker buildx ls | awk 'NR>1 {print $1}' | xargs -r -n1 docker buildx rm -f
-          docker volume prune -f
+          # kill BuildKit daemon so its volume becomes prunable (cover both labels & image)
+          docker ps -aq --filter "label=name=buildx_buildkit" | xargs -r docker rm -f || true
+          docker ps -aq --filter "ancestor=moby/buildkit:buildx-stable-1" | xargs -r docker rm -f || true
+          # remove non-default builders; strip trailing '*' from active builder name
+          docker buildx ls | awk 'NR>1{print $1}' | sed 's/\*$//' | grep -vE '^(default|)$' | sort -u | xargs -r -n1 docker buildx rm -f || true
+          # prune caches/images/containers/networks/volumes that are UNUSED
+          docker builder prune -af || true
+          docker system prune -af --volumes || true
           # report
           AFTER="$(df -B1 --output=avail / | tail -1)"
-          DELTA="$(( AFTER - BEFORE ))"
-          echo "Freed: $(awk -v b="$DELTA" 'BEGIN{printf "%.2f", b/1024/1024/1024}') GiB ($(awk -v b="$DELTA" "BEGIN{printf \"%.0f\", b/1024/1024}") MiB)"
+          DELTA="$((AFTER - BEFORE))"
+          echo "Freed: $(awk -v b="$DELTA" 'BEGIN{printf "%.2f GiB (%.0f MiB)\n", b/1024/1024/1024, b/1024/1024)}')"
+          # status
+          docker system df -v || true
+
       - if: ${{ matrix.container_platform == 'apptainer' }}
         uses: jlumbroso/free-disk-space@main  # need space for mq broker
         with:
