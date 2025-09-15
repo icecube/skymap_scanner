@@ -171,9 +171,10 @@ jobs:
           RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
-          # relax broker alarms for CI:
-          RABBITMQ_DISK_FREE_LIMIT: 1MB
-          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.9
+          # Use the Bitnami-specific absolute limit var:
+          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"   # or "1MB" if you prefer
+          # (Optional) leave memory watermark alone or keep it generous:
+          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
         # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
