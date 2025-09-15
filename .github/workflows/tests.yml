@@ -186,7 +186,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: Jayllyz/free-disk-space@3bda29d  # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
       - uses: actions/checkout@v5
@@ -427,7 +427,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: Jayllyz/free-disk-space@3bda29d  # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
       - uses: actions/checkout@v5
@@ -555,7 +555,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: Jayllyz/free-disk-space@3bda29d  # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
       - uses: actions/checkout@v5
