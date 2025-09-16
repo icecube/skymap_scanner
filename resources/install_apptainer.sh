@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euo pipefail
-
 set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 set -x
 
