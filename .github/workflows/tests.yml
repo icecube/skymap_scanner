@@ -133,11 +133,13 @@ jobs:
         with:
           fetch-depth: 0  # setuptools-scm needs tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: ./.github/actions/scan-setup
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
-          ref: ${{ github.sha }}
-          docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          free-disk-space: "false"
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
   test-run-dummy:
     # needs: [ flake8 ]   # remove so this starts up asap w/ priority
@@ -182,14 +184,28 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+      - name: free disk space (optional)
+        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
+        with:
+          docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # setuptools-scm needs tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: ./.github/actions/scan-setup
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: install apptainer
@@ -306,11 +322,13 @@ jobs:
         with:
           fetch-depth: 0  # setuptools-scm needs tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: ./.github/actions/scan-setup
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          free-disk-space: "false"
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
@@ -397,14 +415,28 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+      - name: free disk space (optional)
+        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
+        with:
+          docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # setuptools-scm needs tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: ./.github/actions/scan-setup
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
       - name: run
         timeout-minutes: 55  # on average max~=35min
@@ -488,11 +520,13 @@ jobs:
         with:
           fetch-depth: 0  # setuptools-scm needs tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: ./.github/actions/scan-setup
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          free-disk-space: "false"
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
       - name: run
         run: |
@@ -535,11 +569,13 @@ jobs:
         with:
           fetch-depth: 0  # setuptools-scm needs tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: ./.github/actions/scan-setup
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          free-disk-space: "false"
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          load: true
 
       - name: run
         timeout-minutes: 10  # on average max~=5min
