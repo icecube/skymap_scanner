@@ -186,7 +186,7 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - name: Disk Space
+      - name: "-- Disk Space --"
         if: always()
         run: df -h /
 
@@ -194,7 +194,7 @@ jobs:
         with:
           docker-images: false
 
-      - name: Disk Space
+      - name: "-- Disk Space --"
         if: always()
         run: df -h /
 
@@ -210,7 +210,7 @@ jobs:
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
 
-      - name: Disk Space
+      - name: "-- Disk Space --"
         if: always()
         run: df -h /
 
@@ -323,7 +323,7 @@ jobs:
           echo "=== rabbitmq-diagnostics alarms ==="
           docker exec rabbitmq rabbitmq-diagnostics alarms || true
 
-      - name: Disk Space
+      - name: "-- Disk Space --"
         if: always()
         run: df -h /
 
