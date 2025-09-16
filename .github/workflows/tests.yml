@@ -129,6 +129,10 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/scan-setup
         with:
           ref: ${{ github.sha }}
@@ -178,6 +182,10 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/scan-setup
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -294,11 +302,16 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/scan-setup
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
+
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
@@ -384,6 +397,10 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/scan-setup
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -467,11 +484,16 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/scan-setup
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
+
       - name: run
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -509,11 +531,16 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/scan-setup
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
+
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
