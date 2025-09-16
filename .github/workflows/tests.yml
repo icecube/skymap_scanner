@@ -210,12 +210,12 @@ jobs:
         name: install apptainer
         run: ./resources/install_apptainer.sh
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer (.sif) image
+        name: build apptainer image
         env:
           # keep caches off $HOME and easy to delete
           APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
           APPTAINER_TMPDIR: ${{ runner.temp }}
-        run: ./resources/build_sif.sh
+        run: ./resources/build_apptainer_image.sh
 
       - name: run
         timeout-minutes: 15  # on average ~9min
@@ -229,8 +229,7 @@ jobs:
           
           # set special env vars
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
-              export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
-              export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
+              export _RUN_THIS_APPTAINER_IMAGE="$(realpath skymap_scanner.sandbox)"
           fi
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75

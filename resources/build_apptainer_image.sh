@@ -14,11 +14,16 @@ if [[ -z "${APPTAINER_CACHEDIR:-}" ]]; then
     exit 1
 fi
 
+APPTAINER_SANDBOX_DIR="skymap_scanner.sandbox"
+
 ########################################################################
-# Build SIF image
+# Build sandbox image
 ########################################################################
-apptainer build skymap_scanner.sif docker-daemon://"$CI_DOCKER_IMAGE_TAG"
-ls -lh skymap_scanner.sif
+echo "building apptainer sandbox at: ${APPTAINER_SANDBOX_DIR}"
+# ensure a clean target (apptainer refuses to overwrite without --force)
+rm -rf "${APPTAINER_SANDBOX_DIR}" || true
+apptainer build --sandbox --force "${APPTAINER_SANDBOX_DIR}" docker-daemon://"$CI_DOCKER_IMAGE_TAG"
+du -sh "${APPTAINER_SANDBOX_DIR}" || ls -lh "${APPTAINER_SANDBOX_DIR}"
 
 ########################################################################
 # Drop apptainer caches
@@ -28,7 +33,7 @@ du -sh "$APPTAINER_CACHEDIR" || true
 rm -rf "$APPTAINER_CACHEDIR" || true
 
 ########################################################################
-# Free docker stuff now that SIF is built
+# Free docker stuff now that sandbox is built
 ########################################################################
 echo "clearing docker things..."
 BEFORE="$(df -B1 --output=avail / | tail -1)"
