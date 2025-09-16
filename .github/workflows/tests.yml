@@ -135,24 +135,30 @@ jobs:
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
 
-
   test-run-dummy:
-    # needs: [ flake8 ]
+    # needs: [ flake8 ]   # remove so this starts up asap w/ priority
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        reco_algo: [ "dummy", "crash_dummy" ]
-        container_platform: [ "docker", "apptainer" ]
+        reco_algo: [
+          "dummy",
+          "crash_dummy"
+        ]
+        container_platform: [
+          "docker",
+          "apptainer",
+        ]
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
       SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password
-      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
     services:
       rabbitmq:
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
         image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
@@ -161,17 +167,20 @@ jobs:
           BITNAMI_DEBUG: true
           RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
           RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
+        # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
           --health-cmd "rabbitmqctl node_health_check"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-        ports: [ 5672:5672, 15672:15672 ]
+        ports:
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: ./.github/actions/scan-setup
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
@@ -180,12 +189,13 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer (.sif) image
         env:
+          # keep caches off $HOME and easy to delete
           APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
           APPTAINER_TMPDIR: ${{ runner.temp }}
         run: ./resources/build_sif.sh
 
       - name: run
-        timeout-minutes: 15
+        timeout-minutes: 15  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -193,6 +203,8 @@ jobs:
           export _RECO_ALGO="${{ matrix.reco_algo }}"
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="1:0 2:12 4:12"
+          
+          # set special env vars
           if [ "${{ matrix.container_platform }}" = "apptainer" ]; then
               export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
               export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
@@ -200,9 +212,11 @@ jobs:
           if [ "${{ matrix.reco_algo }}" = "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           fi
+          
+          # run!
           cd ./resources/launch_scripts
           if [ "${{ matrix.reco_algo }}" = "crash_dummy" ]; then
-              set +e
+              set +e  # allow `||` to supress first non-zero exit
               python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
                 || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
           else
@@ -214,13 +228,14 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
+          # check for fails/errors
           error_type_1='intentional crash-dummy error'
           error_type_2='\[Timeout-Error\] timed out after'
           pattern="$error_type_1|$error_type_2"
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
-              echo "Match(es) found."
+              echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
           else
-              echo "::error::Expected error(s) not found."
+              echo "::error::Could not find the expected error(s) in worker/pilot outputs."
               exit 1
           fi
 
@@ -228,9 +243,10 @@ jobs:
         name: look at results file (.npz)
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          ls .
           ls $CI_SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
-          echo "$outfile"
+          echo $outfile
 
       - uses: ./.github/actions/dump-scan-logs
         if: always()
@@ -238,48 +254,53 @@ jobs:
           outdir: ${{ env.CI_TEST_RUN_STDOUT_STDERR_DIR }}
           n-workers: ${{ env.N_WORKERS }}
 
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
-
   test-run-nsides-thresholds-dummy:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        nsides: [ "1:0", "1:0 2:12", "1:0 2:12 4:12" ]
-        predictive_scanning_threshold: [ 1.0, 0.65 ]
+        nsides: [
+          "1:0",
+          "1:0 2:12",
+          "1:0 2:12 4:12"
+        ]
+        predictive_scanning_threshold: [
+          1.0,
+          0.65,
+        ]
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
       SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
     services:
       rabbitmq:
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
         image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
           --health-cmd "rabbitmqctl node_health_check"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-        ports: [ 5672:5672, 15672:15672 ]
+        ports:
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: ./.github/actions/scan-setup
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
-
       - name: run
-        timeout-minutes: 12
+        timeout-minutes: 12  # on average max~=8.5min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -288,6 +309,7 @@ jobs:
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="${{ matrix.nsides }}"
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
+
           cd ./resources/launch_scripts
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
@@ -295,13 +317,16 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           ls $CI_SKYSCAN_OUTPUT_DIR
-          export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n' {} + | sort | tail -1 | awk '{print $4}')
-          echo "$outfile"
+          # get newest run*.json
+          export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          echo $outfile
           python3 -c '
-          import json, os
-          with open(os.getenv("outfile")) as f: pydict = json.load(f)
-          nsides = """${{ matrix.nsides }}"""
-          assert len(pydict) == nsides.count(":"), (len(pydict), nsides)
+          import json
+          import os
+          with open(os.getenv("outfile")) as f:
+            pydict = json.load(f)
+          nsides = "${{ matrix.nsides }}"
+          assert len(pydict) == nsides.count(":")
           '
 
       - uses: ./.github/actions/dump-scan-logs
@@ -310,52 +335,62 @@ jobs:
           outdir: ${{ env.CI_TEST_RUN_STDOUT_STDERR_DIR }}
           n-workers: ${{ env.N_WORKERS }}
 
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
-
   test-run-realistic:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        reco_algo: [ millipede_original, millipede_wilks, splinempe, splinempe_pointed ]
-        eventfile: [ hese_event_01.json, run00136766-evt000007637140-GOLD.pkl, run00136662-evt000035405932-BRONZE.pkl, 138632_31747601.json ]
+        reco_algo: [
+          millipede_original,
+          millipede_wilks,
+          splinempe,
+          splinempe_pointed
+        ]
+        eventfile: [
+          hese_event_01.json,
+          run00136766-evt000007637140-GOLD.pkl,
+          run00136662-evt000035405932-BRONZE.pkl,
+          138632_31747601.json
+        ]
         exclude:
+          # splinempe should not run on HESE
           - reco_algo: splinempe
             eventfile: hese_event_01.json
           - reco_algo: splinempe_pointed
             eventfile: hese_event_01.json
     env:
       SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password
+      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
       SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password
+      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
     services:
       rabbitmq:
+        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
         image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
         env:
           RABBITMQ_USERNAME: user1
           RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
+        # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
           --health-cmd "rabbitmqctl node_health_check"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-        ports: [ 5672:5672, 15672:15672 ]
+        ports:
+          - 5672:5672
+          - 15672:15672
     steps:
       - uses: ./.github/actions/scan-setup
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
 
       - name: run
-        timeout-minutes: 55
+        timeout-minutes: 55  # on average max~=35min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -365,6 +400,7 @@ jobs:
           export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
           export _NSIDES="1:0"
+
           cd ./resources/launch_scripts
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
@@ -372,29 +408,40 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           ls $CI_SKYSCAN_OUTPUT_DIR
-          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n' {} + | sort | tail -1 | awk '{print $4}')
-          echo "$outfile"
-          cat "$outfile"
-          pip install .
+          # get newest run*.json
+          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          echo $outfile
+          cat $outfile
+          pip install .  # don't need icecube, so no docker container needed
+          
+          
+          # --------------------------------------------------------------------
+          # splinempe: special handling + gh-issue reminder timer
           if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
             python tests/compare_scan_results.py \
-              --actual "$outfile" \
-              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename "$outfile") \
+              --actual $outfile \
+              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
               --assert \
               --compare-different-versions-ok \
               || (cat $(ls *.diff.json) && false)
-            start_time="2025-03-18"
+          
+            # put the timer after, so at least we know if the test passes
+            start_time="2025-03-18"  # Set the starting date
             end_time=$(date -d "$start_time +6 months" +%s)
             current_time=$(date +%s)
             if (( current_time >= end_time )); then
                 echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
                 exit 1
             fi
+          
             exit 0
           fi
+          # --------------------------------------------------------------------
+          
+          
           python tests/compare_scan_results.py \
-            --actual "$outfile" \
-            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename "$outfile") \
+            --actual $outfile \
+            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
 
@@ -415,10 +462,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
 
   test-file-staging:
     needs: [ flake8 ]
@@ -426,10 +469,9 @@ jobs:
     steps:
       - uses: ./.github/actions/scan-setup
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
-
       - name: run
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -469,10 +511,9 @@ jobs:
     steps:
       - uses: ./.github/actions/scan-setup
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           docker-tag: ${{ env.CI_DOCKER_IMAGE_TAG }}
           free-disk-space: "false"
-
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
