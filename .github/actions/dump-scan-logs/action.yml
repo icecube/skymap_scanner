@@ -18,6 +18,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        # dump
         set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
         echo "::group::central server stdout/stderr"
         cat "${{ inputs.outdir }}/server.out" || true
@@ -27,6 +28,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        # dump
         set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
         echo "::group::worker-1 pilot stdout/stderr"
         more "${{ inputs.outdir }}/worker-1/pilot.out" | cat || true
@@ -36,6 +38,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        # dump
         set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
         echo "::group::worker-1 client stdouts/stderrs"
         find "${{ inputs.outdir }}/worker-1/pilot-"* \
@@ -48,6 +51,7 @@ runs:
       if: ${{ always() && inputs['n-workers'] == '2' }}
       shell: bash
       run: |
+        # dump
         set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
         echo "::group::worker-2 pilot stdout/stderr"
         more "${{ inputs.outdir }}/worker-2/pilot.out" | cat || true
@@ -57,6 +61,7 @@ runs:
       if: ${{ always() && inputs['n-workers'] == '2' }}
       shell: bash
       run: |
+        # dump
         set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
         echo "::group::worker-2 client stdouts/stderrs"
         find "${{ inputs.outdir }}/worker-2/pilot-"* \
@@ -69,6 +74,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        # dump
         set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 
         echo "::group::docker logs (rabbitmq)"
