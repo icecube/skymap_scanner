@@ -1,0 +1,65 @@
+name: dump-scan-logs
+description: Dump server/worker/client outputs for a skymap_scanner CI run
+inputs:
+  outdir:
+    description: Directory where server/worker logs are written
+    required: true
+  n-workers:
+    description: Number of workers to dump (usually 1 or 2)
+    required: false
+    default: "2"
+
+runs:
+  using: composite
+  steps:
+    - name: "dump output — central server stdout/stderr"
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+        cat "${{ inputs.outdir }}/server.out" || true
+
+    - name: "dump output — worker pilot #1 stdout/stderr"
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+        more "${{ inputs.outdir }}/worker-1/pilot.out" | cat || true
+
+    - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+        find "${{ inputs.outdir }}/worker-1/pilot-"* \
+          -name "stderrfile" -o -name "stdoutfile" \
+          | xargs --no-run-if-empty more | cat || true
+        echo "::::::::::::::" && (tree "${{ inputs.outdir }}/worker-1/pilot-"* || true)
+
+    - name: "dump output — worker pilot #2 stdout/stderr (if present)"
+      if: ${{ always() && inputs['n-workers'] == '2' }}
+      shell: bash
+      run: |
+        set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+        more "${{ inputs.outdir }}/worker-2/pilot.out" | cat || true
+
+    - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs (if present)"
+      if: ${{ always() && inputs['n-workers'] == '2' }}
+      shell: bash
+      run: |
+        set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+        find "${{ inputs.outdir }}/worker-2/pilot-"* \
+          -name "stderrfile" -o -name "stdoutfile" \
+          | xargs --no-run-if-empty more | cat || true
+        echo "::::::::::::::" && (tree "${{ inputs.outdir }}/worker-2/pilot-"* || true)
+
+    - name: RabbitMQ diagnostics
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+        echo "=== docker logs (rabbitmq) ==="; docker logs rabbitmq || true
+        echo "=== rabbitmqctl status ==="; docker exec rabbitmq rabbitmqctl status || true
+        echo "=== rabbitmq-diagnostics memory ==="; docker exec rabbitmq rabbitmq-diagnostics memory || true
+        echo "=== rabbitmq-diagnostics environment ==="; docker exec rabbitmq rabbitmq-diagnostics environment || true
+        echo "=== rabbitmq-diagnostics alarms ==="; docker exec rabbitmq rabbitmq-diagnostics alarms || true
