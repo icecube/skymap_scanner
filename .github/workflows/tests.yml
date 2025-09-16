@@ -189,11 +189,9 @@ jobs:
       - name: "— Disk Space —"
         if: always()
         run: df -h /
-
       - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
-
       - name: "— Disk Space —"
         if: always()
         run: df -h /
@@ -368,9 +366,15 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
       - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -446,6 +450,10 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
 
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
 
   test-run-realistic:
     needs: [ flake8 ]
@@ -496,9 +504,15 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
       - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26  # need space for mq broker and image
         with:
           docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -611,6 +625,10 @@ jobs:
             *.diff.json
           if-no-files-found: warn
           retention-days: 7
+
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
 
 
   test-file-staging:
