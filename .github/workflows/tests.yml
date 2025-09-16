@@ -187,8 +187,7 @@ jobs:
       - name: "— Disk Space —"
         if: always()
         run: df -h /
-      - name: free disk space (optional)
-        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
         with:
           docker-images: false
       - name: "— Disk Space —"
@@ -428,8 +427,7 @@ jobs:
       - name: "— Disk Space —"
         if: always()
         run: df -h /
-      - name: free disk space (optional)
-        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
         with:
           docker-images: false
       - name: "— Disk Space —"
