@@ -229,17 +229,17 @@ jobs:
           export _NSIDES="1:0 2:12 4:12"
           
           # set special env vars
-          if [ "${{ matrix.container_platform }}" = "apptainer" ]; then
+          if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
               export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
               export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
           fi
-          if [ "${{ matrix.reco_algo }}" = "crash_dummy" ]; then
+          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           fi
           
           # run!
           cd ./resources/launch_scripts
-          if [ "${{ matrix.reco_algo }}" = "crash_dummy" ]; then
+          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               set +e  # allow `||` to supress first non-zero exit
               python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR \
                 || echo "::warning::scan failed, checking outputs to see if it failed as expected..."
