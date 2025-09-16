@@ -278,28 +278,28 @@ jobs:
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-      - name: dump output — central server stdout/stderr
+      - name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: dump output — worker pilot \#1 stdout/stderr
+      - name: "dump output — worker pilot #1 stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: dump output — worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: dump output — worker pilot \#2 stdout/stderr
+      - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: dump output — worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -416,28 +416,28 @@ jobs:
           assert len(pydict) == nsides.count(":")
           '
 
-      - name: dump output — central server stdout/stderr
+      - name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: dump output — worker pilot \#1 stdout/stderr
+      - name: "dump output — worker pilot #1 stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: dump output — worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: dump output — worker pilot \#2 stdout/stderr
+      - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: dump output — worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -582,28 +582,28 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-      - name: dump output — central server stdout/stderr
+      - name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: dump output — worker pilot \#1 stdout/stderr
+      - name: "dump output — worker pilot #1 stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: dump output — worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: dump output — worker pilot \#2 stdout/stderr
+      - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: dump output — worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
