@@ -386,11 +386,9 @@ jobs:
           echo "=== rabbitmq-diagnostics alarms ==="
           docker exec rabbitmq rabbitmq-diagnostics alarms || true
 
-      - if: always()
-        name: "df -h /"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          df -h /
+      - name: Disk Space
+        if: always()
+        run: df -h /
 
 
   test-run-nsides-thresholds-dummy:
