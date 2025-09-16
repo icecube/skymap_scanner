@@ -252,7 +252,7 @@ class MillipedeWilks(RecoInterface):
                            StepZenith=0.,
                            StepAzimuth=0.,
                            StepT=250.*I3Units.ns,
-                           ShowerSpacing=5.*I3Units.m,
+                           ShowerSpacing=0.*I3Units.m,
                            MuonSpacing=0,
                            Boundary=650*I3Units.m)
         finer_steps = dict(StepX=2.*I3Units.m,
@@ -261,7 +261,7 @@ class MillipedeWilks(RecoInterface):
                            StepZenith=0.,
                            StepAzimuth=0.,
                            StepT=5.*I3Units.ns,
-                           ShowerSpacing=2.5*I3Units.m,
+                           ShowerSpacing=0*I3Units.m,
                            MuonSpacing=0,
                            Boundary=650*I3Units.m)
         if seed is not None:
