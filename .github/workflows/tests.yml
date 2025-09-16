@@ -132,7 +132,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs tags
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -197,7 +197,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs tags
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -324,7 +324,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs tags
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -436,7 +436,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs tags
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -530,7 +530,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs tags
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -579,7 +579,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs tags
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:

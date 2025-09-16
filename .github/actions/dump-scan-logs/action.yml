@@ -1,5 +1,7 @@
 name: dump-scan-logs
+
 description: Dump server/worker/client outputs for a skymap_scanner CI run
+
 inputs:
   outdir:
     description: Directory where server/worker logs are written
