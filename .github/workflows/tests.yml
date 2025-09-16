@@ -278,6 +278,11 @@ jobs:
           outdir: ${{ env.CI_TEST_RUN_STDOUT_STDERR_DIR }}
           n-workers: ${{ env.N_WORKERS }}
 
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
+
   test-run-nsides-thresholds-dummy:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
@@ -365,6 +370,11 @@ jobs:
         with:
           outdir: ${{ env.CI_TEST_RUN_STDOUT_STDERR_DIR }}
           n-workers: ${{ env.N_WORKERS }}
+
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
 
   test-run-realistic:
     needs: [ flake8 ]
@@ -510,6 +520,10 @@ jobs:
             *.diff.json
           if-no-files-found: warn
           retention-days: 7
+
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
 
 
   test-file-staging:
