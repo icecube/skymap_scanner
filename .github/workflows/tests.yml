@@ -386,6 +386,12 @@ jobs:
           echo "=== rabbitmq-diagnostics alarms ==="
           docker exec rabbitmq rabbitmq-diagnostics alarms || true
 
+      - if: always()
+        name: "df -h /"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          df -h /
+
 
   test-run-nsides-thresholds-dummy:
     needs: [ flake8 ]
