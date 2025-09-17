@@ -85,12 +85,12 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
     else:
         predictive = []
 
-    if os.getenv("_RUN_THIS_SIF_IMAGE"):
+    if os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
         os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]
         return [
             "singularity",
             "run",
-            os.environ["_RUN_THIS_SIF_IMAGE"],
+            os.environ["_RUN_THIS_APPTAINER_IMAGE"],
             #
             "python",
             "-m",
