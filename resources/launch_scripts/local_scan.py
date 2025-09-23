@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from collections import deque
 
+TAIL = int(os.getenv("CI_LOCAL_SCAN_TAIL", 5))
+
 
 def _print_now(string: str) -> None:
     """Print immediately, prefixed with the date/time."""
@@ -83,12 +85,12 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
     else:
         predictive = []
 
-    if os.getenv("_RUN_THIS_SIF_IMAGE"):
+    if os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
         os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]
         return [
             "singularity",
             "run",
-            os.environ["_RUN_THIS_SIF_IMAGE"],
+            os.environ["_RUN_THIS_APPTAINER_IMAGE"],
             #
             "python",
             "-m",
@@ -234,10 +236,9 @@ def main():
             ret = proc.poll()
 
             if i % 6 == 0:
-                tail = 5
-                _print_now(f"{name} 'tail -{tail} {log}':")
-                for ln in _last_n_lines(log, tail):
-                    _print_now(f"\t{ln}")
+                _print_now(f"{name} 'tail -{TAIL} {log}':")
+                for ln in _last_n_lines(log, TAIL):
+                    _print_now(f"\t>>>\t{ln}")
                 _print_now("- - - - -")
 
             # is it done?

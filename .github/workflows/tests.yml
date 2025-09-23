@@ -20,6 +20,7 @@ env:
   BOT_NAME: wipacdevbot
   BOT_EMAIL: developers@icecube.wisc.edu
   #
+  CI_LOCAL_SCAN_TAIL: 20
   CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
@@ -170,6 +171,10 @@ jobs:
           RABBITMQ_PASSWORD: password
           RABBITMQ_VHOST: test
           BITNAMI_DEBUG: true
+          # Use the Bitnami-specific absolute limit var:
+          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
+          # (Optional) leave memory watermark alone or keep it generous:
+          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
         # Note: `--network` option is not supported.
         options: >-
           --name rabbitmq
@@ -181,9 +186,16 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
         with:
           docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -198,98 +210,14 @@ jobs:
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: install apptainer
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -x
-          
-          # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#installing-apptainer
-          # Ensure repositories are up-to-date
-          sudo apt-get update
-          # Install debian packages for dependencies
-          sudo apt-get install -y \
-              build-essential \
-              libseccomp-dev \
-              pkg-config \
-              uidmap \
-              squashfs-tools \
-              fakeroot \
-              cryptsetup \
-              tzdata \
-              dh-apparmor \
-              curl wget git
-          # Clone the repo
-          git clone https://github.com/apptainer/apptainer.git
-          cd apptainer
-          git checkout v1.3.2
-          # Compiling Apptainer
-          ./mconfig
-          cd $(/bin/pwd)/builddir
-          make
-          sudo make install
-          apptainer --version
-          
-          # https://github.com/apptainer/apptainer/blob/main/INSTALL.md#apparmor-profile-ubuntu-2310
-          sudo tee /etc/apparmor.d/apptainer << 'EOF'
-          # Permit unprivileged user namespace creation for apptainer starter
-          abi <abi/4.0>,
-          include <tunables/global>
-          profile apptainer /usr/local/libexec/apptainer/bin/starter{,-suid} 
-              flags=(unconfined) {
-            userns,
-            # Site-specific additions and overrides. See local/README for details.
-            include if exists <local/apptainer>
-          }
-          EOF
-          sudo systemctl reload apparmor
+        run: ./resources/install_apptainer.sh
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer (.sif) image
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          apptainer build skymap_scanner.sif docker-daemon://$CI_DOCKER_IMAGE_TAG
-          ls -lh skymap_scanner.sif
-      - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: Install squashfuse in order to run .sif
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          # without squashfuse, .sif can't be run directly and needs to be converted
-          #  to a sandbox dir, 1 for each instance
-          sudo apt-get update
-          sudo apt-get install -y squashfuse
-      - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: clear up disk space
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          
-          echo "=== Disk usage summary ==="
-          df -h /
-          
-          echo "=== Before: docker system df ==="
-          docker system df
-          echo "=== All Docker images ==="
-          docker images
-          echo "=== All Docker containers ==="
-          docker ps -a
-          echo "=== Removing containers using $CI_DOCKER_IMAGE_TAG ==="
-          docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" --format '{{.ID}}' | xargs -r docker rm -f
-          docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
-          echo "=== Remove BuildKit container and volume ==="
-          docker ps -a --filter "ancestor=moby/buildkit:buildx-stable-1" --format '{{.ID}}' | xargs -r docker rm -f
-          echo "=== Volume prune ==="
-          docker volume prune -f
-          echo "=== Builder prune ==="
-          docker builder prune -a -f
-          echo "=== System prune (including volumes) ==="
-          docker system prune -a --volumes -f
-          echo "=== After: docker system df ==="
-          docker system df
-          
-          echo "=== Clear up space w/ apt-get ==="
-          sudo apt-get clean
-          sudo apt-get autoremove -y
-          sudo rm -rf /var/lib/apt/lists/*  # delete all cached package metadata 
-
-          echo "=== Disk usage summary ==="
-          df -h /
+        name: build apptainer image
+        env:
+          # keep caches off $HOME and easy to delete
+          APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
+          APPTAINER_TMPDIR: ${{ runner.temp }}
+        run: ./resources/build_apptainer_image.sh
 
       - name: run
         timeout-minutes: 15  # on average ~9min
@@ -303,8 +231,7 @@ jobs:
           
           # set special env vars
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
-              export _RUN_THIS_SIF_IMAGE="$(realpath skymap_scanner.sif)"
-              export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
+              export _RUN_THIS_APPTAINER_IMAGE="$(realpath skymap_scanner.sandbox)"
           fi
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
@@ -326,17 +253,16 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           # check for fails/errors
-
           error_type_1='intentional crash-dummy error'
           error_type_2='\[Timeout-Error\] timed out after'
           pattern="$error_type_1|$error_type_2"
-
           if find "$CI_TEST_RUN_STDOUT_STDERR_DIR/worker-"*/pilot.out -type f -exec grep -qE "$pattern" {} +; then
               echo "Match(es) found: PilotSubprocessError and/or TimeoutError occurred."
           else
               echo "::error::Could not find the expected error(s) in worker/pilot outputs."
               exit 1
           fi
+
       - if: ${{ matrix.reco_algo == 'dummy' }}
         name: look at results file (.npz)
         run: |
@@ -346,33 +272,53 @@ jobs:
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-      - name: dump output -- central server stdout/stderr
+      - name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: dump output -- worker pilot \#1 stdout/stderr
+      - name: "dump output — worker pilot #1 stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: dump output -- worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: dump output -- worker pilot \#2 stdout/stderr
+      - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: dump output -- worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+
+      - name: RabbitMQ diagnostics
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          echo "=== docker logs (rabbitmq) ==="
+          docker logs rabbitmq || true
+          echo "=== rabbitmqctl status ==="
+          docker exec rabbitmq rabbitmqctl status || true
+          echo "=== rabbitmq-diagnostics memory ==="
+          docker exec rabbitmq rabbitmq-diagnostics memory || true
+          echo "=== rabbitmq-diagnostics environment ==="
+          docker exec rabbitmq rabbitmq-diagnostics environment || true
+          echo "=== rabbitmq-diagnostics alarms ==="
+          docker exec rabbitmq rabbitmq-diagnostics alarms || true
+
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
 
   test-run-nsides-thresholds-dummy:
     needs: [ flake8 ]
@@ -414,9 +360,16 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
         with:
           docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -428,6 +381,7 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
+
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
@@ -458,28 +412,28 @@ jobs:
           assert len(pydict) == nsides.count(":")
           '
 
-      - name: dump output -- central server stdout/stderr
+      - name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: dump output -- worker pilot \#1 stdout/stderr
+      - name: "dump output — worker pilot #1 stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: dump output -- worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: dump output -- worker pilot \#2 stdout/stderr
+      - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: dump output -- worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -491,6 +445,10 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs rabbitmq
+
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
 
 
   test-run-realistic:
@@ -542,9 +500,16 @@ jobs:
           - 5672:5672
           - 15672:15672
     steps:
-      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
         with:
           docker-images: false
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
@@ -613,28 +578,28 @@ jobs:
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-      - name: dump output -- central server stdout/stderr
+      - name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: dump output -- worker pilot \#1 stdout/stderr
+      - name: "dump output — worker pilot #1 stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: dump output -- worker clients / reco-icetray instances \#1 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: dump output -- worker pilot \#2 stdout/stderr
+      - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: dump output -- worker clients / reco-icetray instances \#2 stdouts/stderrs
+      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -653,10 +618,14 @@ jobs:
         with:
           name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
           path: |
-            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}/**
+            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}**
             *.diff.json
           if-no-files-found: warn
           retention-days: 7
+
+      - name: "— Disk Space —"
+        if: always()
+        run: df -h /
 
 
   test-file-staging:
@@ -674,6 +643,7 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
+
       - name: run
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -722,6 +692,7 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
           load: true
+
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
