@@ -90,6 +90,7 @@ jobs:
   #############################################################################
 
   py-setup:
+    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -321,6 +322,7 @@ jobs:
 
 
   test-run-nsides-thresholds-dummy:
+    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
@@ -452,6 +454,7 @@ jobs:
 
 
   test-run-realistic:
+    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
