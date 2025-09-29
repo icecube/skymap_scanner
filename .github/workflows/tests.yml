@@ -97,7 +97,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.3
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.5
         with:
           mode: PACKAGING
           python_min: '3.10'
