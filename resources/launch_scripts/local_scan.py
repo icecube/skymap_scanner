@@ -8,8 +8,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 from collections import deque
+from typing import TypeAlias
 
 TAIL = int(os.getenv("CI_LOCAL_SCAN_TAIL", 5))
+ProcessT: TypeAlias = tuple[str, subprocess.Popen, Path]
 
 
 def _print_now(string: str) -> None:
@@ -23,6 +25,7 @@ def _print_now(string: str) -> None:
 
 
 def parse_args():
+    """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
         description="Run a scanner instance (server and workers) on the same machine."
     )
@@ -39,13 +42,15 @@ def parse_args():
     return parser.parse_args()
 
 
-def _terminate_all(processes: list[tuple[str, subprocess.Popen, Path]]) -> None:
+def _terminate_all(processes: list[ProcessT]) -> None:
+    """Terminate all processes and give them a moment to exit."""
     for _, p, _ in processes:
         p.terminate()
     time.sleep(10)
 
 
-def validate_env_vars():
+def validate_env_vars() -> None:
+    """Ensure required env vars exist and their directories are created."""
     required = [
         "CI_SKYSCAN_CACHE_DIR",
         "CI_SKYSCAN_OUTPUT_DIR",
@@ -57,7 +62,8 @@ def validate_env_vars():
         Path(os.environ[var]).mkdir(parents=True, exist_ok=True)
 
 
-def wait_for_file(path: Path, timeout: int = 60):
+def wait_for_file(path: Path, timeout: int = 60) -> None:
+    """Block until a file exists or time out with an error."""
     for _ in range(timeout):
         if path.exists():
             return
@@ -68,7 +74,12 @@ def wait_for_file(path: Path, timeout: int = 60):
     sys.exit(1)
 
 
-def launch_process(cmd, stdout_file, cwd=None) -> subprocess.Popen:
+def launch_process(
+    cmd,
+    stdout_file: Path | None,
+    cwd: Path | None = None,
+) -> subprocess.Popen:
+    """Launch a subprocess with optional stdout redirection and cwd."""
     _print_now(f"Launching process: {cmd}")
     return subprocess.Popen(
         cmd,
@@ -79,11 +90,9 @@ def launch_process(cmd, stdout_file, cwd=None) -> subprocess.Popen:
 
 
 def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
+    """Build the command used to launch the server (Docker or Apptainer)."""
     threshold = os.getenv("_PREDICTIVE_SCANNING_THRESHOLD")
-    if threshold:
-        predictive = ["--predictive-scanning-threshold", threshold]
-    else:
-        predictive = []
+    predictive = ["--predictive-scanning-threshold", threshold] if threshold else []
 
     if os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
         os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]
@@ -110,7 +119,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             "--simulated-event",
         ]
     else:
-        env_flags = []
+        env_flags: list[str] = []
         for key in os.environ:
             if key.startswith(("SKYSCAN_", "_SKYSCAN_", "EWMS_", "_EWMS_")):
                 env_flags.extend(["--env", key])
@@ -176,40 +185,40 @@ def _last_n_lines(fpath: Path, n: int) -> list[str]:
         return [f"<cannot get last lines: {e}>"]
 
 
-def main():
-    processes: list[tuple[str, subprocess.Popen, Path]] = []
-    args = parse_args()
-
-    # Validate directories
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    validate_env_vars()
-
+def _validate_launch_dir() -> Path:
+    """Ensure we are running from the expected directory and return it."""
     launch_dir = Path.cwd()
     if launch_dir.name != "launch_scripts":
         sys.exit("Script must be run from 'resources/launch_scripts' directory")
+    return launch_dir
 
-    # Setup startup JSON
+
+def _setup_startup_json(launch_dir: Path) -> Path:
+    """Create startup.json path, ensure parent exists, and export its env var."""
     startup_json = launch_dir / "dir-for-startup-json" / "startup.json"
     startup_json.parent.mkdir(parents=True, exist_ok=True)
     os.environ["CI_SKYSCAN_STARTUP_JSON"] = str(startup_json)
+    return startup_json
 
-    # Launch server
+
+def _start_server(outdir: Path, startup_json: Path) -> ProcessT:
+    """Start the central server process and return its tuple."""
     _print_now("Launching server...")
-    server_cmd = build_server_cmd(args.output_dir, startup_json)
-    server_log = args.output_dir / "server.out"
+    server_cmd = build_server_cmd(outdir, startup_json)
+    server_log = outdir / "server.out"
     server_proc = launch_process(server_cmd, stdout_file=server_log)
-    processes.append(("central server", server_proc, server_log))
+    return ("central server", server_proc, server_log)
 
-    # Wait for startup.json
-    _print_now("Waiting for startup.json...")
-    wait_for_file(startup_json)
 
-    # Launch workers
-    _print_now(f"Launching {args.n_workers} workers...")
+def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[ProcessT]:
+    """Start N worker processes and return their tuples."""
     if "EWMS_PILOT_TASK_TIMEOUT" not in os.environ:
         os.environ["EWMS_PILOT_TASK_TIMEOUT"] = str(30 * 60)  # 30 mins
-    for i in range(1, args.n_workers + 1):
-        worker_dir = args.output_dir / f"worker-{i}"
+
+    processes: list[ProcessT] = []
+    _print_now(f"Launching {n_workers} workers...")
+    for i in range(1, n_workers + 1):
+        worker_dir = outdir / f"worker-{i}"
         worker_dir.mkdir(parents=True, exist_ok=True)
         out_path = worker_dir / "pilot.out"
         proc = launch_process(
@@ -219,31 +228,41 @@ def main():
         )
         processes.append((f"worker #{i}", proc, out_path))
         _print_now(f"\tworker #{i} launched")
+    return processes
 
-    # Wait for all processes to finish
+
+def _periodic_status(i: int) -> None:
+    """Print periodic status header lines."""
+    if i % 6 == 1:
+        _print_now("scan processes are all running.")
+    if i % 6 == 0:
+        _print_now("checking in on scan processes...")
+        _print_now("- - - - -")
+
+
+def _maybe_tail(name: str, log: Path, i: int) -> None:
+    """Tail the last N lines of a process log on schedule."""
+    if i % 6 == 0:
+        _print_now(f"{name} 'tail -{TAIL} {log}':")
+        for ln in _last_n_lines(log, TAIL):
+            _print_now(f"\t>>>\t{ln}")
+        _print_now("- - - - -")
+
+
+def _monitor_until_done(processes: list[ProcessT]) -> None:
+    """Monitor processes, tail logs periodically, and handle failures."""
     i = -1
     while processes:
         i += 1
-        if i % 6 == 1:  # every 1 min, print -- offset with the 'print' below
-            _print_now("scan processes are all running.")
+        _periodic_status(i)
         time.sleep(10)
-        if i % 6 == 0:  # every 1 min, print
-            _print_now("checking in on scan processes...")
-            _print_now("- - - - -")
 
-        # check all processes
         for name, proc, log in list(processes):
             ret = proc.poll()
+            _maybe_tail(name, log, i)
 
-            if i % 6 == 0:
-                _print_now(f"{name} 'tail -{TAIL} {log}':")
-                for ln in _last_n_lines(log, TAIL):
-                    _print_now(f"\t>>>\t{ln}")
-                _print_now("- - - - -")
-
-            # is it done?
             if ret is None:
-                continue
+                continue  # still running
 
             # it's done
             _print_now(f"Process {name} exited with code {ret}")
@@ -259,6 +278,28 @@ def main():
 
     # fall-through
     _print_now("All components finished successfully")
+
+
+def main() -> None:
+    """Entry point for launching server and workers on the same machine."""
+    processes: list[ProcessT] = []
+    args = parse_args()
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    validate_env_vars()
+
+    launch_dir = _validate_launch_dir()
+    startup_json = _setup_startup_json(launch_dir)
+
+    server_tuple = _start_server(args.output_dir, startup_json)
+    processes.append(server_tuple)
+
+    _print_now("Waiting for startup.json...")
+    wait_for_file(startup_json)
+
+    processes.extend(_start_workers(args.n_workers, launch_dir, args.output_dir))
+
+    _monitor_until_done(processes)
 
 
 if __name__ == "__main__":
