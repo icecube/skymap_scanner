@@ -291,8 +291,7 @@ def main() -> None:
     launch_dir = _validate_launch_dir()
     startup_json = _setup_startup_json(launch_dir)
 
-    server_tuple = _start_server(args.output_dir, startup_json)
-    processes.append(server_tuple)
+    processes.append(_start_server(args.output_dir, startup_json))
 
     _print_now("Waiting for startup.json...")
     wait_for_file(startup_json)
