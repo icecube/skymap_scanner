@@ -210,8 +210,28 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessT:
     return ("central server", server_proc, server_log)
 
 
+def _ensure_sysbox_if_docker_platform() -> None:
+    """Ensure Sysbox is installed and active if we are using Docker-in-Docker."""
+    if os.getenv("_EWMS_PILOT_CONTAINER_PLATFORM") != "docker":
+        return  # Not needed
+
+    # Check process running
+    try:
+        subprocess.run(["systemctl", "is-active", "--quiet", "sysbox"], check=True)
+    except Exception:
+        _print_now(
+            "::error::Sysbox runtime is required for Docker-in-Docker but is not active."
+        )
+        _print_now(
+            "Install via: https://github.com/nestybox/sysbox -- or see ewms-pilot docs for recommendations"
+        )
+        sys.exit(1)
+
+
 def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[ProcessT]:
     """Start N worker processes and return their tuples."""
+    _ensure_sysbox_if_docker_platform()
+
     if "EWMS_PILOT_TASK_TIMEOUT" not in os.environ:
         os.environ["EWMS_PILOT_TASK_TIMEOUT"] = str(30 * 60)  # 30 mins
 
