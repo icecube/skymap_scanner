@@ -249,18 +249,6 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
-          source tests/env-vars.sh
-          export _RECO_ALGO="${{ matrix.reco_algo }}"
-          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="1:0 2:12 4:12"
-          
-          # set special env vars
-          if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
-              export _RUN_THIS_APPTAINER_IMAGE="$(realpath skymap_scanner.sandbox)"
-          fi
-          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
-              export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
-          fi
           
           # ACTIVATE FOR DOCKER-IN-DOCKER
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
@@ -285,6 +273,18 @@ jobs:
               exit 2
           fi
           docker ps
+          
+          # SET ENV VARS
+          source tests/env-vars.sh
+          export _RECO_ALGO="${{ matrix.reco_algo }}"
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+          export _NSIDES="1:0 2:12 4:12"
+          if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
+              export _RUN_THIS_APPTAINER_IMAGE="$(realpath skymap_scanner.sandbox)"
+          fi
+          if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
+              export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
+          fi
           
           # RUN!
           cd ./resources/launch_scripts
