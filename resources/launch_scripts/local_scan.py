@@ -212,7 +212,7 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessT:
 
 def _ensure_sysbox_if_docker_platform() -> None:
     """Ensure Sysbox is installed and active if we are using Docker-in-Docker."""
-    if not os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
+    if os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
         return  # not needed, we're running apptainer
 
     # Check process running
@@ -226,6 +226,8 @@ def _ensure_sysbox_if_docker_platform() -> None:
             "Install via: https://github.com/nestybox/sysbox -- or see ewms-pilot docs for recommendations"
         )
         sys.exit(1)
+    else:
+        _print_now("Sysbox runtime (required for Docker-in-Docker) is active.")
 
 
 def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[ProcessT]:
