@@ -61,10 +61,13 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 
 
 # run!
-ENV="$(dirname $tmp_rootdir)/pyenv-$(basename $tmp_rootdir)"
-pip install virtualenv
-virtualenv --python python3 "$ENV"
-. "$ENV"/bin/activate
-pip install --upgrade pip
-pip install ewms-pilot[rabbitmq]
-python -m ewms_pilot
+docker run --rm --network=host \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "${tmp_rootdir}:${tmp_rootdir}" \
+    -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
+    \
+    --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
+    \
+    $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+    \
+    "${CI_EWMS_PILOT_IMAGE_TAG}"
