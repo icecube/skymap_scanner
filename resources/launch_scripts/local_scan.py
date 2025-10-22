@@ -212,8 +212,8 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessT:
 
 def _ensure_sysbox_if_docker_platform() -> None:
     """Ensure Sysbox is installed and active if we are using Docker-in-Docker."""
-    if os.getenv("_EWMS_PILOT_CONTAINER_PLATFORM") != "docker":
-        return  # Not needed
+    if not os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
+        return  # not needed, we're running apptainer
 
     # Check process running
     try:
@@ -230,8 +230,6 @@ def _ensure_sysbox_if_docker_platform() -> None:
 
 def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[ProcessT]:
     """Start N worker processes and return their tuples."""
-    _ensure_sysbox_if_docker_platform()
-
     if "EWMS_PILOT_TASK_TIMEOUT" not in os.environ:
         os.environ["EWMS_PILOT_TASK_TIMEOUT"] = str(30 * 60)  # 30 mins
 
@@ -304,6 +302,8 @@ def main() -> None:
     """Entry point for launching server and workers on the same machine."""
     processes: list[ProcessT] = []
     args = parse_args()
+
+    _ensure_sysbox_if_docker_platform()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     validate_env_vars()
