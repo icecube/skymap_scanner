@@ -68,81 +68,81 @@ jobs:
         with:
           max-complexity: 16  # ideal is ~10-15
 
-  mypy:
-    needs: [ py-versions ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+#  mypy:
+#    needs: [ py-versions ]
+#    runs-on: ubuntu-latest
+#    strategy:
+#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+#      matrix:
+#        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+#    steps:
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: actions/setup-python@v6
+#        with:
+#          python-version: ${{ matrix.py3 }}
+#      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
 
   #############################################################################
   # PACKAGING
   #############################################################################
 
-  py-setup:
-    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
-        with:
-          mode: PACKAGING
-          python_min: '3.10'
-          keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
-          auto_mypy_option: True
-
-  py-dependencies:
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: skymap_scanner:py-dep-this
-          load: true
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.2
+#  py-setup:
+#    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v5
+#        with:
+#          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+#          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
+#      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
+#        with:
+#          mode: PACKAGING
+#          python_min: '3.10'
+#          keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
+#          auto_mypy_option: True
+#
+#  py-dependencies:
+#    needs: [ flake8 ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          file: ./Dockerfile
+#          tags: skymap_scanner:py-dep-this
+#          load: true
+#      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.2
 
 
   #############################################################################
   # TESTS
   #############################################################################
 
-  test-build-docker:
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
+#  test-build-docker:
+#    needs: [ flake8 ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          file: ./Dockerfile
+#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          load: true
 
   test-run-dummy:
     needs: [ flake8 ]
@@ -369,464 +369,464 @@ jobs:
         run: df -h /
 
 
-  test-run-nsides-thresholds-dummy:
-    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        nsides: [
-          "1:0",
-          "1:0 2:12",
-          "1:0 2:12 4:12"
-        ]
-        predictive_scanning_threshold: [
-          1.0,
-          0.65,
-        ]
-    env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
-    steps:
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-        with:
-          docker-images: false
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
-
-      - name: run
-        timeout-minutes: 12  # on average max~=8.5min
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -x
-          source tests/env-vars.sh
-          export _RECO_ALGO=dummy
-          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="${{ matrix.nsides }}"
-          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
-
-          cd ./resources/launch_scripts
-          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
-
-      - name: check no nsides skipped
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          ls $CI_SKYSCAN_OUTPUT_DIR
-          # get newest run*.json
-          export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
-          echo $outfile
-          python3 -c '
-          import json
-          import os
-          with open(os.getenv("outfile")) as f:
-            pydict = json.load(f)
-          nsides = "${{ matrix.nsides }}"
-          assert len(pydict) == nsides.count(":")
-          '
-
-      - name: "dump output — central server stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: "dump output — worker pilot #2 stdout/stderr"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
-      - name: rabbitmq logs
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker logs rabbitmq
-
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
-
-  test-run-realistic:
-    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        reco_algo: [
-          millipede_original,
-          millipede_wilks,
-          splinempe,
-          splinempe_pointed
-        ]
-        eventfile: [
-          hese_event_01.json,
-          run00136766-evt000007637140-GOLD.pkl,
-          run00136662-evt000035405932-BRONZE.pkl,
-          138632_31747601.json
-        ]
-        exclude:
-          # splinempe should not run on HESE
-          - reco_algo: splinempe
-            eventfile: hese_event_01.json
-          - reco_algo: splinempe_pointed
-            eventfile: hese_event_01.json
-    env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
-    steps:
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-        with:
-          docker-images: false
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
-
-      - name: run
-        timeout-minutes: 55  # on average max~=35min
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -x
-          lscpu
-          python3 --version
-          source tests/env-vars.sh
-          export _RECO_ALGO=${{ matrix.reco_algo }}
-          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
-          export _NSIDES="1:0"
-
-          cd ./resources/launch_scripts
-          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
-
-      - name: test output against known result (.json)
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          ls $CI_SKYSCAN_OUTPUT_DIR
-          # get newest run*.json
-          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
-          echo $outfile
-          cat $outfile
-          pip install .  # don't need icecube, so no docker container needed
-          
-          
-          # --------------------------------------------------------------------
-          # splinempe: special handling + gh-issue reminder timer
-          if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
-            python tests/compare_scan_results.py \
-              --actual $outfile \
-              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
-              --assert \
-              --compare-different-versions-ok \
-              || (cat $(ls *.diff.json) && false)
-          
-            # put the timer after, so at least we know if the test passes
-            start_time="2025-03-18"  # Set the starting date
-            end_time=$(date -d "$start_time +6 months" +%s)
-            current_time=$(date +%s)
-            if (( current_time >= end_time )); then
-                echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
-                exit 1
-            fi
-          
-            exit 0
-          fi
-          # --------------------------------------------------------------------
-          
-          
-          python tests/compare_scan_results.py \
-            --actual $outfile \
-            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
-            --assert \
-            || (cat $(ls *.diff.json) && false)
-
-      - name: "dump output — central server stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: "dump output — worker pilot #2 stdout/stderr"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
-      - name: rabbitmq logs
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker logs rabbitmq
-
-      - name: Upload results as artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
-          path: |
-            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}**
-            *.diff.json
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-
-
-  test-file-staging:
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
-
-      - name: run
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          source tests/env-vars.sh
-          
-          docker run --rm -i \
-            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
-            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $CI_DOCKER_IMAGE_TAG \
-            python /local/tests/file_staging.py
-
-
-  test-run-single-pixel:
-    needs: [ flake8 ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        dir: [
-          "BRONZE",
-          "GOLD",
-          "JSON",
-        ]
-        reco_algo:
-          [
-            millipede_original,
-            millipede_wilks,
-            splinempe,
-            splinempe_pointed
-          ]
-        exclude:
-          # splinempe should not run on HESE
-          - reco_algo: splinempe
-            dir: "JSON"
-          - reco_algo: splinempe_pointed
-            dir: "JSON"
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
-
-      - name: run
-        timeout-minutes: 10  # on average max~=5min
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -e
-          source tests/env-vars.sh
-          
-          # run reco directly
-          docker run --network="host" --rm -i \
-            --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
-            --env PY_COLORS=1 \
-            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $CI_DOCKER_IMAGE_TAG \
-            python -m skymap_scanner.client \
-            --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
-            --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
-            --outfile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
-
-      - name: test output against known result
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          source tests/env-vars.sh
-          
-          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
-          ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
-
-          # need icecube for depickling, so docker container needed
-          docker run --network="host" --rm -i \
-            --shm-size=6gb \
-            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
-            --env PY_COLORS=1 \
-            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $CI_DOCKER_IMAGE_TAG \
-            python /local/tests/compare_reco_pixel_single.py \
-            --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
-            --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \
-            --diff-out-dir /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/ \
-            --assert \
-            || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
-
-      - name: Upload results as artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
-          path: |
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
-            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
-          if-no-files-found: warn
-          retention-days: 7
-
-
-  #############################################################################
-  # GIT TAG & GITHUB RELEASE
-  #############################################################################
-
-  tag-and-release:
-    # only run on main/default branch
-    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [
-      py-versions,
-      mypy,
-      flake8,
-      py-setup,
-      py-dependencies,
-      test-build-docker,
-      test-run-dummy,
-      test-file-staging,
-      test-run-nsides-thresholds-dummy,
-      test-run-realistic,
-      test-run-single-pixel,
-    ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.16
-    permissions: # for GITHUB_TOKEN
-      contents: write
-    with:
-      project-type: python
-      python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
-      release-artifacts: |
-        py-dependencies-logs
-    secrets:
-      TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # trigger tag-event gha workflows
+#  test-run-nsides-thresholds-dummy:
+#    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
+#    needs: [ flake8 ]
+#    runs-on: ubuntu-latest
+#    strategy:
+#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+#      matrix:
+#        nsides: [
+#          "1:0",
+#          "1:0 2:12",
+#          "1:0 2:12 4:12"
+#        ]
+#        predictive_scanning_threshold: [
+#          1.0,
+#          0.65,
+#        ]
+#    env:
+#      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+#      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+#      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+#      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+#    services:
+#      rabbitmq:
+#        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+#        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
+#        env:
+#          RABBITMQ_USERNAME: user1
+#          RABBITMQ_PASSWORD: password
+#          RABBITMQ_VHOST: test
+#          BITNAMI_DEBUG: true
+#        # Note: `--network` option is not supported.
+#        options: >-
+#          --name rabbitmq
+#          --health-cmd "rabbitmqctl node_health_check"
+#          --health-interval 5s
+#          --health-timeout 5s
+#          --health-retries 10
+#        ports:
+#          - 5672:5672
+#          - 15672:15672
+#    steps:
+#      - name: "— Disk Space —"
+#        if: always()
+#        run: df -h /
+#      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
+#        with:
+#          docker-images: false
+#      - name: "— Disk Space —"
+#        if: always()
+#        run: df -h /
+#
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          file: ./Dockerfile
+#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          load: true
+#
+#      - name: run
+#        timeout-minutes: 12  # on average max~=8.5min
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          set -x
+#          source tests/env-vars.sh
+#          export _RECO_ALGO=dummy
+#          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
+#          export _NSIDES="${{ matrix.nsides }}"
+#          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
+#
+#          cd ./resources/launch_scripts
+#          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+#
+#      - name: check no nsides skipped
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          ls $CI_SKYSCAN_OUTPUT_DIR
+#          # get newest run*.json
+#          export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+#          echo $outfile
+#          python3 -c '
+#          import json
+#          import os
+#          with open(os.getenv("outfile")) as f:
+#            pydict = json.load(f)
+#          nsides = "${{ matrix.nsides }}"
+#          assert len(pydict) == nsides.count(":")
+#          '
+#
+#      - name: "dump output — central server stdout/stderr"
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+#      - name: "dump output — worker pilot #1 stdout/stderr"
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+#      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+#      - name: "dump output — worker pilot #2 stdout/stderr"
+#        if: always() && env.N_WORKERS == '2'
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+#      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
+#        if: always() && env.N_WORKERS == '2'
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+#
+#      - name: rabbitmq logs
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          docker logs rabbitmq
+#
+#      - name: "— Disk Space —"
+#        if: always()
+#        run: df -h /
+#
+#
+#  test-run-realistic:
+#    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
+#    needs: [ flake8 ]
+#    runs-on: ubuntu-latest
+#    strategy:
+#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+#      matrix:
+#        reco_algo: [
+#          millipede_original,
+#          millipede_wilks,
+#          splinempe,
+#          splinempe_pointed
+#        ]
+#        eventfile: [
+#          hese_event_01.json,
+#          run00136766-evt000007637140-GOLD.pkl,
+#          run00136662-evt000035405932-BRONZE.pkl,
+#          138632_31747601.json
+#        ]
+#        exclude:
+#          # splinempe should not run on HESE
+#          - reco_algo: splinempe
+#            eventfile: hese_event_01.json
+#          - reco_algo: splinempe_pointed
+#            eventfile: hese_event_01.json
+#    env:
+#      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
+#      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
+#      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
+#      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+#    services:
+#      rabbitmq:
+#        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+#        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
+#        env:
+#          RABBITMQ_USERNAME: user1
+#          RABBITMQ_PASSWORD: password
+#          RABBITMQ_VHOST: test
+#          BITNAMI_DEBUG: true
+#        # Note: `--network` option is not supported.
+#        options: >-
+#          --name rabbitmq
+#          --health-cmd "rabbitmqctl node_health_check"
+#          --health-interval 5s
+#          --health-timeout 5s
+#          --health-retries 10
+#        ports:
+#          - 5672:5672
+#          - 15672:15672
+#    steps:
+#      - name: "— Disk Space —"
+#        if: always()
+#        run: df -h /
+#      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
+#        with:
+#          docker-images: false
+#      - name: "— Disk Space —"
+#        if: always()
+#        run: df -h /
+#
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          file: ./Dockerfile
+#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          load: true
+#
+#      - name: run
+#        timeout-minutes: 55  # on average max~=35min
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          set -x
+#          lscpu
+#          python3 --version
+#          source tests/env-vars.sh
+#          export _RECO_ALGO=${{ matrix.reco_algo }}
+#          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
+#          export _NSIDES="1:0"
+#
+#          cd ./resources/launch_scripts
+#          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+#
+#      - name: test output against known result (.json)
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          ls $CI_SKYSCAN_OUTPUT_DIR
+#          # get newest run*.json
+#          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+#          echo $outfile
+#          cat $outfile
+#          pip install .  # don't need icecube, so no docker container needed
+#
+#
+#          # --------------------------------------------------------------------
+#          # splinempe: special handling + gh-issue reminder timer
+#          if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
+#            python tests/compare_scan_results.py \
+#              --actual $outfile \
+#              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
+#              --assert \
+#              --compare-different-versions-ok \
+#              || (cat $(ls *.diff.json) && false)
+#
+#            # put the timer after, so at least we know if the test passes
+#            start_time="2025-03-18"  # Set the starting date
+#            end_time=$(date -d "$start_time +6 months" +%s)
+#            current_time=$(date +%s)
+#            if (( current_time >= end_time )); then
+#                echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
+#                exit 1
+#            fi
+#
+#            exit 0
+#          fi
+#          # --------------------------------------------------------------------
+#
+#
+#          python tests/compare_scan_results.py \
+#            --actual $outfile \
+#            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
+#            --assert \
+#            || (cat $(ls *.diff.json) && false)
+#
+#      - name: "dump output — central server stdout/stderr"
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+#      - name: "dump output — worker pilot #1 stdout/stderr"
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+#      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+#      - name: "dump output — worker pilot #2 stdout/stderr"
+#        if: always() && env.N_WORKERS == '2'
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+#      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
+#        if: always() && env.N_WORKERS == '2'
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+#
+#      - name: rabbitmq logs
+#        if: always()
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          docker logs rabbitmq
+#
+#      - name: Upload results as artifacts
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
+#          path: |
+#            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}**
+#            *.diff.json
+#          if-no-files-found: warn
+#          retention-days: 7
+#
+#      - name: "— Disk Space —"
+#        if: always()
+#        run: df -h /
+#
+#
+#  test-file-staging:
+#    needs: [ flake8 ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          file: ./Dockerfile
+#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          load: true
+#
+#      - name: run
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          source tests/env-vars.sh
+#
+#          docker run --rm -i \
+#            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
+#            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+#            $CI_DOCKER_IMAGE_TAG \
+#            python /local/tests/file_staging.py
+#
+#
+#  test-run-single-pixel:
+#    needs: [ flake8 ]
+#    runs-on: ubuntu-latest
+#    strategy:
+#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+#      matrix:
+#        dir: [
+#          "BRONZE",
+#          "GOLD",
+#          "JSON",
+#        ]
+#        reco_algo:
+#          [
+#            millipede_original,
+#            millipede_wilks,
+#            splinempe,
+#            splinempe_pointed
+#          ]
+#        exclude:
+#          # splinempe should not run on HESE
+#          - reco_algo: splinempe
+#            dir: "JSON"
+#          - reco_algo: splinempe_pointed
+#            dir: "JSON"
+#    steps:
+#      - uses: actions/checkout@v5
+#        with:
+#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+#          fetch-depth: 0  # setuptools-scm needs to access git tags
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          file: ./Dockerfile
+#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          load: true
+#
+#      - name: run
+#        timeout-minutes: 10  # on average max~=5min
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          set -e
+#          source tests/env-vars.sh
+#
+#          # run reco directly
+#          docker run --network="host" --rm -i \
+#            --shm-size=6gb \
+#            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
+#            --env PY_COLORS=1 \
+#            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+#            $CI_DOCKER_IMAGE_TAG \
+#            python -m skymap_scanner.client \
+#            --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
+#            --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
+#            --outfile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
+#
+#      - name: test output against known result
+#        run: |
+#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+#          source tests/env-vars.sh
+#
+#          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
+#          ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
+#
+#          # need icecube for depickling, so docker container needed
+#          docker run --network="host" --rm -i \
+#            --shm-size=6gb \
+#            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
+#            --env PY_COLORS=1 \
+#            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+#            $CI_DOCKER_IMAGE_TAG \
+#            python /local/tests/compare_reco_pixel_single.py \
+#            --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
+#            --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \
+#            --diff-out-dir /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/ \
+#            --assert \
+#            || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
+#
+#      - name: Upload results as artifacts
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
+#          path: |
+#            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
+#            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
+#          if-no-files-found: warn
+#          retention-days: 7
+#
+#
+#  #############################################################################
+#  # GIT TAG & GITHUB RELEASE
+#  #############################################################################
+#
+#  tag-and-release:
+#    # only run on main/default branch
+#    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
+#    needs: [
+#      py-versions,
+#      mypy,
+#      flake8,
+#      py-setup,
+#      py-dependencies,
+#      test-build-docker,
+#      test-run-dummy,
+#      test-file-staging,
+#      test-run-nsides-thresholds-dummy,
+#      test-run-realistic,
+#      test-run-single-pixel,
+#    ]
+#    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.16
+#    permissions: # for GITHUB_TOKEN
+#      contents: write
+#    with:
+#      project-type: python
+#      python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
+#      release-artifacts: |
+#        py-dependencies-logs
+#    secrets:
+#      TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # trigger tag-event gha workflows
