@@ -260,12 +260,14 @@ jobs:
           curl -fsSL "$MQ_BROKER_STARTUP_SCRIPT_URL" -o run-broker.sh && chmod +x run-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--net=mynet"
+              export CI_DOCKER_NETWORK="mynet"
+              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--network=$CI_DOCKER_NETWORK"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
-              # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
-              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--network=host"
+              # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES
+              export CI_DOCKER_NETWORK="host"
+              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--network=$CI_DOCKER_NETWORK"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else

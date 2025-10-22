@@ -61,7 +61,7 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 
 
 # run!
-docker run --rm --network=host \
+docker run --rm --network="${CI_DOCKER_NETWORK}" \
     --runtime=sysbox-runc \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${tmp_rootdir}:${tmp_rootdir}" \
