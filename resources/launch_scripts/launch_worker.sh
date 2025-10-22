@@ -70,4 +70,4 @@ docker run --rm --network=host \
     \
     $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
     \
-    "${CI_EWMS_PILOT_IMAGE_TAG}"
+    "ghcr.io/observation-management-service/ewms-pilot:latest"
