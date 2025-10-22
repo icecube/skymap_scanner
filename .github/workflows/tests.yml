@@ -16,9 +16,9 @@ concurrency:
 
 
 env:
-  PY_COLORS: "1"
-  BOT_NAME: wipacdevbot
-  BOT_EMAIL: developers@icecube.wisc.edu
+  RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
+  MQ_BROKER_CONTAINER_NAME: mqbroker
+  MQ_BROKER_STARTUP_SCRIPT_URL: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
   CI_LOCAL_SCAN_TAIL: 20
   CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
@@ -166,29 +166,29 @@ jobs:
       SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-          # Use the Bitnami-specific absolute limit var:
-          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
-          # (Optional) leave memory watermark alone or keep it generous:
-          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
+#    services: # cannot use b/c sysbox restarts docker
+#      rabbitmq:
+#        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
+#        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
+#        env:
+#          RABBITMQ_USERNAME: user1
+#          RABBITMQ_PASSWORD: password
+#          RABBITMQ_VHOST: test
+#          BITNAMI_DEBUG: true
+#          # Use the Bitnami-specific absolute limit var:
+#          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
+#          # (Optional) leave memory watermark alone or keep it generous:
+#          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
+#        # Note: `--network` option is not supported.
+#        options: >-
+#          --name rabbitmq
+#          --health-cmd "rabbitmqctl node_health_check"
+#          --health-interval 5s
+#          --health-timeout 5s
+#          --health-retries 10
+#        ports:
+#          - 5672:5672
+#          - 15672:15672
     steps:
       - name: "— Disk Space —"
         if: always()
@@ -213,15 +213,36 @@ jobs:
           load: true
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: install apptainer
+        name: "apptainer only: install apptainer"
         run: ./resources/install_apptainer.sh
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer image
+        name: "apptainer only: build apptainer image"
         env:
           # keep caches off $HOME and easy to delete
           APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
           APPTAINER_TMPDIR: ${{ runner.temp }}
         run: ./resources/build_apptainer_image.sh
+
+      - if: ${{ matrix.container_platform == 'docker' }}
+        name: "docker only: install sysbox — needed for docker-in-docker"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          docker --version
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          temp_dir=$(mktemp -d) && cd $temp_dir
+          # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
+          wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
+          docker rm $(docker ps -a -q) -f  ||  echo "ok: no docker containers to remove"
+          sudo apt-get install jq
+          sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
+          # sudo systemctl status sysbox -n20  # used below
+      - if: ${{ matrix.container_platform == 'docker' }}
+        name: "docker only: set up docker network"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          # we're connecting all the containers (broker + apps) in the same docker network
+          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
+          docker network create mynet
 
       - name: run
         timeout-minutes: 15  # on average ~9min
@@ -241,7 +262,31 @@ jobs:
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           fi
           
-          # run!
+          # ACTIVATE FOR DOCKER-IN-DOCKER
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
+              sudo systemctl status sysbox -n20
+          fi
+          
+          # START BROKER -- this is always in a docker container, even in 'apptainer' tests
+          curl -fsSL "$MQ_BROKER_STARTUP_SCRIPT_URL" -o run-broker.sh && chmod +x run-broker.sh
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
+              source ./run-broker.sh "${{ matrix.broker_client }}" $MQ_BROKER_CONTAINER_NAME "--net=mynet "
+              export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
+              export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
+          elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
+              source ./run-broker.sh "${{ matrix.broker_client }}" $MQ_BROKER_CONTAINER_NAME "--network=host"
+              export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+              export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+          else
+              echo "::error::unknown container_platform: ${{ matrix.container_platform }}"
+              exit 2
+          fi
+          docker ps
+          
+          # RUN!
           cd ./resources/launch_scripts
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               set +e  # allow `||` to supress first non-zero exit
