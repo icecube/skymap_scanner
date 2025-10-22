@@ -272,12 +272,12 @@ jobs:
           curl -fsSL "$MQ_BROKER_STARTUP_SCRIPT_URL" -o run-broker.sh && chmod +x run-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./run-broker.sh "${{ matrix.broker_client }}" $MQ_BROKER_CONTAINER_NAME "--net=mynet "
+              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--net=mynet "
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
-              source ./run-broker.sh "${{ matrix.broker_client }}" $MQ_BROKER_CONTAINER_NAME "--network=host"
+              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--network=host"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
