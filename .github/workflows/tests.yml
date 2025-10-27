@@ -617,7 +617,7 @@ jobs:
 
       - name: Upload results as artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
           path: |
@@ -739,7 +739,7 @@ jobs:
 
       - name: Upload results as artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
           path: |
