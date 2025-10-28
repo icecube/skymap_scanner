@@ -50,6 +50,15 @@ class ServerEnvConfig:
 
     SKYSCAN_KILL_SWITCH_CHECK_INTERVAL: int = 5 * 60
 
+    SKYSCAN_MQ_PREFETCH_FROM_CLIENTS: int = (
+        # What is prefetch?
+        #   Maximum number of unacknowledged messages the consumer is allowed to have in-flight.
+        #   With prefetch=1, mqclient waits for each ack before delivering the next message.
+        #   Increasing this (e.g., 300) lets mqclient stream messages continuously without waiting.
+        #   Going much higher (>300) typically gives only small additional throughput gains (diminishing returns).
+        300
+    )
+
     # TIMEOUTS
     #
     # seconds -- how long server waits before thinking *all* clients are dead
