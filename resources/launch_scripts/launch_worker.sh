@@ -73,7 +73,7 @@ docker run --rm \
     $( [[ $_SCANNER_CONTAINER_PLATFORM == "apptainer" ]] \
         && echo "-v $_SCANNER_IMAGE_APPTAINER:$_SCANNER_IMAGE_APPTAINER):ro" \
         || echo "" \
-    )
+    ) \
     \
     --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
     \
