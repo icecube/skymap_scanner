@@ -22,15 +22,15 @@ python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_S
 export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
 # task image, args, env
-if [ -n "${_RUN_THIS_APPTAINER_IMAGE:-}" ]; then
-    if [[ "$_RUN_THIS_APPTAINER_IMAGE" == *.sif ]]; then
+if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
+    if [[ "$_SCANNER_IMAGE_APPTAINER" == *.sif ]]; then
         # place a duplicate of the file b/c the pilot transforms this into sandbox/dir format, so there are race conditions w/ parallelizing
-        export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_RUN_THIS_APPTAINER_IMAGE")"
-        cp "$_RUN_THIS_APPTAINER_IMAGE" "$EWMS_PILOT_TASK_IMAGE"
+        export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_SCANNER_IMAGE_APPTAINER")"
+        cp "$_SCANNER_IMAGE_APPTAINER" "$EWMS_PILOT_TASK_IMAGE"
         export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
     else
         # already in sandbox/dir format
-        export EWMS_PILOT_TASK_IMAGE="$_RUN_THIS_APPTAINER_IMAGE"
+        export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
         export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
     fi
     export _EWMS_PILOT_CONTAINER_PLATFORM="apptainer"

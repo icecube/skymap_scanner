@@ -95,15 +95,15 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
     predictive = ["--predictive-scanning-threshold", threshold] if threshold else []
 
     if os.environ["_CONTAINER_PLATFORM"] == "apptainer":
-        if not os.environ["_RUN_THIS_APPTAINER_IMAGE"]:
+        if not os.environ["_SCANNER_IMAGE_APPTAINER"]:
             raise RuntimeError(
-                "env var '_RUN_THIS_APPTAINER_IMAGE' must be set when '_CONTAINER_PLATFORM=apptainer'"
+                "env var '_SCANNER_IMAGE_APPTAINER' must be set when '_CONTAINER_PLATFORM=apptainer'"
             )
         os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]  # forward
         return [
             "singularity",
             "run",
-            os.environ["_RUN_THIS_APPTAINER_IMAGE"],
+            os.environ["_SCANNER_IMAGE_APPTAINER"],
             #
             "python",
             "-m",
