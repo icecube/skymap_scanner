@@ -27,8 +27,8 @@ env:
   _CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER: mynet
   _CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER: host
   #
-  _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
-  _PILOT_IMAGE_FOR_APPTAINER_IN_APPTAINER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
+  _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
+  _PILOT_IMAGE_FOR_APPTAINER_IN_APPTAINER: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 2
