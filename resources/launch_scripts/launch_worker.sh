@@ -70,4 +70,4 @@ docker run --rm --network="${CI_DOCKER_NETWORK}" \
     \
     $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
     \
-    "ghcr.io/observation-management-service/ewms-pilot:latest"
+    $( [[ $_CONTAINER_PLATFORM == "docker" ]] && echo "ghcr.io/observation-management-service/ewms-pilot:latest" || echo "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks" )
