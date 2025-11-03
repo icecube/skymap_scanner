@@ -21,7 +21,14 @@ env:
   MQ_BROKER_STARTUP_SCRIPT_URL: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
   CI_LOCAL_SCAN_TAIL: 20
+  #
   _SCANNER_IMAGE_DOCKER: icecube/skymap_scanner:local
+  #
+  _CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER: mynet
+  _CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER: host
+  #
+  _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
+  _PILOT_IMAGE_FOR_APPTAINER_IN_APPTAINER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 2
@@ -29,9 +36,6 @@ env:
   CI_SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   CI_SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   CI_SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
-  #
-  _CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER: mynet
-  _CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER: host
   #
   # see source tests/env-vars.sh
 

@@ -80,6 +80,6 @@ docker run --rm \
     $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
     \
     "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
-        && echo "ghcr.io/observation-management-service/ewms-pilot:latest" \
-        || echo "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks" \
+        && echo "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" \
+        || echo "$_PILOT_IMAGE_FOR_APPTAINER_IN_APPTAINER" \
     )"
