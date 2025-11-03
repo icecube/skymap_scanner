@@ -130,7 +130,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
         return [
             "docker",
             "run",
-            f"--network={os.environ['_CI_DOCKER_NETWORK']}",
+            f"--network={os.environ['_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER']}",
             "--rm",
             #
             "--mount",
@@ -156,7 +156,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             "--env",
             f"SKYSCAN_EWMS_JSON=/local/ewms/{Path(os.environ['_EWMS_JSON_ON_HOST']).name}",
             #
-            os.environ["CI_DOCKER_IMAGE_TAG"],
+            os.environ["_SCANNER_IMAGE_DOCKER"],
             #
             "python",
             "-m",

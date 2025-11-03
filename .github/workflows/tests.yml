@@ -21,7 +21,7 @@ env:
   MQ_BROKER_STARTUP_SCRIPT_URL: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
   CI_LOCAL_SCAN_TAIL: 20
-  CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
+  _SCANNER_IMAGE_DOCKER: icecube/skymap_scanner:local
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 2
@@ -145,7 +145,7 @@ jobs:
 #        with:
 #          context: .
 #          file: ./Dockerfile
-#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
 #          load: true
 
   test-run-dummy:
@@ -211,7 +211,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
@@ -439,7 +439,7 @@ jobs:
 #        with:
 #          context: .
 #          file: ./Dockerfile
-#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
 #          load: true
 #
 #      - name: run
@@ -581,7 +581,7 @@ jobs:
 #        with:
 #          context: .
 #          file: ./Dockerfile
-#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
 #          load: true
 #
 #      - name: run
@@ -703,7 +703,7 @@ jobs:
 #        with:
 #          context: .
 #          file: ./Dockerfile
-#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
 #          load: true
 #
 #      - name: run
@@ -714,7 +714,7 @@ jobs:
 #          docker run --rm -i \
 #            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
 #            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-#            $CI_DOCKER_IMAGE_TAG \
+#            $_SCANNER_IMAGE_DOCKER \
 #            python /local/tests/file_staging.py
 #
 #
@@ -753,7 +753,7 @@ jobs:
 #        with:
 #          context: .
 #          file: ./Dockerfile
-#          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
 #          load: true
 #
 #      - name: run
@@ -769,7 +769,7 @@ jobs:
 #            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
 #            --env PY_COLORS=1 \
 #            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-#            $CI_DOCKER_IMAGE_TAG \
+#            $_SCANNER_IMAGE_DOCKER \
 #            python -m skymap_scanner.client \
 #            --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
 #            --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
@@ -789,7 +789,7 @@ jobs:
 #            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
 #            --env PY_COLORS=1 \
 #            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-#            $CI_DOCKER_IMAGE_TAG \
+#            $_SCANNER_IMAGE_DOCKER \
 #            python /local/tests/compare_reco_pixel_single.py \
 #            --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
 #            --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \

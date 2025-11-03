@@ -35,7 +35,7 @@ if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
     fi
     export _EWMS_PILOT_CONTAINER_PLATFORM="apptainer"
 else
-    export EWMS_PILOT_TASK_IMAGE="$CI_DOCKER_IMAGE_TAG"
+    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
     export _EWMS_PILOT_CONTAINER_PLATFORM="docker" # NOTE: technically not needed b/c this is the default value
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
 fi
