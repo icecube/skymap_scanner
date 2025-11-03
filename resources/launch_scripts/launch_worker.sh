@@ -33,10 +33,10 @@ if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
         export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
         export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
     fi
-    export _EWMS_PILOT_CONTAINER_PLATFORM="apptainer"
+    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
 else
     export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
-    export _EWMS_PILOT_CONTAINER_PLATFORM="docker" # NOTE: technically not needed b/c this is the default value
+    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker" # NOTE: technically not needed b/c this is the default value
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
 fi
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
@@ -63,11 +63,11 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 # run!
 docker run --rm \
     --network="$( \
-        [[ $_CONTAINER_PLATFORM == "docker" ]] \
+        [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
         && echo "$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
         || echo "$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
     )" \
-    "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
+    "$( [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
         && echo "--runtime=sysbox-runc" \
         || echo "" \
     )" \
@@ -79,7 +79,7 @@ docker run --rm \
     \
     $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
     \
-    "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
+    "$( [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
         && echo "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" \
         || echo "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER" \
     )"

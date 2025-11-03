@@ -290,7 +290,7 @@ jobs:
           # SET ENV VARS
           source tests/env-vars.sh
           export _RECO_ALGO="${{ matrix.reco_algo }}"
-          export _CONTAINER_PLATFORM="${{ matrix.container_platform }}"
+          export _SCANNER_CONTAINER_PLATFORM="${{ matrix.container_platform }}"
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           export _NSIDES="1:0 2:12 4:12"
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
