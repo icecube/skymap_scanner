@@ -63,15 +63,16 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 # run!
 docker run --rm \
     $( \
-        [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
-        && echo "--network=$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER --privileged --hostname=syscont" \
-        || echo "--network=$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
+        [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]] \
+        && echo "--network=${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER} --privileged --hostname=syscont" \
+        || echo "--network=${_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER}" \
     ) \
     \
     -v "${tmp_rootdir}:${tmp_rootdir}" \
     -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
-    $( [[ $_SCANNER_CONTAINER_PLATFORM == "apptainer" ]] \
-        && echo "-v $_SCANNER_IMAGE_APPTAINER:$_SCANNER_IMAGE_APPTAINER):ro" \
+    $( \
+        [[ "${_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]] \
+        && echo "-v ${_SCANNER_IMAGE_APPTAINER}:${_SCANNER_IMAGE_APPTAINER}:ro" \
         || echo "" \
     ) \
     \
@@ -79,7 +80,8 @@ docker run --rm \
     \
     $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
     \
-    $( [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
-        && echo "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" \
-        || echo "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER" \
+    $( \
+        [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]] \
+        && echo "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" \
+        || echo "${_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER}" \
     )
