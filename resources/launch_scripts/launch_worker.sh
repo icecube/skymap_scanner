@@ -35,7 +35,7 @@ if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
     fi
     export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
 else
-    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
+    export EWMS_PILOT_TASK_IMAGE="${_SCANNER_IMAGE_DOCKER}"
     export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: technically not needed b/c this is the default value
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
 fi
@@ -61,15 +61,35 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 
 ########################################################################
 # If using docker-in-docker, save the scanner image to a tarball so the
-# pilot's inner daemon can `docker load` it.
+# pilot's inner daemon can `docker load` it. Use a shared cache tar that
+# is race-safe across concurrent workers.
 ########################################################################
 if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
-    saved_images_dir="$tmp_rootdir/saved-images"
-    mkdir -p "$saved_images_dir"
+    # Shared cache root
+    _shared_cache_root="$HOME/.cache/skymap_scanner"
+    saved_images_dir="$_shared_cache_root/saved-images"
     scanner_tar="$saved_images_dir/skymap-scanner-local.tar"
-    # Save the image that tasks will need inside the pilot.
-    docker image inspect "${_SCANNER_IMAGE_DOCKER}" >/dev/null
-    docker save -o "$scanner_tar" "${_SCANNER_IMAGE_DOCKER}"
+    _lockfile="$scanner_tar.lock"
+    mkdir -p "$saved_images_dir"
+
+    # Fast path: if a non-empty tar already exists, reuse it.
+    if [[ ! -s "$scanner_tar" ]]; then
+        # Serialize creation with flock and atomically move into place when complete.
+        exec {lockfd}> "$_lockfile"
+        flock "$lockfd"
+        # Re-check after acquiring the lock in case another worker created it.
+        if [[ ! -s "$scanner_tar" ]]; then
+            tmp_tar="$(mktemp "${scanner_tar}.XXXXXX")"
+            # Save the image that tasks will need inside the pilot.
+            docker image inspect "${_SCANNER_IMAGE_DOCKER}" >/dev/null
+            docker save -o "$tmp_tar" "${_SCANNER_IMAGE_DOCKER}"
+            # Atomic publish: other readers will only ever see a complete file.
+            mv -f "$tmp_tar" "$scanner_tar"
+        fi
+        # Release lock (fd closes on script exit too, but be explicit)
+        flock -u "$lockfd"
+        rm -f "$_lockfile" || true
+    fi
 fi
 
 ########################################################################
@@ -90,7 +110,7 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
             docker load -i /saved-images/$(basename "$scanner_tar") && \
             ls -l /saved-images && \
             docker images && \
-            python -m ewms_pilot \
+            exec /usr/local/bin/pilot-entrypoint.sh \
         "
 else
     # ─────────────── Apptainer path (no nested docker) ───────────────
