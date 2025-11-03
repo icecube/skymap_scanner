@@ -65,7 +65,7 @@ docker run --rm \
     --network="$( \
         [[ $_CONTAINER_PLATFORM == "docker" ]] \
         && echo "$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
-        || echo "$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER" \
+        || echo "$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
     )" \
     "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
         && echo "--runtime=sysbox-runc" \
@@ -81,5 +81,5 @@ docker run --rm \
     \
     "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
         && echo "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" \
-        || echo "$_PILOT_IMAGE_FOR_APPTAINER_IN_APPTAINER" \
+        || echo "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER" \
     )"
