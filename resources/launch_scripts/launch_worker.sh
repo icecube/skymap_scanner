@@ -115,6 +115,7 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
 else
     # ─────────────── Apptainer path (no nested docker) ───────────────
     docker run --rm \
+        --privileged \
         --network="${_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER}" \
         -v "${tmp_rootdir}:${tmp_rootdir}" \
         -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
