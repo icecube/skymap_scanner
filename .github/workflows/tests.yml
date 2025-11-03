@@ -218,6 +218,7 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
+          build-args: INCLUDE_GCD=0  # we transform the image, so don't download 2x, 3x, ...
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
