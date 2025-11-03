@@ -33,10 +33,10 @@ if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
         export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
         export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
     fi
-    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
+    export _SCANNER_CONTAINER_PLATFORM="apptainer"
 else
     export EWMS_PILOT_TASK_IMAGE="${_SCANNER_IMAGE_DOCKER}"
-    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: technically not needed b/c this is the default value
+    export _SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: technically not needed b/c this is the default value
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
 fi
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
@@ -100,6 +100,11 @@ fi
 # Run the pilot (outer container)
 ########################################################################
 if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+    # Prepare inner docker storage + tmp so load doesn’t fill pilot overlay
+    inner_data_root="$tmp_rootdir/inner-docker"
+    pilot_tmp="$tmp_rootdir/pilot-tmp"
+    mkdir -p "$inner_data_root" "$pilot_tmp"
+
     # ─────────────── Docker path (sysbox nested engine) ───────────────
     docker run --rm \
         --privileged \
@@ -108,9 +113,15 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
         -v "${tmp_rootdir}:${tmp_rootdir}" \
         -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
         -v "${saved_images_dir}:/saved-images:ro" \
+        -v "${inner_data_root}:/var/lib/docker" \
+        -v "${pilot_tmp}:/pilot-tmp" \
         --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
+        --env TMPDIR="/pilot-tmp" \
+        --env DOCKER_TMPDIR="/pilot-tmp" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-        "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -c "\
+        "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -lc "\
+            set -euo pipefail; \
+            # load (gzip file is supported by docker load -i)
             docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
             ls -l /saved-images && \
             docker images && \
