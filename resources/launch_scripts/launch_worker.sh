@@ -62,14 +62,10 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 
 # run!
 docker run --rm \
-    --network="$( \
+    "$( \
         [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
-        && echo "$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
-        || echo "$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
-    )" \
-    "$( [[ $_SCANNER_CONTAINER_PLATFORM == "docker" ]] \
-        && echo "--runtime=sysbox-runc" \
-        || echo "" \
+        && echo "--network=$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER --privileged --hostname=syscont" \
+        || echo "--network=$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
     )" \
     \
     -v "${tmp_rootdir}:${tmp_rootdir}" \
