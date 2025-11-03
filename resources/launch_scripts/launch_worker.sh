@@ -12,8 +12,8 @@ set -ex
 
 # establish pilot's root path
 tmp_rootdir="$(pwd)/pilot-$(uuidgen)"
-mkdir $tmp_rootdir
-cd $tmp_rootdir
+mkdir "$tmp_rootdir"
+cd "$tmp_rootdir"
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 
 # mark startup.json's dir to be bind-mounted into the task container (by the pilot)
@@ -36,7 +36,7 @@ if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
     export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
 else
     export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
-    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker" # NOTE: technically not needed b/c this is the default value
+    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: technically not needed b/c this is the default value
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
 fi
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
@@ -59,29 +59,47 @@ export EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN=$(jq -r '.fromclient.auth_token' "$_
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=$(jq -r '.fromclient.broker_type' "$_EWMS_JSON_ON_HOST")
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_address' "$_EWMS_JSON_ON_HOST")
 
+########################################################################
+# If using docker-in-docker, save the scanner image to a tarball so the
+# pilot's inner daemon can `docker load` it.
+########################################################################
+if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+    saved_images_dir="$tmp_rootdir/saved-images"
+    mkdir -p "$saved_images_dir"
+    scanner_tar="$saved_images_dir/skymap-scanner-local.tar"
+    # Save the image that tasks will need inside the pilot.
+    docker image inspect "${_SCANNER_IMAGE_DOCKER}" >/dev/null
+    docker save -o "$scanner_tar" "${_SCANNER_IMAGE_DOCKER}"
+fi
 
-# run!
-docker run --rm \
-    $( \
-        [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]] \
-        && echo "--network=${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER} --privileged --hostname=syscont" \
-        || echo "--network=${_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER}" \
-    ) \
-    \
-    -v "${tmp_rootdir}:${tmp_rootdir}" \
-    -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
-    $( \
-        [[ "${_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]] \
-        && echo "-v ${_SCANNER_IMAGE_APPTAINER}:${_SCANNER_IMAGE_APPTAINER}:ro" \
-        || echo "" \
-    ) \
-    \
-    --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
-    \
-    $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-    \
-    $( \
-        [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]] \
-        && echo "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" \
-        || echo "${_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER}" \
-    )
+########################################################################
+# Run the pilot (outer container)
+########################################################################
+if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+    # ─────────────── Docker path (sysbox nested engine) ───────────────
+    docker run --rm \
+        --privileged \
+        --network="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}" \
+        --hostname=syscont \
+        -v "${tmp_rootdir}:${tmp_rootdir}" \
+        -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
+        -v "${saved_images_dir}:/saved-images:ro" \
+        --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
+        $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+        "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -c "\
+            docker load -i /saved-images/$(basename "$scanner_tar") && \
+            ls -l /saved-images && \
+            docker images && \
+            python -m ewms_pilot \
+        "
+else
+    # ─────────────── Apptainer path (no nested docker) ───────────────
+    docker run --rm \
+        --network="${_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER}" \
+        -v "${tmp_rootdir}:${tmp_rootdir}" \
+        -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
+        -v "${_SCANNER_IMAGE_APPTAINER}:${_SCANNER_IMAGE_APPTAINER}:ro" \
+        --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
+        $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+        "${_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER}"
+fi
