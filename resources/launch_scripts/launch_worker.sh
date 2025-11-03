@@ -61,8 +61,17 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 
 
 # run!
-docker run --rm --network="${_CI_DOCKER_NETWORK}" \
-    --runtime=sysbox-runc \
+docker run --rm \
+    --network="$( \
+        [[ $_CONTAINER_PLATFORM == "docker" ]] \
+        && echo "$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
+        || echo "$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER" \
+    )" \
+    "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
+        && echo "--runtime=sysbox-runc" \
+        || echo "" \
+    )" \
+    \
     -v "${tmp_rootdir}:${tmp_rootdir}" \
     -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
     \
@@ -70,4 +79,7 @@ docker run --rm --network="${_CI_DOCKER_NETWORK}" \
     \
     $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
     \
-    $( [[ $_CONTAINER_PLATFORM == "docker" ]] && echo "ghcr.io/observation-management-service/ewms-pilot:latest" || echo "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks" )
+    "$( [[ $_CONTAINER_PLATFORM == "docker" ]] \
+        && echo "ghcr.io/observation-management-service/ewms-pilot:latest" \
+        || echo "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks" \
+    )"

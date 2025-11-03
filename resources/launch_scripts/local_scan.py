@@ -94,8 +94,12 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
     threshold = os.getenv("_PREDICTIVE_SCANNING_THRESHOLD")
     predictive = ["--predictive-scanning-threshold", threshold] if threshold else []
 
-    if os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
-        os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]
+    if os.environ["_CONTAINER_PLATFORM"] == "apptainer":
+        if not os.environ["_RUN_THIS_APPTAINER_IMAGE"]:
+            raise RuntimeError(
+                "env var '_RUN_THIS_APPTAINER_IMAGE' must be set when '_CONTAINER_PLATFORM=apptainer'"
+            )
+        os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]  # forward
         return [
             "singularity",
             "run",
@@ -118,7 +122,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             *os.environ["_NSIDES"].split(),
             "--simulated-event",
         ]
-    else:
+    elif os.environ["_CONTAINER_PLATFORM"] == "docker":
         env_flags: list[str] = []
         for key in os.environ:
             if key.startswith(("SKYSCAN_", "_SKYSCAN_", "EWMS_", "_EWMS_")):
@@ -172,6 +176,10 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             *predictive,
             "--real-event",
         ]
+    else:
+        raise RuntimeError(
+            f"unknown '_CONTAINER_PLATFORM': {os.environ['_CONTAINER_PLATFORM']}"
+        )
 
 
 def _last_n_lines(fpath: Path, n: int) -> list[str]:
@@ -210,10 +218,10 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessT:
     return ("central server", server_proc, server_log)
 
 
-def _ensure_sysbox_if_docker_platform() -> None:
+def _ensure_sysbox_for_docker_in_docker() -> None:
     """Ensure Sysbox is installed and active if we are using Docker-in-Docker."""
-    if os.getenv("_RUN_THIS_APPTAINER_IMAGE"):
-        return  # not needed, we're running apptainer
+    if os.getenv("_CONTAINER_PLATFORM") != "docker":
+        raise RuntimeError("sysbox is only required for docker -- don't run this check")
 
     # Check process running
     try:
@@ -305,7 +313,11 @@ def main() -> None:
     processes: list[ProcessT] = []
     args = parse_args()
 
-    _ensure_sysbox_if_docker_platform()
+    if not os.getenv("_CONTAINER_PLATFORM"):
+        raise RuntimeError("must provide env var '_CONTAINER_PLATFORM'")
+
+    if os.environ["_CONTAINER_PLATFORM"] == "docker":
+        _ensure_sysbox_for_docker_in_docker()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     validate_env_vars()
@@ -313,11 +325,14 @@ def main() -> None:
     launch_dir = _validate_launch_dir()
     startup_json = _setup_startup_json(launch_dir)
 
+    # start server
     processes.append(_start_server(args.output_dir, startup_json))
 
+    # wait for 'startup.json' file
     _print_now("Waiting for startup.json...")
     wait_for_file(startup_json)
 
+    # start worker(s)
     processes.extend(_start_workers(args.n_workers, launch_dir, args.output_dir))
 
     _monitor_until_done(processes)

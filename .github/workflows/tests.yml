@@ -29,6 +29,10 @@ env:
   CI_SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   CI_SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   CI_SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
+  #
+  _CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER: mynet
+  _CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER: host
+  #
   # see source tests/env-vars.sh
 
 
@@ -240,7 +244,7 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           # we're connecting all the containers (broker + apps) in the same docker network
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
-          docker network create mynet
+          docker network create $_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER
 
       - name: run
         timeout-minutes: 15  # on average ~9min
@@ -258,14 +262,18 @@ jobs:
           curl -fsSL "$MQ_BROKER_STARTUP_SCRIPT_URL" -o run-broker.sh && chmod +x run-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              export _CI_DOCKER_NETWORK="mynet"
-              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--network=$_CI_DOCKER_NETWORK"
+              source ./run-broker.sh \
+                  rabbitmq \
+                  $MQ_BROKER_CONTAINER_NAME \
+                  "--network=$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES
-              export _CI_DOCKER_NETWORK="host"
-              source ./run-broker.sh rabbitmq $MQ_BROKER_CONTAINER_NAME "--network=$_CI_DOCKER_NETWORK"
+              source ./run-broker.sh \
+                  rabbitmq \
+                  $MQ_BROKER_CONTAINER_NAME \
+                  "--network=$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_APPTAINER"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
