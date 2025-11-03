@@ -68,23 +68,27 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     # Shared cache root
     _shared_cache_root="$HOME/.cache/skymap_scanner"
     saved_images_dir="$_shared_cache_root/saved-images"
-    scanner_tar="$saved_images_dir/skymap-scanner-local.tar"
-    _lockfile="$scanner_tar.lock"
+    scanner_tar_gz="$saved_images_dir/skymap-scanner-local.tar.gz"   # compress it since space is limited
+    _lockfile="$scanner_tar_gz.lock"
     mkdir -p "$saved_images_dir"
 
-    # Fast path: if a non-empty tar already exists, reuse it.
-    if [[ ! -s "$scanner_tar" ]]; then
+    # Fast path: if a non-empty gz tar already exists, reuse it.
+    if [[ ! -s "$scanner_tar_gz" ]]; then
         # Serialize creation with flock and atomically move into place when complete.
         exec {lockfd}> "$_lockfile"
         flock "$lockfd"
         # Re-check after acquiring the lock in case another worker created it.
-        if [[ ! -s "$scanner_tar" ]]; then
-            tmp_tar="$(mktemp "${scanner_tar}.XXXXXX")"
-            # Save the image that tasks will need inside the pilot.
+        if [[ ! -s "$scanner_tar_gz" ]]; then
+            tmp_gz="$(mktemp "${scanner_tar_gz}.XXXXXX")"
+            # Save the image that tasks will need inside the pilot (compressed).
             docker image inspect "${_SCANNER_IMAGE_DOCKER}" >/dev/null
-            docker save -o "$tmp_tar" "${_SCANNER_IMAGE_DOCKER}"
+            if command -v pigz >/dev/null 2>&1; then
+                docker save "${_SCANNER_IMAGE_DOCKER}" | pigz -1 > "$tmp_gz"
+            else
+                docker save "${_SCANNER_IMAGE_DOCKER}" | gzip -1 > "$tmp_gz"
+            fi
             # Atomic publish: other readers will only ever see a complete file.
-            mv -f "$tmp_tar" "$scanner_tar"
+            mv -f "$tmp_gz" "$scanner_tar_gz"
         fi
         # Release lock (fd closes on script exit too, but be explicit)
         flock -u "$lockfd"
@@ -107,8 +111,10 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
         --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -c "\
-            docker load -i /saved-images/$(basename "$scanner_tar") && \
+            docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
             ls -l /saved-images && \
+            docker images && \
+            (docker system prune -af --volumes || true) && \
             docker images && \
             exec /usr/local/bin/pilot-entrypoint.sh \
         "
