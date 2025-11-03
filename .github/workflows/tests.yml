@@ -156,6 +156,7 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         reco_algo: [
           "dummy",
