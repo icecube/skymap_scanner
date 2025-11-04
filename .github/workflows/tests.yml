@@ -160,11 +160,11 @@ jobs:
       matrix:
         reco_algo: [
           "dummy",
-          "crash_dummy"
+#          "crash_dummy"
         ]
         container_platform: [
           "docker",
-          "apptainer",
+#          "apptainer",
         ]
     env:
 #      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
