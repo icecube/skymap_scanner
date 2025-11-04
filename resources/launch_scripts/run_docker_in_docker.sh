@@ -90,7 +90,7 @@ fi
 ########################################################################
 if [[ -z "${DIND_HOST_BASE:-}" ]]; then
     if [[ -n "${RUNNER_TEMP:-}" ]]; then
-        DIND_HOST_BASE="${RUNNER_TEMP}/dind-$(uuidgen)"
+        DIND_HOST_BASE="$RUNNER_TEMP/dind-$(uuidgen)"
     else
         DIND_HOST_BASE="/tmp/dind-$(uuidgen)"
     fi
@@ -99,63 +99,7 @@ inner_docker_root="$DIND_HOST_BASE/lib"
 inner_docker_tmp="$DIND_HOST_BASE/tmp"
 mkdir -p "$inner_docker_root" "$inner_docker_tmp"
 
-########################################################################
-# Build docker run arguments
-########################################################################
-args=( run --rm --privileged )
-if [[ -n "${DIND_NETWORK:-}" ]]; then
-    args+=( "--network=$DIND_NETWORK" )
-fi
-args+=( "-v" "$saved_images_dir:/saved-images:ro" )
-args+=( "-v" "$inner_docker_root:/var/lib/docker" )
-args+=( "-v" "$inner_docker_tmp:$inner_docker_tmp" )
-args+=( "-e" "DOCKER_TMPDIR=$inner_docker_tmp" )
-
-# Bind RO dirs at same paths
-if [[ -n "${BIND_RO_DIRS:-}" ]]; then
-    for d in $BIND_RO_DIRS; do
-        args+=( "-v" "${d}:${d}:ro" )
-    done
-fi
-
-# Bind RW dirs at same paths
-if [[ -n "${BIND_RW_DIRS:-}" ]]; then
-    for d in $BIND_RW_DIRS; do
-        args+=( "-v" "${d}:${d}" )
-    done
-fi
-
-# Forward selected env vars by prefix
-if [[ -n "${FORWARD_ENV_PREFIXES:-}" ]]; then
-    while IFS='=' read -r k v; do
-        for p in $FORWARD_ENV_PREFIXES; do
-            case "$k" in
-                $p*)
-                    args+=( "--env" "$k" )
-                    break
-                    ;;
-            esac
-        done
-    done < <(env)
-fi
-
-# Forward explicit env vars by exact name
-if [[ -n "${FORWARD_ENV_VARS:-}" ]]; then
-    for k in $FORWARD_ENV_VARS; do
-        if env | grep -q "^${k}="; then
-            args+=( "--env" "$k" )
-        fi
-    done
-fi
-
-# Optional extra docker args
-if [[ -n "${DIND_EXTRA_ARGS:-}" ]]; then
-    # shellcheck disable=SC2206
-    extra=( $DIND_EXTRA_ARGS )
-    args+=( "${extra[@]}" )
-fi
-
-# Outer command
+# Outer command default
 if [[ -z "${OUTER_CMD:-}" ]]; then
     OUTER_CMD="bash"
 fi
@@ -163,7 +107,38 @@ fi
 ########################################################################
 # Run outer container: load inner image, then exec OUTER_CMD
 ########################################################################
-docker "${args[@]}" \
+# shellcheck disable=SC2046
+docker run --rm \
+    \
+    --privileged \
+    $( [[ -n "${DIND_NETWORK:-}" ]] && echo "--network=$DIND_NETWORK" ) \
+    \
+    -v "$saved_images_dir:/saved-images:ro" \
+    \
+    -v "$inner_docker_root:/var/lib/docker" \
+    -v "$inner_docker_tmp:$inner_docker_tmp" \
+    -e DOCKER_TMPDIR="$inner_docker_tmp" \
+    \
+    $( if [[ -n "${BIND_RO_DIRS:-}" ]]; then for d in $BIND_RO_DIRS; do echo -n " -v $d:$d:ro"; done; fi ) \
+    $( if [[ -n "${BIND_RW_DIRS:-}" ]]; then for d in $BIND_RW_DIRS; do echo -n " -v $d:$d"; done; fi ) \
+    \
+    $( \
+        if [[ -n "${FORWARD_ENV_PREFIXES:-}" ]]; then \
+            regex="$(echo "$FORWARD_ENV_PREFIXES" | sed 's/ \+/|/g')"; \
+            env | grep -E "^(${regex})" | cut -d'=' -f1 | sed 's/^/--env /' | tr '\n' ' '; \
+        fi \
+    ) \
+    \
+    $( \
+        if [[ -n "${FORWARD_ENV_VARS:-}" ]]; then \
+            for k in $FORWARD_ENV_VARS; do \
+                env | grep -q "^$k=" && echo -n " --env $k"; \
+            done; \
+        fi \
+    ) \
+    \
+    $( [[ -n "${DIND_EXTRA_ARGS:-}" ]] && echo "$DIND_EXTRA_ARGS" ) \
+    \
     "$OUTER_IMAGE" /bin/bash -lc "\
         docker load -i /saved-images/$(basename "$inner_tar_gz") && \
         exec $OUTER_CMD \
