@@ -24,23 +24,7 @@ export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_STARTUP_JSON"])) == ["startup.json"]'
 export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
-# task image, args, env
-if [[ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]]; then
-    if [[ "$_SCANNER_IMAGE_APPTAINER" == *.sif ]]; then
-        export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_SCANNER_IMAGE_APPTAINER")"
-        cp "$_SCANNER_IMAGE_APPTAINER" "$EWMS_PILOT_TASK_IMAGE"
-        export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
-    else
-        export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
-        export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
-    fi
-    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
-else
-    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
-    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: default in pilot, but make explicit here
-    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"  # CI-specific; prod infra should set this
-fi
-
+# args
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
 
 # marshal SKYSCAN/_SKYSCAN_ env into JSON
@@ -70,6 +54,11 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 
 # ─────────────── Case: Docker-in-Docker ───────────────
 if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+
+    # docker-specific pilot env vars
+    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
+    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"  # CI-specific; prod infra should set this
+
     # Required env for the helper
     OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
     INNER_IMAGE="${_SCANNER_IMAGE_DOCKER}"
@@ -101,6 +90,12 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
 
 # ─────────────── Case: Apptainer-in-Docker ───────────────
 elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
+
+    # apptainer-specific pilot env vars
+    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
+    export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
+
+    # run
     docker run --rm \
         --privileged \
         --network="$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
