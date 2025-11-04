@@ -101,6 +101,13 @@ fi
 ########################################################################
 if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     # ─────────────── Docker path (sysbox nested engine) ───────────────
+
+    # put inner docker's data + tmp on the host so it can use host disk
+    inner_docker_root="${tmp_rootdir}/inner-docker"
+    inner_docker_tmp="${tmp_rootdir}/docker-tmp"
+    mkdir -p "$inner_docker_root" "$inner_docker_tmp"
+
+    # run
     docker run --rm \
         --privileged \
         --network="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}" \
@@ -108,14 +115,16 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
         -v "${tmp_rootdir}:${tmp_rootdir}" \
         -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
         -v "${saved_images_dir}:/saved-images:ro" \
+        -v "${inner_docker_root}:/var/lib/docker" \
+        -v "${inner_docker_tmp}:${inner_docker_tmp}" \
+        -e DOCKER_TMPDIR="${inner_docker_tmp}" \
         --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -c "\
             docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
-            ls -l /saved-images && \
-            docker images && \
+            docker system df -v || true && \
             (docker system prune -af --volumes || true) && \
-            docker images && \
+            docker system df -v || true && \
             exec /usr/local/bin/pilot-entrypoint.sh \
         "
 else
