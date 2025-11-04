@@ -261,12 +261,12 @@ def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[Proce
     return processes
 
 
-def _periodic_status(i: int) -> None:
+def _periodic_status(i: int, n_procs: int) -> None:
     """Print periodic status header lines."""
     if i % 6 == 1:
-        _print_now("all scan processes are running.")
+        _print_now(f"all {n_procs} scan processes are running.")
     if i % 6 == 0:
-        _print_now("checking in on scan processes...")
+        _print_now(f"checking in on all {n_procs} scan processes...")
         _print_now("- - - - -")
 
 
@@ -284,7 +284,7 @@ def _monitor_until_done(processes: list[ProcessT]) -> None:
     i = -1
     while processes:
         i += 1
-        _periodic_status(i)
+        _periodic_status(i, len(processes))
         time.sleep(10)
 
         for name, proc, log in list(processes):
