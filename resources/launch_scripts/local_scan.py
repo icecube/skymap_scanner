@@ -94,10 +94,10 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
     threshold = os.getenv("_PREDICTIVE_SCANNING_THRESHOLD")
     predictive = ["--predictive-scanning-threshold", threshold] if threshold else []
 
-    if os.environ["_SCANNER_CONTAINER_PLATFORM"] == "apptainer":
+    if os.environ["_CI_SCANNER_CONTAINER_PLATFORM"] == "apptainer":
         if not os.environ["_SCANNER_IMAGE_APPTAINER"]:
             raise RuntimeError(
-                "env var '_SCANNER_IMAGE_APPTAINER' must be set when '_SCANNER_CONTAINER_PLATFORM=apptainer'"
+                "env var '_SCANNER_IMAGE_APPTAINER' must be set when '_CI_SCANNER_CONTAINER_PLATFORM=apptainer'"
             )
         os.environ["SKYSCAN_EWMS_JSON"] = os.environ["_EWMS_JSON_ON_HOST"]  # forward
         return [
@@ -123,7 +123,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             *os.environ["_NSIDES"].split(),
             "--simulated-event",
         ]
-    elif os.environ["_SCANNER_CONTAINER_PLATFORM"] == "docker":
+    elif os.environ["_CI_SCANNER_CONTAINER_PLATFORM"] == "docker":
         env_flags: list[str] = []
         for key in os.environ:
             if key.startswith(("SKYSCAN_", "_SKYSCAN_", "EWMS_", "_EWMS_")):
@@ -180,7 +180,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
         ]
     else:
         raise RuntimeError(
-            f"unknown '_SCANNER_CONTAINER_PLATFORM': {os.environ['_SCANNER_CONTAINER_PLATFORM']}"
+            f"unknown '_CI_SCANNER_CONTAINER_PLATFORM': {os.environ['_CI_SCANNER_CONTAINER_PLATFORM']}"
         )
 
 
@@ -222,7 +222,7 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessTuple:
 
 def _ensure_sysbox_for_docker_in_docker() -> None:
     """Ensure Sysbox is installed and active if we are using Docker-in-Docker."""
-    if os.getenv("_SCANNER_CONTAINER_PLATFORM") != "docker":
+    if os.getenv("_CI_SCANNER_CONTAINER_PLATFORM") != "docker":
         raise RuntimeError("sysbox is only required for docker -- don't run this check")
 
     # Check process running
@@ -320,10 +320,10 @@ def main() -> None:
     processes: list[ProcessTuple] = []
     args = parse_args()
 
-    if not os.getenv("_SCANNER_CONTAINER_PLATFORM"):
-        raise RuntimeError("must provide env var '_SCANNER_CONTAINER_PLATFORM'")
+    if not os.getenv("_CI_SCANNER_CONTAINER_PLATFORM"):
+        raise RuntimeError("must provide env var '_CI_SCANNER_CONTAINER_PLATFORM'")
 
-    if os.environ["_SCANNER_CONTAINER_PLATFORM"] == "docker":
+    if os.environ["_CI_SCANNER_CONTAINER_PLATFORM"] == "docker":
         _ensure_sysbox_for_docker_in_docker()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

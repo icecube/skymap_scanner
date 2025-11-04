@@ -2,11 +2,14 @@
 set -euo pipefail
 set -ex
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 ########################################################################
 #
 # Launch a Skymap Scanner worker
 #
-# Run worker on ewms pilot
+# - Docker path: uses run_docker_in_docker.sh
+# - Apptainer path: runs the pilot image that wraps Apptainer (no DIND)
 #
 ########################################################################
 
@@ -22,33 +25,34 @@ python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_S
 export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
 # task image, args, env
-if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
+if [[ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]]; then
     if [[ "$_SCANNER_IMAGE_APPTAINER" == *.sif ]]; then
-        # place a duplicate of the file b/c the pilot transforms this into sandbox/dir format, so there are race conditions w/ parallelizing
         export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_SCANNER_IMAGE_APPTAINER")"
         cp "$_SCANNER_IMAGE_APPTAINER" "$EWMS_PILOT_TASK_IMAGE"
         export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
     else
-        # already in sandbox/dir format
         export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
         export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
     fi
     export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
 else
     export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
-    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: technically not needed b/c this is the default value
-    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
+    export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: default in pilot, but make explicit here
+    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"  # CI-specific; prod infra should set this
 fi
+
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
-json_var=$(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
+
+# marshal SKYSCAN/_SKYSCAN_ env into JSON
+json_var=$(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//')
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
 
-# file types -- controls intermittent serialization
+# file types
 export EWMS_PILOT_INFILE_EXT="JSON"
 export EWMS_PILOT_OUTFILE_EXT="JSON"
 
-# Load JSON values
+# queues/broker config
 export EWMS_PILOT_QUEUE_INCOMING=$(jq -r '.toclient.name' "$_EWMS_JSON_ON_HOST")
 export EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN=$(jq -r '.toclient.auth_token' "$_EWMS_JSON_ON_HOST")
 export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=$(jq -r '.toclient.broker_type' "$_EWMS_JSON_ON_HOST")
@@ -59,78 +63,44 @@ export EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN=$(jq -r '.fromclient.auth_token' "$_
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=$(jq -r '.fromclient.broker_type' "$_EWMS_JSON_ON_HOST")
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_address' "$_EWMS_JSON_ON_HOST")
 
-########################################################################
-# If using docker-in-docker, save the scanner image to a tarball so the
-# pilot's inner daemon can `docker load` it. Use a shared cache tar that
-# is race-safe across concurrent workers.
-########################################################################
-if [[ "$_SCANNER_CONTAINER_PLATFORM" == "docker" ]]; then
-    # Shared cache root
-    _shared_cache_root="$HOME/.cache/skymap_scanner"
-    saved_images_dir="$_shared_cache_root/saved-images"
-    scanner_tar_gz="$saved_images_dir/skymap-scanner-local.tar.gz"   # compress it since space is limited
-    _lockfile="$scanner_tar_gz.lock"
-    mkdir -p "$saved_images_dir"
-
-    # Fast path: if a non-empty gz tar already exists, reuse it.
-    if [[ ! -s "$scanner_tar_gz" ]]; then
-        # Serialize creation with flock and atomically move into place when complete.
-        exec {lockfd}> "$_lockfile"
-        flock "$lockfd"
-        # Re-check after acquiring the lock in case another worker created it.
-        if [[ ! -s "$scanner_tar_gz" ]]; then
-            tmp_gz="$(mktemp "$scanner_tar_gz.XXXXXX")"
-            # Save the image that tasks will need inside the pilot (compressed).
-            docker image inspect "$_SCANNER_IMAGE_DOCKER" >/dev/null
-            if command -v pigz >/dev/null 2>&1; then
-                docker save "$_SCANNER_IMAGE_DOCKER" | pigz -1 > "$tmp_gz"
-            else
-                docker save "$_SCANNER_IMAGE_DOCKER" | gzip -1 > "$tmp_gz"
-            fi
-            # Atomic publish: other readers will only ever see a complete file.
-            mv -f "$tmp_gz" "$scanner_tar_gz"
-        fi
-        # Release lock (fd closes on script exit too, but be explicit)
-        flock -u "$lockfd"
-        rm -f "$_lockfile" || true
-    fi
-fi
 
 ########################################################################
-# Run the pilot (outer container)
+# Run!
 ########################################################################
-if [[ "$_SCANNER_CONTAINER_PLATFORM" == "docker" ]]; then
-    # ─────────────── Docker path (sysbox nested engine) ───────────────
 
-    # Use host disk for inner Docker writable layers
-    # -- GitHub runner's temp dir if available; fall back to /tmp
-    host_disk_base="${RUNNER_TEMP:-/tmp}/ewms-inner-docker-$(uuidgen)"
-    inner_docker_root="$host_disk_base/lib"
-    inner_docker_tmp="$host_disk_base/tmp"
-    mkdir -p "$inner_docker_root" "$inner_docker_tmp"
+# ─────────────── Case: Docker-in-Docker ───────────────
+if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+    # Required env for the helper
+    OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
+    INNER_IMAGE="${_SCANNER_IMAGE_DOCKER}"
 
-    # run
-    docker run --rm \
-        --privileged \
-        --network="$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
-        --hostname=syscont \
-        \
-        -v "$tmp_rootdir:$tmp_rootdir" \
-        -v "$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")":ro \
-        -v "$saved_images_dir:/saved-images:ro" \
-        -v "$inner_docker_root:/var/lib/docker" \
-        -v "$inner_docker_tmp:$inner_docker_tmp" \
-        \
-        -e DOCKER_TMPDIR="$inner_docker_tmp" \
-        --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
-        $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-        \
-        "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" /bin/bash -c "\
-            docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
-            python -u -m ewms_pilot \
-        "
-else
-    # ─────────────── Apptainer path (no nested docker) ───────────────
+    # Network for the outer container
+    DIND_NETWORK="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}"
+
+    # Bind dirs: the pilot needs these paths visible at the same locations
+    # - tmp_rootdir (RW)
+    # - startup.json's parent (RO)
+    BIND_RW_DIRS="$tmp_rootdir"
+    BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
+
+    # Forward envs by prefix and explicit list
+    FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
+    FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
+
+    # What to run inside the outer container after docker load
+    OUTER_CMD='python -u -m ewms_pilot'
+
+    export OUTER_IMAGE INNER_IMAGE DIND_NETWORK BIND_RW_DIRS BIND_RO_DIRS
+    export FORWARD_ENV_PREFIXES FORWARD_ENV_VARS OUTER_CMD
+
+    # Optional: pass extra docker args if you need them
+    # export DIND_EXTRA_ARGS="--hostname=syscont"
+
+    # Call the helper (must be on PATH or use a relative path)
+    "$SCRIPT_DIR/run_docker_in_docker.sh"
+
+# ─────────────── Case: Apptainer-in-Docker ───────────────
+elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
     docker run --rm \
         --privileged \
         --network="$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
@@ -143,4 +113,9 @@ else
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         \
         "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER"
+
+# ─────────────── Case: Unknown??? ───────────────
+else
+    echo "ERROR: cannot launch worker — unknown '_CI_SCANNER_CONTAINER_PLATFORM=$_CI_SCANNER_CONTAINER_PLATFORM'"
+    exit 2
 fi
