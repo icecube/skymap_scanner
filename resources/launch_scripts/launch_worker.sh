@@ -73,7 +73,7 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     export DIND_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
     export DIND_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
     # What to run inside the outer container after docker load
-    export DIND_OUTER_CMD='python -u -m ewms_pilot'
+    export DIND_OUTER_CMD='python -m ewms_pilot'
     # Optional: pass extra docker args if you need them
     # export DIND_EXTRA_ARGS="--hostname=syscont"
 
