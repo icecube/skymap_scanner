@@ -125,7 +125,7 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
             docker system df -v || true && \
             (docker system prune -af --volumes || true) && \
             docker system df -v || true && \
-            exec /usr/local/bin/pilot-entrypoint.sh \
+            python -m ewms_pilot \
         "
 else
     # ─────────────── Apptainer path (no nested docker) ───────────────
