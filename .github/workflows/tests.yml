@@ -341,11 +341,16 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
+      - name: "dump output — worker pilot #1 stdout"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+      - name: "dump output — worker pilot #1 stderr"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.err | cat
       - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
         if: always()
         run: |
