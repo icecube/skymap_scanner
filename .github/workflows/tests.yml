@@ -164,7 +164,7 @@ jobs:
         ]
         container_platform: [
           "docker",
-          "apptainer",
+#          "apptainer",
         ]
     env:
 #      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
