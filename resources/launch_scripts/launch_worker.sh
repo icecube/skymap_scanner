@@ -122,9 +122,6 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -c "\
             docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
-            docker system df -v || true && \
-            (docker system prune -af --volumes || true) && \
-            docker system df -v || true && \
             python -m ewms_pilot \
         "
 else
