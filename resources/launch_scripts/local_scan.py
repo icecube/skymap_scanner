@@ -106,6 +106,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             os.environ["_SCANNER_IMAGE_APPTAINER"],
             #
             "python",
+            "-u",  # unbuffered stdout/stderr
             "-m",
             "skymap_scanner.server",
             "--reco-algo",
@@ -159,6 +160,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
             os.environ["_SCANNER_IMAGE_DOCKER"],
             #
             "python",
+            "-u",  # unbuffered stdout/stderr
             "-m",
             "skymap_scanner.server",
             "--reco-algo",

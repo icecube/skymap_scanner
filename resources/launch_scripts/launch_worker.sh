@@ -124,7 +124,7 @@ if [[ "$_SCANNER_CONTAINER_PLATFORM" == "docker" ]]; then
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" /bin/bash -c "\
             docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
-            python -m ewms_pilot \
+            python -u -m ewms_pilot \
         "
 else
     # ─────────────── Apptainer path (no nested docker) ───────────────
@@ -137,4 +137,5 @@ else
         --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER"
+        "python -u -m ewms_pilot"
 fi
