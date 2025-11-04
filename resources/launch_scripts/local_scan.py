@@ -11,7 +11,7 @@ from collections import deque
 from typing import TypeAlias
 
 TAIL = int(os.getenv("CI_LOCAL_SCAN_TAIL", 5))
-ProcessT: TypeAlias = tuple[str, subprocess.Popen, Path]
+ProcessTuple: TypeAlias = tuple[str, subprocess.Popen, Path]
 
 
 def _print_now(string: str) -> None:
@@ -42,7 +42,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def _terminate_all(processes: list[ProcessT]) -> None:
+def _terminate_all(processes: list[ProcessTuple]) -> None:
     """Terminate all processes and give them a moment to exit."""
     for _, p, _ in processes:
         p.terminate()
@@ -214,7 +214,7 @@ def _setup_startup_json(launch_dir: Path) -> Path:
     return startup_json
 
 
-def _start_server(outdir: Path, startup_json: Path) -> ProcessT:
+def _start_server(outdir: Path, startup_json: Path) -> ProcessTuple:
     """Start the central server process and return its tuple."""
     _print_now("Launching server...")
     server_cmd = build_server_cmd(outdir, startup_json)
@@ -247,12 +247,14 @@ def _ensure_sysbox_for_docker_in_docker() -> None:
         _print_now("Sysbox runtime (required for Docker-in-Docker) is active.")
 
 
-def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[ProcessT]:
+def _start_workers(
+    n_workers: int, launch_dir: Path, outdir: Path
+) -> list[ProcessTuple]:
     """Start N worker processes and return their tuples."""
     if "EWMS_PILOT_TASK_TIMEOUT" not in os.environ:
         os.environ["EWMS_PILOT_TASK_TIMEOUT"] = str(30 * 60)  # 30 mins
 
-    processes: list[ProcessT] = []
+    processes: list[ProcessTuple] = []
     _print_now(f"Launching {n_workers} workers...")
     for i in range(1, n_workers + 1):
         worker_dir = outdir / f"worker-{i}"
@@ -288,7 +290,7 @@ def _maybe_tail(name: str, log: Path, i: int) -> None:
         _print_now("- - - - -")
 
 
-def _monitor_until_done(processes: list[ProcessT]) -> None:
+def _monitor_until_done(processes: list[ProcessTuple]) -> None:
     """Monitor processes, tail logs periodically, and handle failures."""
     i = -1
     while processes:
@@ -321,7 +323,7 @@ def _monitor_until_done(processes: list[ProcessT]) -> None:
 
 def main() -> None:
     """Entry point for launching server and workers on the same machine."""
-    processes: list[ProcessT] = []
+    processes: list[ProcessTuple] = []
     args = parse_args()
 
     if not os.getenv("_SCANNER_CONTAINER_PLATFORM"):
