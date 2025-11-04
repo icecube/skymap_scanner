@@ -137,5 +137,4 @@ else
         --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER"
-        "python -u -m ewms_pilot"
 fi
