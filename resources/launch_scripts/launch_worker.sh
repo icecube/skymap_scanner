@@ -35,7 +35,7 @@ if [ -n "${_SCANNER_IMAGE_APPTAINER:-}" ]; then
     fi
     export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="apptainer"
 else
-    export EWMS_PILOT_TASK_IMAGE="${_SCANNER_IMAGE_DOCKER}"
+    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
     export _EWMS_PILOT_SCANNER_CONTAINER_PLATFORM="docker"  # NOTE: technically not needed b/c this is the default value
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
 fi
@@ -64,7 +64,7 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 # pilot's inner daemon can `docker load` it. Use a shared cache tar that
 # is race-safe across concurrent workers.
 ########################################################################
-if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+if [[ "$_SCANNER_CONTAINER_PLATFORM" == "docker" ]]; then
     # Shared cache root
     _shared_cache_root="$HOME/.cache/skymap_scanner"
     saved_images_dir="$_shared_cache_root/saved-images"
@@ -79,13 +79,13 @@ if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
         flock "$lockfd"
         # Re-check after acquiring the lock in case another worker created it.
         if [[ ! -s "$scanner_tar_gz" ]]; then
-            tmp_gz="$(mktemp "${scanner_tar_gz}.XXXXXX")"
+            tmp_gz="$(mktemp "$scanner_tar_gz.XXXXXX")"
             # Save the image that tasks will need inside the pilot (compressed).
-            docker image inspect "${_SCANNER_IMAGE_DOCKER}" >/dev/null
+            docker image inspect "$_SCANNER_IMAGE_DOCKER" >/dev/null
             if command -v pigz >/dev/null 2>&1; then
-                docker save "${_SCANNER_IMAGE_DOCKER}" | pigz -1 > "$tmp_gz"
+                docker save "$_SCANNER_IMAGE_DOCKER" | pigz -1 > "$tmp_gz"
             else
-                docker save "${_SCANNER_IMAGE_DOCKER}" | gzip -1 > "$tmp_gz"
+                docker save "$_SCANNER_IMAGE_DOCKER" | gzip -1 > "$tmp_gz"
             fi
             # Atomic publish: other readers will only ever see a complete file.
             mv -f "$tmp_gz" "$scanner_tar_gz"
@@ -99,28 +99,30 @@ fi
 ########################################################################
 # Run the pilot (outer container)
 ########################################################################
-if [[ "${_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+if [[ "$_SCANNER_CONTAINER_PLATFORM" == "docker" ]]; then
     # ─────────────── Docker path (sysbox nested engine) ───────────────
 
-    # put inner docker's data + tmp on the host so it can use host disk
-    inner_docker_root="${tmp_rootdir}/inner-docker"
-    inner_docker_tmp="${tmp_rootdir}/docker-tmp"
+    # Use host disk for inner Docker writable layers
+    # -- GitHub runner's temp dir if available; fall back to /tmp
+    host_disk_base="${RUNNER_TEMP:-/tmp}/ewms-inner-docker-$(uuidgen)"
+    inner_docker_root="$host_disk_base/lib"
+    inner_docker_tmp="$host_disk_base/tmp"
     mkdir -p "$inner_docker_root" "$inner_docker_tmp"
 
     # run
     docker run --rm \
         --privileged \
-        --network="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}" \
+        --network="$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
         --hostname=syscont \
-        -v "${tmp_rootdir}:${tmp_rootdir}" \
-        -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
-        -v "${saved_images_dir}:/saved-images:ro" \
-        -v "${inner_docker_root}:/var/lib/docker" \
-        -v "${inner_docker_tmp}:${inner_docker_tmp}" \
-        -e DOCKER_TMPDIR="${inner_docker_tmp}" \
-        --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
+        -v "$tmp_rootdir:$tmp_rootdir" \
+        -v "$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")":ro \
+        -v "$saved_images_dir:/saved-images:ro" \
+        -v "$inner_docker_root:/var/lib/docker" \
+        -v "$inner_docker_tmp:$inner_docker_tmp" \
+        -e DOCKER_TMPDIR="$inner_docker_tmp" \
+        --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-        "${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}" /bin/bash -c "\
+        "$_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER" /bin/bash -c "\
             docker load -i /saved-images/$(basename "$scanner_tar_gz") && \
             python -m ewms_pilot \
         "
@@ -128,11 +130,11 @@ else
     # ─────────────── Apptainer path (no nested docker) ───────────────
     docker run --rm \
         --privileged \
-        --network="${_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER}" \
-        -v "${tmp_rootdir}:${tmp_rootdir}" \
-        -v "$(dirname "${CI_SKYSCAN_STARTUP_JSON}"):$(dirname "${CI_SKYSCAN_STARTUP_JSON}")":ro \
-        -v "${_SCANNER_IMAGE_APPTAINER}:${_SCANNER_IMAGE_APPTAINER}:ro" \
-        --env CI_SKYSCAN_STARTUP_JSON="${CI_SKYSCAN_STARTUP_JSON}" \
+        --network="$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
+        -v "$tmp_rootdir:$tmp_rootdir" \
+        -v "$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")":ro \
+        -v "$_SCANNER_IMAGE_APPTAINER:$_SCANNER_IMAGE_APPTAINER":ro \
+        --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-        "${_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER}"
+        "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER"
 fi
