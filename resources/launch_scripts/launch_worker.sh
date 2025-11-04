@@ -60,32 +60,24 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"  # CI-specific; prod infra should set this
 
     # Required env for the helper
-    OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
-    INNER_IMAGE="${_SCANNER_IMAGE_DOCKER}"
-
+    export DIND_OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
+    export DIND_INNER_IMAGE="${_SCANNER_IMAGE_DOCKER}"
     # Network for the outer container
-    DIND_NETWORK="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}"
-
+    export DIND_NETWORK="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}"
     # Bind dirs: the pilot needs these paths visible at the same locations
     # - tmp_rootdir (RW)
     # - startup.json's parent (RO)
-    BIND_RW_DIRS="$tmp_rootdir"
-    BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
-
+    export DIND_BIND_RW_DIRS="$tmp_rootdir"
+    export DIND_BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
     # Forward envs by prefix and explicit list
-    FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
-    FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
-
+    export DIND_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
+    export DIND_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
     # What to run inside the outer container after docker load
-    OUTER_CMD='python -u -m ewms_pilot'
-
-    export OUTER_IMAGE INNER_IMAGE DIND_NETWORK BIND_RW_DIRS BIND_RO_DIRS
-    export FORWARD_ENV_PREFIXES FORWARD_ENV_VARS OUTER_CMD
-
+    export DIND_OUTER_CMD='python -u -m ewms_pilot'
     # Optional: pass extra docker args if you need them
     # export DIND_EXTRA_ARGS="--hostname=syscont"
 
-    # Call the helper (must be on PATH or use a relative path)
+    # run
     "$SCRIPT_DIR/run_docker_in_docker.sh"
 
 # ─────────────── Case: Apptainer-in-Docker ───────────────
