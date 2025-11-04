@@ -114,6 +114,8 @@ if [[ "$_SCANNER_CONTAINER_PLATFORM" == "docker" ]]; then
         --privileged \
         --network="$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER" \
         --hostname=syscont \
+        --attach=stdout \
+        --attach=stderr \
         -v "$tmp_rootdir:$tmp_rootdir" \
         -v "$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")":ro \
         -v "$saved_images_dir:/saved-images:ro" \
