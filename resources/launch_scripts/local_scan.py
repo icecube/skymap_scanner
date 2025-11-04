@@ -76,18 +76,15 @@ def wait_for_file(path: Path, timeout: int = 60) -> None:
 
 def launch_process(
     cmd,
-    stdout_file: Path,
-    stderr_file: Path,
+    stdout_file: Path | None,
     cwd: Path | None = None,
 ) -> subprocess.Popen:
     """Launch a subprocess with optional stdout redirection and cwd."""
     _print_now(f"Launching process: {cmd}")
     return subprocess.Popen(
         cmd,
-        stdout=open(stdout_file, "w"),
-        stderr=(
-            subprocess.STDOUT if stderr_file == stdout_file else open(stderr_file, "w")
-        ),
+        stdout=open(stdout_file, "w") if stdout_file else subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
         cwd=cwd,
     )
 
@@ -219,11 +216,7 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessTuple:
     _print_now("Launching server...")
     server_cmd = build_server_cmd(outdir, startup_json)
     server_log = outdir / "server.out"
-    server_proc = launch_process(
-        server_cmd,
-        stdout_file=server_log,
-        stderr_file=server_log,
-    )
+    server_proc = launch_process(server_cmd, stdout_file=server_log)
     return ("central server", server_proc, server_log)
 
 
@@ -259,15 +252,13 @@ def _start_workers(
     for i in range(1, n_workers + 1):
         worker_dir = outdir / f"worker-{i}"
         worker_dir.mkdir(parents=True, exist_ok=True)
-        stdout_path = worker_dir / "pilot.out"
-        stderr_path = worker_dir / "pilot.err"
+        out_path = worker_dir / "pilot.out"
         proc = launch_process(
             [str(launch_dir / "launch_worker.sh")],
-            stdout_file=stdout_path,
-            stderr_file=stderr_path,
+            stdout_file=out_path,
             cwd=worker_dir,
         )
-        processes.append((f"worker #{i}", proc, stdout_path))
+        processes.append((f"worker #{i}", proc, out_path))
         _print_now(f"\tworker #{i} launched")
     return processes
 
