@@ -277,7 +277,9 @@ def _periodic_status(i: int, n_procs: int, og_n_procs: int) -> None:
     if i % 6 == 1:
         _print_now(f"{n_procs}/{og_n_procs} scan processes are running.")
     if i % 6 == 0:
-        _print_now(f"checking in on all {n_procs} running scan processes...")
+        _print_now(
+            f"checking in on all {n_procs}/{og_n_procs} running scan processes..."
+        )
         _print_now("- - - - -")
 
 
