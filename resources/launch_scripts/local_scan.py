@@ -272,12 +272,12 @@ def _start_workers(
     return processes
 
 
-def _periodic_status(i: int, n_procs: int) -> None:
+def _periodic_status(i: int, n_procs: int, og_n_procs: int) -> None:
     """Print periodic status header lines."""
     if i % 6 == 1:
-        _print_now(f"all {n_procs} scan processes are running.")
+        _print_now(f"{n_procs}/{og_n_procs} scan processes are running.")
     if i % 6 == 0:
-        _print_now(f"checking in on all {n_procs} scan processes...")
+        _print_now(f"checking in on all {n_procs} running scan processes...")
         _print_now("- - - - -")
 
 
@@ -292,10 +292,11 @@ def _maybe_tail(name: str, log: Path, i: int) -> None:
 
 def _monitor_until_done(processes: list[ProcessTuple]) -> None:
     """Monitor processes, tail logs periodically, and handle failures."""
+    og_len = len(processes)
     i = -1
     while processes:
         i += 1
-        _periodic_status(i, len(processes))
+        _periodic_status(i, len(processes), og_len)
         time.sleep(10)
 
         for name, proc, log in list(processes):
