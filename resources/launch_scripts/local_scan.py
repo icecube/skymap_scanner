@@ -264,7 +264,7 @@ def _start_workers(n_workers: int, launch_dir: Path, outdir: Path) -> list[Proce
 def _periodic_status(i: int) -> None:
     """Print periodic status header lines."""
     if i % 6 == 1:
-        _print_now("scan processes are all running.")
+        _print_now("all scan processes are running.")
     if i % 6 == 0:
         _print_now("checking in on scan processes...")
         _print_now("- - - - -")
