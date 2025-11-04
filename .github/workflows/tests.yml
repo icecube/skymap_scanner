@@ -31,7 +31,7 @@ env:
   _PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
-  N_WORKERS: 1
+  N_WORKERS: 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   CI_SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   CI_SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
@@ -351,7 +351,7 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           sudo find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+          echo "::::::::::::::" && sudo tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
       - name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
@@ -362,7 +362,7 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           sudo find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+          echo "::::::::::::::" && sudo tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
       - name: RabbitMQ diagnostics
         if: always()
@@ -493,7 +493,7 @@ jobs:
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 #          sudo find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+#          echo "::::::::::::::" && sudo tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
 #      - name: "dump output — worker pilot #2 stdout/stderr"
 #        if: always() && env.N_WORKERS == '2'
 #        run: |
@@ -504,7 +504,7 @@ jobs:
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 #          sudo find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+#          echo "::::::::::::::" && sudo tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 #
 #      - name: rabbitmq logs
 #        if: always()
@@ -661,7 +661,7 @@ jobs:
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 #          sudo find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+#          echo "::::::::::::::" && sudo tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
 #      - name: "dump output — worker pilot #2 stdout/stderr"
 #        if: always() && env.N_WORKERS == '2'
 #        run: |
@@ -672,7 +672,7 @@ jobs:
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 #          sudo find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+#          echo "::::::::::::::" && sudo tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 #
 #      - name: rabbitmq logs
 #        if: always()
