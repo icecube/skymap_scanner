@@ -27,8 +27,7 @@ env:
   #
   _SCANNER_IMAGE_DOCKER: icecube/skymap_scanner:local
   #
-  _CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER: mynet
-  _CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER: host
+  DIND_NETWORK: mynet
   #
   _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
   _PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
@@ -246,25 +245,19 @@ jobs:
           # SETUP FOR DOCKER-IN-DOCKER -- must be done in the same shell as broker + scanner 
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               curl -fsSL "$CI_SCRIPT_URL_DIND_SETUP" -o dind-setup.sh && chmod +x dind-setup.sh
-              ./dind-setup.sh "$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER"
+              ./dind-setup.sh "$DIND_NETWORK"
           fi
           
           # START BROKER -- this is always in a docker container, even in 'apptainer' tests
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./run-mq-broker.sh \
-                  rabbitmq \
-                  $MQ_BROKER_CONTAINER_NAME \
-                  "--network=$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER"
-              export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
-              export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER_CONTAINER_NAME"
+              source ./run-mq-broker.sh "rabbitmq" "scanner_broker" "--network=$DIND_NETWORK"
+              export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="scanner_broker"
+              export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="scanner_broker"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES
-              source ./run-mq-broker.sh \
-                  rabbitmq \
-                  $MQ_BROKER_CONTAINER_NAME \
-                  "--network=$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER"
+              source ./run-mq-broker.sh "rabbitmq" "scanner_broker" "--network=host"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else

@@ -60,7 +60,10 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     export DIND_OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
     export DIND_INNER_IMAGE="${_SCANNER_IMAGE_DOCKER}"
     # Network for the outer container
-    export DIND_NETWORK="${_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER}"
+    if [[ -z "${DIND_NETWORK:-}" ]]; then
+        echo "::error::DIND_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
+        exit 1
+    fi
     # Bind dirs: the pilot needs these paths visible at the same locations
     # - tmp_rootdir (RW)
     # - startup.json's parent (RO)
@@ -90,7 +93,7 @@ elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
     # run
     docker run --rm \
         --privileged \
-        --network="$_CI_DOCKER_NETWORK_FOR_APPTAINER_IN_DOCKER" \
+        --network=host \
         \
         -v "$tmp_rootdir:$tmp_rootdir" \
         -v "$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")":ro \

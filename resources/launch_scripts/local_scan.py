@@ -130,7 +130,7 @@ def build_server_cmd(outdir: Path, startup_json: Path) -> list[str]:
         return [
             "docker",
             "run",
-            f"--network={os.environ['_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER']}",
+            f"--network={os.environ['DIND_NETWORK']}",
             "--rm",
             #
             "--mount",
