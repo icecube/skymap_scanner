@@ -4,31 +4,34 @@ set -ex
 
 ########################################################################
 #
-# Docker-in-Docker helper
-#
-# - Saves DIND_INNER_IMAGE to a compressed tarball (shared, lock-protected)
-# - Mounts host dirs for inner Docker (/var/lib/docker and temp)
-# - Forwards selected env vars into the outer container
-# - Mounts specified RO/RW paths
-# - Loads the inner image inside the outer container and runs DIND_OUTER_CMD
-#
-# Required env:
-#   DIND_OUTER_IMAGE            - image to run as the outer (DIND) container
-#   DIND_INNER_IMAGE            - image that must be available inside the outer container
-#   DIND_NETWORK                - docker network name for the outer container
-#   DIND_FORWARD_ENV_PREFIXES   - space-separated prefixes to forward (e.g., "EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_")
-#   DIND_FORWARD_ENV_VARS       - space-separated exact var names to forward
-#   DIND_BIND_RO_DIRS           - space-separated host dirs to bind read-only at same path
-#   DIND_BIND_RW_DIRS           - space-separated host dirs to bind read-write at same path
-#   DIND_OUTER_CMD              - command run inside outer container AFTER docker load
-#
-# Cache/tuning (optional):
-#   DIND_CACHE_ROOT             - where to store tarballs (default: "$HOME/.cache/dind")
-#   DIND_HOST_BASE              - base for inner Docker storage (default: "${RUNNER_TEMP:-/tmp}/dind-$(uuidgen)")
-#   DIND_IMAGE_TAR_NAME         - override name of tarball (default derived from DIND_INNER_IMAGE)
-#   DIND_EXTRA_ARGS             - extra args appended to `docker run` (string, optional)
+# Docker-in-Docker helper — see echo-block below for details
 #
 ########################################################################
+
+echo
+echo "╔═══════════════════════════════════════════════════════════════════════════╗"
+echo "║                                                                           ║"
+echo "║             Docker-in-Docker Helper — Runtime Environment Info            ║"
+echo "║                                                                           ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Purpose:     Launch a privileged outer Docker container that hosts an    ║"
+echo "║               inner Docker daemon.                                        ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Details:                                                                 ║"
+echo "║   - Saves DIND_INNER_IMAGE to a tarball on host (lock-protected)          ║"
+echo "║   - Mounts host dirs for inner Docker (/var/lib/docker and temp)          ║"
+echo "║   - Forwards selected env vars into the outer container                   ║"
+echo "║   - Mounts specified RO/RW paths                                          ║"
+echo "║   - Loads inner image inside outer container, then runs DIND_OUTER_CMD    ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Host System Info:                                                        ║"
+echo "║    - Host:      $(hostname)                                               ║"
+echo "║    - User:      $(whoami)                                                 ║"
+echo "║    - Kernel:    $(uname -r)                                               ║"
+echo "║    - Platform:  $(uname -s) $(uname -m)                                   ║"
+echo "║    - Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")                      ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Environment Variables:                                                   ║"
 
 print_env_var() {
     local var="$1"
@@ -56,29 +59,6 @@ print_env_var() {
         echo "║        (optional) ${desc}"
     fi
 }
-
-
-########################################################################
-# Script Execution Summary Banner
-########################################################################
-echo
-echo "╔═══════════════════════════════════════════════════════════════════════════╗"
-echo "║                                                                           ║"
-echo "║             Docker-in-Docker Helper — Runtime Environment Info            ║"
-echo "║                                                                           ║"
-echo "╠═══════════════════════════════════════════════════════════════════════════╣"
-echo "║  Purpose:     Launch a privileged outer Docker container that hosts an    ║"
-echo "║               inner Docker daemon, loads a local image tarball, and runs  ║"
-echo "║               the specified command in an isolated sysbox environment.    ║"
-echo "╠═══════════════════════════════════════════════════════════════════════════╣"
-echo "║  Host System Info:                                                        ║"
-echo "║    - Host:      $(hostname)                                               ║"
-echo "║    - User:      $(whoami)                                                 ║"
-echo "║    - Kernel:    $(uname -r)                                               ║"
-echo "║    - Platform:  $(uname -s) $(uname -m)                                   ║"
-echo "║    - Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")                      ║"
-echo "╠═══════════════════════════════════════════════════════════════════════════╣"
-echo "║  Environment Variables:                                                   ║"
 
 print_env_var DIND_OUTER_IMAGE          true  "image to run as the outer (DIND) container"
 print_env_var DIND_INNER_IMAGE          true  "image that must be available inside the outer container"
