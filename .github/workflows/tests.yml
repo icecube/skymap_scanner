@@ -16,22 +16,28 @@ concurrency:
 
 
 env:
+  # url pointing to remote helper scripts -- versioned!
   CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/apptainer/install-apptainer.sh
   CI_SCRIPT_URL_DIND_SETUP: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/install-sysbox-and-create-network.sh
   CI_SCRIPT_URL_DIND_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/run-docker-in-docker.sh
   CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
-  MQ_BROKER_CONTAINER_NAME: mqbroker
+  # used by mq broker script
+  RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
   #
+  # use by local_scan.py
   CI_LOCAL_SCAN_TAIL: 20
   #
   _SCANNER_IMAGE_DOCKER: icecube/skymap_scanner:local
   #
+  # a special network set up so docker-in-docker containers (scanner clients) can talk to the mq broker
   DIND_NETWORK: mynet
   #
+  # pilot image tags -- versioned!
   _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
   _PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
+  # used for configuring the scanner runtime
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
