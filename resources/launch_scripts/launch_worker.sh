@@ -2,7 +2,7 @@
 set -euo pipefail
 set -ex
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+_HERE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 ########################################################################
 #
@@ -78,7 +78,7 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     # export DIND_EXTRA_ARGS="--hostname=syscont"
 
     # run
-    "$SCRIPT_DIR/run_docker_in_docker.sh"
+    "$_HERE_DIR/run_docker_in_docker.sh"
 
 # ─────────────── Case: Apptainer-in-Docker ───────────────
 elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
