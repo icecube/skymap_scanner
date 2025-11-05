@@ -75,7 +75,7 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     # What to run inside the outer container after docker load
     export DIND_OUTER_CMD='python -m ewms_pilot'
     # Optional: pass extra docker args if you need them
-    # export DIND_EXTRA_ARGS="--hostname=syscont"
+    # export DIND_EXTRA_ARGS="..."
 
     # run
     "$_HERE_DIR/run_docker_in_docker.sh"

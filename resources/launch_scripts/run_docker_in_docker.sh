@@ -69,11 +69,6 @@ fi
 ########################################################################
 # Ensure Sysbox runtime is active (required for Docker-in-Docker)
 ########################################################################
-if [[ "${_CI_SCANNER_CONTAINER_PLATFORM:-}" != "docker" ]]; then
-    echo "::error::Sysbox is only required for docker -- don't run this check"
-    exit 1
-fi
-
 if ! systemctl is-active --quiet sysbox; then
     echo "::error::Sysbox runtime is required for Docker-in-Docker but is not active."
     echo "Install via: https://github.com/nestybox/sysbox -- or see ewms-pilot docs for recommendations"
