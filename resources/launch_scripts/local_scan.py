@@ -220,26 +220,6 @@ def _start_server(outdir: Path, startup_json: Path) -> ProcessTuple:
     return ("central server", server_proc, server_log)
 
 
-def _ensure_sysbox_for_docker_in_docker() -> None:
-    """Ensure Sysbox is installed and active if we are using Docker-in-Docker."""
-    if os.getenv("_CI_SCANNER_CONTAINER_PLATFORM") != "docker":
-        raise RuntimeError("sysbox is only required for docker -- don't run this check")
-
-    # Check process running
-    try:
-        subprocess.run(["systemctl", "is-active", "--quiet", "sysbox"], check=True)
-    except Exception:
-        _print_now(
-            "::error::Sysbox runtime is required for Docker-in-Docker but is not active."
-        )
-        _print_now(
-            "Install via: https://github.com/nestybox/sysbox -- or see ewms-pilot docs for recommendations"
-        )
-        sys.exit(1)
-    else:
-        _print_now("Sysbox runtime (required for Docker-in-Docker) is active.")
-
-
 def _start_workers(
     n_workers: int, launch_dir: Path, outdir: Path
 ) -> list[ProcessTuple]:
@@ -322,9 +302,6 @@ def main() -> None:
 
     if not os.getenv("_CI_SCANNER_CONTAINER_PLATFORM"):
         raise RuntimeError("must provide env var '_CI_SCANNER_CONTAINER_PLATFORM'")
-
-    if os.environ["_CI_SCANNER_CONTAINER_PLATFORM"] == "docker":
-        _ensure_sysbox_for_docker_in_docker()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     validate_env_vars()

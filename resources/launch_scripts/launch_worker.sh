@@ -103,6 +103,6 @@ elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
 
 # ─────────────── Case: Unknown??? ───────────────
 else
-    echo "ERROR: cannot launch worker — unknown '_CI_SCANNER_CONTAINER_PLATFORM=$_CI_SCANNER_CONTAINER_PLATFORM'"
+    echo "::error::cannot launch worker — unknown '_CI_SCANNER_CONTAINER_PLATFORM=$_CI_SCANNER_CONTAINER_PLATFORM'"
     exit 2
 fi
