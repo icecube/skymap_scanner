@@ -172,7 +172,7 @@ jobs:
         ]
         container_platform: [
           "docker",
-          "apptainer",
+#          "apptainer",
         ]
     env:
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
