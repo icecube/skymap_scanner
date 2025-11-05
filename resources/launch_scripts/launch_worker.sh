@@ -1,6 +1,5 @@
 #!/bin/bash
 set -euo pipefail
-set -ex
 
 _HERE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 

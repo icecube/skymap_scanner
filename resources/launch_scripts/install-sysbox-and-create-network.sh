@@ -1,6 +1,5 @@
 #!/bin/bash
 set -euo pipefail
-set -ex
 
 ########################################################################
 # Sysbox Setup + Docker Network Initialization
