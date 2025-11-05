@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-_HERE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
 ########################################################################
 #
 # Launch a Skymap Scanner worker
@@ -76,8 +74,11 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     # Optional: pass extra docker args if you need them
     # export DIND_EXTRA_ARGS="..."
 
-    # run
-    "$_HERE_DIR/run_docker_in_docker.sh"
+    # run (curl script first)
+    tmp_for_dnd_sh=$(mktemp -d)
+    curl -fsSL "$CI_SCRIPT_URL_DIND_RUN" -o "$tmp_for_dnd_sh/run-dind.sh"
+    chmod +x "$tmp_for_dnd_sh/run-dind.sh"
+    "$tmp_for_dnd_sh/run-dind.sh"
 
 # ─────────────── Case: Apptainer-in-Docker ───────────────
 elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
