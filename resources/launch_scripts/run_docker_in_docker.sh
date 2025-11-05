@@ -162,5 +162,5 @@ docker run --rm --privileged \
     \
     "$DIND_OUTER_IMAGE" /bin/bash -lc "\
         docker load -i /saved-images/$(basename "$inner_tar_gz") && \
-        exec $DIND_OUTER_CMD \
+        $DIND_OUTER_CMD \
     "
