@@ -16,7 +16,7 @@ concurrency:
 
 
 env:
-  # url pointing to remote helper scripts -- versioned!
+  # url pointing to remote helper scripts — versioned!
   CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/apptainer/install-apptainer.sh
   CI_SCRIPT_URL_DIND_SETUP: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/install-sysbox-and-create-network.sh
   CI_SCRIPT_URL_DIND_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/run-docker-in-docker.sh
@@ -33,7 +33,7 @@ env:
   # a special network set up so docker-in-docker containers (scanner clients) can talk to the mq broker
   DIND_NETWORK: mynet
   #
-  # pilot image tags -- versioned!
+  # pilot image tags — versioned!
   _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
   _PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
@@ -69,7 +69,7 @@ jobs:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
-      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
       fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
@@ -88,7 +88,7 @@ jobs:
 #    needs: [ py-versions ]
 #    runs-on: ubuntu-latest
 #    strategy:
-#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
 #      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 #      matrix:
 #        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
@@ -175,35 +175,8 @@ jobs:
           "apptainer",
         ]
     env:
-#      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-#      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-#      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-#      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
-#    services: # cannot use b/c sysbox restarts docker
-#      rabbitmq:
-#        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-#        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-#        env:
-#          RABBITMQ_USERNAME: user1
-#          RABBITMQ_PASSWORD: password
-#          RABBITMQ_VHOST: test
-#          BITNAMI_DEBUG: true
-#          # Use the Bitnami-specific absolute limit var:
-#          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
-#          # (Optional) leave memory watermark alone or keep it generous:
-#          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
-#        # Note: `--network` option is not supported.
-#        options: >-
-#          --name rabbitmq
-#          --health-cmd "rabbitmqctl node_health_check"
-#          --health-interval 5s
-#          --health-timeout 5s
-#          --health-retries 10
-#        ports:
-#          - 5672:5672
-#          - 15672:15672
     steps:
       - name: "— Disk Space —"
         if: always()
@@ -248,13 +221,13 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
-          # SETUP FOR DOCKER-IN-DOCKER -- must be done in the same shell as broker + scanner 
+          # SETUP FOR DOCKER-IN-DOCKER — must be done in the same shell as broker + scanner 
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               curl -fsSL "$CI_SCRIPT_URL_DIND_SETUP" -o dind-setup.sh && chmod +x dind-setup.sh
               ./dind-setup.sh "$DIND_NETWORK"
           fi
           
-          # START BROKER -- this is always in a docker container, even in 'apptainer' tests
+          # START BROKER — this is always in a docker container, even in 'apptainer' tests
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
@@ -373,7 +346,7 @@ jobs:
 #    needs: [ flake8 ]
 #    runs-on: ubuntu-latest
 #    strategy:
-#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
 #      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 #      matrix:
 #        nsides: [
@@ -506,7 +479,7 @@ jobs:
 #    needs: [ flake8 ]
 #    runs-on: ubuntu-latest
 #    strategy:
-#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
 #      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 #      matrix:
 #        reco_algo: [
@@ -712,7 +685,7 @@ jobs:
 #    needs: [ flake8 ]
 #    runs-on: ubuntu-latest
 #    strategy:
-#      # don't fail fast on default branch -- so we can rerun just the one job in case of transient failure
+#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
 #      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 #      matrix:
 #        dir: [
