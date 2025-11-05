@@ -58,7 +58,7 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
 
     # Required env for the helper
     export DIND_OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
-    export DIND_INNER_IMAGE="${_SCANNER_IMAGE_DOCKER}"
+    export DIND_INNER_IMAGES_TO_FORWARD="${_SCANNER_IMAGE_DOCKER}"  # only 1 image
     # Network for the outer container
     if [[ -z "${DIND_NETWORK:-}" ]]; then
         echo "::error::DIND_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
