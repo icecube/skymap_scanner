@@ -30,41 +30,72 @@ set -ex
 #
 ########################################################################
 
+print_env_var() {
+    local var="$1"
+    local is_required="${2:-false}"
+    local desc="${3:-}"
+    local val="${!var:-}"
+
+    # Fail early for missing required vars
+    if [[ "$is_required" == "true" && -z "$val" ]]; then
+        echo "::error::'$var' must be set${desc:+ ($desc)}."
+        exit 1
+    fi
+
+    # Print nicely formatted entry
+    echo "║    - ${var}="
+    if [[ -n "$val" ]]; then
+        echo "║        ${val}"
+    else
+        echo "║        <unset>"
+    fi
+
+    if [[ "$is_required" == "true" ]]; then
+        echo "║        (required) ${desc}"
+    else
+        echo "║        (optional) ${desc}"
+    fi
+}
+
+
 ########################################################################
-# Validate required inputs
+# Script Execution Summary Banner
 ########################################################################
-if [[ -z "${DIND_OUTER_IMAGE:-}" ]]; then
-    echo "::error::'DIND_OUTER_IMAGE' must be set."
-    exit 1
-fi
-if [[ -z "${DIND_INNER_IMAGE:-}" ]]; then
-    echo "::error::'DIND_INNER_IMAGE' must be set."
-    exit 1
-fi
-if [[ -z "${DIND_NETWORK:-}" ]]; then
-    echo "::error::'DIND_NETWORK' must be set."
-    exit 1
-fi
-if [[ -z "${DIND_FORWARD_ENV_PREFIXES:-}" ]]; then
-    echo "::error::'DIND_FORWARD_ENV_PREFIXES' must be set (space-separated list of prefixes)."
-    exit 1
-fi
-if [[ -z "${DIND_FORWARD_ENV_VARS:-}" ]]; then
-    echo "::error::'DIND_FORWARD_ENV_VARS' must be set (space-separated list of exact var names)."
-    exit 1
-fi
-if [[ -z "${DIND_BIND_RO_DIRS:-}" ]]; then
-    echo "::error::'DIND_BIND_RO_DIRS' must be set (space-separated list of host dirs)."
-    exit 1
-fi
-if [[ -z "${DIND_BIND_RW_DIRS:-}" ]]; then
-    echo "::error::'DIND_BIND_RW_DIRS' must be set (space-separated list of host dirs)."
-    exit 1
-fi
-if [[ -z "${DIND_OUTER_CMD:-}" ]]; then
-    echo "::error::'DIND_OUTER_CMD' must be set (command to run inside the outer container)."
-    exit 1
-fi
+echo
+echo "╔═══════════════════════════════════════════════════════════════════════════╗"
+echo "║                                                                           ║"
+echo "║             Docker-in-Docker Helper — Runtime Environment Info            ║"
+echo "║                                                                           ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Purpose:     Launch a privileged outer Docker container that hosts an    ║"
+echo "║               inner Docker daemon, loads a local image tarball, and runs  ║"
+echo "║               the specified command in an isolated sysbox environment.    ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Host System Info:                                                        ║"
+echo "║    - Host:      $(hostname)                                               ║"
+echo "║    - User:      $(whoami)                                                 ║"
+echo "║    - Kernel:    $(uname -r)                                               ║"
+echo "║    - Platform:  $(uname -s) $(uname -m)                                   ║"
+echo "║    - Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")                      ║"
+echo "╠═══════════════════════════════════════════════════════════════════════════╣"
+echo "║  Environment Variables:                                                   ║"
+
+print_env_var DIND_OUTER_IMAGE          true  "image to run as the outer (DIND) container"
+print_env_var DIND_INNER_IMAGE          true  "image that must be available inside the outer container"
+print_env_var DIND_NETWORK              true  "docker network name for the outer container"
+print_env_var DIND_FORWARD_ENV_PREFIXES true  "space-separated prefixes to forward"
+print_env_var DIND_FORWARD_ENV_VARS     true  "space-separated exact var names to forward"
+print_env_var DIND_BIND_RO_DIRS         true  "space-separated host dirs to bind read-only at same path"
+print_env_var DIND_BIND_RW_DIRS         true  "space-separated host dirs to bind read-write at same path"
+print_env_var DIND_OUTER_CMD            true  "command run inside outer container AFTER docker load"
+
+print_env_var DIND_CACHE_ROOT           false "path to store tarballs (default: ~/.cache/dind)"
+print_env_var DIND_HOST_BASE            false "base path for inner Docker storage"
+print_env_var DIND_IMAGE_TAR_NAME       false "override tarball filename"
+print_env_var DIND_EXTRA_ARGS           false "extra args appended to docker run"
+
+echo "╚═══════════════════════════════════════════════════════════════════════════╝"
+echo
 
 ########################################################################
 # Ensure Sysbox runtime is active (required for Docker-in-Docker)
