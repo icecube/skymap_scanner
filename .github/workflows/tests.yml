@@ -231,37 +231,15 @@ jobs:
           APPTAINER_TMPDIR: ${{ runner.temp }}
         run: ./resources/build_apptainer_image.sh
 
-      - if: ${{ matrix.container_platform == 'docker' }}
-        name: "docker only: install sysbox — needed for docker-in-docker"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker --version
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          temp_dir=$(mktemp -d) && cd $temp_dir
-          # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
-          wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
-          docker rm $(docker ps -a -q) -f  ||  echo "ok: no docker containers to remove"
-          sudo apt-get install jq
-          sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
-          # sudo systemctl status sysbox -n20  # used below
-      - if: ${{ matrix.container_platform == 'docker' }}
-        name: "docker only: set up docker network"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          # we're connecting all the containers (broker + apps) in the same docker network
-          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
-          docker network create $_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER
-
       - name: run
         timeout-minutes: 15  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
-          # ACTIVATE FOR DOCKER-IN-DOCKER
+          # ACTIVATE FOR DOCKER-IN-DOCKER -- must be done in the same shell as scanner 
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
-              # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
-              sudo systemctl status sysbox -n20
+              ./resources/launch_scripts/install-sysbox-and-create-network.sh "$_CI_DOCKER_NETWORK_FOR_DOCKER_IN_DOCKER"
           fi
           
           # START BROKER -- this is always in a docker container, even in 'apptainer' tests
