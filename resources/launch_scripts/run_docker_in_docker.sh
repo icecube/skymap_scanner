@@ -11,7 +11,8 @@ set -ex
 echo
 echo "╔═══════════════════════════════════════════════════════════════════════════╗"
 echo "║                                                                           ║"
-echo "║                Docker-in-Docker Helper — WIPAC Developers                 ║"
+_ECHO_HEADER="║                Docker-in-Docker Utility — WIPAC Developers                ║"
+echo "$_ECHO_HEADER"
 echo "║                                                                           ║"
 echo "╠═══════════════════════════════════════════════════════════════════════════╣"
 echo "║  Purpose:     Launch a privileged outer Docker container that hosts an    ║"
@@ -149,6 +150,17 @@ mkdir -p "$inner_docker_root" "$inner_docker_tmp"
 ########################################################################
 # Run outer container: load inner image, then exec DIND_OUTER_CMD
 ########################################################################
+echo
+echo "╔═══════════════════════════════════════════════════════════════════════════╗"
+echo "$_ECHO_HEADER"
+echo "║                                                                           ║"
+echo "║                 Executing 'docker run' (outer container).                 ║"
+echo "║           The next lines are the live command trace (set -x)...           ║"
+echo "╚═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═╝"
+echo
+
+set -x  # begin live trace of the docker run command
+
 # shellcheck disable=SC2046
 docker run --rm --privileged \
     --network="$DIND_NETWORK" \
@@ -185,5 +197,14 @@ docker run --rm --privileged \
     \
     "$DIND_OUTER_IMAGE" /bin/bash -c "\
         docker load -i /saved-images/$(basename "$inner_tar_gz") && \
-        $DIND_OUTER_CMD \
+        exec $DIND_OUTER_CMD \
     "
+
+set +x
+echo
+echo "╔═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═╗"
+echo "$_ECHO_HEADER"
+echo "║                                                                           ║"
+echo "║                 The 'docker run' command (outer container)                ║"
+echo "║                      and this utility have concluded.                     ║"
+echo "╚═══════════════════════════════════════════════════════════════════════════╝"
