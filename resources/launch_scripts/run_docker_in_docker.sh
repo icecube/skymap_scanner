@@ -11,14 +11,14 @@ set -ex
 echo
 echo "╔═══════════════════════════════════════════════════════════════════════════╗"
 echo "║                                                                           ║"
-echo "║             Docker-in-Docker Helper — Runtime Environment Info            ║"
+echo "║                Docker-in-Docker Helper — WIPAC Developers                 ║"
 echo "║                                                                           ║"
 echo "╠═══════════════════════════════════════════════════════════════════════════╣"
 echo "║  Purpose:     Launch a privileged outer Docker container that hosts an    ║"
 echo "║               inner Docker daemon.                                        ║"
 echo "╠═══════════════════════════════════════════════════════════════════════════╣"
 echo "║  Details:                                                                 ║"
-echo "║   - Saves DIND_INNER_IMAGE to a tarball on host (lock-protected)          ║"
+echo "║   - Saves DIND_INNER_IMAGE to a tarball on host (lock-protected writing)  ║"
 echo "║   - Mounts host dirs for inner Docker (/var/lib/docker and temp)          ║"
 echo "║   - Forwards selected env vars into the outer container                   ║"
 echo "║   - Mounts specified RO/RW paths                                          ║"
@@ -82,7 +82,7 @@ echo
 ########################################################################
 if ! systemctl is-active --quiet sysbox; then
     echo "::error::Sysbox runtime is required for Docker-in-Docker but is not active."
-    echo "Install via: https://github.com/nestybox/sysbox -- or see ewms-pilot docs for recommendations"
+    echo "Install via: https://github.com/nestybox/sysbox, or see wipac-dev-tools resources for recommendations"
     exit 1
 else
     echo "Sysbox runtime (required for Docker-in-Docker) is active."
