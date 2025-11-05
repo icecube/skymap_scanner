@@ -19,7 +19,7 @@ env:
   CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/apptainer/install-apptainer.sh
   CI_SCRIPT_URL_DIND_SETUP: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/install-sysbox-and-create-network.sh
   CI_SCRIPT_URL_DIND_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/run-docker-in-docker.sh
-  CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-mq-broker.sh
+  CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
   MQ_BROKER_CONTAINER_NAME: mqbroker
   #
