@@ -792,7 +792,7 @@ jobs:
 #      test-run-realistic,
 #      test-run-single-pixel,
 #    ]
-#    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.16
+#    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
 #    permissions: # for GITHUB_TOKEN
 #      contents: write
 #    with:
