@@ -22,8 +22,9 @@ env:
   CI_SCRIPT_URL_DIND_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/run-docker-in-docker.sh
   CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
-  # used by mq broker script
+  # used for/by mq broker script
   RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
+  MQ_BROKER: "scanner_broker"
   #
   # use by local_scan.py
   CI_LOCAL_SCAN_TAIL: 20
@@ -231,12 +232,12 @@ jobs:
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./run-mq-broker.sh "rabbitmq" "scanner_broker" "--network=$DIND_NETWORK"
-              export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="scanner_broker"
-              export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="scanner_broker"
+              source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DIND_NETWORK"
+              export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+              export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES
-              source ./run-mq-broker.sh "rabbitmq" "scanner_broker" "--network=host"
+              source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=host"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
@@ -326,15 +327,15 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           echo "=== docker logs (rabbitmq) ==="
-          docker logs "scanner_broker" || true
+          docker logs "$MQ_BROKER" || true
           echo "=== rabbitmqctl status ==="
-          docker exec "scanner_broker" rabbitmqctl status || true
+          docker exec "$MQ_BROKER" rabbitmqctl status || true
           echo "=== rabbitmq-diagnostics memory ==="
-          docker exec "scanner_broker" rabbitmq-diagnostics memory || true
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics memory || true
           echo "=== rabbitmq-diagnostics environment ==="
-          docker exec "scanner_broker" rabbitmq-diagnostics environment || true
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics environment || true
           echo "=== rabbitmq-diagnostics alarms ==="
-          docker exec "scanner_broker" rabbitmq-diagnostics alarms || true
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics alarms || true
 
       - name: "— Disk Space —"
         if: always()
