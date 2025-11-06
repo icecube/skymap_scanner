@@ -326,15 +326,15 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           echo "=== docker logs (rabbitmq) ==="
-          docker logs rabbitmq || true
+          docker logs "scanner_broker" || true
           echo "=== rabbitmqctl status ==="
-          docker exec rabbitmq rabbitmqctl status || true
+          docker exec "scanner_broker" rabbitmqctl status || true
           echo "=== rabbitmq-diagnostics memory ==="
-          docker exec rabbitmq rabbitmq-diagnostics memory || true
+          docker exec "scanner_broker" rabbitmq-diagnostics memory || true
           echo "=== rabbitmq-diagnostics environment ==="
-          docker exec rabbitmq rabbitmq-diagnostics environment || true
+          docker exec "scanner_broker" rabbitmq-diagnostics environment || true
           echo "=== rabbitmq-diagnostics alarms ==="
-          docker exec rabbitmq rabbitmq-diagnostics alarms || true
+          docker exec "scanner_broker" rabbitmq-diagnostics alarms || true
 
       - name: "— Disk Space —"
         if: always()
