@@ -126,6 +126,9 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
@@ -142,6 +145,9 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
@@ -179,6 +185,9 @@ jobs:
           docker-images: false
       - *df_disk_space
 
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
@@ -351,6 +360,9 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
@@ -440,6 +452,9 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
@@ -533,6 +548,9 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
@@ -580,6 +598,9 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: ./.github/actions/build-scanner-image
         with:
           image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}

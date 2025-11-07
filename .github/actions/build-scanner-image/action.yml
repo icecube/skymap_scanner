@@ -14,17 +14,15 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout repository (locked to ${{ github.sha }})
-      uses: actions/checkout@v5
+    # First, checkout the repo — this may re-checkout but we need git tags so do it anyway
+    - uses: actions/checkout@v5
       with:
         ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
         fetch-depth: 0  # setuptools-scm needs to access git tag
 
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      uses: docker/build-push-action@v6
+    # Then, build the docker image
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/build-push-action@v6
       with:
         context: .
         file: ./Dockerfile
