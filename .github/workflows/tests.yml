@@ -306,20 +306,20 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
       - &dump_output_worker_1_clients
-        name: "dump output — worker #1 — clients / reco-icetray instances stdouts/stderrs"
+        name: "dump output — worker #1 — clients stdouts/stderrs (icetray pixel reconstructions)"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
       - &dump_output_worker_2_pilot
-        name: "dump output — worker pilot #2 stdout/stderr"
+        name: "dump output — worker #2 — pilot stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
       - &dump_output_worker_2_clients
-        name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
+        name: "dump output — worker #2 — clients stdouts/stderrs (icetray pixel reconstructions)"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -571,7 +571,7 @@ jobs:
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 #          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-#      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
+#      - name: "dump output — worker clients (icetray pixel reconstructions) #1 stdouts/stderrs"
 #        if: always()
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -582,7 +582,7 @@ jobs:
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 #          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-#      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
+#      - name: "dump output — worker clients (icetray pixel reconstructions) #2 stdouts/stderrs"
 #        if: always() && env.N_WORKERS == '2'
 #        run: |
 #          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
