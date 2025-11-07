@@ -644,97 +644,100 @@ jobs:
             python /local/tests/file_staging.py
 
 
-#  test-run-single-pixel:
-#    needs: [ flake8 ]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-#      matrix:
-#        dir: [
-#          "BRONZE",
-#          "GOLD",
-#          "JSON",
-#        ]
-#        reco_algo:
-#          [
-#            millipede_original,
-#            millipede_wilks,
-#            splinempe,
-#            splinempe_pointed
-#          ]
-#        exclude:
-#          # splinempe should not run on HESE
-#          - reco_algo: splinempe
-#            dir: "JSON"
-#          - reco_algo: splinempe_pointed
-#            dir: "JSON"
-#    steps:
-#      - uses: actions/checkout@v5
-#        with:
-#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-#          fetch-depth: 0  # setuptools-scm needs to access git tags
-#      - uses: docker/setup-buildx-action@v3
-#      - uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
-#          load: true
-#
-#      - name: run
-#        timeout-minutes: 10  # on average max~=5min
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          set -e
-#          source tests/env-vars.sh
-#
-#          # run reco directly
-#          docker run --network="host" --rm -i \
-#            --shm-size=6gb \
-#            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
-#            --env PY_COLORS=1 \
-#            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-#            $_SCANNER_IMAGE_DOCKER \
-#            python -m skymap_scanner.client \
-#            --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
-#            --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
-#            --outfile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
-#
-#      - name: test output against known result
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          source tests/env-vars.sh
-#
-#          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
-#          ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
-#
-#          # need icecube for depickling, so docker container needed
-#          docker run --network="host" --rm -i \
-#            --shm-size=6gb \
-#            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
-#            --env PY_COLORS=1 \
-#            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-#            $_SCANNER_IMAGE_DOCKER \
-#            python /local/tests/compare_reco_pixel_single.py \
-#            --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
-#            --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \
-#            --diff-out-dir /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/ \
-#            --assert \
-#            || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
-#
-#      - name: Upload results as artifacts
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
-#          path: |
-#            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
-#            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
-#          if-no-files-found: warn
-#          retention-days: 7
-#
-#
+  test-run-single-pixel:
+    needs: [ flake8 ]
+    runs-on: ubuntu-latest
+    strategy:
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+      matrix:
+        dir: [
+          "BRONZE",
+          "GOLD",
+          "JSON",
+        ]
+        reco_algo:
+          [
+            millipede_original,
+            millipede_wilks,
+            splinempe,
+            splinempe_pointed
+          ]
+        exclude:
+          # splinempe should not run on HESE
+          - reco_algo: splinempe
+            dir: "JSON"
+          - reco_algo: splinempe_pointed
+            dir: "JSON"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
+
+      - name: run
+        timeout-minutes: 10  # on average max~=5min
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -e
+          
+          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          source tests/env-vars.sh
+
+          # RUN!
+          # -> run reco directly without an ewms pilot wrapper
+          docker run --network="host" --rm -i \
+            --shm-size=6gb \
+            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
+            --env PY_COLORS=1 \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $_SCANNER_IMAGE_DOCKER \
+            python -m skymap_scanner.client \
+            --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
+            --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
+            --outfile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
+
+      - name: test output against known result
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          source tests/env-vars.sh
+
+          ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
+          ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
+
+          # need icecube for depickling, so docker container needed
+          docker run --network="host" --rm -i \
+            --shm-size=6gb \
+            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
+            --env PY_COLORS=1 \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $_SCANNER_IMAGE_DOCKER \
+            python /local/tests/compare_reco_pixel_single.py \
+            --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
+            --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \
+            --diff-out-dir /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/ \
+            --assert \
+            || (cat $(ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json) && false)
+
+      - name: Upload results as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
+          path: |
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json
+            tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/*.diff.json
+          if-no-files-found: warn
+          retention-days: 7
+
+
 #  #############################################################################
 #  # GIT TAG & GITHUB RELEASE
 #  #############################################################################
