@@ -175,6 +175,9 @@ jobs:
           "apptainer",
         ]
     env:
+      _RECO_ALGO: "${{ matrix.reco_algo }}"
+      _CI_SCANNER_CONTAINER_PLATFORM: "${{ matrix.container_platform }}"
+      _NSIDES: "1:0 2:12 4:12"
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
     steps:
@@ -245,12 +248,9 @@ jobs:
           fi
           docker ps
           
-          # SET ENV VARS
+          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           source tests/env-vars.sh
-          export _RECO_ALGO="${{ matrix.reco_algo }}"
-          export _CI_SCANNER_CONTAINER_PLATFORM="${{ matrix.container_platform }}"
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="1:0 2:12 4:12"
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
               export _SCANNER_IMAGE_APPTAINER="$(realpath skymap_scanner.sandbox)"
           fi
@@ -361,6 +361,11 @@ jobs:
           1.0,
           0.65,
         ]
+    env:
+      _CI_SCANNER_CONTAINER_PLATFORM: docker
+      _RECO_ALGO: dummy
+      _NSIDES: "${{ matrix.nsides }}"
+      _PREDICTIVE_SCANNING_THRESHOLD: ${{ matrix.predictive_scanning_threshold }}
     steps:
       - *df_disk_space
       - *free_disk_space
@@ -395,13 +400,10 @@ jobs:
           export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
           export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
           
-          # SET ENV VARS
+          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           set -x
           source tests/env-vars.sh
-          export _RECO_ALGO=dummy
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="${{ matrix.nsides }}"
-          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
           # RUN!
           cd ./resources/launch_scripts
