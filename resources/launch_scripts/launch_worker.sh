@@ -58,7 +58,7 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
 
     # Required env for the helper
     export DIND_OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
-    export DIND_INNER_IMAGES_TO_FORWARD="${_SCANNER_IMAGE_DOCKER}"  # only 1 image
+#    export DIND_INNER_IMAGES_TO_FORWARD="${_SCANNER_IMAGE_DOCKER}"  # only 1 image
     # Network for the outer container
     if [[ -z "${DIND_NETWORK:-}" ]]; then
         echo "::error::DIND_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
@@ -73,7 +73,7 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     export DIND_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
     export DIND_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
     # What to run inside the outer container after docker load
-    export DIND_OUTER_CMD='python -m ewms_pilot'
+#    export DIND_OUTER_CMD='python -m ewms_pilot'
     # Optional: pass extra docker args if you need them
     # export DIND_EXTRA_ARGS="..."
 
