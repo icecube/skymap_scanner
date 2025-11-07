@@ -2,7 +2,7 @@ name: Build Skymap Scanner Image (checkout + buildx + build)
 
 inputs:
   image-tag:
-    description: 'Docker image tag to apply (e.g., ${{ env._SCANNER_IMAGE_DOCKER }}).'
+    description: 'Docker image tag to apply (e.g., $ {{ env._SCANNER_IMAGE_DOCKER }} — no space after dollar).'
     required: true
   load:
     description: '"true" to load into the local Docker daemon; "false" for build-only.'
