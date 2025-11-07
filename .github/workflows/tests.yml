@@ -84,81 +84,82 @@ jobs:
         with:
           max-complexity: 16  # ideal is ~10-15
 
-#  mypy:
-#    needs: [ py-versions ]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-#      matrix:
-#        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-#    steps:
-#      - uses: actions/checkout@v5
-#        with:
-#          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
-#          fetch-depth: 0  # setuptools-scm needs to access git tags
-#      - uses: actions/setup-python@v6
-#        with:
-#          python-version: ${{ matrix.py3 }}
-#      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+  mypy:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
 
   #############################################################################
   # PACKAGING
   #############################################################################
 
-#  py-setup:
-#    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v5
-#        with:
-#          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-#          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-#      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
-#        with:
-#          mode: PACKAGING
-#          python_min: '3.10'
-#          keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
-#          auto_mypy_option: True
-#
-#  py-dependencies:
-#    needs: [ flake8 ]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v5
-#        with:
-#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-#          fetch-depth: 0  # setuptools-scm needs to access git tags
-#      - uses: docker/setup-buildx-action@v3
-#      - uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          tags: skymap_scanner:py-dep-this
-#          load: true
-#      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.2
+  py-setup:
+    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
+        with:
+          mode: PACKAGING
+          python_min: '3.10'
+          keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
+          auto_mypy_option: True
+
+  py-dependencies:
+    needs: [ flake8 ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: skymap_scanner:py-dep-this
+          load: true
+          build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   #############################################################################
   # TESTS
   #############################################################################
 
-#  test-build-docker:
-#    needs: [ flake8 ]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v5
-#        with:
-#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-#          fetch-depth: 0  # setuptools-scm needs to access git tags
-#      - uses: docker/setup-buildx-action@v3
-#      - uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
-#          load: true
+  test-build-docker:
+    needs: [ flake8 ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: false  # for checking if this builds, no loading needed
 
   test-run-dummy:
     needs: [ flake8 ]
@@ -686,33 +687,33 @@ jobs:
           retention-days: 7
 
 
-#  #############################################################################
-#  # GIT TAG & GITHUB RELEASE
-#  #############################################################################
-#
-#  tag-and-release:
-#    # only run on main/default branch
-#    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-#    needs: [
-#      py-versions,
-#      mypy,
-#      flake8,
-#      py-setup,
-#      py-dependencies,
-#      test-build-docker,
-#      test-run-dummy,
-#      test-file-staging,
-#      test-run-nsides-thresholds-dummy,
-#      test-run-realistic,
-#      test-run-single-pixel,
-#    ]
-#    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
-#    permissions: # for GITHUB_TOKEN
-#      contents: write
-#    with:
-#      project-type: python
-#      python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
-#      release-artifacts: |
-#        py-dependencies-logs
-#    secrets:
-#      TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # trigger tag-event gha workflows
+  #############################################################################
+  # GIT TAG & GITHUB RELEASE
+  #############################################################################
+
+  tag-and-release:
+    # only run on main/default branch
+    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
+    needs: [
+      py-versions,
+      mypy,
+      flake8,
+      py-setup,
+      py-dependencies,
+      test-build-docker,
+      test-run-dummy,
+      test-file-staging,
+      test-run-nsides-thresholds-dummy,
+      test-run-realistic,
+      test-run-single-pixel,
+    ]
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
+    permissions: # for GITHUB_TOKEN
+      contents: write
+    with:
+      project-type: python
+      python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
+      release-artifacts: |
+        py-dependencies-logs
+    secrets:
+      TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # trigger tag-event gha workflows
