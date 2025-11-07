@@ -218,19 +218,18 @@ jobs:
           APPTAINER_TMPDIR: ${{ runner.temp }}
         run: ./resources/build_apptainer_image.sh
 
-      - if: ${{ matrix.container_platform == 'docker' }}
-        name: "docker only: create docker network"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker network create "$DOOD_NETWORK" 
-
       - name: run
         timeout-minutes: 15  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
-          # START MQ BROKER — this is always in a docker container, even in 'apptainer' tests
+          # step 1: CREATE DOCKER NETWORK
+          if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
+              docker network create "$DOOD_NETWORK"
+          fi
+          
+          # step 2: START MQ BROKER — this is always in a docker container, even in 'apptainer' tests
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
@@ -248,7 +247,7 @@ jobs:
           fi
           docker ps
           
-          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          # step 3: SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           source tests/env-vars.sh
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
@@ -258,7 +257,7 @@ jobs:
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           fi
           
-          # RUN!
+          # step 4: RUN!
           cd ./resources/launch_scripts
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               set +e  # allow `||` to supress first non-zero exit
@@ -269,7 +268,7 @@ jobs:
           fi
 
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
-        name: look at stderrfiles
+        name: "crash_dummy only: see the crashes happened as expected"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -285,7 +284,7 @@ jobs:
           fi
 
       - if: ${{ matrix.reco_algo == 'dummy' }}
-        name: look at results file (.npz)
+        name: "dummy only: dump results file (.npz)"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           ls .
@@ -384,28 +383,26 @@ jobs:
           load: true
           build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
-      - name: "create docker network"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker network create "$DOOD_NETWORK"
-
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           
-          # START MQ BROKER — using the docker network created in previous step
+          # step 1: CREATE DOCKER NETWORK
+          docker network create "$DOOD_NETWORK"
+          
+          # step 2: START MQ BROKER — using the docker network created above
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
           export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
           export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
           
-          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          # step 3: SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           set -x
           source tests/env-vars.sh
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
 
-          # RUN!
+          # step 4: RUN!
           cd ./resources/launch_scripts
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
@@ -434,183 +431,134 @@ jobs:
       - *df_disk_space
 
 
-#  test-run-realistic:
-#    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-#    needs: [ flake8 ]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-#      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-#      matrix:
-#        reco_algo: [
-#          millipede_original,
-#          millipede_wilks,
-#          splinempe,
-#          splinempe_pointed
-#        ]
-#        eventfile: [
-#          hese_event_01.json,
-#          run00136766-evt000007637140-GOLD.pkl,
-#          run00136662-evt000035405932-BRONZE.pkl,
-#          138632_31747601.json
-#        ]
-#        exclude:
-#          # splinempe should not run on HESE
-#          - reco_algo: splinempe
-#            eventfile: hese_event_01.json
-#          - reco_algo: splinempe_pointed
-#            eventfile: hese_event_01.json
-#    env:
-#      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-#      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-#      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-#      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-#    services:
-#      rabbitmq:
-#        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-#        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-#        env:
-#          RABBITMQ_USERNAME: user1
-#          RABBITMQ_PASSWORD: password
-#          RABBITMQ_VHOST: test
-#          BITNAMI_DEBUG: true
-#        # Note: `--network` option is not supported.
-#        options: >-
-#          --name rabbitmq
-#          --health-cmd "rabbitmqctl node_health_check"
-#          --health-interval 5s
-#          --health-timeout 5s
-#          --health-retries 10
-#        ports:
-#          - 5672:5672
-#          - 15672:15672
-#    steps:
-#      - name: "— Disk Space —"
-#        if: always()
-#        run: df -h /
-#      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-#        with:
-#          docker-images: false
-#      - name: "— Disk Space —"
-#        if: always()
-#        run: df -h /
-#
-#      - uses: actions/checkout@v5
-#        with:
-#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-#          fetch-depth: 0  # setuptools-scm needs to access git tags
-#      - uses: docker/setup-buildx-action@v3
-#      - uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
-#          load: true
-#
-#      - name: run
-#        timeout-minutes: 55  # on average max~=35min
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          set -x
-#          lscpu
-#          python3 --version
-#          source tests/env-vars.sh
-#          export _RECO_ALGO=${{ matrix.reco_algo }}
-#          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
-#          export _NSIDES="1:0"
-#
-#          cd ./resources/launch_scripts
-#          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
-#
-#      - name: test output against known result (.json)
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          ls $CI_SKYSCAN_OUTPUT_DIR
-#          # get newest run*.json
-#          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
-#          echo $outfile
-#          cat $outfile
-#          pip install .  # don't need icecube, so no docker container needed
-#
-#
-#          # --------------------------------------------------------------------
-#          # splinempe: special handling + gh-issue reminder timer
-#          if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
-#            python tests/compare_scan_results.py \
-#              --actual $outfile \
-#              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
-#              --assert \
-#              --compare-different-versions-ok \
-#              || (cat $(ls *.diff.json) && false)
-#
-#            # put the timer after, so at least we know if the test passes
-#            start_time="2025-03-18"  # Set the starting date
-#            end_time=$(date -d "$start_time +6 months" +%s)
-#            current_time=$(date +%s)
-#            if (( current_time >= end_time )); then
-#                echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
-#                exit 1
-#            fi
-#
-#            exit 0
-#          fi
-#          # --------------------------------------------------------------------
-#
-#
-#          python tests/compare_scan_results.py \
-#            --actual $outfile \
-#            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
-#            --assert \
-#            || (cat $(ls *.diff.json) && false)
-#
-#      - name: "dump output — central server"
-#        if: always()
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-#      - name: "dump output — worker pilot #1"
-#        if: always()
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-#      - name: "dump output — worker clients (icetray pixel reconstructions) #1"
-#        if: always()
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-#      - name: "dump output — worker pilot #2"
-#        if: always() && env.N_WORKERS == '2'
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-#      - name: "dump output — worker clients (icetray pixel reconstructions) #2"
-#        if: always() && env.N_WORKERS == '2'
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-#          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-#
-#      - name: rabbitmq logs
-#        if: always()
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          docker logs rabbitmq
-#
-#      - name: Upload results as artifacts
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
-#          path: |
-#            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}**
-#            *.diff.json
-#          if-no-files-found: warn
-#          retention-days: 7
-#
-#      - name: "— Disk Space —"
-#        if: always()
-#        run: df -h /
+  test-run-realistic:
+    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
+    needs: [ flake8 ]
+    runs-on: ubuntu-latest
+    strategy:
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
+      matrix:
+        reco_algo: [
+          millipede_original,
+          millipede_wilks,
+          splinempe,
+          splinempe_pointed
+        ]
+        eventfile: [
+          hese_event_01.json,
+          run00136766-evt000007637140-GOLD.pkl,
+          run00136662-evt000035405932-BRONZE.pkl,
+          138632_31747601.json
+        ]
+        exclude:
+          # splinempe should not run on HESE
+          - reco_algo: splinempe
+            eventfile: hese_event_01.json
+          - reco_algo: splinempe_pointed
+            eventfile: hese_event_01.json
+    env:
+      _RECO_ALGO: "${{ matrix.reco_algo }}"
+      _CI_SCANNER_CONTAINER_PLATFORM: "docker"
+      _NSIDES: "1:0"
+    steps:
+      - *df_disk_space
+      - *free_disk_space
+      - *df_disk_space
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
+
+      - name: run
+        timeout-minutes: 55  # on average max~=35min
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          
+          # step 1: CREATE DOCKER NETWORK
+          docker network create "$DOOD_NETWORK"
+          
+          # step 2: START MQ BROKER — using the docker network created above
+          curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
+          source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
+          export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          
+          # setp 3: SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          source tests/env-vars.sh
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
+
+          # step 4: RUN!
+          cd ./resources/launch_scripts
+          python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
+
+      - name: test output against known result (.json)
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          ls $CI_SKYSCAN_OUTPUT_DIR
+          # get newest run*.json
+          outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
+          echo $outfile
+          cat $outfile
+          pip install .  # don't need icecube, so no docker container needed
+
+
+          # --------------------------------------------------------------------
+          # splinempe: special handling + gh-issue reminder timer
+          if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
+            python tests/compare_scan_results.py \
+              --actual $outfile \
+              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
+              --assert \
+              --compare-different-versions-ok \
+              || (cat $(ls *.diff.json) && false)
+
+            # put the timer after, so at least we know if the test passes
+            start_time="2025-03-18"  # Set the starting date
+            end_time=$(date -d "$start_time +6 months" +%s)
+            current_time=$(date +%s)
+            if (( current_time >= end_time )); then
+                echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
+                exit 1
+            fi
+
+            exit 0
+          fi
+          # --------------------------------------------------------------------
+
+
+          python tests/compare_scan_results.py \
+            --actual $outfile \
+            --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
+            --assert \
+            || (cat $(ls *.diff.json) && false)
+
+      - *dump_output_central_server
+      - *dump_output_worker_1_pilot
+      - *dump_output_worker_1_clients
+      - *dump_output_worker_2_pilot
+      - *dump_output_worker_2_clients
+      - *dump_rabbitmq_diagnostics
+      - *df_disk_space
+
+      - name: Upload results as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
+          path: |
+            ${{ env.CI_SKYSCAN_OUTPUT_DIR }}**
+            *.diff.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
   test-file-staging:
