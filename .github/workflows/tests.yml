@@ -224,8 +224,10 @@ jobs:
           
           # SETUP FOR DOCKER-IN-DOCKER — must be done in the same shell as broker + scanner 
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
-              curl -fsSL "$CI_SCRIPT_URL_DIND_SETUP" -o dind-setup.sh && chmod +x dind-setup.sh
-              ./dind-setup.sh "$DIND_NETWORK"
+              # curl -fsSL "$CI_SCRIPT_URL_DIND_SETUP" -o dind-setup.sh && chmod +x dind-setup.sh
+              # ./dind-setup.sh "$DIND_NETWORK"
+              docker network create "$DIND_NETWORK" 
+              # TODO move ^^^ to own step (can be in other shell since no sysbox activation)
           fi
           
           # START BROKER — this is always in a docker container, even in 'apptainer' tests
