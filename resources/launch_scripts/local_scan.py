@@ -1,6 +1,7 @@
 """Runs a scanner instance (server & workers) all on the same machine."""
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -313,6 +314,12 @@ def main() -> None:
     # wait for 'startup.json' file
     _print_now("Waiting for startup.json...")
     wait_for_file(startup_json)
+    with open(startup_json) as f:
+        _str = json.dumps(json.load(f), indent=4)
+        _str = "\n".join(  # we don't need to see all the lonnnng data, just some is ok
+            x if len(x) < (80 + 1) else f"{x[:(80-3)]}..." for x in _str.splitlines()
+        )
+        _print_now(_str)
 
     # start worker(s)
     processes.extend(_start_workers(args.n_workers, launch_dir, args.output_dir))
