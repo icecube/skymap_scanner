@@ -168,11 +168,11 @@ jobs:
       matrix:
         reco_algo: [
           "dummy",
-#          "crash_dummy"
+          "crash_dummy"
         ]
         container_platform: [
           "docker",
-#          "apptainer",
+          "apptainer",
         ]
     env:
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
@@ -229,7 +229,7 @@ jobs:
           
           # START BROKER — this is always in a docker container, even in 'apptainer' tests
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
-          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+          if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
               source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
