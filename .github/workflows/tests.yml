@@ -611,36 +611,39 @@ jobs:
 #      - name: "— Disk Space —"
 #        if: always()
 #        run: df -h /
-#
-#
-#  test-file-staging:
-#    needs: [ flake8 ]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v5
-#        with:
-#          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-#          fetch-depth: 0  # setuptools-scm needs to access git tags
-#      - uses: docker/setup-buildx-action@v3
-#      - uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
-#          load: true
-#
-#      - name: run
-#        run: |
-#          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-#          source tests/env-vars.sh
-#
-#          docker run --rm -i \
-#            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
-#            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-#            $_SCANNER_IMAGE_DOCKER \
-#            python /local/tests/file_staging.py
-#
-#
+
+
+  test-file-staging:
+    needs: [ flake8 ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
+
+      - name: run
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          
+          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          source tests/env-vars.sh
+
+          # RUN!
+          docker run --rm -i \
+            --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
+            $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+            $_SCANNER_IMAGE_DOCKER \
+            python /local/tests/file_staging.py
+
+
 #  test-run-single-pixel:
 #    needs: [ flake8 ]
 #    runs-on: ubuntu-latest
