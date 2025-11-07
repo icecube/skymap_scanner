@@ -18,8 +18,7 @@ concurrency:
 env:
   # url pointing to remote helper scripts — versioned!
   CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/apptainer/install-apptainer.sh
-  CI_SCRIPT_URL_DIND_SETUP: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/install-sysbox-and-create-network.sh
-  CI_SCRIPT_URL_DIND_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker_in_docker/run-docker-in-docker.sh
+  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker/run-docker-outside-of-docker.sh
   CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
   #
   # used for/by mq broker script
@@ -31,12 +30,12 @@ env:
   #
   _SCANNER_IMAGE_DOCKER: icecube/skymap_scanner:local
   #
-  # a special network set up so docker-in-docker containers (scanner clients) can talk to the mq broker
-  DIND_NETWORK: mynet
+  # a special network set up so docker scanner clients (inside of docker pilots) can talk to the mq broker
+  DOOD_NETWORK: mynet
   #
   # pilot image tags — versioned!
-  _PILOT_IMAGE_FOR_DOCKER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
-  _PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER: "ghcr.io/observation-management-service/ewms-pilot:latest"
+  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
+  _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
   # used for configuring the scanner runtime
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
@@ -216,25 +215,23 @@ jobs:
           APPTAINER_TMPDIR: ${{ runner.temp }}
         run: ./resources/build_apptainer_image.sh
 
+      - if: ${{ matrix.container_platform == 'docker' }}
+        name: "docker only: create docker network"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          docker network create "$DOOD_NETWORK" 
+
       - name: run
         timeout-minutes: 15  # on average ~9min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
-          # SETUP FOR DOCKER-IN-DOCKER — must be done in the same shell as broker + scanner 
-          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
-              # curl -fsSL "$CI_SCRIPT_URL_DIND_SETUP" -o dind-setup.sh && chmod +x dind-setup.sh
-              # ./dind-setup.sh "$DIND_NETWORK"
-              docker network create "$DIND_NETWORK" 
-              # TODO move ^^^ to own step (can be in other shell since no sysbox activation)
-          fi
-          
           # START BROKER — this is always in a docker container, even in 'apptainer' tests
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DIND_NETWORK"
+              source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
               export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
               export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then

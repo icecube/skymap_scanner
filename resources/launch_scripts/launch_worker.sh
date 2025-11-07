@@ -4,10 +4,17 @@ set -euo pipefail
 ########################################################################
 #
 # Launch a Skymap Scanner worker
+#   Uses '_CI_SCANNER_CONTAINER_PLATFORM' to control the mode:
 #
-# - Docker path: uses run_docker_in_docker.sh
-# - Apptainer path: runs the pilot image that wraps Apptainer (no DIND)
+# - Docker mode:
+#       runs the pilot image (docker) that runs Docker scanner clients
+# - Apptainer mode:
+#       runs the pilot image (docker) that runs Apptainer scanner clients
 #
+########################################################################
+
+########################################################################
+# Common (platform-agnostic) setup
 ########################################################################
 
 # establish pilot's root path
@@ -49,7 +56,7 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_addr
 # Run!
 ########################################################################
 
-# ─────────────── Case: Docker-in-Docker ───────────────
+# ─────────────── Case: Docker ───────────────
 if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
 
     # docker-specific pilot env vars
@@ -57,33 +64,28 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"  # CI-specific; prod infra should set this
 
     # Required env for the helper
-    export DIND_OUTER_IMAGE="${_PILOT_IMAGE_FOR_DOCKER_IN_DOCKER}"
-#    export DIND_INNER_IMAGES_TO_FORWARD="${_SCANNER_IMAGE_DOCKER}"  # only 1 image
+    export DOOD_OUTER_IMAGE="$_PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT"
     # Network for the outer container
-    if [[ -z "${DIND_NETWORK:-}" ]]; then
-        echo "::error::DIND_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
+    if [[ -z "${DOOD_NETWORK:-}" ]]; then
+        echo "::error::DOOD_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
         exit 1
     fi
     # Bind dirs: the pilot needs these paths visible at the same locations
     # - tmp_rootdir (RW)
     # - startup.json's parent (RO)
-    export DIND_BIND_RW_DIRS="$tmp_rootdir"
-    export DIND_BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
+    export DOOD_BIND_RW_DIRS="$tmp_rootdir"
+    export DOOD_BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
     # Forward envs by prefix and explicit list
-    export DIND_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
-    export DIND_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
-    # What to run inside the outer container after docker load
-#    export DIND_OUTER_CMD='python -m ewms_pilot'
-    # Optional: pass extra docker args if you need them
-    # export DIND_EXTRA_ARGS="..."
+    export DOOD_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
+    export DOOD_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
 
     # run (curl script first)
-    tmp_for_dnd_sh=$(mktemp -d)
-    curl -fsSL "$CI_SCRIPT_URL_DIND_RUN" -o "$tmp_for_dnd_sh/run-dind.sh"
-    chmod +x "$tmp_for_dnd_sh/run-dind.sh"
-    "$tmp_for_dnd_sh/run-dind.sh"
+    tmp_for_dood_sh=$(mktemp -d)
+    curl -fsSL "$CI_SCRIPT_URL_DOOD_RUN" -o "$tmp_for_dood_sh/run-dood.sh"
+    chmod +x "$tmp_for_dood_sh/run-dood.sh"
+    "$tmp_for_dood_sh/run-dood.sh"
 
-# ─────────────── Case: Apptainer-in-Docker ───────────────
+# ─────────────── Case: Apptainer ───────────────
 elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
 
     # apptainer-specific pilot env vars
@@ -102,7 +104,7 @@ elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
         --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
         $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
         \
-        "$_PILOT_IMAGE_FOR_APPTAINER_IN_DOCKER"
+        "$_PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT"
 
 # ─────────────── Case: Unknown??? ───────────────
 else
