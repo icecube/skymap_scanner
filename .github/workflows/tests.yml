@@ -199,7 +199,7 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
-          build-args: INCLUDE_GCD=0  # we transform the image, so don't download 2x, 3x, ...
+          build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
@@ -361,30 +361,6 @@ jobs:
           1.0,
           0.65,
         ]
-    env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
     steps:
       - *df_disk_space
       - *free_disk_space
@@ -401,11 +377,25 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
+          build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
+
+      - name: "create docker network"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          docker network create "$DOOD_NETWORK"
 
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          
+          # START MQ BROKER — using the docker network created in previous step
+          curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
+          source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
+          export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          
+          # SET ENV VARS
           set -x
           source tests/env-vars.sh
           export _RECO_ALGO=dummy
@@ -413,6 +403,7 @@ jobs:
           export _NSIDES="${{ matrix.nsides }}"
           export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
+          # RUN!
           cd ./resources/launch_scripts
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
@@ -439,8 +430,8 @@ jobs:
       - *dump_output_worker_2_clients
       - *dump_rabbitmq_diagnostics
       - *df_disk_space
-#
-#
+
+
 #  test-run-realistic:
 #    if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
 #    needs: [ flake8 ]
