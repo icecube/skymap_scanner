@@ -178,15 +178,14 @@ jobs:
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
     steps:
-      - name: "— Disk Space —"
+      - &df_disk_space
+        name: "— Disk Space —"
         if: always()
         run: df -h /
       - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
         with:
           docker-images: false
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *df_disk_space
 
       - uses: actions/checkout@v5
         with:
@@ -227,7 +226,7 @@ jobs:
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
-          # START BROKER — this is always in a docker container, even in 'apptainer' tests
+          # START MQ BROKER — this is always in a docker container, even in 'apptainer' tests
           curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
           if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
@@ -293,35 +292,40 @@ jobs:
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-      - name: "dump output — central server stdout/stderr"
+      - &dump_output_central_server
+        name: "dump output — central server stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
+      - &dump_output_worker_1_pilot
+        name: "dump output — worker #1 — pilot stdout/stderr"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
+      - &dump_output_worker_1_clients
+        name: "dump output — worker #1 — clients / reco-icetray instances stdouts/stderrs"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: "dump output — worker pilot #2 stdout/stderr"
+      - &dump_output_worker_2_pilot
+        name: "dump output — worker pilot #2 stdout/stderr"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
+      - &dump_output_worker_2_clients
+        name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
         if: always() && env.N_WORKERS == '2'
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
-      - name: RabbitMQ diagnostics
+      - &dump_rabbitmq_diagnostics
+        name: RabbitMQ diagnostics
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -336,9 +340,7 @@ jobs:
           echo "=== rabbitmq-diagnostics alarms ==="
           docker exec "$MQ_BROKER" rabbitmq-diagnostics alarms || true
 
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *df_disk_space
 
 
 #  test-run-nsides-thresholds-dummy:
