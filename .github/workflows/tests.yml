@@ -61,6 +61,74 @@ jobs:
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.8
 
+  _yaml_templates:
+    if: ${{ false }}  # never runs; holds YAML anchors only — bit of a hack, but reduces code duplication
+    runs-on: ubuntu-latest
+    steps:
+      - &df_disk_space
+        name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
+      - &free_disk_space
+        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
+        with:
+          docker-images: false
+
+      - &dump_output_central_server
+        name: "dump output — central server"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+
+      - &dump_output_worker_1_pilot
+        name: "dump output — worker #1 — pilot"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+
+      - &dump_output_worker_1_clients
+        name: "dump output — worker #1 — clients (icetray pixel reconstructions)"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+
+      - &dump_output_worker_2_pilot
+        name: "dump output — worker #2 — pilot"
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+
+      - &dump_output_worker_2_clients
+        name: "dump output — worker #2 — clients (icetray pixel reconstructions)"
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+
+      - &dump_rabbitmq_diagnostics
+        name: RabbitMQ diagnostics
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          echo "=== docker logs (rabbitmq) ==="
+          docker logs "$MQ_BROKER" || true
+          echo "=== rabbitmqctl status ==="
+          docker exec "$MQ_BROKER" rabbitmqctl status || true
+          echo "=== rabbitmq-diagnostics memory ==="
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics memory || true
+          echo "=== rabbitmq-diagnostics environment ==="
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics environment || true
+          echo "=== rabbitmq-diagnostics alarms ==="
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics alarms || true
+
+
   #############################################################################
   # LINTERS
   #############################################################################
@@ -175,14 +243,8 @@ jobs:
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
     steps:
-      - &df_disk_space
-        name: "— Disk Space —"
-        if: always()
-        run: df -h /
-      - &free_disk_space
-        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-        with:
-          docker-images: false
+      - *df_disk_space
+      - *free_disk_space
       - *df_disk_space
 
       - uses: actions/checkout@v5
@@ -282,53 +344,12 @@ jobs:
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-      - &dump_output_central_server
-        name: "dump output — central server"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - &dump_output_worker_1_pilot
-        name: "dump output — worker #1 — pilot"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - &dump_output_worker_1_clients
-        name: "dump output — worker #1 — clients (icetray pixel reconstructions)"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - &dump_output_worker_2_pilot
-        name: "dump output — worker #2 — pilot"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - &dump_output_worker_2_clients
-        name: "dump output — worker #2 — clients (icetray pixel reconstructions)"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-      - &dump_rabbitmq_diagnostics
-        name: RabbitMQ diagnostics
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          echo "=== docker logs (rabbitmq) ==="
-          docker logs "$MQ_BROKER" || true
-          echo "=== rabbitmqctl status ==="
-          docker exec "$MQ_BROKER" rabbitmqctl status || true
-          echo "=== rabbitmq-diagnostics memory ==="
-          docker exec "$MQ_BROKER" rabbitmq-diagnostics memory || true
-          echo "=== rabbitmq-diagnostics environment ==="
-          docker exec "$MQ_BROKER" rabbitmq-diagnostics environment || true
-          echo "=== rabbitmq-diagnostics alarms ==="
-          docker exec "$MQ_BROKER" rabbitmq-diagnostics alarms || true
+      - *dump_output_central_server
+      - *dump_output_worker_1_pilot
+      - *dump_output_worker_1_clients
+      - *dump_output_worker_2_pilot
+      - *dump_output_worker_2_clients
+      - *dump_rabbitmq_diagnostics
 
       - *df_disk_space
 
