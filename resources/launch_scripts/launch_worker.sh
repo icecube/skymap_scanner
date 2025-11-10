@@ -73,8 +73,8 @@ if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
     # Bind dirs: the pilot needs these paths visible at the same locations
     # - tmp_rootdir (RW)
     # - startup.json's parent (RO)
-    export DOOD_BIND_RW_DIRS="$tmp_rootdir"
-    export DOOD_BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
+    export DOOD_BIND_RW_DIRS="$tmp_rootdir:$tmp_rootdir"
+    export DOOD_BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
     # Forward envs by prefix and explicit list
     export DOOD_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
     export DOOD_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
