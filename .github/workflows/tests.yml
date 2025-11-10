@@ -272,7 +272,7 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           curl -fsSL "$CI_SCRIPT_URL_INSTALL_APPTAINER" -o install-apptainer.sh && chmod +x install-apptainer.sh
-          ./install-apptainer.sh
+          ./install-apptainer.sh --sif no  # we will run sandboxes (dirs), not .sif files
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: build apptainer image"
         env:
