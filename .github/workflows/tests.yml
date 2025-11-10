@@ -194,11 +194,18 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
-          load: "true"
-          include-gcd: "0"  # for pip recording we don't need GCD files
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: skymap_scanner:py-dep-this
+          load: true
+          build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
@@ -210,11 +217,17 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: false  # for checking if this builds, no loading needed
-          include-gcd: "1"  # build with gcd files to test it can be done
 
   test-run-dummy:
     needs: [ flake8 ]
@@ -241,11 +254,18 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
-          load: "true"
-          include-gcd: "0"  # for dummy tests we don't need GCD files
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
+          build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
@@ -372,11 +392,18 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
-          load: "true"
-          include-gcd: "0"  # for dummy tests we don't need GCD files
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
+          build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
@@ -461,11 +488,17 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
-          load: "true"
-          include-gcd: "1"  # pre-download GCD files into image
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
 
       - name: run
         timeout-minutes: 55  # on average max~=35min
@@ -554,11 +587,17 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
-          load: "true"
-          include-gcd: "1"  # pre-download GCD files into image
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
 
       - name: run
         run: |
@@ -601,11 +640,17 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
-      - uses: ./.github/actions/build-scanner-image
+      - uses: actions/checkout@v5
         with:
-          image-tag: ${{ env._SCANNER_IMAGE_DOCKER }}
-          load: "true"
-          include-gcd: "1"  # pre-download GCD files into image
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: true
 
       - name: run
         timeout-minutes: 10  # on average max~=5min
