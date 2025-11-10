@@ -16,10 +16,14 @@ concurrency:
 
 
 env:
+  # pilot image tags — versioned!
+  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
+  _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:latest"
+  #
   # url pointing to remote helper scripts — versioned!
-  CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/apptainer/install-apptainer.sh
-  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker/run-docker-outside-of-docker.sh
-  CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/main/tests/integration/run-broker.sh
+  CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/apptainer/install-apptainer.sh
+  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/docker/run-docker-outside-of-docker.sh
+  CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/refs/tags/v1.1.2/tests/integration/run-broker.sh
   #
   # used for/by mq broker script
   RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
@@ -32,10 +36,6 @@ env:
   #
   # a special network set up so docker scanner clients (inside of docker pilots) can talk to the mq broker
   DOOD_NETWORK: mynet
-  #
-  # pilot image tags — versioned!
-  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
-  _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
   # used for configuring the scanner runtime
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
