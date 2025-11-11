@@ -17,8 +17,8 @@ concurrency:
 
 env:
   # pilot image tags — versioned!
-  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-7d7fa1f-docker-tasks"
-  _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:latest"
+  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:1.2.0-docker-tasks"
+  _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:1.2.0"
   #
   # url pointing to remote helper scripts — versioned!
   CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/apptainer/install-apptainer.sh
