@@ -17,7 +17,7 @@ concurrency:
 
 env:
   # pilot image tags — versioned!
-  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-docker-tasks"
+  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:img-pub-tag-suffix-7d7fa1f-docker-tasks"
   _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:latest"
   #
   # url pointing to remote helper scripts — versioned!
