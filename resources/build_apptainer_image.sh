@@ -5,8 +5,8 @@ echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
 ########################################################################
 # Require environment variables
 ########################################################################
-if [[ -z "${CI_DOCKER_IMAGE_TAG:-}" ]]; then
-    echo "::error:: CI_DOCKER_IMAGE_TAG must be set"
+if [[ -z "${_SCANNER_IMAGE_DOCKER:-}" ]]; then
+    echo "::error:: _SCANNER_IMAGE_DOCKER must be set"
     exit 1
 fi
 if [[ -z "${APPTAINER_CACHEDIR:-}" ]]; then
@@ -22,7 +22,7 @@ APPTAINER_SANDBOX_DIR="skymap_scanner.sandbox"
 echo "building apptainer sandbox at: ${APPTAINER_SANDBOX_DIR}"
 # ensure a clean target (apptainer refuses to overwrite without --force)
 rm -rf "${APPTAINER_SANDBOX_DIR}" || true
-apptainer build --sandbox --force "${APPTAINER_SANDBOX_DIR}" docker-daemon://"$CI_DOCKER_IMAGE_TAG"
+apptainer build --sandbox --force "${APPTAINER_SANDBOX_DIR}" docker-daemon://"$_SCANNER_IMAGE_DOCKER"
 du -sh "${APPTAINER_SANDBOX_DIR}" || ls -lh "${APPTAINER_SANDBOX_DIR}"
 
 ########################################################################
@@ -39,8 +39,8 @@ echo "clearing docker things..."
 BEFORE="$(df -B1 --output=avail / | tail -1)"
 
 # -- docker layers
-docker ps -a --filter "ancestor=$CI_DOCKER_IMAGE_TAG" -q | xargs -r docker rm -f
-docker rmi -f "$CI_DOCKER_IMAGE_TAG" || true
+docker ps -a --filter "ancestor=$_SCANNER_IMAGE_DOCKER" -q | xargs -r docker rm -f
+docker rmi -f "$_SCANNER_IMAGE_DOCKER" || true
 
 # -- prune buildkit + volume
 docker ps -aq --filter "label=name=buildx_buildkit" | xargs -r docker rm -f || true

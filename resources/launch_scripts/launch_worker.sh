@@ -1,19 +1,26 @@
 #!/bin/bash
 set -euo pipefail
-set -ex
 
 ########################################################################
 #
 # Launch a Skymap Scanner worker
+#   Uses '_CI_SCANNER_CONTAINER_PLATFORM' to control the mode:
 #
-# Run worker on ewms pilot
+# - Docker mode:
+#       runs the pilot image (docker) that runs Docker scanner clients
+# - Apptainer mode:
+#       runs the pilot image (docker) that runs Apptainer scanner clients
 #
+########################################################################
+
+########################################################################
+# Common (platform-agnostic) setup
 ########################################################################
 
 # establish pilot's root path
 tmp_rootdir="$(pwd)/pilot-$(uuidgen)"
-mkdir $tmp_rootdir
-cd $tmp_rootdir
+mkdir "$tmp_rootdir"
+cd "$tmp_rootdir"
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 
 # mark startup.json's dir to be bind-mounted into the task container (by the pilot)
@@ -21,34 +28,19 @@ export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$tmp_rootdir"
 python -c 'import os; assert os.listdir(os.path.dirname(os.environ["CI_SKYSCAN_STARTUP_JSON"])) == ["startup.json"]'
 export EWMS_PILOT_EXTERNAL_DIRECTORIES="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
 
-# task image, args, env
-if [ -n "${_RUN_THIS_APPTAINER_IMAGE:-}" ]; then
-    if [[ "$_RUN_THIS_APPTAINER_IMAGE" == *.sif ]]; then
-        # place a duplicate of the file b/c the pilot transforms this into sandbox/dir format, so there are race conditions w/ parallelizing
-        export EWMS_PILOT_TASK_IMAGE="$tmp_rootdir/$(basename "$_RUN_THIS_APPTAINER_IMAGE")"
-        cp "$_RUN_THIS_APPTAINER_IMAGE" "$EWMS_PILOT_TASK_IMAGE"
-        export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=False
-    else
-        # already in sandbox/dir format
-        export EWMS_PILOT_TASK_IMAGE="$_RUN_THIS_APPTAINER_IMAGE"
-        export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
-    fi
-    export _EWMS_PILOT_CONTAINER_PLATFORM="apptainer"
-else
-    export EWMS_PILOT_TASK_IMAGE="$CI_DOCKER_IMAGE_TAG"
-    export _EWMS_PILOT_CONTAINER_PLATFORM="docker" # NOTE: technically not needed b/c this is the default value
-    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"       # this only needed in ci--the infra would set this in prod
-fi
+# args
 export EWMS_PILOT_TASK_ARGS="python -m skymap_scanner.client --infile {{INFILE}} --outfile {{OUTFILE}} --client-startup-json $CI_SKYSCAN_STARTUP_JSON"
-json_var=$(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//') # must remove last comma
+
+# marshal SKYSCAN/_SKYSCAN_ env into JSON
+json_var=$(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | awk -F= '{printf "\"%s\":\"%s\",", $1, $2}' | sed 's/,$//')
 json_var="{$json_var}"
 export EWMS_PILOT_TASK_ENV_JSON="$json_var"
 
-# file types -- controls intermittent serialization
+# file types
 export EWMS_PILOT_INFILE_EXT="JSON"
 export EWMS_PILOT_OUTFILE_EXT="JSON"
 
-# Load JSON values
+# queues/broker config
 export EWMS_PILOT_QUEUE_INCOMING=$(jq -r '.toclient.name' "$_EWMS_JSON_ON_HOST")
 export EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN=$(jq -r '.toclient.auth_token' "$_EWMS_JSON_ON_HOST")
 export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=$(jq -r '.toclient.broker_type' "$_EWMS_JSON_ON_HOST")
@@ -60,11 +52,62 @@ export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=$(jq -r '.fromclient.broker_type' "
 export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=$(jq -r '.fromclient.broker_address' "$_EWMS_JSON_ON_HOST")
 
 
-# run!
-ENV="$(dirname $tmp_rootdir)/pyenv-$(basename $tmp_rootdir)"
-pip install virtualenv
-virtualenv --python python3 "$ENV"
-. "$ENV"/bin/activate
-pip install --upgrade pip
-pip install ewms-pilot[rabbitmq]
-python -m ewms_pilot
+########################################################################
+# Run!
+########################################################################
+
+# ─────────────── Case: Docker ───────────────
+if [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "docker" ]]; then
+
+    # docker-specific pilot env vars
+    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_DOCKER"
+    export _EWMS_PILOT_DOCKER_SHM_SIZE="6gb"  # CI-specific; prod infra should set this
+
+    # Required env for the helper
+    export DOOD_OUTER_IMAGE="$_PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT"
+    # Network for the outer container
+    if [[ -z "${DOOD_NETWORK:-}" ]]; then
+        echo "::error::DOOD_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
+        exit 1
+    fi
+    # Bind dirs: the pilot needs these paths visible at the same locations
+    # - tmp_rootdir (RW)
+    # - startup.json's parent (RO)
+    export DOOD_BIND_RW_DIRS="$tmp_rootdir"
+    export DOOD_BIND_RO_DIRS="$(dirname "$CI_SKYSCAN_STARTUP_JSON")"
+    # Forward envs by prefix and explicit list
+    export DOOD_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_ SKYSCAN_ _SKYSCAN_"
+    export DOOD_FORWARD_ENV_VARS="CI_SKYSCAN_STARTUP_JSON"
+
+    # run (curl script first)
+    tmp_for_dood_sh=$(mktemp -d)
+    curl -fsSL "$CI_SCRIPT_URL_DOOD_RUN" -o "$tmp_for_dood_sh/run-dood.sh"
+    chmod +x "$tmp_for_dood_sh/run-dood.sh"
+    "$tmp_for_dood_sh/run-dood.sh"
+
+# ─────────────── Case: Apptainer ───────────────
+elif [[ "${_CI_SCANNER_CONTAINER_PLATFORM}" == "apptainer" ]]; then
+
+    # apptainer-specific pilot env vars
+    export EWMS_PILOT_TASK_IMAGE="$_SCANNER_IMAGE_APPTAINER"
+    export _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT=True
+
+    # run
+    docker run --rm \
+        --privileged \
+        --network=host \
+        \
+        -v "$tmp_rootdir:$tmp_rootdir" \
+        -v "$(dirname "$CI_SKYSCAN_STARTUP_JSON"):$(dirname "$CI_SKYSCAN_STARTUP_JSON")":ro \
+        -v "$_SCANNER_IMAGE_APPTAINER:$_SCANNER_IMAGE_APPTAINER":ro \
+        \
+        --env CI_SKYSCAN_STARTUP_JSON="$CI_SKYSCAN_STARTUP_JSON" \
+        $(env | grep -E '^(EWMS_|_EWMS_)' | cut -d'=' -f1 | sed 's/^/--env /') \
+        \
+        "$_PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT"
+
+# ─────────────── Case: Unknown??? ───────────────
+else
+    echo "::error::cannot launch worker — unknown '_CI_SCANNER_CONTAINER_PLATFORM=$_CI_SCANNER_CONTAINER_PLATFORM'"
+    exit 2
+fi

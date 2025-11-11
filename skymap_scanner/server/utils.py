@@ -43,6 +43,7 @@ def get_mqclient_connections() -> tuple[mq.Queue, mq.Queue]:
         name=ewms_config["fromclient"]["name"],
         auth_token=ewms_config["fromclient"]["auth_token"],
         timeout=SERVER_ENV.SKYSCAN_MQ_TIMEOUT_FROM_CLIENTS,
+        prefetch=SERVER_ENV.SKYSCAN_MQ_PREFETCH_FROM_CLIENTS,
     )
 
     return to_clients_queue, from_clients_queue

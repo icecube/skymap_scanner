@@ -16,19 +16,35 @@ concurrency:
 
 
 env:
-  PY_COLORS: "1"
-  BOT_NAME: wipacdevbot
-  BOT_EMAIL: developers@icecube.wisc.edu
+  # pilot image tags — versioned!
+  _PILOT_IMAGE_FOR_DOCKER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:1.2.0-docker-tasks"
+  _PILOT_IMAGE_FOR_APPTAINER_SCANNER_CLIENT: "ghcr.io/observation-management-service/ewms-pilot:1.2.0"
   #
+  # url pointing to remote helper scripts — versioned!
+  CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/apptainer/install-apptainer.sh
+  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/docker/run-docker-outside-of-docker.sh
+  CI_SCRIPT_URL_RUN_MQ_BROKER: https://raw.githubusercontent.com/Observation-Management-Service/ewms-pilot/refs/tags/v1.1.2/tests/integration/run-broker.sh
+  #
+  # used for/by mq broker script
+  RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
+  MQ_BROKER: "scanner_broker"
+  #
+  # use by local_scan.py
   CI_LOCAL_SCAN_TAIL: 20
-  CI_DOCKER_IMAGE_TAG: icecube/skymap_scanner:local
   #
+  _SCANNER_IMAGE_DOCKER: icecube/skymap_scanner:local
+  #
+  # a special network set up so docker scanner clients (inside of docker pilots) can talk to the mq broker
+  DOOD_NETWORK: mynet
+  #
+  # used for configuring the scanner runtime
   CI_TEST_RUN_STDOUT_STDERR_DIR: /home/runner/work/skymap_scanner/testrun_outputs
   N_WORKERS: 2
   REALTIME_EVENTS_DIR: /home/runner/work/skymap_scanner/skymap_scanner/tests/data/realtime_events
   CI_SKYSCAN_CACHE_DIR: /home/runner/work/skymap_scanner/skymap_scanner/cache
   CI_SKYSCAN_OUTPUT_DIR: /home/runner/work/skymap_scanner/skymap_scanner/output
   CI_SKYSCAN_DEBUG_DIR: /home/runner/work/skymap_scanner/skymap_scanner/debug
+  #
   # see source tests/env-vars.sh
 
 
@@ -43,7 +59,75 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.7
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.8
+
+  _yaml_templates:
+    if: ${{ false }}  # never runs; holds YAML anchors only — bit of a hack, but reduces code duplication
+    runs-on: ubuntu-latest
+    steps:
+      - &df_disk_space
+        name: "— Disk Space —"
+        if: always()
+        run: df -h /
+
+      - &free_disk_space
+        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
+        with:
+          docker-images: false
+
+      - &dump_output_central_server
+        name: "dump output — central server"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
+
+      - &dump_output_worker_1_pilot
+        name: "dump output — worker #1 — pilot"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
+
+      - &dump_output_worker_1_clients
+        name: "dump output — worker #1 — clients (icetray pixel reconstructions)"
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
+
+      - &dump_output_worker_2_pilot
+        name: "dump output — worker #2 — pilot"
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
+
+      - &dump_output_worker_2_clients
+        name: "dump output — worker #2 — clients (icetray pixel reconstructions)"
+        if: always() && env.N_WORKERS == '2'
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
+          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+
+      - &dump_rabbitmq_diagnostics
+        name: RabbitMQ diagnostics
+        if: always()
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          echo "=== docker logs (rabbitmq) ==="
+          docker logs "$MQ_BROKER" || true
+          echo "=== rabbitmqctl status ==="
+          docker exec "$MQ_BROKER" rabbitmqctl status || true
+          echo "=== rabbitmq-diagnostics memory ==="
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics memory || true
+          echo "=== rabbitmq-diagnostics environment ==="
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics environment || true
+          echo "=== rabbitmq-diagnostics alarms ==="
+          docker exec "$MQ_BROKER" rabbitmq-diagnostics alarms || true
+
 
   #############################################################################
   # LINTERS
@@ -53,7 +137,8 @@ jobs:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
@@ -71,7 +156,8 @@ jobs:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
@@ -97,7 +183,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.3
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
         with:
           mode: PACKAGING
           python_min: '3.10'
@@ -119,7 +205,8 @@ jobs:
           file: ./Dockerfile
           tags: skymap_scanner:py-dep-this
           load: true
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.1
+          build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   #############################################################################
@@ -139,8 +226,8 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
-          load: true
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
+          load: false  # for checking if this builds, no loading needed
 
   test-run-dummy:
     needs: [ flake8 ]
@@ -157,45 +244,15 @@ jobs:
           "apptainer",
         ]
     env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
+      _RECO_ALGO: "${{ matrix.reco_algo }}"
+      _CI_SCANNER_CONTAINER_PLATFORM: "${{ matrix.container_platform }}"
+      _NSIDES: "1:0 2:12 4:12"
       EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: True  # one crash per pilot is enough
       EWMS_PILOT_TASK_TIMEOUT: 15
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-          # Use the Bitnami-specific absolute limit var:
-          RABBITMQ_DISK_FREE_ABSOLUTE_LIMIT: "1MB"
-          # (Optional) leave memory watermark alone or keep it generous:
-          RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.9"
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
     steps:
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-        with:
-          docker-images: false
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *df_disk_space
+      - *free_disk_space
+      - *df_disk_space
 
       - uses: actions/checkout@v5
         with:
@@ -206,14 +263,18 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
+          build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: install apptainer
-        run: ./resources/install_apptainer.sh
+        name: "apptainer only: install apptainer"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          curl -fsSL "$CI_SCRIPT_URL_INSTALL_APPTAINER" -o install-apptainer.sh && chmod +x install-apptainer.sh
+          ./install-apptainer.sh --sif no  # we will run sandboxes (dirs), not .sif files
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer image
+        name: "apptainer only: build apptainer image"
         env:
           # keep caches off $HOME and easy to delete
           APPTAINER_CACHEDIR: ${{ runner.temp }}/apptainer-cache
@@ -225,20 +286,41 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
-          source tests/env-vars.sh
-          export _RECO_ALGO="${{ matrix.reco_algo }}"
-          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="1:0 2:12 4:12"
           
-          # set special env vars
+          # step 1: CREATE DOCKER NETWORK
+          if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
+              docker network create "$DOOD_NETWORK"
+          fi
+          
+          # step 2: START MQ BROKER — this is always in a docker container, even in 'apptainer' tests
+          curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
+          if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
+              # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
+              source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
+              export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+              export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES
+              source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=host"
+              export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+              export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+          else
+              echo "::error::unknown container_platform: ${{ matrix.container_platform }}"
+              exit 2
+          fi
+          docker ps
+          
+          # step 3: SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          source tests/env-vars.sh
+          export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
           if [ "${{ matrix.container_platform }}" == "apptainer" ]; then
-              export _RUN_THIS_APPTAINER_IMAGE="$(realpath skymap_scanner.sandbox)"
+              export _SCANNER_IMAGE_APPTAINER="$(realpath skymap_scanner.sandbox)"
           fi
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               export _SKYSCAN_CI_CRASH_DUMMY_PROBABILITY=0.75
           fi
           
-          # run!
+          # step 4: RUN!
           cd ./resources/launch_scripts
           if [ "${{ matrix.reco_algo }}" == "crash_dummy" ]; then
               set +e  # allow `||` to supress first non-zero exit
@@ -249,7 +331,7 @@ jobs:
           fi
 
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
-        name: look at stderrfiles
+        name: "crash_dummy only: see the crashes happened as expected"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -265,7 +347,7 @@ jobs:
           fi
 
       - if: ${{ matrix.reco_algo == 'dummy' }}
-        name: look at results file (.npz)
+        name: "dummy only: dump results file (.npz)"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           ls .
@@ -273,52 +355,14 @@ jobs:
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
           echo $outfile
 
-      - name: "dump output — central server stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: "dump output — worker pilot #2 stdout/stderr"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
+      - *dump_output_central_server
+      - *dump_output_worker_1_pilot
+      - *dump_output_worker_1_clients
+      - *dump_output_worker_2_pilot
+      - *dump_output_worker_2_clients
+      - *dump_rabbitmq_diagnostics
 
-      - name: RabbitMQ diagnostics
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          echo "=== docker logs (rabbitmq) ==="
-          docker logs rabbitmq || true
-          echo "=== rabbitmqctl status ==="
-          docker exec rabbitmq rabbitmqctl status || true
-          echo "=== rabbitmq-diagnostics memory ==="
-          docker exec rabbitmq rabbitmq-diagnostics memory || true
-          echo "=== rabbitmq-diagnostics environment ==="
-          docker exec rabbitmq rabbitmq-diagnostics environment || true
-          echo "=== rabbitmq-diagnostics alarms ==="
-          docker exec rabbitmq rabbitmq-diagnostics alarms || true
-
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *df_disk_space
 
 
   test-run-nsides-thresholds-dummy:
@@ -326,7 +370,8 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         nsides: [
           "1:0",
@@ -338,39 +383,14 @@ jobs:
           0.65,
         ]
     env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
+      _CI_SCANNER_CONTAINER_PLATFORM: docker
+      _RECO_ALGO: dummy
+      _NSIDES: "${{ matrix.nsides }}"
+      _PREDICTIVE_SCANNING_THRESHOLD: ${{ matrix.predictive_scanning_threshold }}
     steps:
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-        with:
-          docker-images: false
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *df_disk_space
+      - *free_disk_space
+      - *df_disk_space
 
       - uses: actions/checkout@v5
         with:
@@ -381,20 +401,30 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
+          build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          
+          # step 1: CREATE DOCKER NETWORK
+          docker network create "$DOOD_NETWORK"
+          
+          # step 2: START MQ BROKER — using the docker network created above
+          curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
+          source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
+          export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          
+          # step 3: SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           set -x
           source tests/env-vars.sh
-          export _RECO_ALGO=dummy
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/hese_event_01.json)
-          export _NSIDES="${{ matrix.nsides }}"
-          export _PREDICTIVE_SCANNING_THRESHOLD=${{ matrix.predictive_scanning_threshold }}
 
+          # step 4: RUN!
           cd ./resources/launch_scripts
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
@@ -414,43 +444,13 @@ jobs:
           assert len(pydict) == nsides.count(":")
           '
 
-      - name: "dump output — central server stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: "dump output — worker pilot #2 stdout/stderr"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
-      - name: rabbitmq logs
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker logs rabbitmq
-
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *dump_output_central_server
+      - *dump_output_worker_1_pilot
+      - *dump_output_worker_1_clients
+      - *dump_output_worker_2_pilot
+      - *dump_output_worker_2_clients
+      - *dump_rabbitmq_diagnostics
+      - *df_disk_space
 
 
   test-run-realistic:
@@ -458,7 +458,8 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         reco_algo: [
           millipede_original,
@@ -479,39 +480,13 @@ jobs:
           - reco_algo: splinempe_pointed
             eventfile: hese_event_01.json
     env:
-      SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_TOCLIENT_AUTH_TOKEN: password  # using this would override password in address
-      SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS: user1@localhost/test
-      SKYSCAN_MQ_FROMCLIENT_AUTH_TOKEN: password  # using this would override password in address
-    services:
-      rabbitmq:
-        # see image.tag -> https://github.com/Observation-Management-Service/path-kubernetes/blob/main/helm-values-rabbitmq-bitnami.yaml (see https://artifacthub.io/packages/helm/bitnami/rabbitmq/11.14.3)
-        image: bitnamilegacy/rabbitmq:3.11.15-debian-11-r0
-        env:
-          RABBITMQ_USERNAME: user1
-          RABBITMQ_PASSWORD: password
-          RABBITMQ_VHOST: test
-          BITNAMI_DEBUG: true
-        # Note: `--network` option is not supported.
-        options: >-
-          --name rabbitmq
-          --health-cmd "rabbitmqctl node_health_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
+      _RECO_ALGO: "${{ matrix.reco_algo }}"
+      _CI_SCANNER_CONTAINER_PLATFORM: "docker"
+      _NSIDES: "1:0"
     steps:
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
-      - uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9 # until https://github.com/jlumbroso/free-disk-space/pull/26 # need space for mq broker and image
-        with:
-          docker-images: false
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
+      - *df_disk_space
+      - *free_disk_space
+      - *df_disk_space
 
       - uses: actions/checkout@v5
         with:
@@ -522,21 +497,28 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
 
       - name: run
         timeout-minutes: 55  # on average max~=35min
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          set -x
-          lscpu
-          python3 --version
+          
+          # step 1: CREATE DOCKER NETWORK
+          docker network create "$DOOD_NETWORK"
+          
+          # step 2: START MQ BROKER — using the docker network created above
+          curl -fsSL "$CI_SCRIPT_URL_RUN_MQ_BROKER" -o run-mq-broker.sh && chmod +x run-mq-broker.sh
+          source ./run-mq-broker.sh "rabbitmq" "$MQ_BROKER" "--network=$DOOD_NETWORK"
+          export SKYSCAN_MQ_TOCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          export SKYSCAN_MQ_FROMCLIENT_BROKER_ADDRESS="$MQ_BROKER"
+          
+          # setp 3: SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           source tests/env-vars.sh
-          export _RECO_ALGO=${{ matrix.reco_algo }}
           export _EVENTS_FILE=$(realpath $REALTIME_EVENTS_DIR/${{ matrix.eventfile }})
-          export _NSIDES="1:0"
 
+          # step 4: RUN!
           cd ./resources/launch_scripts
           python3 local_scan.py $N_WORKERS $CI_TEST_RUN_STDOUT_STDERR_DIR
 
@@ -549,8 +531,8 @@ jobs:
           echo $outfile
           cat $outfile
           pip install .  # don't need icecube, so no docker container needed
-          
-          
+
+
           # --------------------------------------------------------------------
           # splinempe: special handling + gh-issue reminder timer
           if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
@@ -560,60 +542,34 @@ jobs:
               --assert \
               --compare-different-versions-ok \
               || (cat $(ls *.diff.json) && false)
-          
+
             # put the timer after, so at least we know if the test passes
-            start_time="2025-03-18"  # Set the starting date
-            end_time=$(date -d "$start_time +6 months" +%s)
+            start_time="2025-11-7"  # Set the starting date
+            end_time=$(date -d "$start_time +2 months" +%s)
             current_time=$(date +%s)
             if (( current_time >= end_time )); then
-                echo "::error::it's been six months, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
+                echo "::error::alarm went off, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
                 exit 1
             fi
-          
+
             exit 0
           fi
           # --------------------------------------------------------------------
-          
-          
+
+
           python tests/compare_scan_results.py \
             --actual $outfile \
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
             --assert \
             || (cat $(ls *.diff.json) && false)
 
-      - name: "dump output — central server stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
-      - name: "dump output — worker pilot #1 stdout/stderr"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #1 stdouts/stderrs"
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
-      - name: "dump output — worker pilot #2 stdout/stderr"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
-      - name: "dump output — worker clients / reco-icetray instances #2 stdouts/stderrs"
-        if: always() && env.N_WORKERS == '2'
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
-          echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
-
-      - name: rabbitmq logs
-        if: always()
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker logs rabbitmq
+      - *dump_output_central_server
+      - *dump_output_worker_1_pilot
+      - *dump_output_worker_1_clients
+      - *dump_output_worker_2_pilot
+      - *dump_output_worker_2_clients
+      - *dump_rabbitmq_diagnostics
+      - *df_disk_space
 
       - name: Upload results as artifacts
         if: always()
@@ -625,10 +581,6 @@ jobs:
             *.diff.json
           if-no-files-found: warn
           retention-days: 7
-
-      - name: "— Disk Space —"
-        if: always()
-        run: df -h /
 
 
   test-file-staging:
@@ -644,18 +596,21 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
 
       - name: run
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          source tests/env-vars.sh
           
+          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          source tests/env-vars.sh
+
+          # RUN!
           docker run --rm -i \
             --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
             $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $CI_DOCKER_IMAGE_TAG \
+            $_SCANNER_IMAGE_DOCKER \
             python /local/tests/file_staging.py
 
 
@@ -663,7 +618,8 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         dir: [
           "BRONZE",
@@ -693,7 +649,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ env.CI_DOCKER_IMAGE_TAG }}
+          tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
 
       - name: run
@@ -701,15 +657,18 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -e
-          source tests/env-vars.sh
           
-          # run reco directly
+          # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
+          source tests/env-vars.sh
+
+          # RUN!
+          # -> run reco directly without an ewms pilot wrapper
           docker run --network="host" --rm -i \
             --shm-size=6gb \
             --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
             --env PY_COLORS=1 \
             $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $CI_DOCKER_IMAGE_TAG \
+            $_SCANNER_IMAGE_DOCKER \
             python -m skymap_scanner.client \
             --infile /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/in.json \
             --client-startup-json /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/startup.json \
@@ -719,7 +678,7 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           source tests/env-vars.sh
-          
+
           ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
           ls tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}
 
@@ -729,7 +688,7 @@ jobs:
             --mount type=bind,source=$(readlink -f tests/),target=/local/tests/ \
             --env PY_COLORS=1 \
             $(env | grep -E '^(SKYSCAN_|_SKYSCAN_)' | cut -d'=' -f1 | sed 's/^/--env /') \
-            $CI_DOCKER_IMAGE_TAG \
+            $_SCANNER_IMAGE_DOCKER \
             python /local/tests/compare_reco_pixel_single.py \
             --actual /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out-actual.json \
             --expected /local/tests/data/reco_pixel_single/${{ matrix.reco_algo }}/${{ matrix.dir }}/out.json \
@@ -769,7 +728,7 @@ jobs:
       test-run-realistic,
       test-run-single-pixel,
     ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.13
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
     permissions: # for GITHUB_TOKEN
       contents: write
     with:
