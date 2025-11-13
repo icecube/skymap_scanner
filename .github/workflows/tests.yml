@@ -532,31 +532,6 @@ jobs:
           cat $outfile
           pip install .  # don't need icecube, so no docker container needed
 
-
-          # --------------------------------------------------------------------
-          # splinempe: special handling + gh-issue reminder timer
-          if [[ "${{ matrix.reco_algo }}" == "splinempe" ]]; then
-            python tests/compare_scan_results.py \
-              --actual $outfile \
-              --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
-              --assert \
-              --compare-different-versions-ok \
-              || (cat $(ls *.diff.json) && false)
-
-            # put the timer after, so at least we know if the test passes
-            start_time="2025-11-7"  # Set the starting date
-            end_time=$(date -d "$start_time +2 months" +%s)
-            current_time=$(date +%s)
-            if (( current_time >= end_time )); then
-                echo "::error::alarm went off, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
-                exit 1
-            fi
-
-            exit 0
-          fi
-          # --------------------------------------------------------------------
-
-
           python tests/compare_scan_results.py \
             --actual $outfile \
             --expected tests/data/results_json/${{ matrix.reco_algo }}/$(basename $outfile) \
