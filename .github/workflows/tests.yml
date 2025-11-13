@@ -194,19 +194,30 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      # optimization: ask the action if it would proceed before building our expensive images
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
+        id: pydep-precheck
+        with:
+          only_precheck: true
+
+      # pre-check passed, so proceed...
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: docker/setup-buildx-action@v3
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           tags: skymap_scanner:py-dep-this
           load: true
           build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   #############################################################################
