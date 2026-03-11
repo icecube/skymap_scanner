@@ -7,8 +7,15 @@ ARG ICETRAY_VERSION=v1.15.3-ubuntu22.04
 FROM icecube/icetray:icetray-devel-v1.15.3_pr4012-ubuntu22.04 AS prod
 
 # gcd files
-RUN mkdir -p /opt/i3-data/baseline_gcds && \
-    wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A *.i3* -nd http://prod-exe.icecube.wisc.edu/baseline_gcds/ && \
+# -- toggle GCD download at build time (1=download, 0=skip)
+ARG INCLUDE_GCD=1
+RUN set -eux; \
+    mkdir -p /opt/i3-data/baseline_gcds; \
+    if [ "${INCLUDE_GCD}" = "1" ]; then \
+        wget -nv -N -t 5 -P /opt/i3-data/baseline_gcds -r -l 1 -A '*.i3*' -nd http://prod-exe.icecube.wisc.edu/baseline_gcds/; \
+    else \
+        echo "Skipping baseline_gcds download (INCLUDE_GCD=${INCLUDE_GCD})"; \
+    fi; \
     chmod -R u+rwX,go+rX,go-w /opt/i3-data/baseline_gcds
 
 #
