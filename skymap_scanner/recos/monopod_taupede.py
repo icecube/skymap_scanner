@@ -1,5 +1,4 @@
-
-
+from common.calculator import poisson_llh
 import datetime
 import random
 import time
@@ -20,9 +19,10 @@ from icecube import (  # type: ignore[import]  # noqa: F401
 
 from icecube.icetray import I3Frame  # type: ignore[import]
 
-from .. import config as cfg
-from ..utils.pixel_classes import RecoPixelVariation
-from . import RecoInterface, VertexGenerator
+from skymap_scanner import config as cfg
+from skymap_scanner.utils.pixel_classes import RecoPixelVariation
+from skymap_scanner.recos import RecoInterface, VertexGenerator
+from skymap_scanner.recos.common.pulse_proc import mask_deepcore, pulse_cleaning
 
 #IMPORTS FROM REC_TAU
 import os
@@ -54,6 +54,7 @@ from icecube import lilliput
 from icecube.gulliver_modules import gulliview
 
 from snowflake import library, unfold
+import reco
 from reco import skymap, dom
 from reco.masks import (earlypulses,
                         maskdc,
@@ -116,8 +117,7 @@ class MonoTau(RecoInterface):
             tiltTableDir = os.path.expandvars('$I3_BUILD/ice-models/resources/models/ICEMODEL/spice_ftp-v1/'),
             quantileEpsilon=1,
             effectivedistancetableprob = effp_spline,
-            effectivedistancetabletmod = tmod_spline
-        )
+            effectivedistancetabletmod = tmod_spline)
 
         self.muon_service = None
 
@@ -130,7 +130,7 @@ class MonoTau(RecoInterface):
     @icetray.traysegment
     def prepare_frames(tray, name, logger, **kwargs) -> None:
         #CURRENTLY USING THE VHESELFVETO FROM MILLIPEDE WILKS FOR CONSISTENCY, CAN CHANGE THIS IF NEEDED
-       # Generates the vertex seed for the initial scan.
+        #Generates the vertex seed for the initial scan.
         # Only run if HESE_VHESelfVeto is not present in the frame.
         # VertexThreshold is 250 in the original HESE analysis (Tianlu)
         # If HESE_VHESelfVeto is already in the frame, is likely using implicitly a VertexThreshold of 250 already. To be determined when this is not the case.
@@ -139,8 +139,7 @@ class MonoTau(RecoInterface):
             frame[cfg.INPUT_POS_NAME] = frame[seed_prefix + "VertexPos"]
             frame[cfg.INPUT_TIME_NAME] = frame[seed_prefix + "VertexTime"]
 
-        tray.Add(extract_seed, "ExtractSeed",
-                 If = lambda frame: frame.Has("HESE_VHESelfVeto"))
+        tray.Add(extract_seed, "ExtractSeed", If = lambda frame: frame.Has("HESE_VHESelfVeto"))
 
         tray.AddModule('VHESelfVeto', 'selfveto',
             VertexThreshold=250,
@@ -152,16 +151,16 @@ class MonoTau(RecoInterface):
 
         # this only runs if the previous module did not return anything
         tray.AddModule('VHESelfVeto', 'selfveto-emergency-lowen-settings',
-                       VertexThreshold=5,
-                       Pulses=self.pulsesName_input+'HLC',
-                       OutputBool='VHESelfVeto_meaningless_lowen',
-                       OutputVertexTime=cfg.INPUT_TIME_NAME,
-                       OutputVertexPos=cfg.INPUT_POS_NAME,
-                       If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
+            VertexThreshold=5,
+            Pulses=self.pulsesName_input+'HLC',
+            OutputBool='VHESelfVeto_meaningless_lowen',
+            OutputVertexTime=cfg.INPUT_TIME_NAME,
+            OutputVertexPos=cfg.INPUT_POS_NAME,
+            If=lambda frame: not frame.Has("HESE_VHESelfVeto"))
 
         tray.Add(mask_deepcore, origpulses=self.pulsesName_input, maskedpulses=self.pulsesName)
 
-     #OTHER METHODS FROM MILLIPEDE_WILKS:
+    #OTHER METHODS FROM MILLIPEDE_WILKS:
     def makeSurePulsesExist(frame, pulsesName) -> None:
         if pulsesName not in frame:
             raise RuntimeError(f"{pulsesName} not in frame")
@@ -173,11 +172,11 @@ class MonoTau(RecoInterface):
     @icetray.traysegment
     def exclusions(self, tray, name):
         tray.Add('Delete', keys=['BrightDOMs',
-                                 'SaturatedDOMs',
-                                 'DeepCoreDOMs',
-                                 self.pulsesName_cleaned,
-                                 self.pulsesName_cleaned+'TimeWindows',
-                                 self.pulsesName_cleaned+'TimeRange'])
+            'SaturatedDOMs',
+            'DeepCoreDOMs',
+            self.pulsesName_cleaned,
+            self.pulsesName_cleaned+'TimeWindows',
+            self.pulsesName_cleaned+'TimeRange'])
 
         exclusionList = \
         tray.AddSegment(millipede.HighEnergyExclusions, 'millipede_DOM_exclusions',
@@ -188,12 +187,11 @@ class MonoTau(RecoInterface):
             BrightDOMThreshold=2,
             BadDomsList='BadDomsList',
             CalibrationErrata='CalibrationErrata',
-            SaturationWindows='SaturationWindows'
-            )
+            SaturationWindows='SaturationWindows')
 
 
 
- # I like having frame objects in there even if they are empty for some frames
+        #I like having frame objects in there even if they are empty for some frames
         def createEmptyDOMLists(frame, ListNames=[]):
             for name in ListNames:
                 if name in frame:
@@ -207,8 +205,7 @@ class MonoTau(RecoInterface):
         def skipunhits(frame, output, pulses):
             keepstrings = [1,3,5,14,16,18,20,31,33,35,37,39,51,53,55,57,59,68,70,72,74]
             keepoms = list(range(1,60,5))
-            all_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(
-                frame, pulses)
+            all_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame, pulses)
             omgeo = frame['I3Geometry']
             geo = omgeo.omgeo
             unhits = dataclasses.I3VectorOMKey()
@@ -224,11 +221,11 @@ class MonoTau(RecoInterface):
 
             frame[output] = unhits
 
-         ##################
+        ##################
         tray.AddModule(pulse_cleaning, "LatePulseCleaning",
-                       input_pulses_name=self.pulsesName,
-                       output_pulses_name=self.pulsesName_cleaned,
-                       residual=1.5e3*I3Units.ns)
+            input_pulses_name=self.pulsesName,
+            output_pulses_name=self.pulsesName_cleaned,
+            residual=1.5e3*I3Units.ns)
         ExcludedDOMs.append(self.pulsesName_cleaned+'TimeWindows')
 
         tray.Add(skipunhits, output='OtherUnhits', pulses=self.pulsesName_cleaned)
@@ -246,9 +243,9 @@ class MonoTau(RecoInterface):
         return False
 
 
-   ''' def print_frameid(frame):
-        eventid = frame['I3EventHeader'].event_id
-        print("*******Currently processing frame %s*******" %eventid)'''
+    '''def print_frameid(frame):
+    eventid = frame['I3EventHeader'].event_id
+    print("*******Currently processing frame %s*******" %eventid)'''
 
 
     def fixed_dir(filelist, isdata, hypo, split_names, nframes=None):
@@ -275,7 +272,6 @@ class MonoTau(RecoInterface):
         return truths[0]
 
     
-            )
 
 
     @staticmethod
@@ -332,23 +328,23 @@ class MonoTau(RecoInterface):
         #SETTING PULSES FOR RECO TO DEFAULT
         pulses_for_reco='SplitInIcePulses'
         millipede_params = {'Pulses': f'{pulses_for_reco}PulseCleaned',
-                        'CascadePhotonicsService': self.cascade_service,
-                        'MuonPhotonicsService': None,
-                        'ExcludedDOMs': self.excludedDOMs,
-                        'ReadoutWindow': f'{pulses_for_reco}PulseCleanedTimeRange',
-                        'PartialExclusion': True,
-                        'PhotonsPerBin': 0,
-                        'UseUnhitDOMs': not False,
-                        'MinTimeWidth': 16,
-                        'BinSigma': np.nan,
-                        'RelUncertainty': 0.05,'StepZenith':0,'StepAzimuth':0}
+            'CascadePhotonicsService': self.cascade_service,
+            'MuonPhotonicsService': None,
+            'ExcludedDOMs': self.excludedDOMs,
+            'ReadoutWindow': f'{pulses_for_reco}PulseCleanedTimeRange',
+            'PartialExclusion': True,
+            'PhotonsPerBin': 0,
+            'UseUnhitDOMs': not False,
+            'MinTimeWidth': 16,
+            'BinSigma': np.nan,
+            'RelUncertainty': 0.05,'StepZenith':0,'StepAzimuth':0}
         icetray.logging.log_info(pformat(millipede_params),
                              __name__)
         minis = [_ for _ in ['MIGRAD',
-                         'iMIGRAD',
-                         'SIMPLEX',
-                         'iSIMPLEX',
-                         'LBFGSB'] 
+            'iMIGRAD',
+            'SIMPLEX',
+            'iSIMPLEX',
+            'LBFGSB']] 
         sfx='PPB0'
         for mini in minis:
 
@@ -360,96 +356,93 @@ class MonoTau(RecoInterface):
                  Chain=1,
                  Iterations=iterations,
                  **millipede_params)
-    seeder = lilliput.segments.add_seed_service(
-            tray,
-            millipede_params['Pulses'],
-            [f'{specifier}_{mini}_{PPB0}'])
-    minispec = mini.lower()
-    relerr=0.05
-    minispec += f'.relerr{relerr:.2f}'
+            seeder = lilliput.segments.add_seed_service(
+                tray,
+                millipede_params['Pulses'],
+                [f'{specifier}_{mini}_{PPB0}'])
+            minispec = mini.lower()
+        relerr=0.05
+        minispec += f'.relerr{relerr:.2f}'
 
-    prefs = [_ for tup in [[f'TaupedeFit_{mini}_{PPB0}',
-                            f'MonopodFit_{mini}_{PPB0}']
-                           for mini in minis]
-             for _ in tup]
-    tray.Add(preferred,
+        prefs = [_ for tup in [[f'TaupedeFit_{mini}_{PPB0}', f'MonopodFit_{mini}_{PPB0}'] for mini in minis] for _ in tup]
+        tray.Add(preferred,
              i3_particles_fitparams=[(_, f'{_}FitParams') for _ in prefs],
              If=lambda f: len(prefs) > 0 and any([f.Has(_) for _ in prefs]))
 
 
-    #print( prefs )
+        #print( prefs )
 
-    #print("running HESE, with printing modules")      
-    from segments.MillipedeWrapper import MillipedeWrapper
+        #print("running HESE, with printing modules")      
+        from segments.MillipedeWrapper import MillipedeWrapper
             
-    # energy definition
-    gcdfilepath = "/cvmfs/icecube.opensciencegrid.org/data/GCD/GeoCalibDetectorStatus_2020.Run134142.Pass2_V0.i3.gz"
-    gcdfile = dataio.I3File(gcdfilepath)
-    frame = gcdfile.pop_frame()
-
-    while 'I3Geometry' not in frame:
+        # energy definition
+        gcdfilepath = "/cvmfs/icecube.opensciencegrid.org/data/GCD/GeoCalibDetectorStatus_2020.Run134142.Pass2_V0.i3.gz"
+        gcdfile = dataio.I3File(gcdfilepath)
         frame = gcdfile.pop_frame()
-    geometry = frame['I3Geometry'].omgeo
 
-    strings = [1, 2, 3, 4, 5, 6, 13, 21, 30, 40, 50, 59, 67, 74, 73, 72, 78, 77, 76, 75, 68, 60, 51, 41, 31, 22, 14, 7]
+        while 'I3Geometry' not in frame:
+            frame = gcdfile.pop_frame()
+        geometry = frame['I3Geometry'].omgeo
 
-    outerbounds = {}
-    cx, cy = [], []
-    for string in strings:
-        omkey = icetray.OMKey(string, 1)
-        # if geometry.has_key(omkey):
-        x, y = geometry[omkey].position.x, geometry[omkey].position.y
-        outerbounds[string] = (x, y)
-        cx.append(x)
-        cy.append(y)
-    cx, cy = np.asarray(cx), np.asarray(cy)
-    order = np.argsort(np.arctan2(cx, cy))
-    outeredge_x = cx[order]
-    outeredge_y = cy[order]
+        strings = [1, 2, 3, 4, 5, 6, 13, 21, 30, 40, 50, 59, 67, 74, 73, 72, 78, 77, 76, 75, 68, 60, 51, 41, 31, 22, 14, 7]
 
-    #print(sfx)
+        outerbounds = {}
+        cx, cy = [], []
+        for string in strings:
+            omkey = icetray.OMKey(string, 1)
+            #if geometry.has_key(omkey):
+            x, y = geometry[omkey].position.x, geometry[omkey].position.y
+            outerbounds[string] = (x, y)
+            cx.append(x)
+            cy.append(y)
+        cx, cy = np.asarray(cx), np.asarray(cy)
+        order = np.argsort(np.arctan2(cx, cy))
+        outeredge_x = cx[order]
+        outeredge_y = cy[order]
+
+        #print(sfx)
 
 
-#SHOULD I TAKE THIS OUT SINCE ITS TRACK
-# track reco
-    tray.Add('I3OMSelection<I3RecoPulseSeries>', 'omselection_HESE',
-        InputResponse = 'SRT' + "SplitInIcePulses",
-        OmittedStrings = [79,80,81,82,83,84,85,86], # deepcore strings
-        OutputOMSelection = f'SRTSplitInIcePulses_BadOMSelectionString_{sfx}',
-        OutputResponse = f"SRTSplitInIcePulses_IC_Singles_{sfx}")
+        #SHOULD I TAKE THIS OUT SINCE ITS TRACK
+        #track reco
+        tray.Add('I3OMSelection<I3RecoPulseSeries>', 'omselection_HESE',
+            InputResponse = 'SRT' + "SplitInIcePulses",
+            OmittedStrings = [79,80,81,82,83,84,85,86], # deepcore strings
+            OutputOMSelection = f'SRTSplitInIcePulses_BadOMSelectionString_{sfx}',
+            OutputResponse = f"SRTSplitInIcePulses_IC_Singles_{sfx}")
 
-    tray.Add(SPEFit, f'SPEFit16_{sfx}',
+        tray.Add(SPEFit, f'SPEFit16_{sfx}',
             Pulses = f"SRTSplitInIcePulses_IC_Singles_{sfx}",
             Iterations = 16)
 
-    del millipede_params["PhotonsPerBin"] # also input to MillipedeWrapper next, gives error if entered twice
+        del millipede_params["PhotonsPerBin"] # also input to MillipedeWrapper next, gives error if entered twice
 
     
-     # HESE millipede
-    tray.Add(MillipedeWrapper, f'HESEMillipedeFit_{sfx}',
-        seed_cascade = f'MonopodFit_iMIGRAD_{sfx}', 
-        seed_tau = f'TaupedeFit_iMIGRAD_{sfx}',
-        seed_track =  f'SPEFit16_{sfx}',
-        PhotonsPerBin = 0,
-        ShowerSpacing = 5,
-        innerboundary=550,
-        outerboundary=650,
-        outeredge_x=outeredge_x,
-        outeredge_y=outeredge_y,
-        **millipede_params)
+        #HESE millipede
+        tray.Add(MillipedeWrapper, f'HESEMillipedeFit_{sfx}',
+            seed_cascade = f'MonopodFit_iMIGRAD_{sfx}', 
+            seed_tau = f'TaupedeFit_iMIGRAD_{sfx}',
+            seed_track =  f'SPEFit16_{sfx}',
+            PhotonsPerBin = 0,
+            ShowerSpacing = 5,
+            innerboundary=550,
+            outerboundary=650,
+            outeredge_x=outeredge_x,
+            outeredge_y=outeredge_y,
+            **millipede_params)
 
 
-    # rename
-    tray.Add('Rename', 
+        #rename
+        tray.Add('Rename', 
              Keys=['SRTSplitInIcePulses_IC_Singles', f'SRTSplitInIcePulses_IC_Singles_{sfx}',
                    'PreferredFit_key', f'PreferredFit_key_{sfx}',
                    'PreferredFit', f"PreferredFit_{sfx}"])
-    #LEAVING FINAL ORPHAN STREAM DROPPING AND FILE SAVING FOR WHEN YOU CALL THE FUNCTION FOR NOW
+        #LEAVING FINAL ORPHAN STREAM DROPPING AND FILE SAVING FOR WHEN YOU CALL THE FUNCTION FOR NOW
 
-     def notify1(frame):
+        def notify1(frame):
             logger.debug(f"reco complete! {datetime.datetime.now()}")
 
-            tray.AddModule(notify1, "notify1")
+        tray.AddModule(notify1, "notify1")
 
     @staticmethod
     def to_recopixelvariation(frame: I3Frame, geometry: I3Frame) -> RecoPixelVariation:
@@ -462,8 +455,7 @@ class MonoTau(RecoInterface):
             posvar_id=frame[cfg.I3FRAME_POSVAR].value,
             position=frame["Dummy_pos"],
             time=frame["Dummy_time"].value,
-            energy=frame["Dummy_time"].value,
-        )
+            energy=frame["Dummy_time"].value)
 
 
 # Provide a standard alias for the reconstruction class provided by this module.
