@@ -40,7 +40,7 @@ RUN --mount=type=bind,source=.,target=/src,rw \
 #INSTALL RECO REPOSITORY
 RUN mkdir /opt/reco_src
 WORKDIR /opt/reco_src
-RUN git init && git checkout -b && git config advice.detachedHead false
+RUN git init && git checkout -b {WORKDIR} && git config advice.detachedHead false
 RUN --mount=type=secret,id=GHTOKEN GHTOKEN=$(cat /run/secrets/GHTOKEN) && curl -sS -f -I -H "Authorization: token ${GHTOKEN}" https://api.github.com && \
     git pull --depth 1 https://${GHTOKEN}@github.com/icecube/reco.git             RUN --mount=type=cache,target=/tmp/pip-cache \
     pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
