@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Final, List, 
+from typing import Final, List 
 
 import numpy
 from icecube import (  # noqa: F401
