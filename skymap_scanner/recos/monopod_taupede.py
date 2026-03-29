@@ -1,10 +1,8 @@
-#MILLIPEDE WILKS IMPORTS:
 import datetime
 import os
-from typing import Final, List, Tuple
+from typing import Final, List, 
 
 import numpy
-from icecube.icetray import I3Units
 from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
@@ -20,7 +18,7 @@ from icecube import (  # noqa: F401
 )
 
 
-from icecube.icetray import I3Frame
+from icecube.icetray import I3Frame, I3Units, I3Tray
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation
@@ -29,16 +27,7 @@ from .common.pulse_proc import mask_deepcore, pulse_cleaning
 
 
 
-
-
-
-
-
-
-
-from common.calculator import poisson_llh
 import random
-import time
 
 
 #IMPORTS FROM REC_TAU:
@@ -49,11 +38,6 @@ from pprint import pformat
 import numpy as np
 
 from icecube import dataio
-from icecube import (icetray,
-                     dataclasses,
-                     photonics_service,
-                     mue)  # noqa: F401
-from icecube.icetray import I3Tray, I3Units
 from icecube.phys_services.which_split import which_split
 from icecube.millipede import HighEnergyExclusions
 from icecube.spline_reco import SplineMPE
@@ -66,7 +50,6 @@ from icecube import level3_filter_muon  # noqa: F401
 from icecube.STTools.seededRT.configuration_services import I3DOMLinkSeededRTConfigurationService
 
 # for gulliver
-from icecube import lilliput
 from icecube.gulliver_modules import gulliview
 
 from snowflake import library, unfold
