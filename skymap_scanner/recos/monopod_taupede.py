@@ -1,31 +1,47 @@
-from common.calculator import poisson_llh
+#MILLIPEDE WILKS IMPORTS:
 import datetime
-import random
-import time
-from typing import List, Final
+import os
+from typing import Final, List, Tuple
 
-from icecube.icetray import I3Units  # type: ignore[import]
-from icecube import (  # type: ignore[import]  # noqa: F401
+import numpy
+from icecube.icetray import I3Units
+from icecube import (  # noqa: F401
+    VHESelfVeto,
     dataclasses,
     frame_object_diff,
     gulliver,
     gulliver_modules,
     icetray,
+    lilliput,
     millipede,
     photonics_service,
     recclasses,
-    simclasses,
+    simclasses
 )
 
-from icecube.icetray import I3Frame  # type: ignore[import]
 
-from skymap_scanner import config as cfg
-from skymap_scanner.utils.pixel_classes import RecoPixelVariation
-from skymap_scanner.recos import RecoInterface, VertexGenerator
-from skymap_scanner.recos.common.pulse_proc import mask_deepcore, pulse_cleaning
+from icecube.icetray import I3Frame
 
-#IMPORTS FROM REC_TAU
-import os
+from .. import config as cfg
+from ..utils.pixel_classes import RecoPixelVariation
+from . import RecoInterface, VertexGenerator
+from .common.pulse_proc import mask_deepcore, pulse_cleaning
+
+
+
+
+
+
+
+
+
+
+from common.calculator import poisson_llh
+import random
+import time
+
+
+#IMPORTS FROM REC_TAU:
 import argparse
 from importlib.metadata import version
 
