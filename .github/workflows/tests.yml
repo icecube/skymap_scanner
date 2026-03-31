@@ -239,6 +239,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: false  # for checking if this builds, no loading needed
+          secrets: |
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   test-run-dummy:
     needs: [ flake8 ]
