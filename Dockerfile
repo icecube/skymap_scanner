@@ -37,7 +37,7 @@ RUN --mount=type=bind,source=.,target=/src,rw \
 
 #INSTALL RECO REPOSITORY
 RUN mkdir /opt/reco_src && \
-    git clone https://github.com/icecube/reco.git /opt/reco_src
+    git -c credential.helper= clone https://github.com/icecube/reco.git /opt/reco_src
 RUN --mount=type=cache,target=/tmp/pip-cache \
     pip install /opt/reco_src
 
