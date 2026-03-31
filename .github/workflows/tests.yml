@@ -79,21 +79,21 @@ jobs:
         name: "dump output — central server"
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           cat $CI_TEST_RUN_STDOUT_STDERR_DIR/server.out
 
       - &dump_output_worker_1_pilot
         name: "dump output — worker #1 — pilot"
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot.out | cat
 
       - &dump_output_worker_1_clients
         name: "dump output — worker #1 — clients (icetray pixel reconstructions)"
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-1/pilot-*
 
@@ -101,14 +101,14 @@ jobs:
         name: "dump output — worker #2 — pilot"
         if: always() && env.N_WORKERS == '2'
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           more $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot.out | cat
 
       - &dump_output_worker_2_clients
         name: "dump output — worker #2 — clients (icetray pixel reconstructions)"
         if: always() && env.N_WORKERS == '2'
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           find $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-* -name "stderrfile" -o -name "stdoutfile" | xargs more | cat
           echo "::::::::::::::" && tree $CI_TEST_RUN_STDOUT_STDERR_DIR/worker-2/pilot-*
 
@@ -116,7 +116,7 @@ jobs:
         name: RabbitMQ diagnostics
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           echo "=== docker logs (rabbitmq) ==="
           docker logs "$MQ_BROKER" || true
           echo "=== rabbitmqctl status ==="
@@ -281,7 +281,7 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           curl -fsSL "$CI_SCRIPT_URL_INSTALL_APPTAINER" -o install-apptainer.sh && chmod +x install-apptainer.sh
           ./install-apptainer.sh --sif no  # we will run sandboxes (dirs), not .sif files
       - if: ${{ matrix.container_platform == 'apptainer' }}
@@ -295,7 +295,7 @@ jobs:
       - name: run
         timeout-minutes: 15  # on average ~9min
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -x
           
           # step 1: CREATE DOCKER NETWORK
@@ -344,7 +344,7 @@ jobs:
       - if: ${{ matrix.reco_algo == 'crash_dummy' }}
         name: "crash_dummy only: see the crashes happened as expected"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -x
           # check for fails/errors
           error_type_1='intentional crash-dummy error'
@@ -360,7 +360,7 @@ jobs:
       - if: ${{ matrix.reco_algo == 'dummy' }}
         name: "dummy only: dump results file (.npz)"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           ls .
           ls $CI_SKYSCAN_OUTPUT_DIR
           outfile=$(ls -d $CI_SKYSCAN_OUTPUT_DIR/*.npz)
@@ -419,7 +419,7 @@ jobs:
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           
           # step 1: CREATE DOCKER NETWORK
           docker network create "$DOOD_NETWORK"
@@ -441,7 +441,7 @@ jobs:
 
       - name: check no nsides skipped
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
           export outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
@@ -514,7 +514,7 @@ jobs:
       - name: run
         timeout-minutes: 55  # on average max~=35min
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           
           # step 1: CREATE DOCKER NETWORK
           docker network create "$DOOD_NETWORK"
@@ -535,7 +535,7 @@ jobs:
 
       - name: test output against known result (.json)
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           ls $CI_SKYSCAN_OUTPUT_DIR
           # get newest run*.json
           outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
@@ -612,7 +612,7 @@ jobs:
 
       - name: run
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           
           # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
           source tests/env-vars.sh
@@ -666,7 +666,7 @@ jobs:
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -e
           
           # SET ENV VARS — these require bash to set, see this job's and yaml's `env` blocks for others
@@ -687,7 +687,7 @@ jobs:
 
       - name: test output against known result
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           source tests/env-vars.sh
 
           ls tests/data/reco_pixel_pkls/${{ matrix.reco_algo }}/${{ matrix.dir }}
@@ -739,7 +739,7 @@ jobs:
       test-run-realistic,
       test-run-single-pixel,
     ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.24
     permissions: # for GITHUB_TOKEN
       contents: write
     with:
