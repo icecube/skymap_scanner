@@ -35,6 +35,26 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
 
+
+
+#INSTALL RECO REPOSITORY
+RUN mkdir /opt/reco_src
+WORKDIR /opt/reco_src
+#RUN git init && git checkout main
+RUN --mount=type=secret,id=cvmfs_github_token cvmfs_github_token=$(cat /run/secrets/cvmfs_github_token) && curl -sS -f -I -H "Authorization: token ${cvmfs_github_token}" https://api.github.com && \
+    git clone https://${cvmfs_github_token}@github.com/icecube/reco.git .
+RUN --mount=type=cache,target=/tmp/pip-cache \
+    pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
+RUN --mount=type=bind,source=.,target=/src,rw \
+    --mount=type=cache,target=/tmp/pip-cache \
+    pip install /opt/reco_src
+
+
+
+
+
+
+
 # optional diagnostics
 RUN python --version
 RUN pip freeze
