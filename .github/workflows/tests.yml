@@ -215,8 +215,8 @@ jobs:
           file: ./Dockerfile
           tags: skymap_scanner:py-dep-this
           load: true
-
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN}}
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
           build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
         uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
@@ -241,8 +241,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: false  # for checking if this builds, no loading needed
-
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN}}
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   test-run-dummy:
     needs: [ flake8 ]
@@ -280,7 +280,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN}}
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
           build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
@@ -514,7 +515,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN}}
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - name: run
         timeout-minutes: 55  # on average max~=35min
         run: |
@@ -613,7 +615,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN}}
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - name: run
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -666,8 +669,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN}}
-
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - name: run
         timeout-minutes: 10  # on average max~=5min
         run: |
