@@ -668,7 +668,8 @@ jobs:
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
-          secrets: |                                                                       github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          secrets: |
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: run
         timeout-minutes: 10  # on average max~=5min
