@@ -283,7 +283,7 @@ jobs:
           load: true
           build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
           secrets: |
-            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
