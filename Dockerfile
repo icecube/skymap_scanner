@@ -35,23 +35,13 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     pip install /src[rabbitmq]
 
-
-
 #INSTALL RECO REPOSITORY
 RUN --mount=type=secret,id=github_token \
-	git clone \
-		https://$(cat /run/secrets/github_token)@github.com/icecube/reco.git \
-			/opt/reco_src
+    git clone \
+        https://$(cat /run/secrets/github_token)@github.com/icecube/reco.git \
+        /opt/reco_src
 RUN --mount=type=cache,target=/tmp/pip-cache \
-	pip install /opt/reco_src	
-
-
-
-
-
-
-
-
+    pip install /opt/reco_src
 
 # optional diagnostics
 RUN python --version
