@@ -28,7 +28,6 @@ from .common.pulse_proc import mask_deepcore, pulse_cleaning
 
 import random
 
-
 # IMPORTS FROM REC_TAU:
 import argparse
 from importlib.metadata import version
