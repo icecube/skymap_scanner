@@ -1,31 +1,35 @@
-from common.calculator import poisson_llh
 import datetime
-import random
-import time
-from typing import List, Final
+import os
+from typing import Final, List
 
-from icecube.icetray import I3Units  # type: ignore[import]
-from icecube import (  # type: ignore[import]  # noqa: F401
+import numpy
+from icecube import (  # noqa: F401
+    VHESelfVeto,
     dataclasses,
     frame_object_diff,
     gulliver,
     gulliver_modules,
     icetray,
+    lilliput,
     millipede,
     photonics_service,
     recclasses,
     simclasses,
 )
 
-from icecube.icetray import I3Frame  # type: ignore[import]
 
-from skymap_scanner import config as cfg
-from skymap_scanner.utils.pixel_classes import RecoPixelVariation
-from skymap_scanner.recos import RecoInterface, VertexGenerator
-from skymap_scanner.recos.common.pulse_proc import mask_deepcore, pulse_cleaning
+from icecube.icetray import I3Frame, I3Units, I3Tray
 
-# IMPORTS FROM REC_TAU
-import os
+from .. import config as cfg
+from ..utils.pixel_classes import RecoPixelVariation
+from . import RecoInterface, VertexGenerator
+from .common.pulse_proc import mask_deepcore, pulse_cleaning
+
+
+import random
+
+
+# IMPORTS FROM REC_TAU:
 import argparse
 from importlib.metadata import version
 
@@ -33,8 +37,6 @@ from pprint import pformat
 import numpy as np
 
 from icecube import dataio
-from icecube import icetray, dataclasses, photonics_service, mue  # noqa: F401
-from icecube.icetray import I3Tray, I3Units
 from icecube.phys_services.which_split import which_split
 from icecube.millipede import HighEnergyExclusions
 from icecube.spline_reco import SplineMPE
@@ -49,7 +51,6 @@ from icecube.STTools.seededRT.configuration_services import (
 )
 
 # for gulliver
-from icecube import lilliput
 from icecube.gulliver_modules import gulliview
 
 from snowflake import library, unfold
