@@ -33,14 +33,12 @@ import random
 
 
 # IMPORTS FROM REC_TAU:
-from importlib.metadata import version
 
 from pprint import pformat
 import numpy as np
 
 from icecube import dataio
 from icecube.phys_services.which_split import which_split
-from icecube.spline_reco import SplineMPE
 from icecube.level3_filter_cascade.level3_Recos import SPEFit
 
 # for level 3 muon (pulse cleaning needed for splinempe)
@@ -133,7 +131,7 @@ class MonoTau(RecoInterface):
 
     @staticmethod
     @icetray.traysegment
-    def prepare_frames(tray, name, logger, **kwargs) -> None:
+    def prepare_frames(self,tray, name, logger, **kwargs) -> None:
         # CURRENTLY USING THE VHESELFVETO FROM MILLIPEDE WILKS FOR CONSISTENCY, CAN CHANGE THIS IF NEEDED
         # Generates the vertex seed for the initial scan.
         # Only run if HESE_VHESelfVeto is not present in the frame.
