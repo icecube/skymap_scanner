@@ -1,10 +1,6 @@
-# fmt: off
-# pylint: skip-file
-# mypy: ignore-errors
 
 
 
-from importlib.metadata import version
 from icecube.spline_reco import SplineMPE
 
 
@@ -51,17 +47,10 @@ from icecube.level3_filter_cascade.level3_Recos import SPEFit
 # for level 3 muon (pulse cleaning needed for splinempe)
 from icecube import level3_filter_muon  # noqa: F401
 
-# for srt cleaning
-from icecube.STTools.seededRT.configuration_services import (
-    I3DOMLinkSeededRTConfigurationService,
-)
 
 # for gulliver
 from icecube.gulliver_modules import gulliview
 
-from snowflake import library, unfold
-import reco
-from reco import skymap, dom
 from reco.masks import (
     earlypulses,
     maskdc,
@@ -379,7 +368,7 @@ class MonoTau(RecoInterface):
             "Pulses": f"{pulses_for_reco}PulseCleaned",
             "CascadePhotonicsService": self.cascade_service,
             "MuonPhotonicsService": None,
-            "ExcludedDOMs": self.excludedDOMs,
+            "ExcludedDOMs": ExcludedDOMs,
             "ReadoutWindow": f"{pulses_for_reco}PulseCleanedTimeRange",
             "PartialExclusion": True,
             "PhotonsPerBin": 0,
@@ -396,7 +385,7 @@ class MonoTau(RecoInterface):
         for mini in minis:
             tray.Add(
                 wrapperfn,
-                f"{mini}_{PPB0}",
+                f"{mini}_{sfx}",
                 Seed=Seed,
                 Minimizer=mini,
                 Unfold=False,
@@ -405,7 +394,7 @@ class MonoTau(RecoInterface):
                 **millipede_params,
             )
             seeder = lilliput.segments.add_seed_service(
-                tray, millipede_params["Pulses"], [f"{specifier}_{mini}_{PPB0}"]
+                tray, millipede_params["Pulses"], [f"{specifier}_{mini}_{sfx}"]
             )
             minispec = mini.lower()
         relerr = 0.05
@@ -414,7 +403,7 @@ class MonoTau(RecoInterface):
         prefs = [
             _
             for tup in [
-                [f"TaupedeFit_{mini}_{PPB0}", f"MonopodFit_{mini}_{PPB0}"]
+                [f"TaupedeFit_{mini}_{sfx}", f"MonopodFit_{mini}_{sfx}"]
                 for mini in minis
             ]
             for _ in tup
