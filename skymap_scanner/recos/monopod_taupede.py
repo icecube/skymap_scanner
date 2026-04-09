@@ -65,7 +65,6 @@ from reco.masks import (
     maskunhits,
     maskstrings,
     maskdust,
-    pulse_cleaning,
 )
 from reco.truth import truth, druth
 from reco.mlpd import (
@@ -427,7 +426,6 @@ class MonoTau(RecoInterface):
         # print( prefs )
 
         # print("running HESE, with printing modules")
-        from segments.MillipedeWrapper import MillipedeWrapper
 
         # energy definition
         gcdfilepath = "/cvmfs/icecube.opensciencegrid.org/data/GCD/GeoCalibDetectorStatus_2020.Run134142.Pass2_V0.i3.gz"
