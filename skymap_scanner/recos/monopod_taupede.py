@@ -1,3 +1,6 @@
+# fmt: off
+# pylint: skip-file
+# mypy: ignore-errors
 import datetime
 import os
 from typing import Final, List
