@@ -1,6 +1,13 @@
 # fmt: off
 # pylint: skip-file
 # mypy: ignore-errors
+
+
+
+from importlib.metadata import version
+from icecube.spline_reco import SplineMPE
+
+
 import datetime
 import os
 from typing import Final, List
@@ -131,7 +138,7 @@ class MonoTau(RecoInterface):
 
     @staticmethod
     @icetray.traysegment
-    def prepare_frames(self,tray, name, logger, **kwargs) -> None:
+    def prepare_frames(self, tray, name, logger, **kwargs) -> None:
         # CURRENTLY USING THE VHESELFVETO FROM MILLIPEDE WILKS FOR CONSISTENCY, CAN CHANGE THIS IF NEEDED
         # Generates the vertex seed for the initial scan.
         # Only run if HESE_VHESelfVeto is not present in the frame.
