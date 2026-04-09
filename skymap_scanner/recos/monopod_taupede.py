@@ -33,7 +33,6 @@ import random
 
 
 # IMPORTS FROM REC_TAU:
-import argparse
 from importlib.metadata import version
 
 from pprint import pformat
@@ -41,7 +40,6 @@ import numpy as np
 
 from icecube import dataio
 from icecube.phys_services.which_split import which_split
-from icecube.millipede import HighEnergyExclusions
 from icecube.spline_reco import SplineMPE
 from icecube.level3_filter_cascade.level3_Recos import SPEFit
 
@@ -74,7 +72,6 @@ from reco.mlpd import (
     preferred,
     define_splines,
 )
-from reco.seed import default_seeds
 
 
 class MonoTau(RecoInterface):
