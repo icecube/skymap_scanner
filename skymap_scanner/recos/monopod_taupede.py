@@ -85,7 +85,6 @@ class MonoTau(RecoInterface):
         FTP_TMOD_SPLINE,
     ]
 
-    """Logic for a dummy reco."""
 
     def __init__(self, realtime_format_version: str):
         super().__init__(realtime_format_version)
@@ -93,6 +92,11 @@ class MonoTau(RecoInterface):
         self.refine_time = True
         # VALUE TAKEN FROM MILLIPEDE_WILKS:
         self.add_fallback_position = True
+        
+        #section taken from millipede_wilks:
+        self.pulsesName_input = self.get_input_pulses(realtime_format_version)
+        self.pulsesName = self.pulsesName_input + "IC"
+        self.pulsesName_cleaned = self.pulsesName+'LatePulseCleaned'
 
     def get_vertex_variations() -> List[dataclasses.I3Position]:
         """Returns a list of vectors referenced to the origin that will be used to generate the vertex position variation."""
