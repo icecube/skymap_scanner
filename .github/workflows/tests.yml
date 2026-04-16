@@ -563,8 +563,8 @@ jobs:
               || (cat $(ls *.diff.json) && false)
 
             # put the timer after, so at least we know if the test passes
-            start_time="2026-9-7"  # Set the starting date
-            end_time=$(date -d "$start_time +2 months" +%s)
+            start_time="2025-11-7"  # Set the starting date
+            end_time=$(date -d "$start_time +8 months" +%s)
             current_time=$(date +%s)
             if (( current_time >= end_time )); then
                 echo "::error::alarm went off, how's https://github.com/icecube/skymap_scanner/issues/242 going? Are version-0 result files still being used for splinempe?"
