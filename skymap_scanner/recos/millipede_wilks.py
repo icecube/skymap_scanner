@@ -1,15 +1,12 @@
 """IceTray segment for a millipede reco."""
 
-# fmt: off
-# pylint: skip-file
-# mypy: ignore-errors
 
 import datetime
 import os
 from typing import Final, List, Tuple
 
 import numpy
-from icecube.icetray import I3Units
+from icecube.icetray import I3Units  # type: ignore[attr-defined]
 from icecube import (  # noqa: F401
     VHESelfVeto,
     dataclasses,
@@ -23,7 +20,7 @@ from icecube import (  # noqa: F401
     recclasses,
     simclasses
 )
-from icecube.icetray import I3Frame
+from icecube.icetray import I3Frame  # type: ignore[attr-defined]
 
 from .. import config as cfg
 from ..utils.pixel_classes import RecoPixelVariation

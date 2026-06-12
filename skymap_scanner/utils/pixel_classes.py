@@ -8,8 +8,8 @@ from .. import config as cfg
 from .. import recos
 
 try:  # these are only used for typehints, so mock imports are fine
-    from icecube.dataclasses import I3Position  # type: ignore[import]
-    from icecube.icetray import I3Frame  # type: ignore[import]
+    from icecube.dataclasses import I3Position  # type: ignore[attr-defined]
+    from icecube.icetray import I3Frame  # type: ignore[attr-defined]
 except ImportError:
     I3Position = Any
     I3Frame = Any
