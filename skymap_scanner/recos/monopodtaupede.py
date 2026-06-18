@@ -211,18 +211,19 @@ class MonopodTaupede(RecoInterface):
     
     @icetray.traysegment
     def MonopodWrapper(self,tray, name, Seed, Iterations=4, Chain=1, **params):
-        # the amplitude monopod fit
-        tray.Add(
-            MonopodFit,
-            f'seed_MonopodFit_{name}_Amp',
-            Seed=Seed,
-            Iterations=Iterations,
-            PhotonsPerBin=-1,
-            StepD=60,
-            StepT=100,
-            StepZenith=0,
-            StepAzimuth=0,
-            **{k: v for k, v in params.items() if k not in ['PhotonsPerBin', 'BinSigma']},
+        if Chain == 1:
+            # the amplitude monopod fit
+            tray.Add(
+                MonopodFit,
+                f'seed_MonopodFit_{name}_Amp',
+                Seed=Seed,
+                Iterations=Iterations,
+                PhotonsPerBin=-1,
+                StepD=60,
+                StepT=100,
+                StepZenith=0,
+                StepAzimuth=0,
+                **{k: v for k, v in params.items() if k not in ['PhotonsPerBin', 'BinSigma']},
             )   
             Seed = [
                 f'seed_MonopodFit_{name}_Amp',
@@ -242,6 +243,32 @@ class MonopodTaupede(RecoInterface):
         )
 
         return f'MonopodFit_{name}'
+     
+    def contained_p2(self,frame, seed_key):
+        if frame.Stop != I3Frame.Physics:
+            return False
+
+        if not frame.Has(seed_key):
+            return False
+
+        # guarantee seed for short lengths
+        if frame[seed_key].length < 30 * I3Units.m:
+            return True
+
+        p2 = frame[seed_key].pos + frame[seed_key].dir * frame[seed_key].length
+        # this places the second cascade at the monopod vtx, which we trust
+        # treat the start as the secondary vertex
+        if '_Backlen' in seed_key:
+            p2 = frame[seed_key].pos
+
+        # skip if secondary vertex is outside
+        if abs(p2.z) > 530. * I3Units.m:
+            return False
+
+        if p2.x**2 + p2.y**2 > (600. * I3Units.m)**2:
+            return False
+
+        return True
     
     @icetray.traysegment
     def TaupedeWrapper(self, tray, name, Seed, Iterations=1, Chain=1, **params):
@@ -249,137 +276,113 @@ class MonopodTaupede(RecoInterface):
         def length_penalty(_p):
             return max(0., np.log10(abs(_p.length) / I3Units.m))
 
-        monopod0 = f'MonopodFit_{name}'
-        tray.Add(self.MonopodWrapper, name, Seed=Seed, Chain=Chain, **params)
+        if Chain:
+            monopod0 = f'MonopodFit_{name}'
+            tray.Add(self.MonopodWrapper, name, Seed=Seed, Chain=Chain, **params)
 
-        _tparams = {
-            k: v
-            for k, v in params.items()
-            if k
-            not in [
-                'Minimizer',
-            ]
-        }
+            _tparams = {
+                k: v
+                for k, v in params.items()
+                if k
+                not in [
+                    'Minimizer',
+                ]
+            }
 
-        _nclusters = 2
-        tray.Add(
-            kmeans,
-            nclusters=_nclusters,
-            minit='++',
-            pulse_type=params['Pulses'],
-            output_particles_key='KMeansParticles_pp',
-            split=True,
-            If=lambda _fr: not _fr.Has('KMeansParticles_pp'),
-        )
-        tray.Add(
-            kmeans,
-            nclusters=_nclusters,
-            minit='points',
-            pulse_type=params['Pulses'],
-            output_particles_key='KMeansParticles_points',
-            split=True,
-            If=lambda _fr: not _fr.Has('KMeansParticles_points'),
-        )
+            _nclusters = 2
+            tray.Add(
+                kmeans,
+                nclusters=_nclusters,
+                minit='++',
+                pulse_type=params['Pulses'],
+                output_particles_key='KMeansParticles_pp',
+                split=True,
+                If=lambda _fr: not _fr.Has('KMeansParticles_pp'),
+            )
+            tray.Add(
+                kmeans,
+                nclusters=_nclusters,
+                minit='points',
+                pulse_type=params['Pulses'],
+                output_particles_key='KMeansParticles_points',
+                split=True,
+                If=lambda _fr: not _fr.Has('KMeansParticles_points'),
+            )
 
-        seedscans_monopod = []
-        seedscans_kmeans2 = []
-        seedscans_altnfit = []
-        for minit in ['pp', 'points']:
-            for i in range(_nclusters):
-                # a fast time fit with the output of kmeans(nclusters=2)
-                kmeans_tfit = f'KMeansParticles_{name}_{minit}{i:03}_T'
-                tray.Add(
-                    TaupedeFit,
-                    kmeans_tfit,
-                    Seed=f'KMeansParticles_{minit}{i:03}',
-                    StepL=0.,
-                    StepT=60.,
-                    StepD=0.,
-                    StepZenith=0.,
-                    StepAzimuth=0.,
-                    LengthBounds=[0., 1000.],
-                    **params,
-                )
-                # scan vertex along direction
-                for dist in range(-100, 101, 20):
-                    kmeans_seed_key = f'seed_{kmeans_tfit}{dist:04}'
+            seedscans_monopod = []
+            seedscans_kmeans2 = []
+            seedscans_altnfit = []
+            for minit in ['pp', 'points']:
+                for i in range(_nclusters):
+                    # a fast time fit with the output of kmeans(nclusters=2)
+                    kmeans_tfit = f'KMeansParticles_{name}_{minit}{i:03}_T'
                     tray.Add(
-                        convert_to_tau_seed,
-                        inkey=kmeans_tfit,
-                        outkey=kmeans_seed_key,
-                        length=None, backprop=dist * I3Units.m
+                        TaupedeFit,
+                        kmeans_tfit,
+                        Seed=f'KMeansParticles_{minit}{i:03}',
+                        StepL=0.,
+                        StepT=60.,
+                        StepD=0.,
+                        StepZenith=0.,
+                        StepAzimuth=0.,
+                        LengthBounds=[0., 1000.],
+                        **params,
                     )
-                    seedscans_kmeans2.append(kmeans_seed_key)
+                    # scan vertex along direction
+                    for dist in range(-100, 101, 20):
+                        kmeans_seed_key = f'seed_{kmeans_tfit}{dist:04}'
+                        tray.Add(
+                            convert_to_tau_seed,
+                            inkey=kmeans_tfit,
+                            outkey=kmeans_seed_key,
+                            length=None, backprop=dist * I3Units.m
+                        )
+                        seedscans_kmeans2.append(kmeans_seed_key)
 
-        def contained_p2(frame, seed_key):
-            if frame.Stop != I3Frame.Physics:
-                return False
+        for len in np.unique(np.logspace(0, 2.8, 50, dtype=int)):
+            monopod_seed_key = f'seed_{name}_Monopod{len:03}'
+            tray.Add(convert_to_tau_seed,
+                    inkey=monopod0,
+                    outkey=monopod_seed_key,
+                    length=len * I3Units.m)
+            seedscans_monopod.append(monopod_seed_key)
 
-            if not frame.Has(seed_key):
-                return False
+            backprp_seed_key = f'seed_{name}_Backprp{len:03}'
+            tray.Add(
+                convert_to_tau_seed,
+                inkey=monopod0,
+                outkey=backprp_seed_key,
+                length=len * I3Units.m,
+                backprop=2. * I3Units.m
+            )
+            seedscans_monopod.append(backprp_seed_key)
 
-            # guarantee seed for short lengths
-            if frame[seed_key].length < 30 * I3Units.m:
-                return True
-
-            p2 = frame[seed_key].pos + frame[seed_key].dir * frame[seed_key].length
-            # this places the second cascade at the monopod vtx, which we trust
-            # treat the start as the secondary vertex
-            if '_Backlen' in seed_key:
-                p2 = frame[seed_key].pos
-
-            # skip if secondary vertex is outside
-            if abs(p2.z) > 530. * I3Units.m:
-                return False
-
-            if p2.x**2 + p2.y**2 > (600. * I3Units.m)**2:
-                return False
-
-            return True
-            for len in np.unique(np.logspace(0, 2.8, 50, dtype=int)):
-                monopod_seed_key = f'seed_{name}_Monopod{len:03}'
-                tray.Add(convert_to_tau_seed,
-                        inkey=monopod0,
-                        outkey=monopod_seed_key,
-                        length=len * I3Units.m)
-                seedscans_monopod.append(monopod_seed_key)
-
-                backprp_seed_key = f'seed_{name}_Backprp{len:03}'
+            if len > 2. * I3Units.m:
+                backprp_seed_key = f'seed_{name}_Backlen{len:03}'
                 tray.Add(
                     convert_to_tau_seed,
                     inkey=monopod0,
                     outkey=backprp_seed_key,
                     length=len * I3Units.m,
-                    backprop=2. * I3Units.m
+                    backprop=len * I3Units.m,
                 )
                 seedscans_monopod.append(backprp_seed_key)
 
-                if len > 2. * I3Units.m:
-                    backprp_seed_key = f'seed_{name}_Backlen{len:03}'
-                    tray.Add(
-                        convert_to_tau_seed,
-                        inkey=monopod0,
-                        outkey=backprp_seed_key,
-                        length=len * I3Units.m,
-                        backprop=len * I3Units.m,
-                    )
-                    seedscans_monopod.append(backprp_seed_key)
-
-                for altdir in ['SPEFit2', 'LineFit']:
-                    altdir_seed_key = f'seed_{name}_{altdir}{len:03}'
-                    tray.Add(
-                        convert_to_tau_seed,
-                        inkey=monopod0,
-                        outkey=altdir_seed_key,
-                        length=len * I3Units.m,
-                        dirkey=altdir,
-                        If=lambda _fr, _altdir=altdir: _fr.Has(_altdir),
-                    )
-                    seedscans_altnfit.append(altdir_seed_key)
+            for altdir in ['HESE_SPEFit2', 'HESE_MuonImprovedLineFit']:
+                altdir_seed_key = f'seed_{name}_{altdir}{len:03}'
+                tray.Add(
+                    convert_to_tau_seed,
+                    inkey=monopod0,
+                    outkey=altdir_seed_key,
+                    length=len * I3Units.m,
+                    dirkey=altdir,
+                    If=lambda _fr, _altdir=altdir: _fr.Has(_altdir),
+                )
+                seedscans_altnfit.append(altdir_seed_key)
 
         for seed in seedscans_monopod + seedscans_altnfit + seedscans_kmeans2:
             tray.Add('TauMillipede', Tau=seed, Output=f'{seed}_Tau', **_tparams,
-                     If=partial(contained_p2, seed_key=seed))
+                     If=partial(self.contained_p2, seed_key=seed))
 
         tray.Add(
             preferred,
@@ -430,7 +433,6 @@ class MonopodTaupede(RecoInterface):
             penalty=length_penalty
         )
         def copy_params_particles(frame):
-            print(name)
             pref_key = frame[f'TaupedeFit_{name}_key'].value
 
             if frame.Has(f'{pref_key}FitParams'):
@@ -456,7 +458,7 @@ class MonopodTaupede(RecoInterface):
     def traysegment(self, tray, name, logger, seed=None):
         """Perform MonopodTaupede reco."""
         #take out prep frames after testing
-        #tray.AddSegment(self.prepare_frames,"prepareframes",logger=logger)
+        tray.AddSegment(self.prepare_frames,"prepareframes",logger=logger)
         ExcludedDOMs = tray.Add(self.exclusions)
 
         tray.Add(self.makeSurePulsesExist, pulsesName=self.pulsesName_cleaned)
