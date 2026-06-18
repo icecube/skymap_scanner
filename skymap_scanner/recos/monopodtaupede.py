@@ -211,19 +211,18 @@ class MonopodTaupede(RecoInterface):
     
     @icetray.traysegment
     def MonopodWrapper(self,tray, name, Seed, Iterations=4, Chain=1, **params):
-        if Chain == 1:
-            # the amplitude monopod fit
-            tray.Add(
-                MonopodFit,
-                f'seed_MonopodFit_{name}_Amp',
-                Seed=Seed,
-                Iterations=Iterations,
-                PhotonsPerBin=-1,
-                StepD=60,
-                StepT=100,
-                StepZenith=0,
-                StepAzimuth=0,
-                **{k: v for k, v in params.items() if k not in ['PhotonsPerBin', 'BinSigma']},
+        # the amplitude monopod fit
+        tray.Add(
+            MonopodFit,
+            f'seed_MonopodFit_{name}_Amp',
+            Seed=Seed,
+            Iterations=Iterations,
+            PhotonsPerBin=-1,
+            StepD=60,
+            StepT=100,
+            StepZenith=0,
+            StepAzimuth=0,
+            **{k: v for k, v in params.items() if k not in ['PhotonsPerBin', 'BinSigma']},
             )   
             Seed = [
                 f'seed_MonopodFit_{name}_Amp',
@@ -250,68 +249,67 @@ class MonopodTaupede(RecoInterface):
         def length_penalty(_p):
             return max(0., np.log10(abs(_p.length) / I3Units.m))
 
-        if Chain:
-            monopod0 = f'MonopodFit_{name}'
-            tray.Add(self.MonopodWrapper, name, Seed=Seed, Chain=Chain, **params)
+        monopod0 = f'MonopodFit_{name}'
+        tray.Add(self.MonopodWrapper, name, Seed=Seed, Chain=Chain, **params)
 
-            _tparams = {
-                k: v
-                for k, v in params.items()
-                if k
-                not in [
-                    'Minimizer',
-                ]
-            }
+        _tparams = {
+            k: v
+            for k, v in params.items()
+            if k
+            not in [
+                'Minimizer',
+            ]
+        }
 
-            _nclusters = 2
-            tray.Add(
-                kmeans,
-                nclusters=_nclusters,
-                minit='++',
-                pulse_type=params['Pulses'],
-                output_particles_key='KMeansParticles_pp',
-                split=True,
-                If=lambda _fr: not _fr.Has('KMeansParticles_pp'),
-            )
-            tray.Add(
-                kmeans,
-                nclusters=_nclusters,
-                minit='points',
-                pulse_type=params['Pulses'],
-                output_particles_key='KMeansParticles_points',
-                split=True,
-                If=lambda _fr: not _fr.Has('KMeansParticles_points'),
-            )
+        _nclusters = 2
+        tray.Add(
+            kmeans,
+            nclusters=_nclusters,
+            minit='++',
+            pulse_type=params['Pulses'],
+            output_particles_key='KMeansParticles_pp',
+            split=True,
+            If=lambda _fr: not _fr.Has('KMeansParticles_pp'),
+        )
+        tray.Add(
+            kmeans,
+            nclusters=_nclusters,
+            minit='points',
+            pulse_type=params['Pulses'],
+            output_particles_key='KMeansParticles_points',
+            split=True,
+            If=lambda _fr: not _fr.Has('KMeansParticles_points'),
+        )
 
-            seedscans_monopod = []
-            seedscans_kmeans2 = []
-            seedscans_altnfit = []
-            for minit in ['pp', 'points']:
-                for i in range(_nclusters):
-                    # a fast time fit with the output of kmeans(nclusters=2)
-                    kmeans_tfit = f'KMeansParticles_{name}_{minit}{i:03}_T'
+        seedscans_monopod = []
+        seedscans_kmeans2 = []
+        seedscans_altnfit = []
+        for minit in ['pp', 'points']:
+            for i in range(_nclusters):
+                # a fast time fit with the output of kmeans(nclusters=2)
+                kmeans_tfit = f'KMeansParticles_{name}_{minit}{i:03}_T'
+                tray.Add(
+                    TaupedeFit,
+                    kmeans_tfit,
+                    Seed=f'KMeansParticles_{minit}{i:03}',
+                    StepL=0.,
+                    StepT=60.,
+                    StepD=0.,
+                    StepZenith=0.,
+                    StepAzimuth=0.,
+                    LengthBounds=[0., 1000.],
+                    **params,
+                )
+                # scan vertex along direction
+                for dist in range(-100, 101, 20):
+                    kmeans_seed_key = f'seed_{kmeans_tfit}{dist:04}'
                     tray.Add(
-                        TaupedeFit,
-                        kmeans_tfit,
-                        Seed=f'KMeansParticles_{minit}{i:03}',
-                        StepL=0.,
-                        StepT=60.,
-                        StepD=0.,
-                        StepZenith=0.,
-                        StepAzimuth=0.,
-                        LengthBounds=[0., 1000.],
-                        **params,
+                        convert_to_tau_seed,
+                        inkey=kmeans_tfit,
+                        outkey=kmeans_seed_key,
+                        length=None, backprop=dist * I3Units.m
                     )
-                    # scan vertex along direction
-                    for dist in range(-100, 101, 20):
-                        kmeans_seed_key = f'seed_{kmeans_tfit}{dist:04}'
-                        tray.Add(
-                            convert_to_tau_seed,
-                            inkey=kmeans_tfit,
-                            outkey=kmeans_seed_key,
-                            length=None, backprop=dist * I3Units.m
-                        )
-                        seedscans_kmeans2.append(kmeans_seed_key)
+                    seedscans_kmeans2.append(kmeans_seed_key)
 
         def contained_p2(frame, seed_key):
             if frame.Stop != I3Frame.Physics:
