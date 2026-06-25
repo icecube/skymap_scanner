@@ -55,7 +55,7 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
@@ -142,7 +142,7 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v6
@@ -161,7 +161,7 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
@@ -179,7 +179,7 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
@@ -202,21 +202,21 @@ jobs:
 
       # pre-check passed, so proceed...
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: skymap_scanner:py-dep-this
           load: true
           secrets: |
-            GIT_AUTH_TOKEN=$${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
           build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
         uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
@@ -230,19 +230,19 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: false  # for checking if this builds, no loading needed
           secrets: |
-            GITHUB_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   test-run-dummy:
     needs: [ flake8 ]
@@ -269,19 +269,19 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
           build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
@@ -409,12 +409,12 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -422,7 +422,7 @@ jobs:
           load: true
           build-args: INCLUDE_GCD=0  # for dummy tests we don't need GCD files
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: run
         timeout-minutes: 12  # on average max~=8.5min
@@ -507,19 +507,19 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: run
         timeout-minutes: 55  # on average max~=35min
@@ -608,19 +608,19 @@ jobs:
     needs: [ flake8 ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: run
         run: |
@@ -663,19 +663,19 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: ${{ env._SCANNER_IMAGE_DOCKER }}
           load: true
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            cvmfs_github_token=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: run
         timeout-minutes: 10  # on average max~=5min
