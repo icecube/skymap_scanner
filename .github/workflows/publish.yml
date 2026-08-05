@@ -21,7 +21,8 @@ jobs:
       image_registry: docker.io
       image_namespace: icecube
       image_name: skymap_scanner
-      mode: ${{ github.event_name == 'delete' && 'CVMFS_REMOVE' || 'CVMFS_BUILD' }}
+      #mode: ${{ github.event_name == 'delete' && 'CVMFS_REMOVE' || 'CVMFS_BUILD' }}
+      mode: ${{ 'BUILD' }}
       cvmfs_dest_dir: realtime
       # only used if mode is CVMFS_REMOVE:
       cvmfs_remove_tags: '${{ github.event.ref }}-[SHA]'
