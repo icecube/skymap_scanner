@@ -1,10 +1,25 @@
 <!--- Top of README Badges (automated) --->
-[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/icecube/skymap_scanner?include_prereleases)](https://github.com/icecube/skymap_scanner/) [![GitHub issues](https://img.shields.io/github/issues/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen)
+[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/icecube/skymap_scanner?include_prereleases)](https://github.com/icecube/skymap_scanner) [![GitHub issues](https://img.shields.io/github/issues/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/icecube/skymap_scanner)](https://github.com/icecube/skymap_scanner/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen)
 <!--- End of README Badges (automated) --->
 
 # Skymap Scanner v4
 
 A distributed system that performs a likelihood scan of event directions for real-time alerts using inter-CPU queue-based message passing.
+<!--- Top of README Metadata Section (automated) --->
+
+<!--- note: this information is pulled from the pyproject.toml --->
+
+<dl>
+    <dt><sub>Description</sub></dt>
+    <dd><sub>A distributed system that performs a likelihood scan of event directions for IceCube real-time alerts using CPU cluster(s) and queue-based message passing.</sub></dd>
+    <dt><sub>Keywords</sub></dt>
+    <dd><sub>WIPAC&nbsp;&nbsp;·&nbsp;&nbsp;IceCube&nbsp;&nbsp;·&nbsp;&nbsp;Skymap Scanner&nbsp;&nbsp;·&nbsp;&nbsp;Reconstruction&nbsp;&nbsp;·&nbsp;&nbsp;IceTray&nbsp;&nbsp;·&nbsp;&nbsp;EWMS</sub></dd>
+    <dt><sub>URLs</sub></dt>
+    <dd><sub><a href='https://github.com/icecube/skymap_scanner'>Homepage</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://github.com/icecube/skymap_scanner/issues'>Tracker</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://github.com/icecube/skymap_scanner'>Source</a></sub></dd>
+</dl>
+
+<br>
+<!--- End of README Metadata Section (automated) --->
 
 Skymap Scanner is the computational core of the [SkyDriver orchestration service](https://github.com/WIPACrepo/SkyDriver).
 
