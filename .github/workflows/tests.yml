@@ -503,14 +503,6 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      # this job later runs `pip install .` on the runner (see the
-      # 'test output against known result' step) — use setup-python so we get
-      # a modern pip + a supported Python instead of the runner's system
-      # Python 3.12 + old system pip, which breaks setuptools/pkg_resources
-      # (pkgutil.ImpImporter was removed in Python 3.12).
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
         with:
@@ -549,7 +541,10 @@ jobs:
           outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           cat $outfile
-          pip install .  # don't need icecube, so no docker container needed
+          # don't need icecube, so no docker container needed.
+          # upgrade pip to avoid the old-setuptools pkgutil.ImpImporter crash on Python 3.12
+          python -m pip install --upgrade pip
+          pip install .
 
 
           # --------------------------------------------------------------------
