@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 [project]
 dependencies = [
     'icecube-skyreader>=1.4.2',
-    'iminuit<2.27.0',
+    'iminuit<2.33.0',
     'numpy<1.24.0',
     'oms-mqclient',
     'wipac-dev-tools',
