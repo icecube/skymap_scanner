@@ -466,7 +466,7 @@ jobs:
 
   test-run-realistic:
     if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ flake8 ]
+    needs: [ py-versions, flake8 ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -503,6 +503,13 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
+      # this job runs `pip install .` on the runner (see the 'test output
+      # against known result' step) — pin to a supported Python (per the
+      # py-versions matrix) instead of the runner's incompatible system
+      # Python 3.12.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
         with:
@@ -542,8 +549,6 @@ jobs:
           echo $outfile
           cat $outfile
           # don't need icecube, so no docker container needed.
-          # upgrade pip to avoid the old-setuptools pkgutil.ImpImporter crash on Python 3.12
-          python -m pip install --upgrade pip
           pip install .
 
 
