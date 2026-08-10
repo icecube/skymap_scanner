@@ -11,15 +11,17 @@ on:
   delete:
     branches:
       - '**'
+    tags:
+      - '**'
 
 permissions: # default for all jobs
   contents: read
 
 jobs:
   prep:
-    if: github.event_name == 'delete'   # only used when mode becomes CVMFS_REMOVE
     runs-on: ubuntu-latest
     permissions: {}
+    # output only used when mode == 'CVMFS_REMOVE' (delete events); ignored otherwise
     outputs:
       remove_tags: ${{ steps.output.outputs.remove_tags }}
     steps:
