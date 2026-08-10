@@ -9,6 +9,10 @@ on:
       - '**'
 
 
+permissions: # default for all jobs
+  contents: read
+
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # don't cancel on main/master/default
@@ -133,42 +137,12 @@ jobs:
   # LINTERS
   #############################################################################
 
-  flake8:
+  lint-python:
     needs: [ py-versions ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
-        with:
-          max-complexity: 16  # ideal is ~10-15
-
-  mypy:
-    needs: [ py-versions ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/lint-python.yml@v1.33
+    with:
+      py-matrix-json: ${{ needs.py-versions.outputs.matrix }}
+      max-complexity: 16  # ideal is ~10-15 (matches the previous flake8 setting)
 
 
   #############################################################################
@@ -178,6 +152,8 @@ jobs:
   py-setup:
     if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
+    permissions: # for GITHUB_TOKEN — action pushes packaging commits
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -191,8 +167,10 @@ jobs:
           auto_mypy_option: True
 
   py-dependencies:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
+    permissions: # for GITHUB_TOKEN — action may upload release assets
+      contents: write
     steps:
       # optimization: ask the action if it would proceed before building our expensive images
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
@@ -225,7 +203,7 @@ jobs:
   #############################################################################
 
   test-build-docker:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -241,7 +219,7 @@ jobs:
           load: false  # for checking if this builds, no loading needed
 
   test-run-dummy:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -378,7 +356,7 @@ jobs:
 
   test-run-nsides-thresholds-dummy:
     if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -466,7 +444,7 @@ jobs:
 
   test-run-realistic:
     if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ py-versions, flake8 ]
+    needs: [ py-versions, lint-python ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -603,7 +581,7 @@ jobs:
 
 
   test-file-staging:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -634,7 +612,7 @@ jobs:
 
 
   test-run-single-pixel:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -736,8 +714,7 @@ jobs:
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
     needs: [
       py-versions,
-      mypy,
-      flake8,
+      lint-python,
       py-setup,
       py-dependencies,
       test-build-docker,
