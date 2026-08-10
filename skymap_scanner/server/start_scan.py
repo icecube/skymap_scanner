@@ -216,7 +216,7 @@ class PixelsToReco:
 
         return particle
 
-    def _gen_pframes(
+    def _gen_pframes(  # noqa: PLR0915
         self,
         nside: icetray.I3Int,
         pixel: icetray.I3Int,
