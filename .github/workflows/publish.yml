@@ -12,6 +12,9 @@ on:
     branches:
       - '**'
 
+permissions: # default for all jobs
+  contents: read
+
 jobs:
   prep:
     if: github.event_name == 'delete'   # only used when mode becomes CVMFS_REMOVE
@@ -46,6 +49,7 @@ jobs:
     needs: [ prep ]
     uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.33
     permissions: # for GITHUB_TOKEN
+      contents: read
       packages: write
     with:
       image_registry: docker.io

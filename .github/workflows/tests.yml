@@ -9,6 +9,10 @@ on:
       - '**'
 
 
+permissions: # default for all jobs
+  contents: read
+
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # don't cancel on main/master/default
@@ -148,6 +152,8 @@ jobs:
   py-setup:
     if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
+    permissions: # for GITHUB_TOKEN — action pushes packaging commits
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -163,6 +169,8 @@ jobs:
   py-dependencies:
     needs: [ lint-python ]
     runs-on: ubuntu-latest
+    permissions: # for GITHUB_TOKEN — action may upload release assets
+      contents: write
     steps:
       # optimization: ask the action if it would proceed before building our expensive images
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
