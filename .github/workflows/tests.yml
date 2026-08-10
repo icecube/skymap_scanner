@@ -168,7 +168,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+      - uses: WIPACrepo/wipac-dev-mypy-action@v3.1
 
 
   #############################################################################
