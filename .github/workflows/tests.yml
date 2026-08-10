@@ -9,6 +9,10 @@ on:
       - '**'
 
 
+permissions: # default for all jobs
+  contents: read
+
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # don't cancel on main/master/default
@@ -55,7 +59,7 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
@@ -133,42 +137,12 @@ jobs:
   # LINTERS
   #############################################################################
 
-  flake8:
+  lint-python:
     needs: [ py-versions ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
-        with:
-          max-complexity: 16  # ideal is ~10-15
-
-  mypy:
-    needs: [ py-versions ]
-    runs-on: ubuntu-latest
-    strategy:
-      # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
-      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
-      matrix:
-        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref is dynamic)
-          fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/lint-python.yml@v1.33
+    with:
+      py-matrix-json: ${{ needs.py-versions.outputs.matrix }}
+      max-complexity: 16  # ideal is ~10-15 (matches the previous flake8 setting)
 
 
   #############################################################################
@@ -178,12 +152,14 @@ jobs:
   py-setup:
     if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
+    permissions: # for GITHUB_TOKEN — action pushes packaging commits
+      contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.12
         with:
           mode: PACKAGING
           python_min: '3.10'
@@ -191,22 +167,35 @@ jobs:
           auto_mypy_option: True
 
   py-dependencies:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
+    permissions: # for GITHUB_TOKEN — action may upload release assets
+      contents: write
     steps:
-      - uses: actions/checkout@v5
+      # optimization: ask the action if it would proceed before building our expensive images
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
+        id: pydep-precheck
+        with:
+          only_precheck: true
+
+      # pre-check passed, so proceed...
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: docker/setup-buildx-action@v4
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           tags: skymap_scanner:py-dep-this
           load: true
           build-args: INCLUDE_GCD=0  # for pip recording we don't need GCD files
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   #############################################################################
@@ -214,15 +203,15 @@ jobs:
   #############################################################################
 
   test-build-docker:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -230,7 +219,7 @@ jobs:
           load: false  # for checking if this builds, no loading needed
 
   test-run-dummy:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -254,12 +243,12 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -367,7 +356,7 @@ jobs:
 
   test-run-nsides-thresholds-dummy:
     if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -392,12 +381,12 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -455,7 +444,7 @@ jobs:
 
   test-run-realistic:
     if: ${{ github.actor != 'dependabot[bot]' }}  # don't run expensive job when not needed
-    needs: [ flake8 ]
+    needs: [ py-versions, lint-python ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -488,12 +477,19 @@ jobs:
       - *free_disk_space
       - *df_disk_space
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      # this job runs `pip install .` on the runner (see the 'test output
+      # against known result' step) — pin to a supported Python (per the
+      # py-versions matrix) instead of the runner's incompatible system
+      # Python 3.12.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -530,7 +526,8 @@ jobs:
           outfile=$(find $CI_SKYSCAN_OUTPUT_DIR -type f -name "run*.json" -exec stat -c '%y %n'  {} + | sort | tail -1 | awk '{print $4}')
           echo $outfile
           cat $outfile
-          pip install .  # don't need icecube, so no docker container needed
+          # don't need icecube, so no docker container needed.
+          pip install .
 
           python tests/compare_scan_results.py \
             --actual $outfile \
@@ -548,7 +545,7 @@ jobs:
 
       - name: Upload results as artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-run-realistic-${{ matrix.reco_algo }}-${{ matrix.eventfile }}-results
           path: |
@@ -559,15 +556,15 @@ jobs:
 
 
   test-file-staging:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -590,7 +587,7 @@ jobs:
 
 
   test-run-single-pixel:
-    needs: [ flake8 ]
+    needs: [ lint-python ]
     runs-on: ubuntu-latest
     strategy:
       # don't fail fast on default branch — so we can rerun just the one job in case of transient failure
@@ -615,12 +612,12 @@ jobs:
           - reco_algo: splinempe_pointed
             dir: "JSON"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -673,7 +670,7 @@ jobs:
 
       - name: Upload results as artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-run-single-pixel-${{ matrix.reco_algo }}-${{ matrix.dir }}-results
           path: |
@@ -692,8 +689,7 @@ jobs:
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
     needs: [
       py-versions,
-      mypy,
-      flake8,
+      lint-python,
       py-setup,
       py-dependencies,
       test-build-docker,
@@ -703,7 +699,7 @@ jobs:
       test-run-realistic,
       test-run-single-pixel,
     ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.33
     permissions: # for GITHUB_TOKEN
       contents: write
     with:

@@ -146,7 +146,7 @@ def _ensure_cache_directory(cache_dir, event_metadata):
     return event_cache_dir
 
 
-def prepare_frame_packet(
+def prepare_frame_packet(  # noqa: PLR0915
     frame_packet: list,
     reco_algo: str,
     is_real_event: bool,

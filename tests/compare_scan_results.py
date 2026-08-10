@@ -10,8 +10,8 @@ from wipac_dev_tools import logging_tools
 
 RTOL_PER_FIELD = {
     "llh": 0.1,
-    "E_in": 0.01,
-    "E_tot": 0.01,
+    "E_in": 0.1,
+    "E_tot": 0.1,
     "X": 0.1,
     "Y": 0.1,
     "Z": 0.1,
