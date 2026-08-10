@@ -19,31 +19,26 @@ jobs:
   prep:
     if: github.event_name == 'delete'   # only used when mode becomes CVMFS_REMOVE
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       remove_tags: ${{ steps.output.outputs.remove_tags }}
     steps:
       - id: output
+        env:
+          REF: ${{ github.event.ref }}
+          REF_TYPE: ${{ github.event.ref_type }}
         run: |
           set -euo pipefail
-          ref="${{ github.event.ref }}"
-          ref="${ref#refs/heads/}"     # strip ref prefix, just in case
+          # sanitize the deleted ref like docker/metadata-action tags the built images
+          ref="${REF#refs/heads/}"
           ref="${ref#refs/tags/}"
-          # mirror docker/metadata-action sanitization used when the image was built:
-          # replace invalid tag chars (e.g. '/' in branch names) with '-'
           sanitized="$(printf '%s' "$ref" | sed -E 's#[^a-zA-Z0-9._-]+#-#g')"
-          if [[ "${{ github.event.ref_type }}" == "tag" ]]; then
-            # release images are persisted verbatim on CVMFS (e.g. ...:v1.2.3);
-            # keep the -[SHA] variant too in case a branch-style image exists
-            printf '%s\n' "$sanitized" "$sanitized-[SHA]"
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            printf '%s\n' "$sanitized" "$sanitized-[SHA]"   # verbatim + branch-style variant
           else
-            # branch images are persisted as <sanitized-branch>-<shortsha>
             printf '%s\n' "$sanitized-[SHA]"
           fi > tags.txt
-          {
-            echo "remove_tags<<EOF"
-            cat tags.txt
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          { echo "remove_tags<<EOF"; cat tags.txt; echo "EOF"; } >> "$GITHUB_OUTPUT"
 
   image-publish:
     needs: [ prep ]
