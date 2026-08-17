@@ -485,7 +485,7 @@ jobs:
       # against known result' step) — pin to a supported Python (per the
       # py-versions matrix) instead of the runner's incompatible system
       # Python 3.12.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
       - uses: docker/setup-buildx-action@v4
