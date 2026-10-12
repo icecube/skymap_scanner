@@ -76,6 +76,8 @@ class SplineMPE(RecoInterface):
             realtime_format_version,
             cfg.DEFAULT_INPUT_KEY_NAMES).l2_splinempe
 
+        print(realtime_format_version,self.base_pulseseries,self.l2_splinempe)
+
         # This may be configurable in the future.
         # "VHESelfVeto" yields a reco-independent vertex seed.
         # Setting this to self.l2_splinempe
