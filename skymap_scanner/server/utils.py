@@ -253,8 +253,8 @@ class NSideProgression(OrderedDict[int, int]):
             )
         return int_int_list
 
-    def __hash__(self) -> int:  # pyrefly: ignore[invalid-attribute-override]
-        return hash(str(self._get_int_int_list()))
+    def __hash__(self) -> int: # type: ignore[override]
+        return hash(tuple(self._get_int_int_list()))
 
 
 def calc_estimated_total_nside_recos(
