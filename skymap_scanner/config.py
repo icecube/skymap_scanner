@@ -61,7 +61,6 @@ INPUT_KEY_NAMES_MAP: Final[dict[str, KeyNames]] = {
     "2024a": KeyNames("SplitInIcePulses", "l2_online_SplineMPE"),
 }
 DEFAULT_INPUT_KEY_NAMES: Final = KeyNames(
-    #"SplitUncleanedInIcePulses", "OnlineL2_SplineMPE"
     "SplitInIcePulses", "l2_online_SplineMPE"
 )
 
