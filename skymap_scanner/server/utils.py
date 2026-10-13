@@ -253,7 +253,7 @@ class NSideProgression(OrderedDict[int, int]):
             )
         return int_int_list
 
-    def __hash__(self) -> int:  # type: ignore[override]
+    def __hash__(self) -> int:  # pyrefly: ignore[invalid-attribute-override]
         return hash(str(self._get_int_int_list()))
 
 
