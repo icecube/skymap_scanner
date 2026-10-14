@@ -162,7 +162,7 @@ jobs:
       - uses: WIPACrepo/wipac-dev-py-setup-action@v5.12
         with:
           mode: PACKAGING
-          python_min: '3.11'
+          python_min: '3.12'
           keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
           auto_mypy_option: True
 
