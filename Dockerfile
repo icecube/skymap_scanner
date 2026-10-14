@@ -1,8 +1,15 @@
 #
 # Define the base image icetray version
 #
-
 FROM icecube/icetray:icetray-devel-v1.19.1-ubuntu22.04 AS prod
+
+# Install Python 3.12
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && \
+    apt-get install -y python3.12 python3.12-venv python3.12-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # gcd files
 # -- toggle GCD download at build time (1=download, 0=skip)
@@ -28,11 +35,11 @@ WORKDIR $WORKDIR
 #  - no 'COPY' because we don't want to copy extra files (especially '.git/')
 #  - using '/tmp/pip-cache' allows pip to cache
 RUN --mount=type=cache,target=/tmp/pip-cache \
-    python -m pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
+    pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
 
 RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
-    python -m pip install "/src[rabbitmq]"
+    pip install "/src[rabbitmq]"
 
 # optional diagnostics
 RUN python --version
