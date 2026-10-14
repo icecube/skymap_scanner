@@ -1,9 +1,7 @@
 #
 # Define the base image icetray version
 #
-ARG ICETRAY_VERSION=v1.15.3-ubuntu22.04
 
-#FROM icecube/icetray:icetray-devel-$ICETRAY_VERSION AS prod
 FROM icecube/icetray:icetray-devel-v1.19.1-ubuntu22.04 AS prod
 
 # gcd files
@@ -30,10 +28,11 @@ WORKDIR $WORKDIR
 #  - no 'COPY' because we don't want to copy extra files (especially '.git/')
 #  - using '/tmp/pip-cache' allows pip to cache
 RUN --mount=type=cache,target=/tmp/pip-cache \
-    pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
+    python -m pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
+
 RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
-    pip install /src[rabbitmq]
+    python -m pip install "/src[rabbitmq]"
 
 # optional diagnostics
 RUN python --version
