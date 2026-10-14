@@ -8,8 +8,17 @@ RUN apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && \
-    apt-get install -y python3.12 python3.12-venv python3.12-dev && \
+    apt-get install -y \
+        python3.12 \
+        python3.12-venv \
+        python3.12-dev && \
     rm -rf /var/lib/apt/lists/*
+
+# Create a Python 3.12 virtual environment
+RUN python3.12 -m venv /opt/venv
+
+# Make Python 3.12 the default for subsequent Docker instructions
+ENV PATH="/opt/venv/bin:$PATH"
 
 # gcd files
 # -- toggle GCD download at build time (1=download, 0=skip)
