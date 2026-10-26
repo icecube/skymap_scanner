@@ -163,7 +163,7 @@ jobs:
         with:
           mode: PACKAGING
           python_min: '3.10'
-          eol_check: False
+          skip_eol_check: True
           keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
           auto_mypy_option: True
 
