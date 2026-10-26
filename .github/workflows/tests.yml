@@ -159,10 +159,11 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.12
+      - uses: WIPACrepo/wipac-dev-py-setup-action@do_eol_check
         with:
           mode: PACKAGING
           python_min: '3.10'
+          eol_check: False
           keywords_comma: "WIPAC, IceCube, Skymap Scanner, Reconstruction, IceTray, EWMS"
           auto_mypy_option: True
 
