@@ -139,7 +139,7 @@ jobs:
 
   lint-python:
     needs: [ py-versions ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/lint-python.yml@v1.33
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/lint-python.yml@v1.35
     with:
       py-matrix-json: ${{ needs.py-versions.outputs.matrix }}
       max-complexity: 16  # ideal is ~10-15 (matches the previous flake8 setting)
