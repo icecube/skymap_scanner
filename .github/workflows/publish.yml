@@ -44,7 +44,7 @@ jobs:
 
   image-publish:
     needs: [ prep ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.35
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.36
     permissions: # for GITHUB_TOKEN
       contents: read
       packages: write
